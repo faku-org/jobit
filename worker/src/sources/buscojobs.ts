@@ -36,23 +36,29 @@ interface RawListing {
   };
 }
 
+/**
+ * Only a subset of these is ever populated: BuscoJobs leaves Requisitos,
+ * IdNivelEstudio and AniosExperiencia null on every offer seen so far, while
+ * Horario and PrimerEmpleo are reliable. They are all read anyway, since the
+ * cache keeps the raw payload and other offers may fill them in.
+ */
+interface RawOffer {
+  Descripcion: string | null;
+  DescripcionMarkdown: string | null;
+  Requisitos: string | null;
+  SueldoDesde: number | null;
+  SueldoHasta: number | null;
+  AniosExperienciaDesde: number | null;
+  IdNivelEstudio: number | null;
+  NroPuestosVacantes: number | null;
+  PrimerEmpleo: number | null;
+  IdJornadaLaboral: number | null;
+  IdTipoVacante: number | null;
+  Horario: string | null;
+}
+
 interface RawDetail {
-  pageProps?: {
-    oferta?: {
-      Descripcion: string | null;
-      DescripcionMarkdown: string | null;
-      Requisitos: string | null;
-      SueldoDesde: number | null;
-      SueldoHasta: number | null;
-      AniosExperienciaDesde: number | null;
-      IdNivelEstudio: number | null;
-      NroPuestosVacantes: number | null;
-      PrimerEmpleo: number | null;
-      IdJornadaLaboral: number | null;
-      IdTipoVacante: number | null;
-      TipoContrato: string | null;
-    };
-  };
+  pageProps?: { oferta?: RawOffer };
 }
 
 const EDUCATION_LEVEL: Record<number, string> = {
@@ -210,15 +216,18 @@ function detailJobType(jornada: number | null, tipoVacante: number | null): JobT
   return null;
 }
 
-async function detail(stub: JobStub): Promise<JobDetail | null> {
+async function fetchDetail(stub: JobStub): Promise<unknown | null> {
   const id = await buildId();
   if (!id) return null;
 
   const url = `${ORIGIN}/_next/data/${id}/oferta-ID-${stub.source_id}.json`;
   const data = await fetchJson<RawDetail>(url, DETAIL_DELAY_MS);
-  const offer = data?.pageProps?.oferta;
-  if (!offer) return null;
+  return data?.pageProps?.oferta ?? null;
+}
 
+function parseDetail(raw: unknown): JobDetail | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const offer = raw as RawOffer;
   const experience = offer.AniosExperienciaDesde;
 
   return {
@@ -227,10 +236,11 @@ async function detail(stub: JobStub): Promise<JobDetail | null> {
     salary: salary(offer.SueldoDesde, offer.SueldoHasta),
     experience_years_min: experience,
     education_level: offer.IdNivelEstudio ? (EDUCATION_LEVEL[offer.IdNivelEstudio] ?? null) : null,
+    schedule: offer.Horario?.trim() || null,
     vacancies: offer.NroPuestosVacantes,
     no_experience: offer.PrimerEmpleo === 1 || experience === 0,
     job_type: detailJobType(offer.IdJornadaLaboral, offer.IdTipoVacante),
   };
 }
 
-export const buscojobs: Source = { id: "buscojobs", collect, detail };
+export const buscojobs: Source = { id: "buscojobs", collect, fetchDetail, parseDetail };

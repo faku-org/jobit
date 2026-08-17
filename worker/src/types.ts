@@ -33,6 +33,7 @@ export interface Job {
   experience_years_min: number | null;
   no_experience: boolean;
   education_level: string | null;
+  schedule: string | null;
   vacancies: number | null;
   description: string;
   requirements: string | null;
@@ -70,6 +71,7 @@ export interface JobDetail {
   salary: Salary | null;
   experience_years_min: number | null;
   education_level: string | null;
+  schedule: string | null;
   vacancies: number | null;
   no_experience: boolean;
   job_type: JobType | null;
@@ -79,6 +81,12 @@ export interface Source {
   id: SourceId;
   /** Every listing hit the source publishes, already rubro-tagged. */
   collect: (onProgress: (message: string) => void) => Promise<JobStub[]>;
-  /** Detail fetch for one offer, called only for offers missing from cache. */
-  detail: (stub: JobStub) => Promise<JobDetail | null>;
+  /**
+   * Detail fetch for one offer, called only for offers missing from cache.
+   * Returns the payload as the source publishes it: the cache keeps it raw so
+   * that mapping more fields later never costs another round of requests.
+   */
+  fetchDetail: (stub: JobStub) => Promise<unknown | null>;
+  /** Maps a cached raw payload onto the canonical detail shape. */
+  parseDetail: (raw: unknown) => JobDetail | null;
 }

@@ -1,14 +1,15 @@
 import { resolve } from "node:path";
-import type { JobDetail, SourceId } from "./types.ts";
+import type { SourceId } from "./types.ts";
 
 const CACHE_PATH = resolve(import.meta.dir, "../cache/details.json");
 
 type CacheKey = `${SourceId}:${string}`;
-type CacheFile = Record<CacheKey, JobDetail>;
+type CacheFile = Record<CacheKey, unknown>;
 
 /**
- * Detail pages are the expensive part of a run, so they are kept on disk and
- * only fetched for offers that were never seen before.
+ * Detail pages are the expensive part of a run, so the raw payloads are kept
+ * on disk and only fetched for offers that were never seen before. Storing them
+ * unmapped means adding a field to the schema costs no extra requests.
  */
 export class DetailCache {
   private entries: CacheFile = {};
@@ -27,12 +28,12 @@ export class DetailCache {
     return cache;
   }
 
-  get(source: SourceId, sourceId: string): JobDetail | undefined {
+  get(source: SourceId, sourceId: string): unknown | undefined {
     return this.entries[`${source}:${sourceId}`];
   }
 
-  set(source: SourceId, sourceId: string, detail: JobDetail): void {
-    this.entries[`${source}:${sourceId}`] = detail;
+  set(source: SourceId, sourceId: string, raw: unknown): void {
+    this.entries[`${source}:${sourceId}`] = raw;
     this.dirty = true;
   }
 

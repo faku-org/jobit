@@ -2,6 +2,7 @@ import {
   ArrowUpRight,
   Bookmark,
   Building2,
+  CalendarClock,
   ChevronDown,
   Clock3,
   EyeOff,
@@ -150,6 +151,13 @@ export function JobCard({
           <span className={`${chipClass} bg-neutral-100 text-neutral-700`}>
             <GraduationCap aria-hidden className="size-3.5" />
             {job.education_level}
+          </span>
+        ) : null}
+
+        {job.schedule ? (
+          <span className={`${chipClass} bg-neutral-100 text-neutral-600`}>
+            <CalendarClock aria-hidden className="size-3.5" />
+            {job.schedule}
           </span>
         ) : null}
       </div>

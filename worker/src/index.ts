@@ -47,8 +47,8 @@ async function enrich(
       while (index < queue.length) {
         const stub = queue[index++];
         if (!stub) break;
-        const detail = await source.detail(stub);
-        if (detail) cache.set(source.id, stub.source_id, detail);
+        const raw = await source.fetchDetail(stub);
+        if (raw) cache.set(source.id, stub.source_id, raw);
         done++;
         if (done % 50 === 0) {
           log(`    ${done}/${queue.length} detalles`);
@@ -63,7 +63,10 @@ async function enrich(
     log(`  ${pending.length} ofertas sin detalle (se usan los datos del listado)`);
   }
 
-  return stubs.map((stub) => toJob(stub, cache.get(source.id, stub.source_id) ?? null));
+  return stubs.map((stub) => {
+    const raw = cache.get(source.id, stub.source_id);
+    return toJob(stub, raw === undefined ? null : source.parseDetail(raw));
+  });
 }
 
 async function run(): Promise<void> {

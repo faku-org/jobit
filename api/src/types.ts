@@ -32,6 +32,7 @@ export interface Job {
   experience_years_min: number | null;
   no_experience: boolean;
   education_level: string | null;
+  schedule: string | null;
   vacancies: number | null;
   description: string;
   requirements: string | null;

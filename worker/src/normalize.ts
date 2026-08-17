@@ -36,6 +36,7 @@ function noExperience(stub: JobStub, detail: JobDetail | null, description: stri
 export function plainText(value: string): string {
   return value
     .replace(/\\([\\`*_{}[\]()#+\-.!])/g, "$1")
+    .replace(/_{2,3}(.+?)_{2,3}/g, "$1")
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/(^|\s)[*_](\S[^*_]*?)[*_](?=\s|$)/g, "$1$2")
     .replace(/^#{1,6}\s+/gm, "")
@@ -70,6 +71,7 @@ export function toJob(stub: JobStub, detail: JobDetail | null): Job {
     experience_years_min: experience,
     no_experience: noExperience(stub, detail, description),
     education_level: detail?.education_level ?? null,
+    schedule: detail?.schedule ?? null,
     vacancies: detail?.vacancies ?? null,
     description,
     requirements: detail?.requirements ? plainText(detail.requirements) : null,

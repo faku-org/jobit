@@ -22,6 +22,7 @@ const job = (overrides: Partial<Job> & Pick<Job, "id">): Job => ({
   experience_years_min: 2,
   no_experience: false,
   education_level: null,
+  schedule: null,
   vacancies: 1,
   description: "Atención al público en local comercial.",
   requirements: null,
