@@ -3,16 +3,20 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "workspaces": ["api", "web"],
+  "workspaces": [
+    "api",
+    "web",
+    "worker"
+  ],
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "dev:api": "bun run --cwd api dev",
     "dev:web": "bun run --cwd web dev",
     "build": "bun run --cwd web build",
-    "typecheck": "bun run --cwd api typecheck && bun run --cwd web typecheck",
+    "typecheck": "bun run --cwd api typecheck && bun run --cwd web typecheck && bun run --cwd worker typecheck",
     "lint": "oxlint",
     "fmt": "oxfmt .",
-    "fixture": "bun run worker/generate_fixture.ts"
+    "scrape": "bun run --cwd worker scrape"
   },
   "devDependencies": {
     "oxfmt": "^0.63.0",

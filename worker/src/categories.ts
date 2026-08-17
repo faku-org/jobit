@@ -1,0 +1,74 @@
+export interface Category {
+  slug: string;
+  label: string;
+}
+
+/**
+ * The rubros the UI filters by. Sources publish finer-grained taxonomies
+ * (BuscoJobs has 34 subcanales); each one is folded into a rubro here and the
+ * original label is kept on the job as category_raw.
+ */
+export const CATEGORIES: Category[] = [
+  { slug: "ventas", label: "Ventas y comercial" },
+  { slug: "atencion-cliente", label: "Atención al cliente" },
+  { slug: "administracion", label: "Administración y gestión" },
+  { slug: "oficios", label: "Oficios y construcción" },
+  { slug: "produccion", label: "Producción e industria" },
+  { slug: "logistica", label: "Logística y distribución" },
+  { slug: "contabilidad-finanzas", label: "Contabilidad y finanzas" },
+  { slug: "tecnologia", label: "Tecnología" },
+  { slug: "datos-analisis", label: "Análisis e investigación" },
+  { slug: "salud", label: "Salud" },
+  { slug: "ingenieria", label: "Ingeniería" },
+  { slug: "marketing", label: "Marketing y publicidad" },
+  { slug: "rrhh", label: "Recursos humanos" },
+  { slug: "educacion", label: "Educación" },
+  { slug: "diseno", label: "Diseño y creatividad" },
+  { slug: "otros", label: "Otros" },
+];
+
+const LABEL_BY_SLUG = new Map(CATEGORIES.map((c) => [c.slug, c.label]));
+
+export const categoryLabel = (slug: string): string => LABEL_BY_SLUG.get(slug) ?? "Otros";
+
+/** BuscoJobs subcanal id to rubro slug. */
+const BUSCOJOBS_SUBCANAL: Record<string, string> = {
+  "1030": "ventas",
+  "1006": "ventas",
+  "1014": "ventas",
+  "1003": "marketing",
+  "1021": "marketing",
+  "1026": "atencion-cliente",
+  "1008": "atencion-cliente",
+  "1002": "administracion",
+  "1019": "administracion",
+  "1025": "administracion",
+  "1023": "administracion",
+  "1018": "administracion",
+  "1037": "oficios",
+  "1036": "oficios",
+  "1024": "produccion",
+  "1020": "produccion",
+  "1028": "produccion",
+  "1010": "logistica",
+  "1027": "logistica",
+  "1033": "logistica",
+  "1001": "contabilidad-finanzas",
+  "1013": "contabilidad-finanzas",
+  "1017": "tecnologia",
+  "1004": "datos-analisis",
+  "1031": "datos-analisis",
+  "1029": "datos-analisis",
+  "1015": "salud",
+  "1012": "ingenieria",
+  "1016": "rrhh",
+  "1034": "rrhh",
+  "1011": "educacion",
+  "1009": "diseno",
+  "1005": "diseno",
+  "1022": "otros",
+  "33": "otros",
+};
+
+export const buscojobsCategory = (subcanalId: string): string =>
+  BUSCOJOBS_SUBCANAL[subcanalId] ?? "otros";

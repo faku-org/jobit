@@ -23,7 +23,6 @@ export interface Job {
   city: string | null;
   category: string;
   category_label: string;
-  category_raw: string;
   date_posted: string;
   level: Level | null;
   remote: Remote | null;
@@ -39,25 +38,11 @@ export interface Job {
   duplicates: DuplicateRef[];
 }
 
-export interface JobsFile {
-  scraped_at: string;
-  sources: string[];
-  count: number;
-  jobs: Job[];
-}
-
-export interface JobsQuery {
-  ids?: Set<string>;
-  q?: string;
-  level?: Level;
-  remote?: Remote;
-  category?: string;
-  department?: string;
-  jobType?: JobType;
-  noExperience?: boolean;
-  days?: number;
-  limit: number;
+export interface JobsResponse {
+  total: number;
   offset: number;
+  limit: number;
+  jobs: Job[];
 }
 
 export interface Facet {
@@ -66,14 +51,7 @@ export interface Facet {
   count: number;
 }
 
-export interface JobsResponse {
-  total: number;
-  offset: number;
-  limit: number;
-  jobs: Job[];
-}
-
-export interface MetaResponse {
+export interface Meta {
   count: number;
   scraped_at: string;
   sources: string[];
@@ -82,4 +60,34 @@ export interface MetaResponse {
   no_experience_count: number;
 }
 
-export type Result<T, E = string> = { ok: true; value: T } | { ok: false; error: E };
+export interface Filters {
+  q: string;
+  category: string;
+  department: string;
+  level: Level | "";
+  remote: Remote | "";
+  jobType: JobType | "";
+  noExperience: boolean;
+  days: number | null;
+}
+
+export const EMPTY_FILTERS: Filters = {
+  q: "",
+  category: "",
+  department: "",
+  level: "",
+  remote: "",
+  jobType: "",
+  noExperience: false,
+  days: null,
+};
+
+export const hasActiveFilters = (filters: Filters): boolean =>
+  filters.q !== "" ||
+  filters.category !== "" ||
+  filters.department !== "" ||
+  filters.level !== "" ||
+  filters.remote !== "" ||
+  filters.jobType !== "" ||
+  filters.noExperience ||
+  filters.days !== null;

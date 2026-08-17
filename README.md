@@ -1,34 +1,74 @@
-# React + TypeScript + Vite
+# jobit
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Buscador de ofertas de trabajo de Uruguay, de todos los rubros, pensado para
+encontrar el primer empleo: filtros por rubro, departamento y jornada, marca de
+"sin experiencia", lista de guardadas y descarte de las que ya viste.
 
-Currently, two official plugins are available:
+## Estructura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Carpeta | Qué hace |
+|---|---|
+| `worker/` | Scrapers de portales uruguayos. Escribe `worker/output/jobs.json`. |
+| `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
+| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español. |
 
-## React Compiler
+## Uso
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+bun install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Traer ofertas (primera corrida ~15 min por las descripciones, después solo pide
+las nuevas):
+
+```bash
+bun run scrape
+```
+
+Levantar API y web juntos:
+
+```bash
+bun run dev
+```
+
+La API queda en `http://localhost:3000` y la web en `http://localhost:5173`,
+que proxea `/api` hacia la API.
+
+## API
+
+| Endpoint | Descripción |
+|---|---|
+| `GET /health` | Estado del servicio. |
+| `GET /api/jobs` | Ofertas filtradas y paginadas. |
+| `GET /api/jobs/:id` | Una oferta completa. |
+| `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
+
+Parámetros de `/api/jobs`, todos opcionales y combinables:
+
+| Parámetro | Valores |
+|---|---|
+| `q` | Texto libre sobre título, empresa, ubicación, rubro y descripción. |
+| `category` | Slug de rubro (`ventas`, `oficios`, `salud`, ...). |
+| `department` | Departamento tal cual lo publica la fuente. |
+| `level` | `entry`, `mid`, `senior`. |
+| `remote` | `remote`, `hybrid`. |
+| `job_type` | `full_time`, `part_time`, `internship`. |
+| `no_experience` | `true` para ofertas que no piden experiencia previa. |
+| `days` | Solo ofertas de los últimos N días. |
+| `ids` | Lista de ids separados por coma. |
+| `limit` / `offset` | Paginado. `limit` por defecto 50, máximo 200. |
+
+Variables de entorno: `PORT` (3000), `JOBS_FILE` (ruta al JSON del worker),
+`CORS_ORIGIN` (origen del dev server de Vite).
+
+## Fuentes
+
+| Fuente | Estado |
+|---|---|
+| BuscoJobs Uruguay | Activa. Listados por rubro y detalle por oferta. |
+| Gallito | Pendiente. El sitio responde 403 detrás de Cloudflare y necesita un navegador headless. |
+
+El worker consulta de a una petición por vez, con pausa entre pedidos, y cachea
+las descripciones en `worker/cache/` para no volver a pedirlas. Es una
+herramienta de uso personal: no republica las ofertas, siempre enlaza al aviso
+original.

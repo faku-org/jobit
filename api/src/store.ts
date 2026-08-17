@@ -20,8 +20,7 @@ function isJob(value: unknown): value is Job {
   return (
     typeof job.id === "string" &&
     typeof job.title === "string" &&
-    typeof job.company === "string" &&
-    typeof job.location === "string" &&
+    typeof job.category === "string" &&
     typeof job.date_posted === "string" &&
     typeof job.apply_url === "string"
   );
@@ -40,7 +39,7 @@ function parse(raw: unknown): Result<JobsFile> {
     ok: true,
     value: {
       scraped_at: typeof file.scraped_at === "string" ? file.scraped_at : "",
-      source: typeof file.source === "string" ? file.source : "unknown",
+      sources: Array.isArray(file.sources) ? (file.sources as string[]) : [],
       count: typeof file.count === "number" ? file.count : jobs.length,
       jobs,
     },
