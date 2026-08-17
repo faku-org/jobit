@@ -1,0 +1,22 @@
+{
+  "name": "jobit",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": ["api", "web"],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:api": "bun run --cwd api dev",
+    "dev:web": "bun run --cwd web dev",
+    "build": "bun run --cwd web build",
+    "typecheck": "bun run --cwd api typecheck && bun run --cwd web typecheck",
+    "lint": "oxlint",
+    "fmt": "oxfmt .",
+    "fixture": "bun run worker/generate_fixture.ts"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "typescript": "~6.0.2"
+  }
+}
