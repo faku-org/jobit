@@ -32,9 +32,9 @@ is a synthetic LinkedIn path and will not resolve.
       "date_posted": "2026-08-16T00:00:00",
       "level": "entry | mid | senior | null",
       "remote": "remote | hybrid | null",
-      "apply_url": "https://uy.linkedin.com/jobs/view/..."
-    }
-  ]
+      "apply_url": "https://uy.linkedin.com/jobs/view/...",
+    },
+  ],
 }
 ```
 
