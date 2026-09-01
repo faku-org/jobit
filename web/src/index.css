@@ -2,6 +2,13 @@
 
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+
+  /* Palette: mist / sky / brand / ink. Every other tone is one of these with
+     an opacity modifier, so the UI stays inside the four colours. */
+  --color-mist: #e3f2fd;
+  --color-sky: #90caf9;
+  --color-brand: #2196f3;
+  --color-ink: #0d47a1;
 }
 
 @layer base {
@@ -12,6 +19,10 @@
   }
 
   body {
-    @apply bg-neutral-50 text-neutral-900 antialiased;
+    @apply bg-mist text-ink antialiased;
+  }
+
+  ::selection {
+    @apply bg-sky/50 text-ink;
   }
 }

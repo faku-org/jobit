@@ -2,6 +2,9 @@ export type Level = "entry" | "mid" | "senior";
 export type Remote = "remote" | "hybrid";
 export type JobType = "full_time" | "part_time" | "internship";
 
+/** Remote is null on offers worked from the employer's site. */
+export type WorkMode = Remote | "onsite";
+
 export interface Salary {
   min: number | null;
   max: number | null;
@@ -50,11 +53,12 @@ export interface JobsFile {
 export interface JobsQuery {
   ids?: Set<string>;
   q?: string;
-  level?: Level;
-  remote?: Remote;
-  category?: string;
+  /** The multi-value dimensions accept a set: a job matches any member. */
+  levels?: Set<Level>;
+  workModes?: Set<WorkMode>;
+  categories?: Set<string>;
+  jobTypes?: Set<JobType>;
   department?: string;
-  jobType?: JobType;
   noExperience?: boolean;
   days?: number;
   limit: number;

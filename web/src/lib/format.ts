@@ -1,4 +1,4 @@
-import type { JobType, Level, Remote, Salary } from "./types.ts";
+import type { JobType, Level, Salary, WorkMode } from "./types.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -8,7 +8,8 @@ export const LEVEL_LABEL: Record<Level, string> = {
   senior: "Senior",
 };
 
-export const REMOTE_LABEL: Record<Remote, string> = {
+export const WORK_MODE_LABEL: Record<WorkMode, string> = {
+  onsite: "Presencial",
   remote: "Remoto",
   hybrid: "Híbrido",
 };

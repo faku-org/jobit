@@ -1,5 +1,6 @@
-import { Bookmark, ChevronDown, EyeOff, Search, Sparkles, X } from "lucide-react";
-import type { Facet, Filters, JobType, Level, Remote } from "../lib/types.ts";
+import { Bookmark, ChevronDown, EyeOff, Search, Sparkles, Target, X } from "lucide-react";
+import { motion } from "motion/react";
+import type { Facet, Filters, JobType, Level, WorkMode } from "../lib/types.ts";
 
 interface Option {
   value: string;
@@ -13,12 +14,16 @@ interface FilterBarProps {
   noExperienceCount: number;
   savedCount: number;
   dismissedCount: number;
+  matchCount: number;
+  hasPreferences: boolean;
   showSaved: boolean;
   hideDismissed: boolean;
+  onlySimilar: boolean;
   isDirty: boolean;
   onChange: (filters: Filters) => void;
   onToggleSaved: () => void;
   onToggleHideDismissed: () => void;
+  onToggleSimilar: () => void;
   onReset: () => void;
 }
 
@@ -29,8 +34,9 @@ const LEVEL_OPTIONS: Option[] = [
   { value: "senior", label: "Senior" },
 ];
 
-const REMOTE_OPTIONS: Option[] = [
+const MODE_OPTIONS: Option[] = [
   { value: "", label: "Cualquier modalidad" },
+  { value: "onsite", label: "Presencial" },
   { value: "remote", label: "Remoto" },
   { value: "hybrid", label: "Híbrido" },
 ];
@@ -55,6 +61,9 @@ const facetOptions = (facets: Facet[], allLabel: string): Option[] => [
   ...facets.map((facet) => ({ value: facet.value, label: `${facet.label} (${facet.count})` })),
 ];
 
+const fieldClass =
+  "w-full rounded-xl border border-sky/60 bg-white text-sm text-ink transition-colors outline-none hover:border-brand focus:border-brand focus:ring-4 focus:ring-brand/15";
+
 function Select({
   label,
   value,
@@ -70,7 +79,7 @@ function Select({
     <div className="relative">
       <select
         aria-label={label}
-        className="w-full appearance-none truncate rounded-xl border border-neutral-200 bg-white py-2.5 pr-9 pl-3.5 text-sm text-neutral-800 transition-colors outline-none hover:border-neutral-300 focus:border-neutral-400 focus:ring-4 focus:ring-neutral-900/5"
+        className={`${fieldClass} appearance-none truncate py-2.5 pr-9 pl-3.5`}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -82,7 +91,7 @@ function Select({
       </select>
       <ChevronDown
         aria-hidden
-        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-neutral-400"
+        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-brand"
       />
     </div>
   );
@@ -100,19 +109,20 @@ function Toggle({
   onClick: () => void;
 }) {
   return (
-    <button
+    <motion.button
       aria-pressed={active}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
         active
-          ? "border-neutral-900 bg-neutral-900 text-white"
-          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+          ? "border-ink bg-ink text-white"
+          : "border-sky/60 bg-white text-ink/60 hover:border-brand hover:text-ink"
       }`}
       type="button"
+      whileTap={{ scale: 0.95 }}
       onClick={onClick}
     >
       <Icon aria-hidden className="size-3.5" />
       {children}
-    </button>
+    </motion.button>
   );
 }
 
@@ -123,24 +133,28 @@ export function FilterBar({
   noExperienceCount,
   savedCount,
   dismissedCount,
+  matchCount,
+  hasPreferences,
   showSaved,
   hideDismissed,
+  onlySimilar,
   isDirty,
   onChange,
   onToggleSaved,
   onToggleHideDismissed,
+  onToggleSimilar,
   onReset,
 }: FilterBarProps) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="rounded-2xl border border-sky/50 bg-white p-3 shadow-[0_1px_2px_rgba(13,71,161,0.06)]">
       <div className="relative">
         <Search
           aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-neutral-400"
+          className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-brand"
         />
         <input
           aria-label="Buscar ofertas"
-          className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pr-10 pl-10 text-sm text-neutral-900 transition-colors outline-none placeholder:text-neutral-400 hover:border-neutral-300 focus:border-neutral-400 focus:ring-4 focus:ring-neutral-900/5"
+          className={`${fieldClass} py-2.5 pr-10 pl-10 placeholder:text-ink/40`}
           placeholder="Buscar por puesto, empresa, ciudad o palabra de la descripción"
           type="text"
           value={filters.q}
@@ -149,7 +163,7 @@ export function FilterBar({
         {filters.q ? (
           <button
             aria-label="Limpiar búsqueda"
-            className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-0.5 text-neutral-400 transition-colors hover:text-neutral-700"
+            className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-0.5 text-ink/40 transition-colors hover:text-ink"
             type="button"
             onClick={() => onChange({ ...filters, q: "" })}
           >
@@ -185,9 +199,9 @@ export function FilterBar({
         />
         <Select
           label="Modalidad"
-          options={REMOTE_OPTIONS}
-          value={filters.remote}
-          onChange={(value) => onChange({ ...filters, remote: value as Remote | "" })}
+          options={MODE_OPTIONS}
+          value={filters.mode}
+          onChange={(value) => onChange({ ...filters, mode: value as WorkMode | "" })}
         />
         <Select
           label="Publicadas"
@@ -198,6 +212,12 @@ export function FilterBar({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {hasPreferences ? (
+          <Toggle active={onlySimilar} icon={Target} onClick={onToggleSimilar}>
+            Solo similares{matchCount > 0 ? ` (${matchCount})` : ""}
+          </Toggle>
+        ) : null}
+
         <Toggle
           active={filters.noExperience}
           icon={Sparkles}
@@ -218,7 +238,7 @@ export function FilterBar({
 
         {isDirty ? (
           <button
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/50 transition-colors hover:bg-mist hover:text-ink"
             type="button"
             onClick={onReset}
           >

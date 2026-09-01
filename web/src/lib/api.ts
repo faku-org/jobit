@@ -1,4 +1,4 @@
-import type { Filters, JobsResponse, Meta } from "./types.ts";
+import type { Filters, JobsResponse, Meta, Preferences } from "./types.ts";
 
 export const PAGE_SIZE = 50;
 
@@ -7,17 +7,45 @@ export interface JobsRequest {
   offset: number;
   /** Restricts the result to these ids, used by the saved-jobs view. */
   ids?: string[];
+  /** When set, only jobs matching these preferences are asked for. */
+  preferences?: Preferences;
 }
 
-function buildQuery({ filters, offset, ids }: JobsRequest): string {
+/** An id no job can have, so the API answers an impossible query with zero rows. */
+const NO_MATCH = "none";
+
+/**
+ * A dimension carries both an explicit filter and, when "solo similares" is on,
+ * the preferred values: the query is their intersection. `null` means the two
+ * contradict each other and nothing can match.
+ */
+function intersect(selected: string, preferred: string[]): string[] | null {
+  if (!selected) return preferred;
+  if (preferred.length === 0) return [selected];
+  return preferred.includes(selected) ? [selected] : null;
+}
+
+function buildQuery({ filters, offset, ids, preferences }: JobsRequest): string {
   const params = new URLSearchParams();
-  if (ids) params.set("ids", ids.join(","));
+  const dimensions: [string, string, string[]][] = [
+    ["category", filters.category, preferences?.categories ?? []],
+    ["level", filters.level, preferences?.levels ?? []],
+    ["remote", filters.mode, preferences?.modes ?? []],
+    ["job_type", filters.jobType, preferences?.jobTypes ?? []],
+  ];
+
+  let impossible = false;
+  for (const [name, selected, preferred] of dimensions) {
+    const values = intersect(selected, preferred);
+    if (values === null) impossible = true;
+    else if (values.length > 0) params.set(name, values.join(","));
+  }
+
+  if (impossible) params.set("ids", NO_MATCH);
+  else if (ids) params.set("ids", ids.join(","));
+
   if (filters.q.trim()) params.set("q", filters.q.trim());
-  if (filters.category) params.set("category", filters.category);
   if (filters.department) params.set("department", filters.department);
-  if (filters.level) params.set("level", filters.level);
-  if (filters.remote) params.set("remote", filters.remote);
-  if (filters.jobType) params.set("job_type", filters.jobType);
   if (filters.noExperience) params.set("no_experience", "true");
   if (filters.days !== null) params.set("days", String(filters.days));
   params.set("limit", String(PAGE_SIZE));

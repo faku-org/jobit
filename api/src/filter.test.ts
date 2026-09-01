@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
-import type { Job } from "./types.ts";
+import type { Job, WorkMode } from "./types.ts";
 
 const NOW = Date.parse("2026-08-17T00:00:00Z");
 
@@ -77,8 +77,13 @@ describe("filterJobs", () => {
   });
 
   test("category filter", () => {
-    expect(filterJobs(jobs, { ...base, category: "logistica" }, NOW).jobs[0]?.id).toBe("b");
-    expect(filterJobs(jobs, { ...base, category: "ventas" }, NOW).total).toBe(1);
+    expect(filterJobs(jobs, { ...base, categories: new Set(["logistica"]) }, NOW).jobs[0]?.id).toBe(
+      "b",
+    );
+    expect(filterJobs(jobs, { ...base, categories: new Set(["ventas"]) }, NOW).total).toBe(1);
+    expect(
+      filterJobs(jobs, { ...base, categories: new Set(["ventas", "logistica"]) }, NOW).total,
+    ).toBe(2);
   });
 
   test("department filter", () => {
@@ -91,8 +96,18 @@ describe("filterJobs", () => {
     expect(result.jobs.map((j) => j.id).sort()).toEqual(["a", "c"]);
   });
 
+  test("work mode filter treats a null remote as on-site", () => {
+    const mode = (...values: WorkMode[]) => ({ ...base, workModes: new Set(values) });
+    expect(filterJobs(jobs, mode("hybrid"), NOW).jobs[0]?.id).toBe("c");
+    expect(filterJobs(jobs, mode("onsite"), NOW).jobs.map((j) => j.id)).toEqual(["a", "b"]);
+    expect(filterJobs(jobs, mode("remote"), NOW).total).toBe(0);
+    expect(filterJobs(jobs, mode("remote", "hybrid"), NOW).jobs.map((j) => j.id)).toEqual(["c"]);
+  });
+
   test("job_type filter", () => {
-    expect(filterJobs(jobs, { ...base, jobType: "internship" }, NOW).jobs[0]?.id).toBe("c");
+    expect(filterJobs(jobs, { ...base, jobTypes: new Set(["internship"]) }, NOW).jobs[0]?.id).toBe(
+      "c",
+    );
   });
 
   test("ids filter selects an explicit set", () => {
@@ -106,7 +121,11 @@ describe("filterJobs", () => {
   });
 
   test("filters combine", () => {
-    const result = filterJobs(jobs, { ...base, noExperience: true, level: "entry", days: 7 }, NOW);
+    const result = filterJobs(
+      jobs,
+      { ...base, noExperience: true, levels: new Set(["entry"]), days: 7 },
+      NOW,
+    );
     expect(result.jobs.map((j) => j.id)).toEqual(["a"]);
   });
 

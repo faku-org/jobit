@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PAGE_SIZE, fetchJobs } from "../lib/api.ts";
-import type { Filters, Job } from "../lib/types.ts";
+import type { Filters, Job, Preferences } from "../lib/types.ts";
 
 type Status = "loading" | "loadingMore" | "ready" | "error";
 
@@ -20,16 +20,16 @@ const isAbort = (error: unknown): boolean =>
  * Fetches a page of jobs whenever the filters change, and appends pages on
  * loadMore. A filter change always restarts from offset 0.
  */
-export function useJobs(filters: Filters, ids?: string[]): JobsState {
-  const key = JSON.stringify([filters, ids]);
-  const [request, setRequest] = useState({ key, filters, ids, offset: 0 });
+export function useJobs(filters: Filters, ids?: string[], preferences?: Preferences): JobsState {
+  const key = JSON.stringify([filters, ids, preferences]);
+  const [request, setRequest] = useState({ key, filters, ids, preferences, offset: 0 });
   const [jobs, setJobs] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string | null>(null);
 
   if (request.key !== key) {
-    setRequest({ key, filters, ids, offset: 0 });
+    setRequest({ key, filters, ids, preferences, offset: 0 });
   }
 
   useEffect(() => {
@@ -40,7 +40,12 @@ export function useJobs(filters: Filters, ids?: string[]): JobsState {
     setError(null);
 
     fetchJobs(
-      { filters: request.filters, offset: request.offset, ids: request.ids },
+      {
+        filters: request.filters,
+        offset: request.offset,
+        ids: request.ids,
+        preferences: request.preferences,
+      },
       controller.signal,
     )
       .then((response) => {

@@ -36,11 +36,11 @@ function isNewerThan(job: Job, days: number, now: number): boolean {
 function matches(job: Job, query: JobsQuery, now: number): boolean {
   if (query.ids && !query.ids.has(job.id)) return false;
   if (query.q && !matchesText(job, query.q)) return false;
-  if (query.level && job.level !== query.level) return false;
-  if (query.remote && job.remote !== query.remote) return false;
-  if (query.category && job.category !== query.category) return false;
+  if (query.levels && (job.level === null || !query.levels.has(job.level))) return false;
+  if (query.workModes && !query.workModes.has(job.remote ?? "onsite")) return false;
+  if (query.categories && !query.categories.has(job.category)) return false;
   if (query.department && job.department !== query.department) return false;
-  if (query.jobType && job.job_type !== query.jobType) return false;
+  if (query.jobTypes && (job.job_type === null || !query.jobTypes.has(job.job_type))) return false;
   if (query.noExperience && !job.no_experience) return false;
   if (query.days !== undefined && !isNewerThan(job, query.days, now)) return false;
   return true;

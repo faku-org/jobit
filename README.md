@@ -4,6 +4,10 @@ Buscador de ofertas de trabajo de Uruguay, de todos los rubros, pensado para
 encontrar el primer empleo: filtros por rubro, departamento y jornada, marca de
 "sin experiencia", lista de guardadas y descarte de las que ya viste.
 
+Además guarda preferencias (modalidad presencial, remota o híbrida, nivel,
+jornada y rubros): las ofertas que coinciden quedan destacadas y se pueden
+mostrar solas con "Solo similares". Todo vive en el navegador, sin cuenta.
+
 ## Estructura
 
 | Carpeta | Qué hace |
@@ -51,12 +55,16 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 | `category` | Slug de rubro (`ventas`, `oficios`, `salud`, ...). |
 | `department` | Departamento tal cual lo publica la fuente. |
 | `level` | `entry`, `mid`, `senior`. |
-| `remote` | `remote`, `hybrid`. |
+| `remote` | `onsite`, `remote`, `hybrid`. |
 | `job_type` | `full_time`, `part_time`, `internship`. |
 | `no_experience` | `true` para ofertas que no piden experiencia previa. |
 | `days` | Solo ofertas de los últimos N días. |
 | `ids` | Lista de ids separados por coma. |
 | `limit` / `offset` | Paginado. `limit` por defecto 50, máximo 200. |
+
+`category`, `level`, `remote` y `job_type` aceptan varios valores separados por
+coma y la oferta matchea con cualquiera de ellos. Una oferta sin teletrabajo
+cuenta como `onsite`.
 
 Variables de entorno: `PORT` (3000), `JOBS_FILE` (ruta al JSON del worker),
 `CORS_ORIGIN` (origen del dev server de Vite).

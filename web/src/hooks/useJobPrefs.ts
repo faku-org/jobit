@@ -1,22 +1,52 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  EMPTY_PREFERENCES,
+  type JobType,
+  type Level,
+  type Preferences,
+  type WorkMode,
+} from "../lib/types.ts";
 
 const STORAGE_KEY = "jobit.prefs.v1";
 
-interface Prefs {
+interface Stored {
   saved: string[];
   dismissed: string[];
+  preferences: Preferences;
 }
 
-const EMPTY: Prefs = { saved: [], dismissed: [] };
+const EMPTY: Stored = { saved: [], dismissed: [], preferences: EMPTY_PREFERENCES };
 
-function read(): Prefs {
+const MODES: WorkMode[] = ["onsite", "remote", "hybrid"];
+const LEVELS: Level[] = ["entry", "mid", "senior"];
+const JOB_TYPES: JobType[] = ["full_time", "part_time", "internship"];
+
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+const within = <T extends string>(value: unknown, allowed: T[]): T[] =>
+  strings(value).filter((item): item is T => (allowed as string[]).includes(item));
+
+function readPreferences(value: unknown): Preferences {
+  if (typeof value !== "object" || value === null) return EMPTY_PREFERENCES;
+  const raw = value as Record<string, unknown>;
+  return {
+    modes: within(raw.modes, MODES),
+    categories: strings(raw.categories),
+    levels: within(raw.levels, LEVELS),
+    jobTypes: within(raw.jobTypes, JOB_TYPES),
+  };
+}
+
+function read(): Stored {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
-    const parsed = JSON.parse(raw) as Partial<Prefs>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
-      saved: Array.isArray(parsed.saved) ? parsed.saved : [],
-      dismissed: Array.isArray(parsed.dismissed) ? parsed.dismissed : [],
+      saved: strings(parsed.saved),
+      dismissed: strings(parsed.dismissed),
+      preferences: readPreferences(parsed.preferences),
     };
   } catch {
     return EMPTY;
@@ -29,39 +59,48 @@ const toggle = (list: string[], id: string): string[] =>
 export interface JobPrefs {
   saved: Set<string>;
   dismissed: Set<string>;
+  preferences: Preferences;
   toggleSaved: (id: string) => void;
   toggleDismissed: (id: string) => void;
   clearDismissed: () => void;
+  setPreferences: (preferences: Preferences) => void;
 }
 
-/** Shortlist and discard pile, kept in the browser so no account is needed. */
+/** Shortlist, discard pile and search preferences, kept in the browser so no
+ * account is needed. */
 export function useJobPrefs(): JobPrefs {
-  const [prefs, setPrefs] = useState<Prefs>(EMPTY);
+  const [stored, setStored] = useState<Stored>(EMPTY);
 
-  useEffect(() => setPrefs(read()), []);
+  useEffect(() => setStored(read()), []);
 
   useEffect(() => {
-    if (prefs === EMPTY) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-  }, [prefs]);
+    if (stored === EMPTY) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  }, [stored]);
 
   const toggleSaved = useCallback((id: string) => {
-    setPrefs((current) => ({ ...current, saved: toggle(current.saved, id) }));
+    setStored((current) => ({ ...current, saved: toggle(current.saved, id) }));
   }, []);
 
   const toggleDismissed = useCallback((id: string) => {
-    setPrefs((current) => ({ ...current, dismissed: toggle(current.dismissed, id) }));
+    setStored((current) => ({ ...current, dismissed: toggle(current.dismissed, id) }));
   }, []);
 
   const clearDismissed = useCallback(() => {
-    setPrefs((current) => ({ ...current, dismissed: [] }));
+    setStored((current) => ({ ...current, dismissed: [] }));
+  }, []);
+
+  const setPreferences = useCallback((preferences: Preferences) => {
+    setStored((current) => ({ ...current, preferences }));
   }, []);
 
   return {
-    saved: new Set(prefs.saved),
-    dismissed: new Set(prefs.dismissed),
+    saved: new Set(stored.saved),
+    dismissed: new Set(stored.dismissed),
+    preferences: stored.preferences,
     toggleSaved,
     toggleDismissed,
     clearDismissed,
+    setPreferences,
   };
 }
