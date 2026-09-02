@@ -16,7 +16,7 @@ export function PanelChip({
   return (
     <button
       aria-pressed={active}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+      className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors sm:min-h-0 sm:px-3 sm:py-1.5 sm:text-xs ${
         active
           ? "bg-sky text-ink"
           : "bg-onpanel/10 text-onpanel/75 hover:bg-onpanel/20 hover:text-onpanel"
@@ -81,7 +81,7 @@ export function StanceChips({
           return (
             <button
               key={facet.value}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${STANCE_STYLE[stance]}`}
+              className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors sm:min-h-0 sm:px-3 sm:py-1.5 sm:text-xs ${STANCE_STYLE[stance]}`}
               title={STANCE_HINT[stance]}
               type="button"
               onClick={() => onChange(setStance(lists, facet.value, nextStance(stance)))}

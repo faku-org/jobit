@@ -125,7 +125,7 @@ export function JobCard({
           job={job}
           left={
             <button
-              className="inline-flex items-center gap-1 rounded-lg px-1 py-1 text-xs font-medium whitespace-nowrap text-ink/50 transition-colors hover:text-ink"
+              className="-mx-1 inline-flex min-h-10 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium whitespace-nowrap text-ink/50 transition-colors hover:text-ink sm:mx-0 sm:min-h-0 sm:px-1"
               type="button"
               onClick={() => onOpen(job)}
             >

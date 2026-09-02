@@ -226,7 +226,7 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
     <div className="space-y-4">
       <FadeUp>
         <div
-          className="flex gap-1 overflow-x-auto rounded-2xl border border-sky/50 bg-surface p-1 shadow-[var(--shadow-hairline)]"
+          className="flex flex-wrap gap-1 rounded-2xl border border-sky/50 bg-surface p-1 shadow-[var(--shadow-hairline)] sm:flex-nowrap"
           role="tablist"
         >
           {SECTIONS.map((entry) => {
@@ -235,7 +235,7 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
               <button
                 key={entry.id}
                 aria-selected={active}
-                className={`relative flex flex-1 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`relative flex min-h-10 grow basis-auto items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-medium whitespace-nowrap transition-colors sm:min-h-0 sm:basis-0 sm:py-2 ${
                   active ? "text-onpanel" : "text-ink/60 hover:text-ink"
                 }`}
                 role="tab"

@@ -3,14 +3,18 @@ import {
   ArrowRight,
   Briefcase,
   Check,
+  ChevronDown,
+  ClipboardCheck,
   GraduationCap,
+  ListOrdered,
   MapPin,
   ShieldCheck,
   Sparkles,
   Target,
+  Wallet,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { type ReactNode, useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { COURSES, DEGREES } from "../lib/catalog.ts";
 import { fadeUpTransition, islandTransition, stagger } from "../lib/motion.ts";
 import {
@@ -125,6 +129,64 @@ function WaitingForBoard() {
 }
 
 /**
+ * The body of a step, which says so when it holds more than it can show. A
+ * phone draws no scrollbar, so a control below this fold is a control nobody
+ * knows is there: the fade and the line are the only thing that gives it away.
+ */
+function StepBody({ children, step }: { children: ReactNode; step: string }) {
+  const view = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+
+  useEffect(() => {
+    const box = view.current;
+    const inner = content.current;
+    if (!box || !inner) return;
+
+    const check = () => setMore(box.scrollHeight - box.scrollTop - box.clientHeight > 8);
+    check();
+    box.addEventListener("scroll", check, { passive: true });
+    /** Answers change the height as they are given, not only on arrival. */
+    const observer = new ResizeObserver(check);
+    observer.observe(inner);
+
+    return () => {
+      box.removeEventListener("scroll", check);
+      observer.disconnect();
+    };
+  }, [step]);
+
+  return (
+    <div className="relative">
+      <div ref={view} className="max-h-[60svh] overflow-y-auto px-5 py-4 sm:max-h-[58svh]">
+        <motion.div
+          key={step}
+          ref={content}
+          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, x: 12 }}
+          transition={fadeUpTransition}
+        >
+          {children}
+        </motion.div>
+      </div>
+
+      {more ? (
+        <motion.div
+          animate={{ opacity: 1 }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 flex h-16 items-end justify-center bg-gradient-to-t from-panel via-panel to-transparent pb-2"
+          initial={{ opacity: 0 }}
+        >
+          <span className="flex items-center gap-1 rounded-full bg-panel px-2.5 py-1 text-[11px] font-medium text-onpanel/75 ring-1 ring-onpanel/15">
+            <ChevronDown aria-hidden className="size-3.5" />
+            Seguí bajando, hay más
+          </span>
+        </motion.div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * The first thing somebody sees. The profile used to be a panel you had to go
  * looking for, which meant the first list anyone got was the same generic one:
  * asking here costs a minute and the answers are already applied by the time
@@ -158,12 +220,23 @@ export function Onboarding({
     };
   }, [phase, draftProfile, draftPreferences, onFinish]);
 
+  const lines = summary(draftProfile, draftPreferences, categories);
+  /** Whether there is anything to say back. The summary is the honest test:
+   * counting preferences alone called a filled-in profile "nothing". */
+  const answered = lines.length > 0;
+
   const pickEducation = (level: EducationLevel) =>
     setDraftProfile((current) => ({
       ...current,
       education: current.education === level ? "" : level,
     }));
 
+  /**
+   * One question per screen. Two of the old steps hid a control below the fold
+   * of the card's own scroller on a phone, where there is no scrollbar to give
+   * it away: the orden de preferencia and the sueldo were simply never seen.
+   * Splitting costs a tap each and makes every control visible on arrival.
+   */
   const steps: Step[] = [
     {
       id: "studies",
@@ -195,7 +268,7 @@ export function Onboarding({
       ),
     },
     {
-      id: "experience",
+      id: "skills",
       icon: Sparkles,
       title: "¿Y qué sabés hacer?",
       hint: "Cursos, certificaciones y carnés cuentan tanto como un título en muchos avisos.",
@@ -217,7 +290,7 @@ export function Onboarding({
           />
 
           {draftProfile.experienceYears === 0 ? (
-            <p className="rounded-xl bg-onpanel/10 px-3 py-2.5 text-[11px] leading-relaxed text-onpanel/70">
+            <p className="rounded-xl bg-onpanel/10 px-3 py-2.5 text-xs leading-relaxed text-onpanel/70">
               Perfecto: las ofertas marcadas “sin experiencia” van a quedar arriba de todo.
             </p>
           ) : null}
@@ -232,62 +305,77 @@ export function Onboarding({
       body: !ready ? (
         <WaitingForBoard />
       ) : (
-        <div className="space-y-5">
-          <StanceChips
-            facets={categories}
-            hint="Elegí los que te interesan. Los que ocultes no vuelven a aparecer en la lista."
-            lists={categoryStances(draftPreferences)}
-            title="Rubros"
-            onChange={(lists) =>
-              setDraftPreferences((current) => withCategoryStances(current, lists))
-            }
-          />
-
-          <PriorityList
-            empty="Cuando elijas más de uno vas a poder ordenarlos: el primero es el que preferís sobre el resto."
-            labelOf={(value) => categories.find((facet) => facet.value === value)?.label}
-            title="Tu orden de preferencia"
-            values={draftPreferences.categories}
-            onChange={(values) =>
-              setDraftPreferences((current) => ({ ...current, categories: values }))
-            }
-          />
-        </div>
+        <StanceChips
+          facets={categories}
+          hint="Elegí los que te interesan. Los que ocultes no vuelven a aparecer en la lista."
+          lists={categoryStances(draftPreferences)}
+          title="Rubros"
+          onChange={(lists) =>
+            setDraftPreferences((current) => withCategoryStances(current, lists))
+          }
+        />
       ),
     },
+    /** Only worth asking once there are two things to put in an order. */
+    ...(draftPreferences.categories.length > 1
+      ? [
+          {
+            id: "order",
+            icon: ListOrdered,
+            title: "¿Cuál preferís?",
+            hint: "El primero pesa más que el segundo, y así con el resto.",
+            body: (
+              <PriorityList
+                empty="Elegí más de un rubro para poder ordenarlos."
+                labelOf={(value: string) =>
+                  categories.find((facet) => facet.value === value)?.label
+                }
+                title="Tu orden de preferencia"
+                values={draftPreferences.categories}
+                onChange={(values: string[]) =>
+                  setDraftPreferences((current) => ({ ...current, categories: values }))
+                }
+              />
+            ),
+          },
+        ]
+      : []),
     {
       id: "where",
       icon: MapPin,
-      title: "¿Dónde y por cuánto?",
-      hint: "La zona y el sueldo ordenan la lista; solo lo que ocultes queda afuera.",
+      title: "¿Dónde podés trabajar?",
+      hint: "La zona ordena la lista; solo lo que ocultes queda afuera.",
+      body: !ready ? (
+        <WaitingForBoard />
+      ) : (
+        <StanceChips
+          facets={departments.slice(0, 19)}
+          hint="Priorizá tu departamento y sacá los que te quedan lejos."
+          lists={departmentStances(draftPreferences)}
+          title="Zona"
+          onChange={(lists) =>
+            setDraftPreferences((current) => withDepartmentStances(current, lists))
+          }
+        />
+      ),
+    },
+    {
+      id: "pay",
+      icon: Wallet,
+      title: "¿Cuánto necesitás ganar?",
+      hint: "Las que no llegan bajan, y las que no publican sueldo podés dejarlas o sacarlas.",
       body: (
-        <div className="space-y-5">
-          {ready ? (
-            <StanceChips
-              facets={departments.slice(0, 19)}
-              hint="Priorizá tu departamento y sacá los que te quedan lejos."
-              lists={departmentStances(draftPreferences)}
-              title="Zona"
-              onChange={(lists) =>
-                setDraftPreferences((current) => withDepartmentStances(current, lists))
-              }
-            />
-          ) : (
-            <WaitingForBoard />
-          )}
-
-          <SalaryRange
-            value={draftPreferences.salary}
-            onChange={(salary) => setDraftPreferences((current) => ({ ...current, salary }))}
-          />
-        </div>
+        <SalaryRange
+          value={draftPreferences.salary}
+          onChange={(salary) => setDraftPreferences((current) => ({ ...current, salary }))}
+        />
       ),
     },
     {
       id: "shape",
       icon: Briefcase,
       title: "¿Cómo querés trabajar?",
-      hint: "Lo último. Después la lista queda armada.",
+      hint: "Lo último antes del resumen.",
       body: (
         <div className="space-y-5">
           <PanelGroup title="Modalidad">
@@ -343,13 +431,31 @@ export function Onboarding({
         </div>
       ),
     },
+    {
+      id: "summary",
+      icon: ClipboardCheck,
+      title: "Así va a quedar tu lista",
+      hint: "Revisá que sea lo que querías. Se cambia cuando quieras desde Preferencias.",
+      body:
+        lines.length === 0 ? (
+          <p className="rounded-xl bg-onpanel/10 px-3 py-3 text-sm leading-relaxed text-onpanel/70">
+            No cargaste nada, así que vas a ver todas las ofertas ordenadas por fecha. Podés
+            completarlo cuando quieras desde Preferencias.
+          </p>
+        ) : (
+          <ul className="space-y-2.5">
+            {lines.map((line) => (
+              <li key={line} className="flex gap-2.5 text-sm leading-relaxed text-onpanel/80">
+                <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
+                {line}
+              </li>
+            ))}
+          </ul>
+        ),
+    },
   ];
 
   const step = steps[index];
-  const lines = summary(draftProfile, draftPreferences, categories);
-  /** Whether there is anything to say back. The summary is the honest test:
-   * counting preferences alone called a filled-in profile "nothing". */
-  const answered = lines.length > 0;
   const isLast = index === steps.length - 1;
   /** Skipping is finishing without the answers of this run, not postponing the
    * question: on a first visit that leaves everything empty, and on a rerun it
@@ -363,7 +469,7 @@ export function Onboarding({
       className="fixed inset-0 z-[60] overflow-y-auto bg-mist"
       transition={{ duration: leaving ? FAREWELL_MS / 1000 : 0 }}
     >
-      <div className="mx-auto flex min-h-svh max-w-lg items-center px-5 py-10">
+      <div className="mx-auto flex min-h-svh max-w-lg items-center px-5 py-7 sm:py-10">
         {phase === "cover" ? (
           <motion.section
             key="cover"
@@ -375,7 +481,7 @@ export function Onboarding({
             <motion.img
               alt=""
               animate={{ scale: 1, opacity: 1 }}
-              className="size-14 rounded-2xl shadow-[var(--shadow-match)]"
+              className="size-12 rounded-2xl shadow-[var(--shadow-match)] sm:size-14"
               initial={{ scale: 0.8, opacity: 0 }}
               src="/logo.png"
               transition={islandTransition}
@@ -383,15 +489,15 @@ export function Onboarding({
               height={56}
             />
 
-            <h1 className="mt-5 text-[28px] leading-tight font-semibold tracking-tight text-ink">
+            <h1 className="mt-4 text-2xl leading-tight font-semibold tracking-tight text-ink sm:mt-5 sm:text-[28px]">
               Bienvenido a JobIt
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-ink/65">
+            <p className="mt-2 text-sm leading-relaxed text-ink/70">
               Juntamos las ofertas de trabajo de Uruguay en un solo lugar. Antes de mostrártelas, un
               minuto de preguntas para que la lista salga ordenada para vos desde la primera vez.
             </p>
 
-            <ul className="mt-6 space-y-2.5">
+            <ul className="mt-5 space-y-2 sm:mt-6 sm:space-y-2.5">
               {PROMISES.map((promise, position) => (
                 <motion.li
                   key={promise}
@@ -406,7 +512,7 @@ export function Onboarding({
               ))}
             </ul>
 
-            <div className="mt-6 flex gap-2.5 rounded-2xl border border-sky/60 bg-surface px-4 py-3">
+            <div className="mt-5 flex gap-2.5 rounded-2xl border border-sky/60 bg-surface px-4 py-3 sm:mt-6">
               <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
               <p className="text-xs leading-relaxed text-ink/65">
                 Todo queda guardado <strong className="font-semibold">en este navegador</strong>. No
@@ -414,7 +520,7 @@ export function Onboarding({
               </p>
             </div>
 
-            <div className="mt-7 flex flex-wrap items-center gap-2">
+            <div className="mt-6 flex flex-wrap items-center gap-2 sm:mt-7">
               <motion.button
                 className="inline-flex items-center gap-2 rounded-2xl bg-panel px-5 py-3 text-sm font-semibold text-onpanel shadow-[var(--shadow-panel)] transition-opacity hover:opacity-90"
                 type="button"
@@ -477,7 +583,7 @@ export function Onboarding({
                   Paso {index + 1} de {steps.length}
                 </p>
                 <h2
-                  className="truncate text-[17px] leading-tight font-semibold tracking-tight"
+                  className="text-[17px] leading-tight font-semibold tracking-tight text-balance sm:truncate"
                   id="onboarding-title"
                 >
                   {step.title}
@@ -505,42 +611,7 @@ export function Onboarding({
 
             <p className="px-5 pt-3 text-xs leading-relaxed text-onpanel/60">{step.hint}</p>
 
-            <div className="max-h-[58svh] overflow-y-auto px-5 py-4">
-              <AnimatePresence initial={false} mode="wait">
-                <motion.div
-                  key={step.id}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  initial={{ opacity: 0, x: 12 }}
-                  transition={fadeUpTransition}
-                >
-                  {step.body}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {isLast ? (
-              <div className="mx-5 mb-1 rounded-xl bg-onpanel/10 px-3 py-2.5">
-                <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">
-                  Así va a quedar tu lista
-                </p>
-                {lines.length === 0 ? (
-                  <p className="mt-1.5 text-xs leading-relaxed text-onpanel/70">
-                    No cargaste nada todavía, así que vas a ver todas las ofertas ordenadas por
-                    fecha. Se puede completar cuando quieras desde Preferencias.
-                  </p>
-                ) : (
-                  <ul className="mt-1.5 space-y-1">
-                    {lines.map((line) => (
-                      <li key={line} className="flex gap-2 text-xs leading-relaxed text-onpanel/75">
-                        <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
-                        {line}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : null}
+            <StepBody step={step.id}>{step.body}</StepBody>
 
             <div className="mt-3 flex items-center gap-2 border-t border-onpanel/10 px-5 py-3.5">
               <button

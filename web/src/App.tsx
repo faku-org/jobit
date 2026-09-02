@@ -251,15 +251,14 @@ export default function App() {
     );
   }
 
-  /* The intro leaves on the same background this fades in over, so the
-     handover reads as one movement and not as a screen being replaced. */
+  /* Deliberately not animated as a whole. A transform here would make this
+     div the containing block for every fixed child, which put the job sheet
+     thousands of pixels down the page on a phone and shifted the island; and
+     an entrance that never finished would leave the whole app invisible. The
+     intro fades itself out onto this same background, and each section below
+     brings its own entrance. */
   return (
-    <motion.div
-      animate={{ opacity: 1, y: 0 }}
-      className="min-h-svh"
-      initial={{ opacity: 0, y: 10 }}
-      transition={fadeUpTransition}
-    >
+    <div className="min-h-svh">
       <DynamicIsland
         categories={meta?.categories ?? []}
         counts={{
@@ -517,6 +516,6 @@ export default function App() {
           onToggleSaved={prefs.toggleSaved}
         />
       ) : null}
-    </motion.div>
+    </div>
   );
 }
