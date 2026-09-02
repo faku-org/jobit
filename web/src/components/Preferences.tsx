@@ -1,11 +1,19 @@
-import { Check, RotateCcw } from "lucide-react";
-import type { Facet, JobType, Level, Preferences, WorkMode } from "../lib/types.ts";
-import { EMPTY_PREFERENCES, preferenceCount } from "../lib/types.ts";
+import { Monitor, Moon, RefreshCw, RotateCcw, Sun } from "lucide-react";
+import { SOURCE_LABEL, formatScrapedAt, pluralOffers } from "../lib/format.ts";
+import type { Facet, JobType, Level, Meta, Preferences, Theme, WorkMode } from "../lib/types.ts";
+import { EMPTY_PREFERENCES, preferenceCount, toggleValue } from "../lib/types.ts";
+import { PanelChip as Chip, PanelGroup as Group } from "./PanelControls.tsx";
 
 interface PreferencesPanelProps {
+  meta: Meta | null;
   categories: Facet[];
   preferences: Preferences;
+  /** Chosen job boards; empty means every source the API offers. */
+  sources: string[];
+  theme: Theme;
   onChange: (preferences: Preferences) => void;
+  onChangeSources: (sources: string[]) => void;
+  onChangeTheme: (theme: Theme) => void;
 }
 
 const MODE_OPTIONS: { value: WorkMode; label: string }[] = [
@@ -26,56 +34,82 @@ const JOB_TYPE_OPTIONS: { value: JobType; label: string }[] = [
   { value: "internship", label: "Pasantía" },
 ];
 
-const toggle = <T extends string>(list: T[], value: T): T[] =>
-  list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
+  { value: "light", label: "Claro", icon: Sun },
+  { value: "dark", label: "Oscuro", icon: Moon },
+  { value: "system", label: "Sistema", icon: Monitor },
+];
 
-function Chip({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-pressed={active}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-        active ? "bg-sky text-ink" : "bg-white/10 text-white/75 hover:bg-white/20 hover:text-white"
-      }`}
-      type="button"
-      onClick={onClick}
-    >
-      {active ? <Check aria-hidden className="size-3" /> : null}
-      {children}
-    </button>
-  );
+/**
+ * Sources are stored as an explicit list, with the empty list meaning "all", so
+ * a new job board starts included. Turning the last one off goes back to all.
+ */
+function toggleSource(current: string[], all: string[], value: string): string[] {
+  const selected = current.length === 0 ? all : current;
+  const next = toggleValue(selected, value);
+  return next.length === 0 || next.length === all.length ? [] : next;
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-[11px] font-semibold tracking-wide text-white/50 uppercase">{title}</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
-    </div>
-  );
-}
-
-/** Lives inside the island: what the person is looking for, remembered between
- * visits and used to highlight or narrow the list. */
-export function PreferencesPanel({ categories, preferences, onChange }: PreferencesPanelProps) {
+/** Lives inside the island: what the person is looking for, where the offers
+ * come from and how the app looks, all remembered between visits. */
+export function PreferencesPanel({
+  meta,
+  categories,
+  preferences,
+  sources,
+  theme,
+  onChange,
+  onChangeSources,
+  onChangeTheme,
+}: PreferencesPanelProps) {
   const count = preferenceCount(preferences);
+  const allSources = meta?.sources ?? [];
 
   return (
     <div className="space-y-4 px-4 pt-1 pb-4">
+      <Group title="Apariencia">
+        {THEME_OPTIONS.map((option) => (
+          <Chip
+            key={option.value}
+            active={theme === option.value}
+            onClick={() => onChangeTheme(option.value)}
+          >
+            <option.icon aria-hidden className="size-3.5" />
+            {option.label}
+          </Chip>
+        ))}
+      </Group>
+
+      {allSources.length > 0 ? (
+        <Group title="Fuentes">
+          {allSources.map((source) => (
+            <Chip
+              key={source}
+              active={sources.length === 0 || sources.includes(source)}
+              onClick={() => onChangeSources(toggleSource(sources, allSources, source))}
+            >
+              {SOURCE_LABEL[source] ?? source}
+            </Chip>
+          ))}
+        </Group>
+      ) : null}
+
+      <Group title="Experiencia">
+        <Chip
+          active={preferences.noExperience}
+          onClick={() => onChange({ ...preferences, noExperience: !preferences.noExperience })}
+        >
+          Sin experiencia previa
+        </Chip>
+      </Group>
+
       <Group title="Modalidad">
         {MODE_OPTIONS.map((option) => (
           <Chip
             key={option.value}
             active={preferences.modes.includes(option.value)}
             onClick={() =>
-              onChange({ ...preferences, modes: toggle(preferences.modes, option.value) })
+              onChange({ ...preferences, modes: toggleValue(preferences.modes, option.value) })
             }
           >
             {option.label}
@@ -89,7 +123,7 @@ export function PreferencesPanel({ categories, preferences, onChange }: Preferen
             key={option.value}
             active={preferences.levels.includes(option.value)}
             onClick={() =>
-              onChange({ ...preferences, levels: toggle(preferences.levels, option.value) })
+              onChange({ ...preferences, levels: toggleValue(preferences.levels, option.value) })
             }
           >
             {option.label}
@@ -103,7 +137,10 @@ export function PreferencesPanel({ categories, preferences, onChange }: Preferen
             key={option.value}
             active={preferences.jobTypes.includes(option.value)}
             onClick={() =>
-              onChange({ ...preferences, jobTypes: toggle(preferences.jobTypes, option.value) })
+              onChange({
+                ...preferences,
+                jobTypes: toggleValue(preferences.jobTypes, option.value),
+              })
             }
           >
             {option.label}
@@ -120,7 +157,7 @@ export function PreferencesPanel({ categories, preferences, onChange }: Preferen
               onClick={() =>
                 onChange({
                   ...preferences,
-                  categories: toggle(preferences.categories, facet.value),
+                  categories: toggleValue(preferences.categories, facet.value),
                 })
               }
             >
@@ -130,13 +167,20 @@ export function PreferencesPanel({ categories, preferences, onChange }: Preferen
         </Group>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
-        <p className="text-[11px] leading-snug text-white/50">
-          Las ofertas que coinciden quedan destacadas en la lista.
+      <div className="flex items-center justify-between gap-3 border-t border-onpanel/10 pt-3">
+        <p className="text-[11px] leading-snug text-onpanel/50">
+          {meta ? (
+            <span className="inline-flex items-center gap-1.5">
+              <RefreshCw aria-hidden className="size-3" />
+              {pluralOffers(meta.count)} · actualizado {formatScrapedAt(meta.scraped_at)}
+            </span>
+          ) : (
+            "Las ofertas que coinciden quedan destacadas en la lista."
+          )}
         </p>
         {count > 0 ? (
           <button
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium text-onpanel/60 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
             type="button"
             onClick={() => onChange(EMPTY_PREFERENCES)}
           >

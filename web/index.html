@@ -4,8 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Ofertas de trabajo en Uruguay de todos los rubros, con filtro para puestos sin experiencia previa." />
-    <title>jobit · Ofertas de trabajo en Uruguay</title>
+    <meta
+      name="description"
+      content="Ofertas de trabajo en Uruguay de todos los rubros, con filtro para puestos sin experiencia previa."
+    />
+    <title>JobIt · Ofertas de trabajo en Uruguay</title>
+    <script>
+      /* Paints the stored theme before first render so there is no flash. */
+      try {
+        const stored = JSON.parse(localStorage.getItem("jobit.prefs.v1") || "{}");
+        const theme =
+          stored.theme === "light" || stored.theme === "dark"
+            ? stored.theme
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

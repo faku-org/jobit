@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { PAGE_SIZE, fetchJobs } from "../lib/api.ts";
-import type { Filters, Job, Preferences } from "../lib/types.ts";
+import { startTransition, useEffect, useState } from "react";
+import { type JobsQueryOptions, PAGE_SIZE, fetchJobs, isAbortError } from "../lib/api.ts";
+import type { Job } from "../lib/types.ts";
 
 type Status = "loading" | "loadingMore" | "ready" | "error";
 
@@ -13,23 +13,20 @@ interface JobsState {
   loadMore: () => void;
 }
 
-const isAbort = (error: unknown): boolean =>
-  error instanceof DOMException && error.name === "AbortError";
-
 /**
- * Fetches a page of jobs whenever the filters change, and appends pages on
- * loadMore. A filter change always restarts from offset 0.
+ * Fetches a page of jobs whenever the query changes, and appends pages on
+ * loadMore. A query change always restarts from offset 0.
  */
-export function useJobs(filters: Filters, ids?: string[], preferences?: Preferences): JobsState {
-  const key = JSON.stringify([filters, ids, preferences]);
-  const [request, setRequest] = useState({ key, filters, ids, preferences, offset: 0 });
+export function useJobs(options: JobsQueryOptions): JobsState {
+  const key = JSON.stringify(options);
+  const [request, setRequest] = useState({ key, options, offset: 0 });
   const [jobs, setJobs] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string | null>(null);
 
   if (request.key !== key) {
-    setRequest({ key, filters, ids, preferences, offset: 0 });
+    setRequest({ key, options, offset: 0 });
   }
 
   useEffect(() => {
@@ -39,22 +36,18 @@ export function useJobs(filters: Filters, ids?: string[], preferences?: Preferen
     setStatus(isFirstPage ? "loading" : "loadingMore");
     setError(null);
 
-    fetchJobs(
-      {
-        filters: request.filters,
-        offset: request.offset,
-        ids: request.ids,
-        preferences: request.preferences,
-      },
-      controller.signal,
-    )
+    fetchJobs({ ...request.options, offset: request.offset }, controller.signal)
       .then((response) => {
-        setTotal(response.total);
-        setJobs((previous) => (isFirstPage ? response.jobs : [...previous, ...response.jobs]));
-        setStatus("ready");
+        /** A page is fifty cards: as a transition React can split the render
+         * across frames instead of blocking the tab while it mounts them. */
+        startTransition(() => {
+          setTotal(response.total);
+          setJobs((previous) => (isFirstPage ? response.jobs : [...previous, ...response.jobs]));
+          setStatus("ready");
+        });
       })
       .catch((cause: unknown) => {
-        if (isAbort(cause)) return;
+        if (isAbortError(cause)) return;
         setError(cause instanceof Error ? cause.message : "Error desconocido");
         setStatus("error");
       });

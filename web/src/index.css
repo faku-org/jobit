@@ -3,12 +3,47 @@
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
 
-  /* Palette: mist / sky / brand / ink. Every other tone is one of these with
-     an opacity modifier, so the UI stays inside the four colours. */
+  /* Palette: mist / sky / brand / ink, plus the two surfaces they sit on.
+     Every other tone is one of these with an opacity modifier, so the UI stays
+     inside the palette. The dark theme below swaps the values, never the
+     names, so components never branch on the theme. */
   --color-mist: #e3f2fd;
   --color-sky: #90caf9;
   --color-brand: #2196f3;
   --color-ink: #0d47a1;
+
+  /* Cards and inputs. */
+  --color-surface: #ffffff;
+  /* The island and every filled button, with its own foreground. */
+  --color-panel: #0d47a1;
+  --color-onpanel: #ffffff;
+}
+
+:root {
+  color-scheme: light;
+  --shadow-panel: 0 8px 30px rgba(13, 71, 161, 0.28);
+  --shadow-card: 0 2px 10px rgba(13, 71, 161, 0.08);
+  --shadow-match: 0 4px 20px rgba(33, 150, 243, 0.14);
+  --shadow-hairline: 0 1px 2px rgba(13, 71, 161, 0.06);
+  --scrim: rgba(13, 71, 161, 0.35);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-mist: #0a1220;
+  --color-sky: #33507d;
+  --color-brand: #4c9ffe;
+  --color-ink: #dfeaf8;
+  --color-surface: #111c2e;
+  --color-panel: #17243a;
+  --color-onpanel: #e6effb;
+
+  --shadow-panel: 0 8px 30px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-match: 0 4px 20px rgba(76, 159, 254, 0.22);
+  --shadow-hairline: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --scrim: rgba(2, 6, 14, 0.7);
 }
 
 @layer base {
@@ -25,4 +60,19 @@
   ::selection {
     @apply bg-sky/50 text-ink;
   }
+}
+
+/* The embed sits inside somebody else's page, so it brings no background of
+   its own and stays as tall as its card. */
+[data-embed] body {
+  @apply bg-transparent p-2;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+span {
+  user-select: none;
 }

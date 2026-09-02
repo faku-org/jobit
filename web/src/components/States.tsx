@@ -7,7 +7,7 @@ export function JobListSkeleton() {
     <div aria-label="Cargando ofertas" className="space-y-3" role="status">
       {Array.from({ length: 5 }, (_, index) => (
         <FadeUp key={index} delay={stagger(index)}>
-          <div className="animate-pulse rounded-2xl border border-sky/50 bg-white p-5">
+          <div className="animate-pulse rounded-2xl border border-sky/50 bg-surface p-5">
             <div className="h-4 w-2/5 rounded-full bg-sky/60" />
             <div className="mt-3 h-3 w-3/5 rounded-full bg-mist" />
             <div className="mt-4 flex gap-2">
@@ -52,12 +52,12 @@ export function EmptyState({
   const { title, hint } = emptyCopy(saved, similar);
 
   return (
-    <div className="rounded-2xl border border-dashed border-sky bg-white/60 px-6 py-16 text-center">
+    <div className="rounded-2xl border border-dashed border-sky bg-surface/60 px-6 py-16 text-center">
       <SearchX aria-hidden className="mx-auto size-7 text-brand" />
       <p className="mt-4 text-[15px] font-medium text-ink">{title}</p>
       <p className="mt-1 text-sm text-ink/60">{hint}</p>
       <button
-        className="mt-5 rounded-xl border border-sky/70 bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-mist"
+        className="mt-5 rounded-xl border border-sky/70 bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-mist"
         type="button"
         onClick={onReset}
       >

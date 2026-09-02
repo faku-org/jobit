@@ -1,27 +1,23 @@
-import { Bookmark, ChevronDown, EyeOff, Search, Sparkles, Target, X } from "lucide-react";
+import { Bookmark, EyeOff, Search, Sparkles, Target, X } from "lucide-react";
 import { motion } from "motion/react";
+import { fieldClass } from "../lib/styles.ts";
 import type { Facet, Filters, JobType, Level, WorkMode } from "../lib/types.ts";
-
-interface Option {
-  value: string;
-  label: string;
-}
+import { type Option, Select } from "./Select.tsx";
 
 interface FilterBarProps {
   filters: Filters;
   categories: Facet[];
   departments: Facet[];
   noExperienceCount: number;
-  savedCount: number;
   dismissedCount: number;
   matchCount: number;
   hasPreferences: boolean;
-  showSaved: boolean;
   hideDismissed: boolean;
   onlySimilar: boolean;
   isDirty: boolean;
+  /** The saved view filters by rubro with its own chips, so it hides this one. */
+  showCategory: boolean;
   onChange: (filters: Filters) => void;
-  onToggleSaved: () => void;
   onToggleHideDismissed: () => void;
   onToggleSimilar: () => void;
   onReset: () => void;
@@ -61,42 +57,6 @@ const facetOptions = (facets: Facet[], allLabel: string): Option[] => [
   ...facets.map((facet) => ({ value: facet.value, label: `${facet.label} (${facet.count})` })),
 ];
 
-const fieldClass =
-  "w-full rounded-xl border border-sky/60 bg-white text-sm text-ink transition-colors outline-none hover:border-brand focus:border-brand focus:ring-4 focus:ring-brand/15";
-
-function Select({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Option[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="relative">
-      <select
-        aria-label={label}
-        className={`${fieldClass} appearance-none truncate py-2.5 pr-9 pl-3.5`}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-brand"
-      />
-    </div>
-  );
-}
-
 function Toggle({
   active,
   icon: Icon,
@@ -113,8 +73,8 @@ function Toggle({
       aria-pressed={active}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
         active
-          ? "border-ink bg-ink text-white"
-          : "border-sky/60 bg-white text-ink/60 hover:border-brand hover:text-ink"
+          ? "border-panel bg-panel text-onpanel"
+          : "border-sky/60 bg-surface text-ink/60 hover:border-brand hover:text-ink"
       }`}
       type="button"
       whileTap={{ scale: 0.95 }}
@@ -131,22 +91,20 @@ export function FilterBar({
   categories,
   departments,
   noExperienceCount,
-  savedCount,
   dismissedCount,
   matchCount,
   hasPreferences,
-  showSaved,
   hideDismissed,
   onlySimilar,
   isDirty,
+  showCategory,
   onChange,
-  onToggleSaved,
   onToggleHideDismissed,
   onToggleSimilar,
   onReset,
 }: FilterBarProps) {
   return (
-    <div className="rounded-2xl border border-sky/50 bg-white p-3 shadow-[0_1px_2px_rgba(13,71,161,0.06)]">
+    <div className="rounded-2xl border border-sky/50 bg-surface p-3 shadow-[var(--shadow-hairline)]">
       <div className="relative">
         <Search
           aria-hidden
@@ -173,12 +131,14 @@ export function FilterBar({
       </div>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
-        <Select
-          label="Rubro"
-          options={facetOptions(categories, "Todos los rubros")}
-          value={filters.category}
-          onChange={(value) => onChange({ ...filters, category: value })}
-        />
+        {showCategory ? (
+          <Select
+            label="Rubro"
+            options={facetOptions(categories, "Todos los rubros")}
+            value={filters.category}
+            onChange={(value) => onChange({ ...filters, category: value })}
+          />
+        ) : null}
         <Select
           label="Departamento"
           options={facetOptions(departments, "Todo el país")}
@@ -224,10 +184,6 @@ export function FilterBar({
           onClick={() => onChange({ ...filters, noExperience: !filters.noExperience })}
         >
           Sin experiencia{noExperienceCount > 0 ? ` (${noExperienceCount})` : ""}
-        </Toggle>
-
-        <Toggle active={showSaved} icon={Bookmark} onClick={onToggleSaved}>
-          Guardadas{savedCount > 0 ? ` (${savedCount})` : ""}
         </Toggle>
 
         {dismissedCount > 0 ? (
