@@ -16,8 +16,12 @@ interface JobsState {
 /**
  * Fetches a page of jobs whenever the query changes, and appends pages on
  * loadMore. A query change always restarts from offset 0.
+ *
+ * `enabled` holds the request without unmounting anything: while the intro
+ * owns the screen there is nobody to show a list to, and the answers it is
+ * collecting are half of the query it would be asking with.
  */
-export function useJobs(options: JobsQueryOptions): JobsState {
+export function useJobs(options: JobsQueryOptions, enabled = true): JobsState {
   const key = JSON.stringify(options);
   const [request, setRequest] = useState({ key, options, offset: 0 });
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -30,6 +34,8 @@ export function useJobs(options: JobsQueryOptions): JobsState {
   }
 
   useEffect(() => {
+    if (!enabled) return;
+
     const controller = new AbortController();
     const isFirstPage = request.offset === 0;
 
@@ -53,7 +59,7 @@ export function useJobs(options: JobsQueryOptions): JobsState {
       });
 
     return () => controller.abort();
-  }, [request]);
+  }, [request, enabled]);
 
   return {
     jobs,

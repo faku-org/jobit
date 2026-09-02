@@ -10,9 +10,9 @@ import {
   Target,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { COURSES, DEGREES } from "../lib/catalog.ts";
-import { fadeUpTransition, islandTransition } from "../lib/motion.ts";
+import { fadeUpTransition, islandTransition, stagger } from "../lib/motion.ts";
 import {
   EDUCATION_LABEL,
   EDUCATION_LEVELS,
@@ -25,7 +25,6 @@ import {
   categoryStances,
   departmentStances,
   hiddenCount,
-  preferenceCount,
   toggleValue,
   withCategoryStances,
   withDepartmentStances,
@@ -70,7 +69,26 @@ interface Step {
   body: ReactNode;
 }
 
+/**
+ * The cover, the questions, and the beat that hands over to the app. Landing
+ * straight on the list and having a dialog drop on top of it read as an
+ * interruption, so the intro now owns the screen until it is done.
+ */
+type Phase = "cover" | "steps" | "done";
+
+/** Long enough to read one line, short enough that nobody waits for it. */
+const HANDOVER_MS = 1100;
+/** The intro dims out over the tail of that beat, so it hands the screen over
+ * instead of vanishing off it. The app fades in on the same background. */
+const FAREWELL_MS = 350;
+
 const pesos = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 });
+
+const PROMISES = [
+  "Ninguna respuesta es obligatoria: podés saltear y completar después.",
+  "Nada se descarta por no coincidir; lo que te calza sube y el resto baja.",
+  "Todo se puede cambiar cuando quieras desde Preferencias.",
+];
 
 /** What the answers add up to, said back in the words the person used. */
 function summary(profile: Profile, preferences: Preferences, categories: Facet[]): string[] {
@@ -97,11 +115,20 @@ function summary(profile: Profile, preferences: Preferences, categories: Facet[]
   return lines;
 }
 
+/** Shown in the two steps that need the board's own rubros and zonas. */
+function WaitingForBoard() {
+  return (
+    <p className="rounded-xl bg-onpanel/10 px-3 py-2.5 text-xs leading-relaxed text-onpanel/60">
+      Cargando los rubros y las zonas del momento…
+    </p>
+  );
+}
+
 /**
  * The first thing somebody sees. The profile used to be a panel you had to go
  * looking for, which meant the first list anyone got was the same generic one:
- * asking here costs a minute and every answer is already applied when the
- * feed appears behind it. Nothing is required and nothing leaves the browser.
+ * asking here costs a minute and the answers are already applied by the time
+ * the list appears. Nothing is required and nothing leaves the browser.
  */
 export function Onboarding({
   profile,
@@ -112,7 +139,24 @@ export function Onboarding({
 }: OnboardingProps) {
   const [draftProfile, setDraftProfile] = useState<Profile>(profile);
   const [draftPreferences, setDraftPreferences] = useState<Preferences>(preferences);
+  const [phase, setPhase] = useState<Phase>("cover");
+  const [leaving, setLeaving] = useState(false);
   const [index, setIndex] = useState(0);
+
+  const ready = categories.length > 0;
+
+  /** The handover is a beat, not a gate: it runs itself out and leaves. */
+  useEffect(() => {
+    if (phase !== "done") return;
+
+    const farewell = setTimeout(() => setLeaving(true), HANDOVER_MS - FAREWELL_MS);
+    const handover = setTimeout(() => onFinish(draftProfile, draftPreferences), HANDOVER_MS);
+
+    return () => {
+      clearTimeout(farewell);
+      clearTimeout(handover);
+    };
+  }, [phase, draftProfile, draftPreferences, onFinish]);
 
   const pickEducation = (level: EducationLevel) =>
     setDraftProfile((current) => ({
@@ -121,37 +165,6 @@ export function Onboarding({
     }));
 
   const steps: Step[] = [
-    {
-      id: "welcome",
-      icon: Briefcase,
-      title: "Armemos tu búsqueda",
-      hint: "Un minuto de preguntas y la lista queda ordenada para vos desde la primera vez.",
-      body: (
-        <div className="space-y-3">
-          <div className="flex gap-2.5 rounded-xl bg-onpanel/10 px-3 py-2.5">
-            <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
-            <p className="text-xs leading-relaxed text-onpanel/75">
-              Todo queda guardado <strong>en este navegador</strong>. No hay cuenta, no se sube a
-              ninguna nube y las empresas no ven nada de esto.
-            </p>
-          </div>
-          <ul className="space-y-2 text-xs leading-relaxed text-onpanel/70">
-            <li className="flex gap-2">
-              <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
-              Ninguna respuesta es obligatoria: podés saltear y completar después.
-            </li>
-            <li className="flex gap-2">
-              <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
-              Nada se descarta por no coincidir; lo que te calza sube y el resto baja.
-            </li>
-            <li className="flex gap-2">
-              <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
-              Todo se puede cambiar cuando quieras desde Preferencias.
-            </li>
-          </ul>
-        </div>
-      ),
-    },
     {
       id: "studies",
       icon: GraduationCap,
@@ -216,7 +229,9 @@ export function Onboarding({
       icon: Target,
       title: "¿En qué te gustaría trabajar?",
       hint: "Tocá una vez para priorizar el rubro, otra para ocultarlo del todo.",
-      body: (
+      body: !ready ? (
+        <WaitingForBoard />
+      ) : (
         <div className="space-y-5">
           <StanceChips
             facets={categories}
@@ -247,15 +262,19 @@ export function Onboarding({
       hint: "La zona y el sueldo ordenan la lista; solo lo que ocultes queda afuera.",
       body: (
         <div className="space-y-5">
-          <StanceChips
-            facets={departments.slice(0, 19)}
-            hint="Priorizá tu departamento y sacá los que te quedan lejos."
-            lists={departmentStances(draftPreferences)}
-            title="Zona"
-            onChange={(lists) =>
-              setDraftPreferences((current) => withDepartmentStances(current, lists))
-            }
-          />
+          {ready ? (
+            <StanceChips
+              facets={departments.slice(0, 19)}
+              hint="Priorizá tu departamento y sacá los que te quedan lejos."
+              lists={departmentStances(draftPreferences)}
+              title="Zona"
+              onChange={(lists) =>
+                setDraftPreferences((current) => withDepartmentStances(current, lists))
+              }
+            />
+          ) : (
+            <WaitingForBoard />
+          )}
 
           <SalaryRange
             value={draftPreferences.salary}
@@ -321,133 +340,235 @@ export function Onboarding({
               </PanelChip>
             ))}
           </PanelGroup>
-
-          <div className="rounded-xl bg-onpanel/10 px-3 py-2.5">
-            <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">
-              Así va a quedar tu lista
-            </p>
-            {summary(draftProfile, draftPreferences, categories).length === 0 ? (
-              <p className="mt-1.5 text-xs leading-relaxed text-onpanel/70">
-                No cargaste nada todavía, así que vas a ver todas las ofertas ordenadas por fecha.
-                Se puede completar cuando quieras desde Preferencias.
-              </p>
-            ) : (
-              <ul className="mt-1.5 space-y-1">
-                {summary(draftProfile, draftPreferences, categories).map((line) => (
-                  <li key={line} className="flex gap-2 text-xs leading-relaxed text-onpanel/75">
-                    <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
         </div>
       ),
     },
   ];
 
   const step = steps[index];
-  if (!step) return null;
-
+  const lines = summary(draftProfile, draftPreferences, categories);
+  /** Whether there is anything to say back. The summary is the honest test:
+   * counting preferences alone called a filled-in profile "nothing". */
+  const answered = lines.length > 0;
   const isLast = index === steps.length - 1;
-  const finish = () => onFinish(draftProfile, draftPreferences);
   /** Skipping is finishing without the answers of this run, not postponing the
    * question: on a first visit that leaves everything empty, and on a rerun it
    * leaves what was already saved exactly as it was. */
   const skip = () => onFinish(profile, preferences);
-
-  const answered = preferenceCount(draftPreferences) + hiddenCount(draftPreferences) > 0;
+  const back = () => (index === 0 ? setPhase("cover") : setIndex((current) => current - 1));
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto bg-[var(--scrim)] p-3 backdrop-blur-sm sm:items-center sm:p-6">
-      <motion.div
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        aria-labelledby="onboarding-title"
-        aria-modal="true"
-        className="my-auto w-full max-w-lg overflow-hidden rounded-[26px] bg-panel text-onpanel shadow-[var(--shadow-panel)] ring-1 ring-onpanel/10"
-        initial={{ opacity: 0, y: 24, scale: 0.98 }}
-        role="dialog"
-        transition={islandTransition}
-      >
-        <div className="flex items-center gap-3 px-5 pt-5">
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-white">
-            <step.icon aria-hidden className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium text-onpanel/50 tabular-nums">
-              Paso {index + 1} de {steps.length}
-            </p>
-            <h2
-              className="truncate text-[17px] leading-tight font-semibold tracking-tight"
-              id="onboarding-title"
-            >
-              {step.title}
-            </h2>
-          </div>
-          <button
-            className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium text-onpanel/50 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
-            type="button"
-            onClick={skip}
+    <motion.div
+      animate={{ opacity: leaving ? 0 : 1 }}
+      className="fixed inset-0 z-[60] overflow-y-auto bg-mist"
+      transition={{ duration: leaving ? FAREWELL_MS / 1000 : 0 }}
+    >
+      <div className="mx-auto flex min-h-svh max-w-lg items-center px-5 py-10">
+        {phase === "cover" ? (
+          <motion.section
+            key="cover"
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full"
+            initial={{ opacity: 0, y: 16 }}
+            transition={fadeUpTransition}
           >
-            Saltear
-          </button>
-        </div>
-
-        <div className="mt-3 flex gap-1 px-5">
-          {steps.map((entry, position) => (
-            <span
-              key={entry.id}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                position <= index ? "bg-sky" : "bg-onpanel/15"
-              }`}
+            <motion.img
+              alt=""
+              animate={{ scale: 1, opacity: 1 }}
+              className="size-14 rounded-2xl shadow-[var(--shadow-match)]"
+              initial={{ scale: 0.8, opacity: 0 }}
+              src="/logo.png"
+              transition={islandTransition}
+              width={56}
+              height={56}
             />
-          ))}
-        </div>
 
-        <p className="px-5 pt-3 text-xs leading-relaxed text-onpanel/60">{step.hint}</p>
+            <h1 className="mt-5 text-[28px] leading-tight font-semibold tracking-tight text-ink">
+              Bienvenido a JobIt
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-ink/65">
+              Juntamos las ofertas de trabajo de Uruguay en un solo lugar. Antes de mostrártelas, un
+              minuto de preguntas para que la lista salga ordenada para vos desde la primera vez.
+            </p>
 
-        <div className="max-h-[58svh] overflow-y-auto px-5 py-4">
-          <AnimatePresence initial={false} mode="wait">
-            <motion.div
-              key={step.id}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              initial={{ opacity: 0, x: 12 }}
-              transition={fadeUpTransition}
-            >
-              {step.body}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+            <ul className="mt-6 space-y-2.5">
+              {PROMISES.map((promise, position) => (
+                <motion.li
+                  key={promise}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-2.5 text-sm leading-relaxed text-ink/70"
+                  initial={{ opacity: 0, y: 8 }}
+                  transition={{ ...fadeUpTransition, delay: stagger(position + 1, 0.07, 0.3) }}
+                >
+                  <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
+                  {promise}
+                </motion.li>
+              ))}
+            </ul>
 
-        <div className="flex items-center gap-2 border-t border-onpanel/10 px-5 py-3.5">
-          {index > 0 ? (
-            <button
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-onpanel/60 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
-              type="button"
-              onClick={() => setIndex((current) => current - 1)}
-            >
-              <ArrowLeft aria-hidden className="size-3.5" />
-              Atrás
-            </button>
-          ) : null}
+            <div className="mt-6 flex gap-2.5 rounded-2xl border border-sky/60 bg-surface px-4 py-3">
+              <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
+              <p className="text-xs leading-relaxed text-ink/65">
+                Todo queda guardado <strong className="font-semibold">en este navegador</strong>. No
+                hay cuenta, no se sube a ninguna nube y las empresas no ven nada de esto.
+              </p>
+            </div>
 
-          <motion.button
-            className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-sky px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-sky/85"
-            type="button"
-            whileTap={{ scale: 0.97 }}
-            onClick={() => (isLast ? finish() : setIndex((current) => current + 1))}
+            <div className="mt-7 flex flex-wrap items-center gap-2">
+              <motion.button
+                className="inline-flex items-center gap-2 rounded-2xl bg-panel px-5 py-3 text-sm font-semibold text-onpanel shadow-[var(--shadow-panel)] transition-opacity hover:opacity-90"
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setPhase("steps")}
+              >
+                Empezar
+                <ArrowRight aria-hidden className="size-4" />
+              </motion.button>
+              <button
+                className="rounded-xl px-3 py-2.5 text-sm font-medium text-ink/55 transition-colors hover:bg-surface hover:text-ink"
+                type="button"
+                onClick={skip}
+              >
+                Ver las ofertas sin configurar
+              </button>
+            </div>
+          </motion.section>
+        ) : phase === "done" ? (
+          <motion.section
+            key="done"
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full text-center"
+            initial={{ opacity: 0, y: 16 }}
+            transition={fadeUpTransition}
           >
-            {isLast ? (answered ? "Ver mis ofertas" : "Ver las ofertas") : "Siguiente"}
+            <motion.span
+              animate={{ scale: 1 }}
+              className="mx-auto grid size-14 place-items-center rounded-full bg-brand text-white shadow-[var(--shadow-match)]"
+              initial={{ scale: 0.7 }}
+              transition={islandTransition}
+            >
+              <Check aria-hidden className="size-7" />
+            </motion.span>
+
+            <h2 className="mt-5 text-xl font-semibold tracking-tight text-ink">
+              {answered ? "Listo, tu lista está armada" : "Listo, vamos a las ofertas"}
+            </h2>
+            <p className="mt-1.5 text-sm text-ink/60">
+              {lines.length > 0
+                ? lines[0]
+                : "Vas a ver todas las ofertas, de la más nueva a la más vieja."}
+            </p>
+          </motion.section>
+        ) : step ? (
+          <motion.section
+            key="steps"
+            animate={{ opacity: 1, y: 0 }}
+            aria-labelledby="onboarding-title"
+            className="w-full overflow-hidden rounded-[26px] bg-panel text-onpanel shadow-[var(--shadow-panel)] ring-1 ring-onpanel/10"
+            initial={{ opacity: 0, y: 16 }}
+            transition={islandTransition}
+          >
+            <div className="flex items-center gap-3 px-5 pt-5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-white">
+                <step.icon aria-hidden className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-medium text-onpanel/50 tabular-nums">
+                  Paso {index + 1} de {steps.length}
+                </p>
+                <h2
+                  className="truncate text-[17px] leading-tight font-semibold tracking-tight"
+                  id="onboarding-title"
+                >
+                  {step.title}
+                </h2>
+              </div>
+              <button
+                className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium text-onpanel/50 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
+                type="button"
+                onClick={skip}
+              >
+                Saltear
+              </button>
+            </div>
+
+            <div className="mt-3 flex gap-1 px-5">
+              {steps.map((entry, position) => (
+                <span
+                  key={entry.id}
+                  className={`h-1 flex-1 rounded-full transition-colors ${
+                    position <= index ? "bg-sky" : "bg-onpanel/15"
+                  }`}
+                />
+              ))}
+            </div>
+
+            <p className="px-5 pt-3 text-xs leading-relaxed text-onpanel/60">{step.hint}</p>
+
+            <div className="max-h-[58svh] overflow-y-auto px-5 py-4">
+              <AnimatePresence initial={false} mode="wait">
+                <motion.div
+                  key={step.id}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -12 }}
+                  initial={{ opacity: 0, x: 12 }}
+                  transition={fadeUpTransition}
+                >
+                  {step.body}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
             {isLast ? (
-              <Check aria-hidden className="size-4" />
-            ) : (
-              <ArrowRight aria-hidden className="size-4" />
-            )}
-          </motion.button>
-        </div>
-      </motion.div>
-    </div>
+              <div className="mx-5 mb-1 rounded-xl bg-onpanel/10 px-3 py-2.5">
+                <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">
+                  Así va a quedar tu lista
+                </p>
+                {lines.length === 0 ? (
+                  <p className="mt-1.5 text-xs leading-relaxed text-onpanel/70">
+                    No cargaste nada todavía, así que vas a ver todas las ofertas ordenadas por
+                    fecha. Se puede completar cuando quieras desde Preferencias.
+                  </p>
+                ) : (
+                  <ul className="mt-1.5 space-y-1">
+                    {lines.map((line) => (
+                      <li key={line} className="flex gap-2 text-xs leading-relaxed text-onpanel/75">
+                        <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+
+            <div className="mt-3 flex items-center gap-2 border-t border-onpanel/10 px-5 py-3.5">
+              <button
+                className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-onpanel/60 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
+                type="button"
+                onClick={back}
+              >
+                <ArrowLeft aria-hidden className="size-3.5" />
+                Atrás
+              </button>
+
+              <motion.button
+                className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-sky px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-sky/85"
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => (isLast ? setPhase("done") : setIndex((current) => current + 1))}
+              >
+                {isLast ? (answered ? "Ver mis ofertas" : "Ver las ofertas") : "Siguiente"}
+                {isLast ? (
+                  <Check aria-hidden className="size-4" />
+                ) : (
+                  <ArrowRight aria-hidden className="size-4" />
+                )}
+              </motion.button>
+            </div>
+          </motion.section>
+        ) : null}
+      </div>
+    </motion.div>
   );
 }

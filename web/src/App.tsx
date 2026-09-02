@@ -92,6 +92,13 @@ export default function App() {
 
   const prefs = useJobPrefs();
   const meta = useMeta();
+  /**
+   * Read from storage on the first render, so a first visit paints the intro
+   * and never the list underneath it. Until it is done the app is not mounted
+   * at all: the list used to load behind the questions and have them dropped
+   * on top, which read as an interruption rather than a welcome.
+   */
+  const showIntro = !isOnboarded(prefs.profile);
   const debouncedQuery = useDebounced(filters.q);
   useTheme(prefs.theme);
   useJobLink(openJob, setOpenJob);
@@ -129,31 +136,34 @@ export default function App() {
       ? "match"
       : undefined;
 
-  const { jobs, total, status, error, hasMore, loadMore } = useJobs({
-    filters: {
-      ...filters,
-      q: debouncedQuery,
-      category: isSavedView ? "" : filters.category,
+  const { jobs, total, status, error, hasMore, loadMore } = useJobs(
+    {
+      filters: {
+        ...filters,
+        q: debouncedQuery,
+        category: isSavedView ? "" : filters.category,
+      },
+      ids: isSavedView
+        ? savedIds.length > 0
+          ? savedIds
+          : ["none"]
+        : reviewing
+          ? discardedIds
+          : undefined,
+      preferences: similarOnly ? prefs.preferences : undefined,
+      hiddenCategories: isSavedView ? undefined : prefs.preferences.hiddenCategories,
+      hiddenDepartments: isSavedView ? undefined : prefs.preferences.hiddenDepartments,
+      salary:
+        !isSavedView && hasSalaryPreference(prefs.preferences.salary)
+          ? prefs.preferences.salary
+          : undefined,
+      /** Reviewing shows everything discarded, whichever board it came from. */
+      sources: isStateView ? [STATE_SOURCE] : reviewing ? undefined : prefs.sources,
+      sort,
+      ranking: sort === "match" ? ranking : undefined,
     },
-    ids: isSavedView
-      ? savedIds.length > 0
-        ? savedIds
-        : ["none"]
-      : reviewing
-        ? discardedIds
-        : undefined,
-    preferences: similarOnly ? prefs.preferences : undefined,
-    hiddenCategories: isSavedView ? undefined : prefs.preferences.hiddenCategories,
-    hiddenDepartments: isSavedView ? undefined : prefs.preferences.hiddenDepartments,
-    salary:
-      !isSavedView && hasSalaryPreference(prefs.preferences.salary)
-        ? prefs.preferences.salary
-        : undefined,
-    /** Reviewing shows everything discarded, whichever board it came from. */
-    sources: isStateView ? [STATE_SOURCE] : reviewing ? undefined : prefs.sources,
-    sort,
-    ranking: sort === "match" ? ranking : undefined,
-  });
+    !showIntro,
+  );
 
   const matches = new Set(
     hasPreferences
@@ -229,8 +239,27 @@ export default function App() {
     setReviewingDiscarded(false);
   };
 
+  if (showIntro) {
+    return (
+      <Onboarding
+        categories={meta?.categories ?? []}
+        departments={meta?.departments ?? []}
+        preferences={prefs.preferences}
+        profile={prefs.profile}
+        onFinish={prefs.completeOnboarding}
+      />
+    );
+  }
+
+  /* The intro leaves on the same background this fades in over, so the
+     handover reads as one movement and not as a screen being replaced. */
   return (
-    <div className="min-h-svh">
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      className="min-h-svh"
+      initial={{ opacity: 0, y: 10 }}
+      transition={fadeUpTransition}
+    >
       <DynamicIsland
         categories={meta?.categories ?? []}
         counts={{
@@ -488,18 +517,6 @@ export default function App() {
           onToggleSaved={prefs.toggleSaved}
         />
       ) : null}
-
-      {/* Last so it sits over everything, and only once the rubros are known:
-          asking somebody to pick a rubro from an empty list is asking nothing. */}
-      {!isOnboarded(prefs.profile) && meta ? (
-        <Onboarding
-          categories={meta.categories}
-          departments={meta.departments}
-          preferences={prefs.preferences}
-          profile={prefs.profile}
-          onFinish={prefs.completeOnboarding}
-        />
-      ) : null}
-    </div>
+    </motion.div>
   );
 }
