@@ -1,4 +1,4 @@
-import { Bookmark, Building2, EyeOff, Lightbulb, MapPin, Target, Undo2, X } from "lucide-react";
+import { Bookmark, Building2, EyeOff, MapPin, Target, Undo2, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -7,12 +7,13 @@ import {
   formatDay,
   formatLocation,
 } from "../lib/format.ts";
-import { fadeUpTransition, islandTransition } from "../lib/motion.ts";
+import { islandTransition } from "../lib/motion.ts";
 import { chipClass, iconButtonClass } from "../lib/styles.ts";
-import { applyTips } from "../lib/tips.ts";
 import { type Application, type Job, type Tag, relatedApplications } from "../lib/types.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
 import { JobChips, type TagActions } from "./JobChips.tsx";
+import { JobDescription } from "./JobDescription.tsx";
+import { JobFit } from "./JobFit.tsx";
 import { ShareMenu } from "./ShareMenu.tsx";
 
 interface JobModalProps {
@@ -72,7 +73,6 @@ export function JobModal({
   onApplied,
   onClose,
 }: JobModalProps) {
-  const tips = applyTips(job);
   const related = relatedApplications(job, applications);
   /** The sheet plays its own exit and then asks to be unmounted. */
   const [closing, setClosing] = useState(false);
@@ -193,42 +193,22 @@ export function JobModal({
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
           <JobChips actions={chipActions} job={job} />
 
+          <JobFit job={job} profile={tagActions.profile} />
+
           <Section title="Descripción">
             {job.description ? (
-              <p className="text-[15px] leading-7 whitespace-pre-line text-ink/80">
-                {job.description}
-              </p>
+              <JobDescription profile={tagActions.profile} text={job.description} />
             ) : (
               <p className="text-sm text-ink/50">
-                Esta oferta todavía no tiene la descripción descargada.
+                Esta oferta todavía no tiene la descripción descargada. Suele aparecer en la próxima
+                actualización; mientras tanto podés abrir el aviso original.
               </p>
             )}
           </Section>
 
           {job.requirements ? (
             <Section title="Requisitos">
-              <p className="text-[15px] leading-7 whitespace-pre-line text-ink/80">
-                {job.requirements}
-              </p>
-            </Section>
-          ) : null}
-
-          {tips.length > 0 ? (
-            <Section title="Tips para postularte">
-              <ul className="space-y-2">
-                {tips.map((tip) => (
-                  <motion.li
-                    key={tip}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-2.5 rounded-xl bg-mist px-3 py-2.5 text-sm leading-relaxed text-ink/80"
-                    initial={{ opacity: 0, y: 6 }}
-                    transition={fadeUpTransition}
-                  >
-                    <Lightbulb aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
-                    {tip}
-                  </motion.li>
-                ))}
-              </ul>
+              <JobDescription profile={tagActions.profile} text={job.requirements} />
             </Section>
           ) : null}
 

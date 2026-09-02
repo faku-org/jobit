@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
+import { EMPTY_RANKING } from "./rank.ts";
 import type { Job, WorkMode } from "./types.ts";
 
 const NOW = Date.parse("2026-08-17T00:00:00Z");
@@ -99,8 +100,8 @@ describe("filterJobs", () => {
   });
 
   test("department filter", () => {
-    expect(filterJobs(jobs, { ...base, department: "Canelones" }, NOW).total).toBe(1);
-    expect(filterJobs(jobs, { ...base, department: "Montevideo" }, NOW).total).toBe(2);
+    expect(filterJobs(jobs, { ...base, departments: new Set(["Canelones"]) }, NOW).total).toBe(1);
+    expect(filterJobs(jobs, { ...base, departments: new Set(["Montevideo"]) }, NOW).total).toBe(2);
   });
 
   test("no_experience filter keeps only first-job offers", () => {
@@ -173,5 +174,60 @@ describe("facets", () => {
       label: "Montevideo",
       count: 2,
     });
+  });
+});
+
+describe("exclusions", () => {
+  test("hidden rubros never come back", () => {
+    const result = filterJobs(jobs, { ...base, hiddenCategories: new Set(["ventas"]) }, NOW);
+    expect(result.jobs.map((j) => j.id).sort()).toEqual(["b", "c"]);
+  });
+
+  test("hidden departments never come back", () => {
+    const result = filterJobs(jobs, { ...base, hiddenDepartments: new Set(["Canelones"]) }, NOW);
+    expect(result.jobs.map((j) => j.id).sort()).toEqual(["a", "c"]);
+  });
+
+  test("an offer without a department survives a hidden department", () => {
+    const nowhere = [job({ id: "d", department: null })];
+    const query = { ...base, hiddenDepartments: new Set(["Montevideo"]) };
+    expect(filterJobs(nowhere, query, NOW).total).toBe(1);
+  });
+});
+
+describe("salary range", () => {
+  const paid = [
+    job({ id: "low", salary: { min: 25_000, max: 30_000, currency: "UYU" } }),
+    job({ id: "high", salary: { min: 90_000, max: 120_000, currency: "UYU" } }),
+    job({ id: "unknown", salary: null }),
+  ];
+
+  test("keeps the offers whose range overlaps the one asked for", () => {
+    const salary = { min: 60_000, max: null, includeUnknown: false };
+    expect(filterJobs(paid, { ...base, salary }, NOW).jobs.map((j) => j.id)).toEqual(["high"]);
+  });
+
+  test("an upper bound drops what starts above it", () => {
+    const salary = { min: null, max: 50_000, includeUnknown: false };
+    expect(filterJobs(paid, { ...base, salary }, NOW).jobs.map((j) => j.id)).toEqual(["low"]);
+  });
+
+  test("offers with no published pay are kept unless asked otherwise", () => {
+    const salary = { min: 60_000, max: null, includeUnknown: true };
+    const found = filterJobs(paid, { ...base, salary }, NOW).jobs.map((j) => j.id);
+    expect(found.sort()).toEqual(["high", "unknown"]);
+  });
+});
+
+describe("match sort", () => {
+  test("the preferred rubro comes first, and the head of the list wins", () => {
+    const ranking = { ...EMPTY_RANKING, categories: ["administracion", "logistica"] };
+    const result = filterJobs(jobs, { ...base, sort: "match", ranking }, NOW);
+    expect(result.jobs.map((j) => j.id)).toEqual(["c", "b", "a"]);
+  });
+
+  test("without a ranking the order is left alone", () => {
+    const result = filterJobs(jobs, { ...base, sort: "match" }, NOW);
+    expect(result.jobs.map((j) => j.id)).toEqual(["a", "b", "c"]);
   });
 });

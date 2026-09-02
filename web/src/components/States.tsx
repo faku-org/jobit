@@ -1,5 +1,6 @@
 import { SearchX, TriangleAlert } from "lucide-react";
 import { stagger } from "../lib/motion.ts";
+import type { View } from "../lib/types.ts";
 import { FadeUp } from "./FadeUp.tsx";
 
 export function JobListSkeleton() {
@@ -21,11 +22,31 @@ export function JobListSkeleton() {
   );
 }
 
-function emptyCopy(saved: boolean, similar: boolean): { title: string; hint: string } {
-  if (saved) {
+interface EmptyStateProps {
+  /** The list that came back empty; each one is empty for its own reason. */
+  view: View;
+  similar: boolean;
+  /** Rubros and zonas the person hid, the one setting that removes offers. */
+  hidden: number;
+  /** Whether there is any filter to clear; an empty shortlist has none. */
+  canReset: boolean;
+  onReset: () => void;
+}
+
+function emptyCopy({ view, similar, hidden }: EmptyStateProps): { title: string; hint: string } {
+  if (view === "saved") {
     return {
       title: "Todavía no guardaste ninguna oferta",
       hint: "Usá el marcador en cada oferta para armar tu lista.",
+    };
+  }
+  if (view === "state") {
+    return {
+      title: "No hay llamados del Estado para estos filtros",
+      hint:
+        hidden > 0
+          ? "Puede ser por los rubros o las zonas que ocultaste en Preferencias."
+          : "Uruguay Concursa publica por tandas: probá sin filtros o volvé en unos días.",
     };
   }
   if (similar) {
@@ -36,33 +57,30 @@ function emptyCopy(saved: boolean, similar: boolean): { title: string; hint: str
   }
   return {
     title: "No hay ofertas para estos filtros",
-    hint: "Probá ampliar la búsqueda o quitar filtros.",
+    hint:
+      hidden > 0
+        ? `Ojo que tenés ${hidden} ${hidden === 1 ? "rubro o zona oculta" : "rubros o zonas ocultas"} en Preferencias.`
+        : "Probá ampliar la búsqueda o quitar filtros.",
   };
 }
 
-export function EmptyState({
-  saved,
-  similar,
-  onReset,
-}: {
-  saved: boolean;
-  similar: boolean;
-  onReset: () => void;
-}) {
-  const { title, hint } = emptyCopy(saved, similar);
+export function EmptyState(props: EmptyStateProps) {
+  const { title, hint } = emptyCopy(props);
 
   return (
     <div className="rounded-2xl border border-dashed border-sky bg-surface/60 px-6 py-16 text-center">
       <SearchX aria-hidden className="mx-auto size-7 text-brand" />
       <p className="mt-4 text-[15px] font-medium text-ink">{title}</p>
       <p className="mt-1 text-sm text-ink/60">{hint}</p>
-      <button
-        className="mt-5 rounded-xl border border-sky/70 bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-mist"
-        type="button"
-        onClick={onReset}
-      >
-        Limpiar filtros
-      </button>
+      {props.canReset ? (
+        <button
+          className="mt-5 rounded-xl border border-sky/70 bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-mist"
+          type="button"
+          onClick={props.onReset}
+        >
+          Limpiar filtros
+        </button>
+      ) : null}
     </div>
   );
 }

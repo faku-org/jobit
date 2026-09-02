@@ -9,16 +9,20 @@ interface FilterBarProps {
   categories: Facet[];
   departments: Facet[];
   noExperienceCount: number;
-  dismissedCount: number;
+  /** How many offers were discarded, and whether this view can review them.
+   * Discarding is meaningless where nothing can be discarded, so the control
+   * is absent there instead of present and inert. */
+  discardedCount: number;
+  canReviewDiscarded: boolean;
+  reviewingDiscarded: boolean;
   matchCount: number;
   hasPreferences: boolean;
-  hideDismissed: boolean;
   onlySimilar: boolean;
   isDirty: boolean;
   /** The saved view filters by rubro with its own chips, so it hides this one. */
   showCategory: boolean;
   onChange: (filters: Filters) => void;
-  onToggleHideDismissed: () => void;
+  onToggleReviewDiscarded: () => void;
   onToggleSimilar: () => void;
   onReset: () => void;
 }
@@ -91,15 +95,16 @@ export function FilterBar({
   categories,
   departments,
   noExperienceCount,
-  dismissedCount,
+  discardedCount,
+  canReviewDiscarded,
+  reviewingDiscarded,
   matchCount,
   hasPreferences,
-  hideDismissed,
   onlySimilar,
   isDirty,
   showCategory,
   onChange,
-  onToggleHideDismissed,
+  onToggleReviewDiscarded,
   onToggleSimilar,
   onReset,
 }: FilterBarProps) {
@@ -186,9 +191,11 @@ export function FilterBar({
           Sin experiencia{noExperienceCount > 0 ? ` (${noExperienceCount})` : ""}
         </Toggle>
 
-        {dismissedCount > 0 ? (
-          <Toggle active={!hideDismissed} icon={EyeOff} onClick={onToggleHideDismissed}>
-            {hideDismissed ? `Ver descartadas (${dismissedCount})` : "Ocultar descartadas"}
+        {canReviewDiscarded && discardedCount > 0 ? (
+          <Toggle active={reviewingDiscarded} icon={EyeOff} onClick={onToggleReviewDiscarded}>
+            {reviewingDiscarded
+              ? "Volver a las ofertas"
+              : `Ver las que descartaste (${discardedCount})`}
           </Toggle>
         ) : null}
 

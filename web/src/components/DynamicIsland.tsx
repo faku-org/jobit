@@ -2,6 +2,7 @@ import { Briefcase, SlidersHorizontal } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { useScrolledPast } from "../hooks/useScrolledPast.ts";
+import type { CustomFeed, FeedResult } from "../lib/feed.ts";
 import { islandTransition } from "../lib/motion.ts";
 import { type Profile, profileCount } from "../lib/profile.ts";
 import type { Usage } from "../lib/stats.ts";
@@ -10,6 +11,7 @@ import {
   type Meta,
   type Preferences,
   type Theme,
+  hiddenCount,
   preferenceCount,
 } from "../lib/types.ts";
 import { PreferencesPanel } from "./Preferences.tsx";
@@ -18,15 +20,26 @@ import { ProfilePanel } from "./ProfilePanel.tsx";
 interface DynamicIslandProps {
   meta: Meta | null;
   categories: Facet[];
+  departments: Facet[];
   preferences: Preferences;
   sources: string[];
+  feeds: CustomFeed[];
+  feedResults: FeedResult[];
+  feedsLoading: boolean;
   theme: Theme;
   profile: Profile;
   usage: Usage;
+  /** What the danger zone would erase, passed through to the profile sheet. */
+  counts: { saved: number; applications: number; dismissed: number; preferences: number };
   onChangePreferences: (preferences: Preferences) => void;
   onChangeSources: (sources: string[]) => void;
+  onChangeFeeds: (feeds: CustomFeed[]) => void;
   onChangeTheme: (theme: Theme) => void;
   onChangeProfile: (profile: Profile) => void;
+  onRestartOnboarding: () => void;
+  onResetPreferences: () => void;
+  onEraseEverything: () => void;
+  onImportCv: (profile: Profile, preferences: Preferences) => void;
 }
 
 type Tab = "search" | "profile";
@@ -39,21 +52,31 @@ type Tab = "search" | "profile";
 export function DynamicIsland({
   meta,
   categories,
+  departments,
   preferences,
   sources,
+  feeds,
+  feedResults,
+  feedsLoading,
   theme,
   profile,
   usage,
+  counts,
   onChangePreferences,
   onChangeSources,
+  onChangeFeeds,
   onChangeTheme,
   onChangeProfile,
+  onRestartOnboarding,
+  onResetPreferences,
+  onEraseEverything,
+  onImportCv,
 }: DynamicIslandProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("search");
   const condensed = useScrolledPast(24);
 
-  const count = preferenceCount(preferences);
+  const count = preferenceCount(preferences) + hiddenCount(preferences);
   const studies = profileCount(profile);
   const compact = condensed && !open;
 
@@ -147,16 +170,35 @@ export function DynamicIsland({
               {tab === "search" ? (
                 <PreferencesPanel
                   categories={categories}
+                  departments={departments}
                   meta={meta}
+                  feedResults={feedResults}
+                  feeds={feeds}
+                  feedsLoading={feedsLoading}
                   preferences={preferences}
                   sources={sources}
                   theme={theme}
                   onChange={onChangePreferences}
+                  onChangeFeeds={onChangeFeeds}
                   onChangeSources={onChangeSources}
                   onChangeTheme={onChangeTheme}
                 />
               ) : (
-                <ProfilePanel profile={profile} usage={usage} onChange={onChangeProfile} />
+                <ProfilePanel
+                  categories={categories}
+                  counts={counts}
+                  preferences={preferences}
+                  profile={profile}
+                  usage={usage}
+                  onChange={onChangeProfile}
+                  onEraseEverything={onEraseEverything}
+                  onImportCv={onImportCv}
+                  onResetPreferences={onResetPreferences}
+                  onRestartOnboarding={() => {
+                    setOpen(false);
+                    onRestartOnboarding();
+                  }}
+                />
               )}
             </motion.div>
           ) : null}

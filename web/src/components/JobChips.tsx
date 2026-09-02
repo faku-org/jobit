@@ -88,7 +88,7 @@ function TagChip({ tag, actions, icon: Icon, tone = mutedChip }: TagChipProps) {
         onClick={() => setOpen((current) => !current)}
       >
         {Icon ? <Icon aria-hidden className="size-3.5" /> : null}
-        {tag.label}
+        {tag.label.charAt(0).toUpperCase() + tag.label.slice(1)}
         {preferred ? <Star aria-hidden className="size-3 fill-current text-brand" /> : null}
       </motion.button>
 
@@ -139,7 +139,8 @@ export function JobChips({ job, actions }: JobChipsProps) {
     <div className="flex flex-wrap items-center gap-2">
       <span className={mutedChip}>
         <Clock3 aria-hidden className="size-3.5" />
-        {relativeDate(job.date_posted)}
+        {relativeDate(job.date_posted).charAt(0).toUpperCase() +
+          relativeDate(job.date_posted).slice(1)}
       </span>
 
       <TagChip

@@ -1,4 +1,5 @@
-import type { Facet, Job, JobsQuery, JobsResponse } from "./types.ts";
+import { type Ranking, scoreJob } from "./rank.ts";
+import type { Facet, Job, JobsQuery, JobsResponse, SalaryRange } from "./types.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -33,16 +34,38 @@ function isNewerThan(job: Job, days: number, now: number): boolean {
   return now - posted <= days * DAY_MS;
 }
 
+/**
+ * Four offers out of five publish no pay, so a range that dropped them would
+ * empty the board. The person decides with includeUnknown; when they keep them
+ * the range only applies to the offers that do say a number.
+ */
+function matchesSalary(job: Job, range: SalaryRange): boolean {
+  const min = job.salary?.min ?? null;
+  const max = job.salary?.max ?? null;
+  if (min === null && max === null) return range.includeUnknown;
+
+  const low = min ?? max ?? 0;
+  const high = max ?? min ?? 0;
+  if (range.min !== null && high < range.min) return false;
+  if (range.max !== null && low > range.max) return false;
+  return true;
+}
+
 function matches(job: Job, query: JobsQuery, now: number): boolean {
   if (query.ids && !query.ids.has(job.id)) return false;
   if (query.q && !matchesText(job, query.q)) return false;
   if (query.levels && (job.level === null || !query.levels.has(job.level))) return false;
   if (query.workModes && !query.workModes.has(job.remote ?? "onsite")) return false;
   if (query.categories && !query.categories.has(job.category)) return false;
+  if (query.hiddenCategories?.has(job.category)) return false;
   if (query.sources && !query.sources.has(job.source)) return false;
-  if (query.department && job.department !== query.department) return false;
+  if (query.departments && (job.department === null || !query.departments.has(job.department))) {
+    return false;
+  }
+  if (job.department !== null && query.hiddenDepartments?.has(job.department)) return false;
   if (query.jobTypes && (job.job_type === null || !query.jobTypes.has(job.job_type))) return false;
   if (query.noExperience && !job.no_experience) return false;
+  if (query.salary && !matchesSalary(job, query.salary)) return false;
   if (query.days !== undefined && !isNewerThan(job, query.days, now)) return false;
   return true;
 }
@@ -55,9 +78,25 @@ function byClosingDate(a: Job, b: Job): number {
   return b.date_posted.localeCompare(a.date_posted);
 }
 
+/**
+ * Best fit first. The score is computed once per offer instead of inside the
+ * comparator, which would recompute it for every comparison the sort makes.
+ */
+function byScore(jobs: Job[], ranking: Ranking, now: number): Job[] {
+  const scored = jobs.map((job) => ({ job, score: scoreJob(job, ranking, now) }));
+  scored.sort((a, b) => b.score - a.score || b.job.date_posted.localeCompare(a.job.date_posted));
+  return scored.map((entry) => entry.job);
+}
+
+function sortJobs(jobs: Job[], query: JobsQuery, now: number): Job[] {
+  if (query.sort === "closing") return [...jobs].sort(byClosingDate);
+  if (query.sort === "match" && query.ranking) return byScore(jobs, query.ranking, now);
+  return jobs;
+}
+
 export function filterJobs(jobs: Job[], query: JobsQuery, now: number = Date.now()): JobsResponse {
   const found = jobs.filter((job) => matches(job, query, now));
-  const matched = query.sort === "closing" ? [...found].sort(byClosingDate) : found;
+  const matched = sortJobs(found, query, now);
 
   return {
     total: matched.length,

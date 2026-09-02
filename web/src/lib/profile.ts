@@ -1,3 +1,4 @@
+import { degreeById } from "./catalog.ts";
 import type { Job } from "./types.ts";
 
 /**
@@ -17,13 +18,15 @@ export type EducationLevel =
 export interface Profile {
   /** Empty until the person picks one. */
   education: EducationLevel | "";
-  /** Degrees held, free text. Never leaves the browser. */
+  /** Ids from the degree catalog, so a título is a value and not free text. */
   degrees: string[];
-  /** Courses taken, free text. Never leaves the browser. */
+  /** Ids from the course catalog. */
   courses: string[];
   experienceYears: number | null;
   /** Anonymous usage stats; on unless the person turns it off. */
   shareStats: boolean;
+  /** When the onboarding was finished, empty while it has never been run. */
+  onboardedAt: string;
 }
 
 export const EMPTY_PROFILE: Profile = {
@@ -32,6 +35,7 @@ export const EMPTY_PROFILE: Profile = {
   courses: [],
   experienceYears: null,
   shareStats: true,
+  onboardedAt: "",
 };
 
 export const EDUCATION_LEVELS: EducationLevel[] = [
@@ -54,7 +58,7 @@ export const EDUCATION_LABEL: Record<EducationLevel, string> = {
   postgrad: "Posgrado",
 };
 
-const RANK: Record<EducationLevel, number> = {
+export const EDUCATION_RANK: Record<EducationLevel, number> = {
   none: 0,
   primary: 1,
   secondary_basic: 2,
@@ -86,7 +90,32 @@ function jobEducationRank(requirement: string): number | null {
 export function meetsEducation(job: Job, profile: Profile): boolean | null {
   if (!job.education_level || profile.education === "") return null;
   const required = jobEducationRank(job.education_level);
-  return required === null ? null : RANK[profile.education] >= required;
+  return required === null ? null : EDUCATION_RANK[profile.education] >= required;
+}
+
+/**
+ * The highest level implied by the títulos picked. Choosing "Licenciatura en
+ * Enfermería" and leaving the level on "Primaria" is a contradiction the
+ * person should not have to resolve by hand.
+ */
+export function levelFromDegrees(degrees: string[]): EducationLevel | "" {
+  let best: EducationLevel | "" = "";
+  for (const id of degrees) {
+    const degree = degreeById(id);
+    if (!degree) continue;
+    if (best === "" || EDUCATION_RANK[degree.level] > EDUCATION_RANK[best]) best = degree.level;
+  }
+  return best;
+}
+
+/** Adds a título and raises the level when the new one goes higher. */
+export function withDegrees(profile: Profile, degrees: string[]): Profile {
+  const implied = levelFromDegrees(degrees);
+  const raise =
+    implied !== "" &&
+    (profile.education === "" || EDUCATION_RANK[implied] > EDUCATION_RANK[profile.education]);
+
+  return { ...profile, degrees, education: raise ? implied : profile.education };
 }
 
 /** Counts what the person filled in, for the badge on the profile tab. */
@@ -95,3 +124,5 @@ export const profileCount = (profile: Profile): number =>
   profile.degrees.length +
   profile.courses.length +
   (profile.experienceYears === null ? 0 : 1);
+
+export const isOnboarded = (profile: Profile): boolean => profile.onboardedAt !== "";

@@ -123,7 +123,10 @@ export function relatedApplications(job: Job, applications: Application[]): Rela
 }
 
 /** The lists the main area can show. */
-export type View = "all" | "saved" | "tracking" | "state";
+export type View = "all" | "saved" | "tracking" | "state" | "market";
+
+/** How the feed is ordered: newest, best fit, or nearest deadline. */
+export type Sort = "recent" | "match" | "closing";
 
 /** The job board that publishes the public-sector calls. */
 export const STATE_SOURCE = "uruguayconcursa";
@@ -160,25 +163,57 @@ export const hasActiveFilters = (filters: Filters): boolean =>
   filters.noExperience ||
   filters.days !== null;
 
+/** A monthly pay range in pesos; null on an end means it is not bounded. */
+export interface SalaryPreference {
+  min: number | null;
+  max: number | null;
+  /** Most offers publish no pay: this says whether they stay in the list. */
+  includeUnknown: boolean;
+}
+
+export const EMPTY_SALARY: SalaryPreference = { min: null, max: null, includeUnknown: true };
+
+export const hasSalaryPreference = (salary: SalaryPreference): boolean =>
+  salary.min !== null || salary.max !== null || !salary.includeUnknown;
+
 /**
  * What the person is looking for, as opposed to the one-off filters above.
- * An empty dimension means "no preference"; a job is similar when it satisfies
- * every dimension that was set.
+ * The lists are ordered where order says something: "prefiero X sobre Y" is
+ * the position of X and Y inside `categories`. An empty dimension means "no
+ * preference"; a job is similar when it satisfies every dimension that was set.
+ *
+ * The two `hidden` lists are the only part that removes offers on its own.
+ * Everything else reorders, which is what keeps a narrow preference from
+ * emptying the board.
  */
 export interface Preferences {
   modes: WorkMode[];
+  /** Rubros wanted, most wanted first. */
   categories: string[];
+  /** Rubros the person never wants to see. */
+  hiddenCategories: string[];
+  /** Departamentos wanted, most wanted first. */
+  departments: string[];
+  hiddenDepartments: string[];
   levels: Level[];
   jobTypes: JobType[];
   noExperience: boolean;
+  salary: SalaryPreference;
+  /** Order the feed by fit instead of by date. */
+  rankByFit: boolean;
 }
 
 export const EMPTY_PREFERENCES: Preferences = {
   modes: [],
   categories: [],
+  hiddenCategories: [],
+  departments: [],
+  hiddenDepartments: [],
   levels: [],
   jobTypes: [],
   noExperience: false,
+  salary: EMPTY_SALARY,
+  rankByFit: true,
 };
 
 /** Adds or removes a value from one of the preference lists. */
@@ -209,12 +244,30 @@ export function groupByCategory(jobs: Job[]): CategoryGroup[] {
   );
 }
 
+/** What the person told the app they want, for the badge on the island. */
 export const preferenceCount = (preferences: Preferences): number =>
   preferences.modes.length +
   preferences.categories.length +
+  preferences.departments.length +
   preferences.levels.length +
   preferences.jobTypes.length +
-  (preferences.noExperience ? 1 : 0);
+  (preferences.noExperience ? 1 : 0) +
+  (hasSalaryPreference(preferences.salary) ? 1 : 0);
+
+/** What the person told the app to keep out; counted apart, it reads as a
+ * different kind of setting and it is the only one that removes offers. */
+export const hiddenCount = (preferences: Preferences): number =>
+  preferences.hiddenCategories.length + preferences.hiddenDepartments.length;
+
+/** Moves an entry of an ordered preference list one place up or down. */
+export function reorder<T>(list: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list;
+  const next = [...list];
+  const [moved] = next.splice(from, 1);
+  if (moved === undefined) return list;
+  next.splice(to, 0, moved);
+  return next;
+}
 
 export function matchesPreferences(job: Job, preferences: Preferences): boolean {
   const { modes, categories, levels, jobTypes } = preferences;
@@ -285,4 +338,90 @@ export function applyTagToFilters(filters: Filters, tag: Tag): Filters {
     case "noExperience":
       return { ...filters, noExperience: true };
   }
+}
+
+/**
+ * Where one rubro or departamento stands with the person. The three are
+ * exclusive by construction: wanting something removes it from the hidden
+ * list and the other way round, so the two lists can never disagree.
+ */
+export type Stance = "wanted" | "neutral" | "hidden";
+
+export interface StanceLists {
+  wanted: string[];
+  hidden: string[];
+}
+
+export const stanceOf = ({ wanted, hidden }: StanceLists, value: string): Stance =>
+  hidden.includes(value) ? "hidden" : wanted.includes(value) ? "wanted" : "neutral";
+
+export function setStance(lists: StanceLists, value: string, stance: Stance): StanceLists {
+  const wanted = lists.wanted.filter((item) => item !== value);
+  const hidden = lists.hidden.filter((item) => item !== value);
+
+  if (stance === "wanted") return { wanted: [...wanted, value], hidden };
+  if (stance === "hidden") return { wanted, hidden: [...hidden, value] };
+  return { wanted, hidden };
+}
+
+/** Cycles a chip: neutral to wanted, wanted to hidden, hidden back to neutral. */
+export const nextStance = (stance: Stance): Stance =>
+  stance === "neutral" ? "wanted" : stance === "wanted" ? "hidden" : "neutral";
+
+export const categoryStances = (preferences: Preferences): StanceLists => ({
+  wanted: preferences.categories,
+  hidden: preferences.hiddenCategories,
+});
+
+export const departmentStances = (preferences: Preferences): StanceLists => ({
+  wanted: preferences.departments,
+  hidden: preferences.hiddenDepartments,
+});
+
+export const withCategoryStances = (
+  preferences: Preferences,
+  { wanted, hidden }: StanceLists,
+): Preferences => ({ ...preferences, categories: wanted, hiddenCategories: hidden });
+
+export const withDepartmentStances = (
+  preferences: Preferences,
+  { wanted, hidden }: StanceLists,
+): Preferences => ({ ...preferences, departments: wanted, hiddenDepartments: hidden });
+
+/**
+ * Whether an offer satisfies the one-off filters. The API answers this for the
+ * board it holds; offers that arrive from somewhere else — a feed the person
+ * added — are checked here, against the same filters, so both lists narrow
+ * together.
+ */
+export function matchesFilters(job: Job, filters: Filters): boolean {
+  if (filters.category && job.category !== filters.category) return false;
+  if (filters.department && job.department !== filters.department) return false;
+  if (filters.level && job.level !== filters.level) return false;
+  if (filters.mode && workMode(job) !== filters.mode) return false;
+  if (filters.jobType && job.job_type !== filters.jobType) return false;
+  if (filters.noExperience && !job.no_experience) return false;
+
+  if (filters.days !== null) {
+    const posted = Date.parse(job.date_posted);
+    if (Number.isNaN(posted) || Date.now() - posted > filters.days * 86_400_000) return false;
+  }
+
+  const needle = filters.q.trim();
+  if (needle) {
+    const haystack = [job.title, job.company ?? "", job.city ?? "", job.description]
+      .join(" ")
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+    const terms = needle
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (!terms.every((term) => haystack.includes(term))) return false;
+  }
+
+  return true;
 }

@@ -1,9 +1,11 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
+import { buildMarketReport } from "./market.ts";
+import { type Ranking, isEmptyRanking } from "./rank.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { jobsFilePath, loadJobs } from "./store.ts";
-import type { JobType, JobsQuery, Level, Result, WorkMode } from "./types.ts";
+import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const CORS_ORIGINS = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
@@ -13,6 +15,8 @@ const CORS_ORIGINS = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
+const MAX_EDUCATION_RANK = 6;
+const MAX_EXPERIENCE_YEARS = 60;
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max);
@@ -26,6 +30,9 @@ const splitList = (raw: string | undefined): string[] =>
     ?.split(",")
     .map((value) => value.trim())
     .filter(Boolean) ?? [];
+
+const asSet = (values: string[]): Set<string> | undefined =>
+  values.length > 0 ? new Set(values) : undefined;
 
 /** The enum dimensions take a comma-separated list; a job matches any member. */
 function parseSet<T extends string>(
@@ -43,6 +50,28 @@ function parseSet<T extends string>(
   return { ok: true, value: new Set(values as T[]) };
 }
 
+/** Order carries the preference, so the ranking lists keep duplicates out
+ * without going through a Set, which would say nothing about position. */
+const parseOrdered = <T extends string>(raw: string | undefined, allowed: readonly T[]): T[] => {
+  const values = splitList(raw).filter((value): value is T =>
+    (allowed as readonly string[]).includes(value),
+  );
+  return [...new Set(values)];
+};
+
+const parseSalary = (
+  min: number | undefined,
+  max: number | undefined,
+  includeUnknown: boolean | undefined,
+): SalaryRange | undefined =>
+  min === undefined && max === undefined
+    ? undefined
+    : {
+        min: min ?? null,
+        max: max ?? null,
+        includeUnknown: includeUnknown !== false,
+      };
+
 const jobsQuerySchema = t.Object({
   ids: t.Optional(t.String()),
   q: t.Optional(t.String()),
@@ -52,12 +81,51 @@ const jobsQuerySchema = t.Object({
   source: t.Optional(t.String()),
   department: t.Optional(t.String()),
   job_type: t.Optional(t.String()),
+  hide_category: t.Optional(t.String()),
+  hide_department: t.Optional(t.String()),
+  salary_min: t.Optional(t.Numeric({ minimum: 0 })),
+  salary_max: t.Optional(t.Numeric({ minimum: 0 })),
+  salary_unknown: t.Optional(t.BooleanString()),
   no_experience: t.Optional(t.BooleanString()),
   days: t.Optional(t.Numeric({ minimum: 1 })),
-  sort: t.Optional(t.Union([t.Literal("recent"), t.Literal("closing")])),
+  sort: t.Optional(t.Union([t.Literal("recent"), t.Literal("closing"), t.Literal("match")])),
+  rank_category: t.Optional(t.String()),
+  rank_department: t.Optional(t.String()),
+  rank_mode: t.Optional(t.String()),
+  rank_level: t.Optional(t.String()),
+  rank_job_type: t.Optional(t.String()),
+  rank_salary: t.Optional(t.Numeric({ minimum: 0 })),
+  rank_no_experience: t.Optional(t.BooleanString()),
+  rank_education: t.Optional(t.Numeric({ minimum: 0 })),
+  rank_experience: t.Optional(t.Numeric({ minimum: 0 })),
   limit: t.Optional(t.Numeric()),
   offset: t.Optional(t.Numeric()),
 });
+
+type JobsQueryParams = typeof jobsQuerySchema.static;
+
+/** The soft half of the query: everything that reorders instead of removing. */
+function readRanking(query: JobsQueryParams): Ranking | undefined {
+  const ranking: Ranking = {
+    categories: splitList(query.rank_category),
+    departments: splitList(query.rank_department),
+    modes: parseOrdered(query.rank_mode, WORK_MODES),
+    levels: parseOrdered(query.rank_level, LEVELS),
+    jobTypes: parseOrdered(query.rank_job_type, JOB_TYPES),
+    salaryTarget: query.rank_salary ?? null,
+    noExperience: query.rank_no_experience === true,
+    education:
+      query.rank_education === undefined
+        ? null
+        : clamp(Math.round(query.rank_education), 0, MAX_EDUCATION_RANK),
+    experienceYears:
+      query.rank_experience === undefined
+        ? null
+        : clamp(Math.round(query.rank_experience), 0, MAX_EXPERIENCE_YEARS),
+  };
+
+  return isEmptyRanking(ranking) ? undefined : ranking;
+}
 
 export const app = new Elysia()
   .use(cors({ origin: CORS_ORIGINS }))
@@ -74,22 +142,22 @@ export const app = new Elysia()
       const invalid = [levels, workModes, jobTypes].find((result) => !result.ok);
       if (invalid && !invalid.ok) return status(422, { error: invalid.error });
 
-      const ids = splitList(query.ids);
-      const categories = splitList(query.category);
-      const sources = splitList(query.source);
-
       const params: JobsQuery = {
-        ids: ids.length ? new Set(ids) : undefined,
+        ids: asSet(splitList(query.ids)),
         q: query.q?.trim() || undefined,
         levels: levels.ok ? levels.value : undefined,
         workModes: workModes.ok ? workModes.value : undefined,
-        categories: categories.length ? new Set(categories) : undefined,
-        sources: sources.length ? new Set(sources) : undefined,
-        department: query.department || undefined,
+        categories: asSet(splitList(query.category)),
+        sources: asSet(splitList(query.source)),
+        departments: asSet(splitList(query.department)),
+        hiddenCategories: asSet(splitList(query.hide_category)),
+        hiddenDepartments: asSet(splitList(query.hide_department)),
         jobTypes: jobTypes.ok ? jobTypes.value : undefined,
+        salary: parseSalary(query.salary_min, query.salary_max, query.salary_unknown),
         noExperience: query.no_experience || undefined,
         days: query.days,
         sort: query.sort,
+        ranking: query.sort === "match" ? readRanking(query) : undefined,
         limit: clamp(Math.floor(query.limit ?? DEFAULT_LIMIT), 1, MAX_LIMIT),
         offset: Math.max(Math.floor(query.offset ?? 0), 0),
       };
@@ -119,6 +187,12 @@ export const app = new Elysia()
       departments: departmentFacets(jobs),
       no_experience_count: jobs.filter((job) => job.no_experience).length,
     };
+  })
+  /** The board as a whole, with nothing in it about the person asking. */
+  .get("/api/market", async ({ status }) => {
+    const file = await loadJobs();
+    if (!file.ok) return status(503, { error: file.error });
+    return buildMarketReport(file.value.jobs, file.value.scraped_at);
   })
   .post(
     "/api/stats",

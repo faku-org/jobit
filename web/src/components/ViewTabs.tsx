@@ -1,4 +1,4 @@
-import { Bookmark, ClipboardList, Landmark, LayoutList } from "lucide-react";
+import { Bookmark, ChartColumn, ClipboardList, Landmark, LayoutList } from "lucide-react";
 import { motion } from "motion/react";
 import { islandTransition } from "../lib/motion.ts";
 import type { View } from "../lib/types.ts";
@@ -15,10 +15,11 @@ const TABS: { value: View; label: string; icon: typeof LayoutList }[] = [
   { value: "state", label: "Estado", icon: Landmark },
   { value: "saved", label: "Guardadas", icon: Bookmark },
   { value: "tracking", label: "Seguimiento", icon: ClipboardList },
+  { value: "market", label: "Mercado", icon: ChartColumn },
 ];
 
 /** Switches the main area between the feed, the public-sector calls, the
- * shortlist and the follow-up. */
+ * shortlist, the follow-up and the country-wide numbers. */
 export function ViewTabs({ view, savedCount, trackedCount, onChange }: ViewTabsProps) {
   const badge = (value: View): number =>
     value === "saved" ? savedCount : value === "tracking" ? trackedCount : 0;

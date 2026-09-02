@@ -1,3 +1,5 @@
+import type { Ranking } from "./rank.ts";
+
 export type Level = "entry" | "mid" | "senior";
 export type Remote = "remote" | "hybrid";
 export type JobType = "full_time" | "part_time" | "internship";
@@ -52,6 +54,16 @@ export interface JobsFile {
   jobs: Job[];
 }
 
+/** Nearest deadline first, best fit first, or newest first. */
+export type Sort = "recent" | "closing" | "match";
+
+export interface SalaryRange {
+  min: number | null;
+  max: number | null;
+  /** Whether offers that publish no pay stay in; they are most of the board. */
+  includeUnknown: boolean;
+}
+
 export interface JobsQuery {
   ids?: Set<string>;
   q?: string;
@@ -61,11 +73,16 @@ export interface JobsQuery {
   categories?: Set<string>;
   sources?: Set<string>;
   jobTypes?: Set<JobType>;
-  department?: string;
+  departments?: Set<string>;
+  /** Rubros the person never wants to see again. */
+  hiddenCategories?: Set<string>;
+  hiddenDepartments?: Set<string>;
+  salary?: SalaryRange;
   noExperience?: boolean;
   days?: number;
-  /** "closing" puts the offers whose deadline is nearest first. */
-  sort?: "recent" | "closing";
+  sort?: Sort;
+  /** Only read by the "match" sort; see rank.ts. */
+  ranking?: Ranking;
   limit: number;
   offset: number;
 }
