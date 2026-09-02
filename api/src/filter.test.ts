@@ -24,6 +24,7 @@ const job = (overrides: Partial<Job> & Pick<Job, "id">): Job => ({
   education_level: null,
   schedule: null,
   vacancies: 1,
+  closes_at: null,
   description: "Atención al público en local comercial.",
   requirements: null,
   apply_url: "https://www.buscojobs.com.uy/x-ID-1",
@@ -86,6 +87,17 @@ describe("filterJobs", () => {
     ).toBe(2);
   });
 
+  test("source filter keeps only the chosen job boards", () => {
+    const mixed = [...jobs, job({ id: "d", source: "gallito" })];
+    expect(filterJobs(mixed, { ...base, sources: new Set(["gallito"]) }, NOW).jobs[0]?.id).toBe(
+      "d",
+    );
+    expect(filterJobs(mixed, { ...base, sources: new Set(["buscojobs"]) }, NOW).total).toBe(3);
+    expect(
+      filterJobs(mixed, { ...base, sources: new Set(["buscojobs", "gallito"]) }, NOW).total,
+    ).toBe(4);
+  });
+
   test("department filter", () => {
     expect(filterJobs(jobs, { ...base, department: "Canelones" }, NOW).total).toBe(1);
     expect(filterJobs(jobs, { ...base, department: "Montevideo" }, NOW).total).toBe(2);
@@ -127,6 +139,16 @@ describe("filterJobs", () => {
       NOW,
     );
     expect(result.jobs.map((j) => j.id)).toEqual(["a"]);
+  });
+
+  test("closing sort puts the nearest deadline first, undated offers last", () => {
+    const dated = [
+      job({ id: "x", closes_at: "2026-09-30T23:59:59.000Z" }),
+      job({ id: "y", closes_at: "2026-09-10T23:59:59.000Z" }),
+      ...jobs,
+    ];
+    const result = filterJobs(dated, { ...base, sort: "closing" }, NOW);
+    expect(result.jobs.map((j) => j.id)).toEqual(["y", "x", "a", "b", "c"]);
   });
 
   test("pagination reports the full total", () => {

@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
+import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { jobsFilePath, loadJobs } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, WorkMode } from "./types.ts";
 
@@ -48,10 +49,12 @@ const jobsQuerySchema = t.Object({
   level: t.Optional(t.String()),
   remote: t.Optional(t.String()),
   category: t.Optional(t.String()),
+  source: t.Optional(t.String()),
   department: t.Optional(t.String()),
   job_type: t.Optional(t.String()),
   no_experience: t.Optional(t.BooleanString()),
   days: t.Optional(t.Numeric({ minimum: 1 })),
+  sort: t.Optional(t.Union([t.Literal("recent"), t.Literal("closing")])),
   limit: t.Optional(t.Numeric()),
   offset: t.Optional(t.Numeric()),
 });
@@ -73,6 +76,7 @@ export const app = new Elysia()
 
       const ids = splitList(query.ids);
       const categories = splitList(query.category);
+      const sources = splitList(query.source);
 
       const params: JobsQuery = {
         ids: ids.length ? new Set(ids) : undefined,
@@ -80,10 +84,12 @@ export const app = new Elysia()
         levels: levels.ok ? levels.value : undefined,
         workModes: workModes.ok ? workModes.value : undefined,
         categories: categories.length ? new Set(categories) : undefined,
+        sources: sources.length ? new Set(sources) : undefined,
         department: query.department || undefined,
         jobTypes: jobTypes.ok ? jobTypes.value : undefined,
         noExperience: query.no_experience || undefined,
         days: query.days,
+        sort: query.sort,
         limit: clamp(Math.floor(query.limit ?? DEFAULT_LIMIT), 1, MAX_LIMIT),
         offset: Math.max(Math.floor(query.offset ?? 0), 0),
       };
@@ -113,11 +119,24 @@ export const app = new Elysia()
       departments: departmentFacets(jobs),
       no_experience_count: jobs.filter((job) => job.no_experience).length,
     };
-  });
+  })
+  .post(
+    "/api/stats",
+    async ({ body, status }) => {
+      try {
+        await appendStats(body);
+        return { status: "ok" };
+      } catch (cause) {
+        return status(503, { error: `no se pudo escribir la estadística: ${String(cause)}` });
+      }
+    },
+    { body: statsSchema },
+  );
 
 if (import.meta.main) {
   app.listen(PORT);
   console.log(`jobit api on http://localhost:${PORT}`);
   console.log(`reading ${jobsFilePath()}`);
+  console.log(`stats -> ${statsFilePath()}`);
   console.log(`cors origins: ${CORS_ORIGINS.join(", ")}`);
 }

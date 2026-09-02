@@ -37,6 +37,8 @@ export interface Job {
   education_level: string | null;
   schedule: string | null;
   vacancies: number | null;
+  /** Deadline to apply, only published by the public-sector source. */
+  closes_at: string | null;
   description: string;
   requirements: string | null;
   apply_url: string;
@@ -57,10 +59,13 @@ export interface JobsQuery {
   levels?: Set<Level>;
   workModes?: Set<WorkMode>;
   categories?: Set<string>;
+  sources?: Set<string>;
   jobTypes?: Set<JobType>;
   department?: string;
   noExperience?: boolean;
   days?: number;
+  /** "closing" puts the offers whose deadline is nearest first. */
+  sort?: "recent" | "closing";
   limit: number;
   offset: number;
 }

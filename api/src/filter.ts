@@ -39,6 +39,7 @@ function matches(job: Job, query: JobsQuery, now: number): boolean {
   if (query.levels && (job.level === null || !query.levels.has(job.level))) return false;
   if (query.workModes && !query.workModes.has(job.remote ?? "onsite")) return false;
   if (query.categories && !query.categories.has(job.category)) return false;
+  if (query.sources && !query.sources.has(job.source)) return false;
   if (query.department && job.department !== query.department) return false;
   if (query.jobTypes && (job.job_type === null || !query.jobTypes.has(job.job_type))) return false;
   if (query.noExperience && !job.no_experience) return false;
@@ -46,8 +47,17 @@ function matches(job: Job, query: JobsQuery, now: number): boolean {
   return true;
 }
 
+/** Nearest deadline first; offers without one go last, newest among them. */
+function byClosingDate(a: Job, b: Job): number {
+  if (a.closes_at && b.closes_at) return a.closes_at.localeCompare(b.closes_at);
+  if (a.closes_at) return -1;
+  if (b.closes_at) return 1;
+  return b.date_posted.localeCompare(a.date_posted);
+}
+
 export function filterJobs(jobs: Job[], query: JobsQuery, now: number = Date.now()): JobsResponse {
-  const matched = jobs.filter((job) => matches(job, query, now));
+  const found = jobs.filter((job) => matches(job, query, now));
+  const matched = query.sort === "closing" ? [...found].sort(byClosingDate) : found;
 
   return {
     total: matched.length,
