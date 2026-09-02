@@ -72,3 +72,45 @@ const BUSCOJOBS_SUBCANAL: Record<string, string> = {
 
 export const buscojobsCategory = (subcanalId: string): string =>
   BUSCOJOBS_SUBCANAL[subcanalId] ?? "otros";
+
+/**
+ * Uruguay Concursa publishes a task family (TipTarDsc) that is too coarse on
+ * its own: "Profesionales" covers doctors, lawyers and engineers alike. The
+ * title decides first and the family is the fallback.
+ */
+const UC_TITLE_RULES: [RegExp, string][] = [
+  [/docent|profesor|maestr|educador|ayudante de clase|adscript/i, "educacion"],
+  [/m[eé]dic|enfermer|odont|psic[oó]log|nutricion|farmac|fisioterap|partera|salud/i, "salud"],
+  [/ingenier|arquitect|agr[oó]nom/i, "ingenieria"],
+  [/contad|contab|financier|finanzas|tesorer|econom|auditor/i, "contabilidad-finanzas"],
+  [
+    /inform[aá]tic|sistemas|programador|desarrollador|soporte t[eé]cnico|redes|ciberseg|datos/i,
+    "tecnologia",
+  ],
+  [/analista|investigac|estad[ií]stic/i, "datos-analisis"],
+  [/comunicaci|prensa|marketing|publicid/i, "marketing"],
+  [/dise[ñn]|audiovisual|fot[oó]graf/i, "diseno"],
+  [/recursos humanos|rrhh|gesti[oó]n humana/i, "rrhh"],
+  [/chofer|conductor|log[ií]stic|dep[oó]sito|almacen/i, "logistica"],
+  [/albañil|electricist|sanitari|carpinter|pintor|herrer|mec[aá]nic|obra|oficial de/i, "oficios"],
+  [/administrativ|secretari|recepcion|gestor/i, "administracion"],
+  [/atenci[oó]n al p[uú]blico|cajer/i, "atencion-cliente"],
+];
+
+const UC_TASK_FAMILY: Record<string, string> = {
+  Docentes: "educacion",
+  Administrativas: "administracion",
+  "Administrativas con supervisión": "administracion",
+  Dirección: "administracion",
+  "Operativas de oficio": "oficios",
+  "Operativa oficio con supervisión": "oficios",
+  "Operativas de servicio": "otros",
+  "Operativa servicio con supervisión": "otros",
+  "Asistente/Auxiliar": "administracion",
+};
+
+export function uruguayconcursaCategory(taskFamily: string, title: string): string {
+  const rule = UC_TITLE_RULES.find(([pattern]) => pattern.test(title));
+  if (rule) return rule[1];
+  return UC_TASK_FAMILY[taskFamily] ?? "otros";
+}

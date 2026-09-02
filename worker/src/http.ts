@@ -4,6 +4,8 @@ interface RequestOptions {
   retries?: number;
   timeoutMs?: number;
   accept?: string;
+  /** Sent as a JSON POST body; without it the request is a GET. */
+  body?: unknown;
 }
 
 const lastRequestAt = new Map<string, number>();
@@ -23,17 +25,20 @@ async function request(
   delayMs: number,
   options: RequestOptions,
 ): Promise<Response | null> {
-  const { retries = 2, timeoutMs = 20_000, accept = "application/json" } = options;
+  const { retries = 2, timeoutMs = 20_000, accept = "application/json", body } = options;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     await throttle(url, delayMs);
     try {
       const response = await fetch(url, {
+        method: body === undefined ? "GET" : "POST",
         headers: {
           "User-Agent": USER_AGENT,
           Accept: accept,
           "Accept-Language": "es-UY,es;q=0.9",
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         },
+        body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(timeoutMs),
       });
 

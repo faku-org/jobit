@@ -1,7 +1,7 @@
 export type Level = "entry" | "mid" | "senior";
 export type Remote = "remote" | "hybrid";
 export type JobType = "full_time" | "part_time" | "internship";
-export type SourceId = "buscojobs" | "gallito";
+export type SourceId = "buscojobs" | "gallito" | "uruguayconcursa";
 
 export interface Salary {
   min: number | null;
@@ -35,6 +35,8 @@ export interface Job {
   education_level: string | null;
   schedule: string | null;
   vacancies: number | null;
+  /** Deadline to apply, only published by the public-sector source. */
+  closes_at: string | null;
   description: string;
   requirements: string | null;
   apply_url: string;
@@ -67,12 +69,15 @@ export interface JobStub {
 /** The extra fields only the detail page carries. */
 export interface JobDetail {
   description: string;
+  /** Set when the detail knows the location better than the listing did. */
+  department?: string | null;
   requirements: string | null;
   salary: Salary | null;
   experience_years_min: number | null;
   education_level: string | null;
   schedule: string | null;
   vacancies: number | null;
+  closes_at: string | null;
   no_experience: boolean;
   job_type: JobType | null;
 }

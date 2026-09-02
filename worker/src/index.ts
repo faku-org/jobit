@@ -3,10 +3,11 @@ import { DetailCache } from "./cache.ts";
 import { dedupe } from "./dedupe.ts";
 import { toJob } from "./normalize.ts";
 import { buscojobs } from "./sources/buscojobs.ts";
+import { uruguayconcursa } from "./sources/uruguayconcursa.ts";
 import type { Job, JobStub, JobsFile, Source } from "./types.ts";
 
 const OUTPUT_PATH = resolve(import.meta.dir, "../output/jobs.json");
-const SOURCES: Source[] = [buscojobs];
+const SOURCES: Source[] = [buscojobs, uruguayconcursa];
 
 const DETAIL_CONCURRENCY = 3;
 

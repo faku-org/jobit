@@ -238,6 +238,7 @@ function parseDetail(raw: unknown): JobDetail | null {
     education_level: offer.IdNivelEstudio ? (EDUCATION_LEVEL[offer.IdNivelEstudio] ?? null) : null,
     schedule: offer.Horario?.trim() || null,
     vacancies: offer.NroPuestosVacantes,
+    closes_at: null,
     no_experience: offer.PrimerEmpleo === 1 || experience === 0,
     job_type: detailJobType(offer.IdJornadaLaboral, offer.IdTipoVacante),
   };
