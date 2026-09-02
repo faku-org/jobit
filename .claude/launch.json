@@ -7,6 +7,19 @@
       "runtimeArgs": ["run", "--cwd", "web", "dev"],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "api", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "preview",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "web", "preview"],
+      "port": 4173,
+      "autoPort": true
     }
   ]
 }

@@ -28,3 +28,6 @@ worker/cache/
 
 # datos scrapeados (se regeneran con: bun run scrape)
 worker/output/
+
+# telemetría anónima que escribe la API
+data/

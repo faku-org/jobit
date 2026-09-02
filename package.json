@@ -1,13 +1,13 @@
 {
   "name": "jobit",
-  "private": true,
   "version": "0.0.0",
-  "type": "module",
+  "private": true,
   "workspaces": [
     "api",
     "web",
     "worker"
   ],
+  "type": "module",
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "dev:api": "bun run --cwd api dev",
