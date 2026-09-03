@@ -1,0 +1,55 @@
+[Unit]
+Description=JobIt API
+Documentation=https://github.com/faku-org/jobit
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jobit
+Group=jobit
+WorkingDirectory=/srv/jobit
+ExecStart=/usr/local/bin/bun run api/src/index.ts
+Restart=on-failure
+RestartSec=5
+
+# Solo escucha en loopback: nginx es el único que llega, y por eso el
+# x-forwarded-for que el limitador usa para contar es confiable.
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=CORS_ORIGIN=https://jobs.wefaber.net
+Environment=JOBS_FILE=/srv/jobit/worker/output/jobs.json
+Environment=STATS_FILE=/srv/jobit/data/stats.jsonl
+
+# Aislamiento. ProtectSystem=strict deja todo el disco de solo lectura salvo
+# lo que se liste abajo, que es únicamente donde se escriben las estadísticas.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ReadWritePaths=/srv/jobit/data
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+LockPersonality=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Bun compila en caliente y necesita páginas de memoria escribibles y
+# ejecutables: con esto en true el servicio no arranca.
+MemoryDenyWriteExecute=false
+
+LimitNOFILE=8192
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
+import { type Limit, clientKey, take } from "./limit.ts";
 import { buildMarketReport } from "./market.ts";
 import { type Ranking, isEmptyRanking } from "./rank.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
@@ -8,10 +9,39 @@ import { jobsFilePath, loadJobs } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 
 const PORT = Number(process.env.PORT ?? 3000);
+/**
+ * Localhost by default: in production this sits behind nginx, and binding the
+ * world would both expose it directly and make the forwarded header spoofable.
+ * Set HOST to 0.0.0.0 to serve it straight, knowingly.
+ */
+const HOST = process.env.HOST ?? "127.0.0.1";
 const CORS_ORIGINS = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+
+/** Generous for somebody reading the board, which paginates fifty at a time. */
+const READ_LIMIT: Limit = { windowMs: MINUTE, max: 120 };
+/**
+ * The browser sends this once a day. The ceiling is for the whole carrier NAT
+ * behind one address, not for one person, and a refused row costs nothing:
+ * the client swallows the failure rather than showing it to somebody job
+ * hunting.
+ */
+const WRITE_LIMIT: Limit = { windowMs: HOUR, max: 20 };
+
+/**
+ * A failed read names a path on the box. That is nothing the browser can act
+ * on and something an attacker would like, so it goes to the log and the
+ * answer stays vague.
+ */
+function unavailable(error: string): string {
+  console.error(`[jobit] ${error}`);
+  return "las ofertas no están disponibles en este momento";
+}
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
@@ -129,12 +159,27 @@ function readRanking(query: JobsQueryParams): Ranking | undefined {
 
 export const app = new Elysia()
   .use(cors({ origin: CORS_ORIGINS }))
+  /** Writing costs a line on disk, reading costs a scan of the board: the two
+   * get their own budget, and their own bucket per client. */
+  .onBeforeHandle(({ request, server, path, set, status }) => {
+    const key = clientKey(request, server?.requestIP(request)?.address ?? null);
+    const write = path === "/api/stats";
+    const allowance = take(`${write ? "w" : "r"}:${key}`, write ? WRITE_LIMIT : READ_LIMIT);
+    if (allowance.ok) return;
+
+    set.headers["retry-after"] = String(allowance.retryAfter);
+    return status(429, { error: "demasiadas peticiones" });
+  })
+  .onAfterHandle(({ set }) => {
+    set.headers["x-content-type-options"] = "nosniff";
+    set.headers["referrer-policy"] = "no-referrer";
+  })
   .get("/health", () => ({ status: "ok" }))
   .get(
     "/api/jobs",
     async ({ query, status }) => {
       const file = await loadJobs();
-      if (!file.ok) return status(503, { error: file.error });
+      if (!file.ok) return status(503, { error: unavailable(file.error) });
 
       const levels = parseSet("level", query.level, LEVELS);
       const workModes = parseSet("remote", query.remote, WORK_MODES);
@@ -168,14 +213,14 @@ export const app = new Elysia()
   )
   .get("/api/jobs/:id", async ({ params, status }) => {
     const file = await loadJobs();
-    if (!file.ok) return status(503, { error: file.error });
+    if (!file.ok) return status(503, { error: unavailable(file.error) });
 
     const job = file.value.jobs.find((candidate) => candidate.id === params.id);
     return job ?? status(404, { error: "oferta no encontrada" });
   })
   .get("/api/meta", async ({ status }) => {
     const file = await loadJobs();
-    if (!file.ok) return status(503, { error: file.error });
+    if (!file.ok) return status(503, { error: unavailable(file.error) });
 
     const { count, scraped_at, sources, jobs } = file.value;
 
@@ -191,7 +236,7 @@ export const app = new Elysia()
   /** The board as a whole, with nothing in it about the person asking. */
   .get("/api/market", async ({ status }) => {
     const file = await loadJobs();
-    if (!file.ok) return status(503, { error: file.error });
+    if (!file.ok) return status(503, { error: unavailable(file.error) });
     return buildMarketReport(file.value.jobs, file.value.scraped_at);
   })
   .post(
@@ -201,15 +246,16 @@ export const app = new Elysia()
         await appendStats(body);
         return { status: "ok" };
       } catch (cause) {
-        return status(503, { error: `no se pudo escribir la estadística: ${String(cause)}` });
+        console.error(`[jobit] no se pudo escribir la estadística: ${String(cause)}`);
+        return status(503, { error: "no se pudo registrar la estadística" });
       }
     },
     { body: statsSchema },
   );
 
 if (import.meta.main) {
-  app.listen(PORT);
-  console.log(`jobit api on http://localhost:${PORT}`);
+  app.listen({ port: PORT, hostname: HOST });
+  console.log(`jobit api on http://${HOST}:${PORT}`);
   console.log(`reading ${jobsFilePath()}`);
   console.log(`stats -> ${statsFilePath()}`);
   console.log(`cors origins: ${CORS_ORIGINS.join(", ")}`);
