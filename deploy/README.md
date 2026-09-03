@@ -44,22 +44,28 @@ Vive en `https://jobs.wefaber.net/admin` y la credencial es un hash argon2id en
 el entorno del servicio. No hay tabla de usuarios ni clave en texto plano en
 ningún lado.
 
+El hash empieza con `$argon2id$` y **tiene varios `$` adentro**, que es
+justamente lo que casi todo interpola en el camino: el shell expande
+`$argon2id` y `$v` como variables vacías, y el parser de `.env` de Bun hace lo
+mismo, con comillas simples, dobles o sin ninguna. El valor queda en
+`=19=65536,t=2,p=1...` y la clave deja de coincidir sin dar un solo error que
+lo explique.
+
+Por eso va a un archivo, que nadie interpola:
+
 ```bash
-bun -e 'console.log(await Bun.password.hash(prompt("clave: ")))'
+sudo -u jobit bun -e 'await Bun.write("/srv/jobit/data/admin.hash", await Bun.password.hash(prompt("clave: ")))'
+sudo chmod 600 /srv/jobit/data/admin.hash
 ```
 
-Ese hash empieza con `$argon2id$...` y **tiene varios `$` adentro**. Si se pega
-sin comillas en un `.env` o en una línea de shell, el shell expande `$argon2id`,
-`$v` y `$m` como variables vacías y la clave deja de coincidir sin dar ningún
-error claro. En la unidad de systemd va entre comillas simples:
+La unidad ya trae `Environment=ADMIN_PASSWORD_HASH_FILE=/srv/jobit/data/admin.hash`.
+Sin ese archivo, o si no se puede leer, el panel queda apagado entero y
+`/api/admin` contesta 404: un despliegue mal configurado se queda sin admin en
+vez de con un admin abierto.
 
-```ini
-Environment='ADMIN_PASSWORD_HASH=$argon2id$v=19$m=65536,t=2,p=1$...'
-```
-
-Sin esa variable el panel queda apagado entero y `/api/admin` contesta 404, así
-que un despliegue al que se le olvidó configurarla se queda sin admin en vez de
-con un admin abierto.
+Para cambiar la clave alcanza con reescribir el archivo y reiniciar el
+servicio. `ADMIN_PASSWORD_HASH` con el hash inline sigue funcionando para
+desarrollo, escapando cada `$` como `\$`.
 
 Para cerrar todas las sesiones abiertas, por ejemplo si se cambia la clave:
 

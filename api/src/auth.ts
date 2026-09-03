@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { db } from "./db.ts";
 
 /**
@@ -12,7 +13,30 @@ import { db } from "./db.ts";
  * propósito: un despliegue al que se le olvidó la variable tiene que quedarse
  * sin admin, no con un admin abierto.
  */
-export const adminEnabled = (): boolean => (process.env.ADMIN_PASSWORD_HASH ?? "").length > 0;
+/**
+ * El hash argon2id trae varios `$`, y casi todo lo que lo lleva a un proceso
+ * los interpola: el shell expande `$argon2id`, y el parser de .env de Bun
+ * también lo hace, con comillas simples o sin ellas. El resultado es una clave
+ * que deja de coincidir sin un solo error que lo explique.
+ *
+ * Por eso ADMIN_PASSWORD_HASH_FILE gana: un archivo con el hash y nada más,
+ * que nadie interpola en el camino. La variable directa sigue andando para
+ * desarrollo, escapando cada `$` como `\$`.
+ */
+export function adminPasswordHash(): string {
+  const path = process.env.ADMIN_PASSWORD_HASH_FILE;
+  if (path) {
+    try {
+      return readFileSync(path, "utf8").trim();
+    } catch {
+      // Un archivo ilegible deja el panel apagado, que es como tiene que fallar.
+      return "";
+    }
+  }
+  return (process.env.ADMIN_PASSWORD_HASH ?? "").trim();
+}
+
+export const adminEnabled = (): boolean => adminPasswordHash().length > 0;
 
 const SESSION_HOURS = 12;
 const HOUR_MS = 3_600_000;
@@ -27,7 +51,7 @@ const sha256 = (value: string): string =>
  * constante, que es justo lo que hace falta acá.
  */
 export async function verifyPassword(password: string): Promise<boolean> {
-  const hash = process.env.ADMIN_PASSWORD_HASH ?? "";
+  const hash = adminPasswordHash();
   if (!hash) return false;
 
   try {

@@ -17,6 +17,7 @@ const HASH = await Bun.password.hash("la clave buena");
 beforeEach(() => {
   closeDb();
   process.env.ADMIN_PASSWORD_HASH = HASH;
+  delete process.env.ADMIN_PASSWORD_HASH_FILE;
 });
 
 describe("adminEnabled", () => {
@@ -32,6 +33,30 @@ describe("adminEnabled", () => {
 
   test("encendido con un hash puesto", () => {
     expect(adminEnabled()).toBe(true);
+  });
+});
+
+describe("el hash desde un archivo", () => {
+  const path = `${import.meta.dir}/../../data/test-hash.txt`;
+
+  test("se lee del archivo y le gana a la variable", async () => {
+    const { writeFileSync, mkdirSync, rmSync } = await import("node:fs");
+    mkdirSync(`${import.meta.dir}/../../data`, { recursive: true });
+    /* Con salto de línea al final, que es como lo deja cualquier editor. */
+    writeFileSync(path, `${await Bun.password.hash("la del archivo")}\n`, "utf8");
+
+    process.env.ADMIN_PASSWORD_HASH_FILE = path;
+    try {
+      expect(await verifyPassword("la del archivo")).toBe(true);
+      expect(await verifyPassword("la clave buena")).toBe(false);
+    } finally {
+      rmSync(path, { force: true });
+    }
+  });
+
+  test("un archivo que no existe deja el panel apagado", () => {
+    process.env.ADMIN_PASSWORD_HASH_FILE = `${path}.no-existe`;
+    expect(adminEnabled()).toBe(false);
   });
 });
 

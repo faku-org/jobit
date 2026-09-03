@@ -130,27 +130,31 @@ En `/admin`, con su propio bundle: quien entra a buscar trabajo no se baja el
 código de administrar empresas. Por ahora administra empresas, que es la mitad
 operativa de que puedan publicar directo en vez de depender del scrapeo.
 
-La credencial es un hash argon2id en `ADMIN_PASSWORD_HASH`. No hay tabla de
-usuarios ni clave en texto plano en ningún lado, y sin esa variable el panel
-queda apagado entero: `/api/admin` contesta 404, así que un despliegue sin
-configurar se queda sin admin en vez de con un admin abierto.
+La credencial es un hash argon2id. No hay tabla de usuarios ni clave en texto
+plano en ningún lado, y sin hash configurado el panel queda apagado entero:
+`/api/admin` contesta 404, así que un despliegue sin configurar se queda sin
+admin en vez de con un admin abierto.
+
+La configuración de la API va en **`api/.env`**, no en la raíz: la API arranca
+con `bun run --cwd api start`, así que Bun carga el `.env` de ese directorio y
+el de la raíz no lo ve. En `api/.env.example` están todas las variables.
 
 ```bash
-bun -e 'console.log(await Bun.password.hash(prompt("clave: ")))'
+bun -e 'await Bun.write("data/admin.hash", await Bun.password.hash(prompt("clave: ")))'
+cp api/.env.example api/.env   # y descomentá ADMIN_PASSWORD_HASH_FILE
+bun run dev
 ```
 
-Ojo que el hash trae varios `$`, así que en un `.env` o en systemd va entre
-comillas simples. Sin comillas el shell se los come y la clave deja de coincidir
-sin dar un error que lo explique.
+El hash va a un archivo (`ADMIN_PASSWORD_HASH_FILE`) y no a una variable por
+una razón concreta: empieza con `$argon2id$` y tiene varios `$` adentro, que
+casi todo lo que lo transporta interpola. El shell los expande, y el parser de
+`.env` de Bun también, con comillas simples, dobles o sin ninguna. El valor
+queda en `=19=65536,t=2,p=1...` y la clave deja de coincidir sin dar un solo
+error que lo explique. `ADMIN_PASSWORD_HASH` con el hash inline sigue andando
+si se escapa cada `$` como `\$`.
 
-Para levantarlo en local:
-
-```bash
-ADMIN_PASSWORD_HASH='<el hash>' ADMIN_INSECURE_COOKIES=true bun run dev
-```
-
-`ADMIN_INSECURE_COOKIES` saca el flag `secure` de la cookie, que en `http://`
-la haría inservible. En producción no se pone.
+`ADMIN_INSECURE_COOKIES=true` saca el flag `secure` de la cookie, que sobre
+`http://` la haría inservible. En producción no se pone.
 
 La sesión es una cookie `HttpOnly`, `SameSite=Strict`, con alcance
 `/api/admin` y vencimiento de 12 horas. En la base solo se guarda el sha256 del
