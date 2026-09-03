@@ -100,7 +100,7 @@ archivo queda fuera del deploy a propósito. El scrapeo va por cron, con el
 usuario del servicio:
 
 ```
-15 */6 * * * cd /srv/jobit && /opt/bun/bun run scrape
+15 */6 * * * cd /srv/jobit && PATH=/opt/bun:$PATH /opt/bun/bun run scrape
 ```
 
 La API relee el archivo cuando le cambia el mtime, así que no hay que
