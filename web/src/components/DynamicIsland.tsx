@@ -37,7 +37,6 @@ interface DynamicIslandProps {
   onChangeTheme: (theme: Theme) => void;
   onChangeProfile: (profile: Profile) => void;
   onRestartOnboarding: () => void;
-  onResetPreferences: () => void;
   onEraseEverything: () => void;
   onImportCv: (profile: Profile, preferences: Preferences) => void;
 }
@@ -68,7 +67,6 @@ export function DynamicIsland({
   onChangeTheme,
   onChangeProfile,
   onRestartOnboarding,
-  onResetPreferences,
   onEraseEverything,
   onImportCv,
 }: DynamicIslandProps) {
@@ -193,7 +191,6 @@ export function DynamicIsland({
                   onChange={onChangeProfile}
                   onEraseEverything={onEraseEverything}
                   onImportCv={onImportCv}
-                  onResetPreferences={onResetPreferences}
                   onRestartOnboarding={() => {
                     setOpen(false);
                     onRestartOnboarding();

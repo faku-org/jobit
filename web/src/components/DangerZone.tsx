@@ -1,93 +1,20 @@
-import { RotateCcw, Trash2, TriangleAlert } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { type ReactNode, useState } from "react";
-import { fadeUpTransition } from "../lib/motion.ts";
+import { Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Confirm } from "./Confirm.tsx";
 
 interface DangerZoneProps {
   /** What is about to be lost, listed so the confirmation is informed. */
-  counts: { saved: number; applications: number; dismissed: number; preferences: number };
-  onResetPreferences: () => void;
+  counts: { saved: number; applications: number; dismissed: number };
   onEraseEverything: () => void;
 }
 
-type Pending = "reset" | "erase" | null;
-
 /**
- * Two steps, always. The first click says what exactly is going to disappear
- * and the second one does it: these are the only buttons in the app that
- * destroy something, and there is no server-side copy to restore from.
+ * The only thing here is the erase: resetting the preferences moved up to the
+ * restart button, which does the same and then walks the person back through
+ * the questions instead of leaving them on an unordered board.
  */
-function Confirm({
-  open,
-  title,
-  losing,
-  action,
-  tone,
-  onCancel,
-  onConfirm,
-}: {
-  open: boolean;
-  title: string;
-  losing: ReactNode;
-  action: string;
-  tone: "warn" | "danger";
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <AnimatePresence initial={false}>
-      {open ? (
-        <motion.div
-          animate={{ height: "auto", opacity: 1 }}
-          className="overflow-hidden"
-          exit={{ height: 0, opacity: 0 }}
-          initial={{ height: 0, opacity: 0 }}
-          transition={fadeUpTransition}
-        >
-          <div className="mt-2 rounded-xl border border-onpanel/20 bg-onpanel/10 px-3 py-3">
-            <p className="flex gap-2 text-[11px] leading-relaxed font-medium text-onpanel">
-              <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
-              {title}
-            </p>
-            <div className="mt-2 pl-5.5 text-[11px] leading-relaxed text-onpanel/70">{losing}</div>
-
-            <div className="mt-3 flex gap-2 pl-5.5">
-              <button
-                className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${
-                  tone === "danger"
-                    ? "bg-onpanel text-panel hover:bg-onpanel/85"
-                    : "bg-sky text-ink hover:bg-sky/85"
-                }`}
-                type="button"
-                onClick={onConfirm}
-              >
-                {action}
-              </button>
-              <button
-                className="rounded-lg px-3 py-1.5 text-[11px] font-medium text-onpanel/60 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
-                type="button"
-                onClick={onCancel}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
-  );
-}
-
-export function DangerZone({ counts, onResetPreferences, onEraseEverything }: DangerZoneProps) {
-  const [pending, setPending] = useState<Pending>(null);
-
-  const ask = (which: Exclude<Pending, null>) =>
-    setPending((current) => (current === which ? null : which));
-
-  const run = (action: () => void) => {
-    action();
-    setPending(null);
-  };
+export function DangerZone({ counts, onEraseEverything }: DangerZoneProps) {
+  const [pending, setPending] = useState(false);
 
   const plural = (count: number, one: string, many: string) =>
     `${count} ${count === 1 ? one : many}`;
@@ -100,42 +27,10 @@ export function DangerZone({ counts, onResetPreferences, onEraseEverything }: Da
 
       <div>
         <button
-          aria-expanded={pending === "reset"}
+          aria-expanded={pending}
           className="inline-flex w-full items-center gap-2 rounded-lg bg-onpanel/10 px-2.5 py-2 text-left text-[11px] font-medium text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
           type="button"
-          onClick={() => ask("reset")}
-        >
-          <RotateCcw aria-hidden className="size-3.5 shrink-0" />
-          Reiniciar el algoritmo y las preferencias
-        </button>
-
-        <Confirm
-          action="Sí, reiniciar"
-          losing={
-            <>
-              Se borran {plural(counts.preferences, "preferencia", "preferencias")}: rubros, zonas,
-              sueldo, modalidad, lo que ocultaste y las fuentes elegidas. La lista vuelve a
-              ordenarse por fecha.
-              <br />
-              <strong className="font-medium text-onpanel/90">
-                Tu perfil, tus guardadas y tu seguimiento no se tocan.
-              </strong>
-            </>
-          }
-          open={pending === "reset"}
-          title="¿Reiniciar cómo se ordenan las ofertas?"
-          tone="warn"
-          onCancel={() => setPending(null)}
-          onConfirm={() => run(onResetPreferences)}
-        />
-      </div>
-
-      <div>
-        <button
-          aria-expanded={pending === "erase"}
-          className="inline-flex w-full items-center gap-2 rounded-lg bg-onpanel/10 px-2.5 py-2 text-left text-[11px] font-medium text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
-          type="button"
-          onClick={() => ask("erase")}
+          onClick={() => setPending((current) => !current)}
         >
           <Trash2 aria-hidden className="size-3.5 shrink-0" />
           Borrar todos mis datos de este navegador
@@ -157,11 +52,14 @@ export function DangerZone({ counts, onResetPreferences, onEraseEverything }: Da
               Vas a arrancar de cero con el onboarding.
             </>
           }
-          open={pending === "erase"}
+          open={pending}
           title="¿Borrar todo y empezar de cero?"
           tone="danger"
-          onCancel={() => setPending(null)}
-          onConfirm={() => run(onEraseEverything)}
+          onCancel={() => setPending(false)}
+          onConfirm={() => {
+            onEraseEverything();
+            setPending(false);
+          }}
         />
       </div>
     </div>

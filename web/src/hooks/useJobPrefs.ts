@@ -233,9 +233,10 @@ export interface JobPrefs {
   /** Saves what the onboarding collected in one write, so the list is not
    * refetched once per step of it. */
   completeOnboarding: (profile: Profile, preferences: Preferences) => void;
+  /** Clears what decides the order and asks the questions again, leaving the
+   * profile and the lists alone. Starting the rerun over the old answers left
+   * leftovers in every step that got skipped. */
   restartOnboarding: () => void;
-  /** Clears what decides the order, leaving the profile and the lists alone. */
-  resetPreferences: () => void;
   /** Wipes everything this browser holds and starts over from nothing. */
   eraseEverything: () => void;
   markStatsSent: (at: string) => void;
@@ -313,11 +314,12 @@ export function useJobPrefs(): JobPrefs {
   }, []);
 
   const restartOnboarding = useCallback(() => {
-    setStored((current) => ({ ...current, profile: { ...current.profile, onboardedAt: "" } }));
-  }, []);
-
-  const resetPreferences = useCallback(() => {
-    setStored((current) => ({ ...current, preferences: EMPTY_PREFERENCES, sources: [] }));
+    setStored((current) => ({
+      ...current,
+      preferences: EMPTY_PREFERENCES,
+      sources: [],
+      profile: { ...current.profile, onboardedAt: "" },
+    }));
   }, []);
 
   const eraseEverything = useCallback(() => {
@@ -380,7 +382,6 @@ export function useJobPrefs(): JobPrefs {
     setProfile,
     completeOnboarding,
     restartOnboarding,
-    resetPreferences,
     eraseEverything,
     markStatsSent,
     addApplication,

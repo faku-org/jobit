@@ -308,7 +308,6 @@ export default function App() {
           prefs.setProfile(nextProfile);
           prefs.setPreferences(nextPreferences);
         }}
-        onResetPreferences={prefs.resetPreferences}
         onRestartOnboarding={prefs.restartOnboarding}
       />
 

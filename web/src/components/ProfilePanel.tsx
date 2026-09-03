@@ -14,6 +14,7 @@ import { type Usage, anonymousStats } from "../lib/stats.ts";
 import { pendingEvents } from "../lib/track.ts";
 import type { Facet, Preferences } from "../lib/types.ts";
 import { Combobox } from "./Combobox.tsx";
+import { Confirm } from "./Confirm.tsx";
 import { CvImport } from "./CvImport.tsx";
 import { DangerZone } from "./DangerZone.tsx";
 import { ExperienceField } from "./ExperienceField.tsx";
@@ -22,15 +23,16 @@ import { PanelChip, PanelGroup } from "./PanelControls.tsx";
 interface ProfilePanelProps {
   profile: Profile;
   usage: Usage;
-  /** What the danger zone is about to erase, so it can say it out loud. */
+  /** What the erase and the restart are about to throw away, so both can say it
+   * out loud before doing it. */
   counts: { saved: number; applications: number; dismissed: number; preferences: number };
   /** Read only by the CV import, which can suggest rubros to prefer. */
   preferences: Preferences;
   categories: Facet[];
   onImportCv: (profile: Profile, preferences: Preferences) => void;
   onChange: (profile: Profile) => void;
+  /** Clears the preferences and asks the questions again, in that order. */
   onRestartOnboarding: () => void;
-  onResetPreferences: () => void;
   onEraseEverything: () => void;
 }
 
@@ -48,10 +50,10 @@ export function ProfilePanel({
   onChange,
   onImportCv,
   onRestartOnboarding,
-  onResetPreferences,
   onEraseEverything,
 }: ProfilePanelProps) {
   const [showPayload, setShowPayload] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const payload = anonymousStats(profile, usage);
   /* Lo que está en la cola ahora mismo, no un ejemplo: si dice que no se
      manda el texto que escribiste, se puede comprobar acá. */
@@ -59,6 +61,15 @@ export function ProfilePanel({
 
   const pickEducation = (level: EducationLevel) =>
     onChange({ ...profile, education: profile.education === level ? "" : level });
+
+  /** Restarting with nothing configured loses nothing, and saying that it
+   * erases "0 preferencias" made a harmless button sound like a warning. */
+  const erasing =
+    counts.preferences === 0
+      ? "hoy no tenés ninguna puesta, así que solo quedan las que contestes ahora"
+      : counts.preferences === 1
+        ? "la preferencia que tenés puesta se borra y queda lo que contestes ahora"
+        : `tus ${counts.preferences} preferencias se borran y quedan las que contestes ahora`;
 
   return (
     <div className="space-y-5 px-4 pt-1 pb-4">
@@ -104,14 +115,39 @@ export function ProfilePanel({
         onChange={(experienceYears) => onChange({ ...profile, experienceYears })}
       />
 
-      <button
-        className="inline-flex items-center gap-1.5 rounded-lg bg-onpanel/10 px-2.5 py-1.5 text-[11px] font-medium text-onpanel/75 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
-        type="button"
-        onClick={onRestartOnboarding}
-      >
-        <RotateCcw aria-hidden className="size-3" />
-        Rehacer la configuración inicial
-      </button>
+      <div>
+        <button
+          aria-expanded={restarting}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-onpanel/10 px-2.5 py-1.5 text-[11px] font-medium text-onpanel/75 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+          type="button"
+          onClick={() => setRestarting((current) => !current)}
+        >
+          <RotateCcw aria-hidden className="size-3" />
+          Rehacer la configuración inicial
+        </button>
+
+        <Confirm
+          action="Sí, volver a empezar"
+          losing={
+            <>
+              Volvemos a hacerte las preguntas del principio, partiendo de cero: {erasing}. Podés
+              saltear y dejar la lista sin ordenar.
+              <br />
+              <strong className="font-medium text-onpanel/90">
+                Tu perfil, tus guardadas y tu seguimiento no se tocan.
+              </strong>
+            </>
+          }
+          open={restarting}
+          title="¿Rehacer la configuración inicial?"
+          tone="warn"
+          onCancel={() => setRestarting(false)}
+          onConfirm={() => {
+            setRestarting(false);
+            onRestartOnboarding();
+          }}
+        />
+      </div>
 
       <CvImport
         categories={categories}
@@ -120,11 +156,7 @@ export function ProfilePanel({
         onApply={onImportCv}
       />
 
-      <DangerZone
-        counts={counts}
-        onEraseEverything={onEraseEverything}
-        onResetPreferences={onResetPreferences}
-      />
+      <DangerZone counts={counts} onEraseEverything={onEraseEverything} />
 
       <div className="space-y-2 border-t border-onpanel/10 pt-3">
         <label className="flex cursor-pointer items-start gap-2.5">
