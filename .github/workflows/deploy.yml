@@ -1,0 +1,70 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-jobit
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+      # El build vive en web/dist: el script de la raíz corre --cwd web.
+      - name: Build
+        run: bun run build
+
+      - name: Deploy web to /var/www/jobs.wefaber.net/
+        run: rsync -a --delete web/dist/ /var/www/jobs.wefaber.net/
+
+      # Va el repo entero porque package.json declara workspaces y bun necesita
+      # verlos para resolver. Lo que el worker scrapea y lo que la API escribe
+      # quedan fuera del sync, para no borrar las ofertas ni las estadísticas.
+      - name: Deploy API to /srv/jobit/
+        run: |
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude 'web/dist' \
+            --exclude 'worker/output' \
+            --exclude 'worker/cache' \
+            --exclude 'data' \
+            ./ /srv/jobit/
+          cd /srv/jobit && bun install --frozen-lockfile --production
+
+      # Necesita una regla de sudoers para el usuario del runner:
+      #   <runner> ALL=(root) NOPASSWD: /bin/systemctl restart jobit-api
+      - name: Restart API
+        run: sudo systemctl restart jobit-api
+
+      - name: Check it came back
+        run: |
+          for attempt in $(seq 1 10); do
+            if curl -fsS http://127.0.0.1:3000/health > /dev/null; then
+              echo "API arriba"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "La API no respondió en /health"
+          sudo systemctl status jobit-api --no-pager || true
+          exit 1

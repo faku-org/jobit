@@ -10,7 +10,7 @@ const profile: Profile = {
   experienceYears: 3,
 };
 
-const usage = { saved: 6, applications: 2, sources: ["buscojobs"] };
+const usage = { saved: 6, applications: 2, interviews: 1, closed: 3, sources: ["buscojobs"] };
 
 describe("anonymousStats", () => {
   test("reports counts, never the text the person typed", () => {
@@ -24,6 +24,8 @@ describe("anonymousStats", () => {
       experience_years: 3,
       saved: 6,
       applications: 2,
+      interviews: 1,
+      closed: 3,
       sources: ["buscojobs"],
     });
 
@@ -34,7 +36,15 @@ describe("anonymousStats", () => {
   });
 
   test("an untouched profile carries nothing about the person", () => {
-    expect(anonymousStats(EMPTY_PROFILE, { saved: 0, applications: 0, sources: [] })).toEqual({
+    expect(
+      anonymousStats(EMPTY_PROFILE, {
+        saved: 0,
+        applications: 0,
+        interviews: 0,
+        closed: 0,
+        sources: [],
+      }),
+    ).toEqual({
       education: "",
       has_degree: false,
       degrees: 0,
@@ -42,6 +52,8 @@ describe("anonymousStats", () => {
       experience_years: null,
       saved: 0,
       applications: 0,
+      interviews: 0,
+      closed: 0,
       sources: [],
     });
   });
@@ -49,7 +61,13 @@ describe("anonymousStats", () => {
   test("drops source names it does not know and clamps the counters", () => {
     const payload = anonymousStats(
       { ...EMPTY_PROFILE, experienceYears: 999 },
-      { saved: -3, applications: 99_999, sources: ["buscojobs", "algo-raro"] },
+      {
+        saved: -3,
+        applications: 99_999,
+        interviews: 0,
+        closed: 0,
+        sources: ["buscojobs", "algo-raro"],
+      },
     );
 
     expect(payload.sources).toEqual(["buscojobs"]);

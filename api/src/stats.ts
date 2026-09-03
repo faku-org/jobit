@@ -25,8 +25,15 @@ export const statsSchema = t.Object({
   experience_years: t.Union([t.Integer({ minimum: 0, maximum: 60 }), t.Null()]),
   saved: t.Integer({ minimum: 0, maximum: 10_000 }),
   applications: t.Integer({ minimum: 0, maximum: 10_000 }),
+  interviews: t.Integer({ minimum: 0, maximum: 10_000 }),
+  closed: t.Integer({ minimum: 0, maximum: 10_000 }),
   sources: t.Array(
-    t.Union([t.Literal("buscojobs"), t.Literal("gallito"), t.Literal("uruguayconcursa")]),
+    t.Union([
+      t.Literal("jobit"),
+      t.Literal("buscojobs"),
+      t.Literal("gallito"),
+      t.Literal("uruguayconcursa"),
+    ]),
     { maxItems: 5 },
   ),
 });

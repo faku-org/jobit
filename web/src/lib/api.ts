@@ -1,5 +1,6 @@
 import type { MarketReport } from "./market.ts";
 import { type Ranking, isEmptyRanking } from "./ranking.ts";
+import type { UsageEvent } from "./events.ts";
 import type { AnonymousStats } from "./stats.ts";
 import type {
   Filters,
@@ -157,4 +158,20 @@ export async function sendStats(payload: AnonymousStats): Promise<void> {
     keepalive: true,
   });
   if (!response.ok) throw new Error(`La API respondió ${response.status}`);
+}
+
+/** Los eventos de uso se mandan al irse de la pestaña, así que `sendBeacon`:
+ * es el único envío que el navegador garantiza mientras descarga la página.
+ * No devuelve nada porque no hay a quién avisarle si falló. */
+export function sendEvents(events: UsageEvent[]): void {
+  const body = JSON.stringify({ events });
+
+  if (navigator.sendBeacon("/api/events", new Blob([body], { type: "application/json" }))) return;
+
+  void fetch("/api/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch(() => {});
 }

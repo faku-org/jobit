@@ -31,3 +31,11 @@ worker/output/
 
 # telemetría anónima que escribe la API
 data/
+
+# salida de graphify
+graphify-out/
+
+# variables de entorno: el archivo real nunca va al repo, el ejemplo sí
+.env
+.env.*
+!.env.example

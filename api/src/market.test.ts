@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { buildMarketReport, summarize } from "./market.ts";
-import { ROLES, roleOf } from "./roles.ts";
+import { ROLES, roleOf } from "@jobit/worker/roles";
 import type { Job } from "./types.ts";
 
 const NOW = Date.parse("2026-09-02T00:00:00Z");

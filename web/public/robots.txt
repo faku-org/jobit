@@ -1,0 +1,8 @@
+# JobIt — https://jobs.wefaber.net
+User-agent: *
+Allow: /
+
+# La API sirve JSON, no páginas: no hay nada que indexar ahí.
+Disallow: /api/
+
+Sitemap: https://jobs.wefaber.net/sitemap.xml
