@@ -59,7 +59,7 @@ jobs:
       - name: Check it came back
         run: |
           for attempt in $(seq 1 10); do
-            if curl -fsS http://127.0.0.1:3000/health > /dev/null; then
+            if curl -fsS http://127.0.0.1:3200/health > /dev/null; then
               echo "API arriba"
               exit 0
             fi
