@@ -1,4 +1,4 @@
-import { ChevronDown, RotateCcw, ShieldCheck } from "lucide-react";
+import { ChevronDown, Monitor, Moon, RotateCcw, ShieldCheck, Sun } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { COURSES, DEGREES } from "../lib/catalog.ts";
@@ -12,7 +12,7 @@ import {
 } from "../lib/profile.ts";
 import { type Usage, anonymousStats } from "../lib/stats.ts";
 import { pendingEvents } from "../lib/track.ts";
-import type { Facet, Preferences } from "../lib/types.ts";
+import type { Facet, Preferences, Theme } from "../lib/types.ts";
 import { Combobox } from "./Combobox.tsx";
 import { Confirm } from "./Confirm.tsx";
 import { CvImport } from "./CvImport.tsx";
@@ -29,12 +29,22 @@ interface ProfilePanelProps {
   /** Read only by the CV import, which can suggest rubros to prefer. */
   preferences: Preferences;
   categories: Facet[];
+  /** How the app looks, which is not a search preference: it lives here with
+   * the rest of what this browser knows about the person. */
+  theme: Theme;
   onImportCv: (profile: Profile, preferences: Preferences) => void;
   onChange: (profile: Profile) => void;
+  onChangeTheme: (theme: Theme) => void;
   /** Clears the preferences and asks the questions again, in that order. */
   onRestartOnboarding: () => void;
   onEraseEverything: () => void;
 }
+
+const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
+  { value: "light", label: "Claro", icon: Sun },
+  { value: "dark", label: "Oscuro", icon: Moon },
+  { value: "system", label: "Sistema", icon: Monitor },
+];
 
 /**
  * What the person studied, used to order the list and to tell whether an offer
@@ -47,7 +57,9 @@ export function ProfilePanel({
   counts,
   preferences,
   categories,
+  theme,
   onChange,
+  onChangeTheme,
   onImportCv,
   onRestartOnboarding,
   onEraseEverything,
@@ -155,6 +167,21 @@ export function ProfilePanel({
         profile={profile}
         onApply={onImportCv}
       />
+
+      <div className="border-t border-onpanel/10 pt-3">
+        <PanelGroup title="Apariencia">
+          {THEME_OPTIONS.map((option) => (
+            <PanelChip
+              key={option.value}
+              active={theme === option.value}
+              onClick={() => onChangeTheme(option.value)}
+            >
+              <option.icon aria-hidden className="size-3.5" />
+              {option.label}
+            </PanelChip>
+          ))}
+        </PanelGroup>
+      </div>
 
       <DangerZone counts={counts} onEraseEverything={onEraseEverything} />
 

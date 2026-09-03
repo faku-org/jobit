@@ -1,7 +1,8 @@
-import { CalendarArrowDown, Monitor, Moon, RefreshCw, RotateCcw, Sun, Target } from "lucide-react";
+import { CalendarArrowDown, RefreshCw, RotateCcw, Target } from "lucide-react";
 import type { CustomFeed, FeedResult } from "../lib/feed.ts";
 import { SOURCE_LABEL, formatScrapedAt, pluralOffers } from "../lib/format.ts";
-import type { Facet, JobType, Level, Meta, Preferences, Theme, WorkMode } from "../lib/types.ts";
+import { advancedSummary, searchSummary, workSummary } from "../lib/sections.ts";
+import type { Facet, JobType, Level, Meta, Preferences, WorkMode } from "../lib/types.ts";
 import {
   EMPTY_PREFERENCES,
   categoryStances,
@@ -12,8 +13,11 @@ import {
   withCategoryStances,
   withDepartmentStances,
 } from "../lib/types.ts";
+import type { SectionId } from "../hooks/useSections.ts";
+import { useSections } from "../hooks/useSections.ts";
 import { CustomSources } from "./CustomSources.tsx";
 import { PanelChip as Chip, PanelGroup as Group, StanceChips } from "./PanelControls.tsx";
+import { PanelSection } from "./PanelSection.tsx";
 import { PriorityList } from "./PriorityList.tsx";
 import { SalaryRange } from "./SalaryRange.tsx";
 
@@ -28,11 +32,9 @@ interface PreferencesPanelProps {
   feeds: CustomFeed[];
   feedResults: FeedResult[];
   feedsLoading: boolean;
-  theme: Theme;
   onChange: (preferences: Preferences) => void;
   onChangeSources: (sources: string[]) => void;
   onChangeFeeds: (feeds: CustomFeed[]) => void;
-  onChangeTheme: (theme: Theme) => void;
 }
 
 const MODE_OPTIONS: { value: WorkMode; label: string }[] = [
@@ -53,12 +55,6 @@ const JOB_TYPE_OPTIONS: { value: JobType; label: string }[] = [
   { value: "internship", label: "Pasantía" },
 ];
 
-const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "Claro", icon: Sun },
-  { value: "dark", label: "Oscuro", icon: Moon },
-  { value: "system", label: "Sistema", icon: Monitor },
-];
-
 /**
  * Sources are stored as an explicit list, with the empty list meaning "all", so
  * a new job board starts included. Turning the last one off goes back to all.
@@ -72,8 +68,11 @@ function toggleSource(current: string[], all: string[], value: string): string[]
 const labelFrom = (facets: Facet[]) => (value: string) =>
   facets.find((facet) => facet.value === value)?.label;
 
-/** Lives inside the island: what the person is looking for, where the offers
- * come from and how the app looks, all remembered between visits. */
+/**
+ * Lives inside the island: what the person is looking for and where the offers
+ * come from. Ten groups in a row were a form nobody finished, so the questions
+ * are grouped by theme and follow the order the onboarding asks them in.
+ */
 export function PreferencesPanel({
   meta,
   categories,
@@ -83,18 +82,19 @@ export function PreferencesPanel({
   feeds,
   feedResults,
   feedsLoading,
-  theme,
   onChange,
   onChangeSources,
   onChangeFeeds,
-  onChangeTheme,
 }: PreferencesPanelProps) {
+  const [open, toggleSection] = useSections();
   const count = preferenceCount(preferences);
   const hidden = hiddenCount(preferences);
   const allSources = meta?.sources ?? [];
 
+  const section = (id: SectionId) => ({ open: open[id], onToggle: () => toggleSection(id) });
+
   return (
-    <div className="space-y-5 px-4 pt-1 pb-4">
+    <div className="space-y-4 px-4 pt-1 pb-4">
       <div>
         <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">
           Orden del listado
@@ -121,115 +121,118 @@ export function PreferencesPanel({
         </p>
       </div>
 
-      <StanceChips
-        facets={categories}
-        hint="Una vez para priorizarlo, otra para ocultarlo, otra para dejarlo neutro."
-        lists={categoryStances(preferences)}
-        title="Rubros"
-        onChange={(lists) => onChange(withCategoryStances(preferences, lists))}
-      />
-
-      {preferences.categories.length > 1 ? (
-        <PriorityList
-          empty=""
-          labelOf={labelFrom(categories)}
-          title="Tu orden de rubros"
-          values={preferences.categories}
-          onChange={(values) => onChange({ ...preferences, categories: values })}
+      <PanelSection
+        summary={searchSummary(preferences, categories, departments)}
+        title="Qué buscás"
+        {...section("search")}
+      >
+        <StanceChips
+          facets={categories}
+          hint="Una vez para priorizarlo, otra para ocultarlo, otra para dejarlo neutro."
+          lists={categoryStances(preferences)}
+          title="Rubros"
+          onChange={(lists) => onChange(withCategoryStances(preferences, lists))}
         />
-      ) : null}
 
-      <StanceChips
-        facets={departments.slice(0, 19)}
-        hint="Priorizá dónde querés trabajar y sacá de la lista los departamentos que no te sirven."
-        lists={departmentStances(preferences)}
-        title="Zona"
-        onChange={(lists) => onChange(withDepartmentStances(preferences, lists))}
-      />
+        {preferences.categories.length > 1 ? (
+          <PriorityList
+            empty=""
+            labelOf={labelFrom(categories)}
+            title="Tu orden de rubros"
+            values={preferences.categories}
+            onChange={(values) => onChange({ ...preferences, categories: values })}
+          />
+        ) : null}
 
-      {preferences.departments.length > 1 ? (
-        <PriorityList
-          empty=""
-          labelOf={labelFrom(departments)}
-          title="Tu orden de zonas"
-          values={preferences.departments}
-          onChange={(values) => onChange({ ...preferences, departments: values })}
+        <StanceChips
+          facets={departments.slice(0, 19)}
+          hint="Priorizá dónde querés trabajar y sacá de la lista los departamentos que no te sirven."
+          lists={departmentStances(preferences)}
+          title="Zona"
+          onChange={(lists) => onChange(withDepartmentStances(preferences, lists))}
         />
-      ) : null}
 
-      <SalaryRange
-        value={preferences.salary}
-        onChange={(salary) => onChange({ ...preferences, salary })}
-      />
+        {preferences.departments.length > 1 ? (
+          <PriorityList
+            empty=""
+            labelOf={labelFrom(departments)}
+            title="Tu orden de zonas"
+            values={preferences.departments}
+            onChange={(values) => onChange({ ...preferences, departments: values })}
+          />
+        ) : null}
+      </PanelSection>
 
-      <Group title="Modalidad">
-        {MODE_OPTIONS.map((option) => (
+      <PanelSection
+        summary={workSummary(preferences)}
+        title="Cómo querés trabajar"
+        {...section("work")}
+      >
+        <SalaryRange
+          value={preferences.salary}
+          onChange={(salary) => onChange({ ...preferences, salary })}
+        />
+
+        <Group title="Modalidad">
+          {MODE_OPTIONS.map((option) => (
+            <Chip
+              key={option.value}
+              active={preferences.modes.includes(option.value)}
+              onClick={() =>
+                onChange({ ...preferences, modes: toggleValue(preferences.modes, option.value) })
+              }
+            >
+              {option.label}
+            </Chip>
+          ))}
+        </Group>
+
+        <Group title="Jornada">
+          {JOB_TYPE_OPTIONS.map((option) => (
+            <Chip
+              key={option.value}
+              active={preferences.jobTypes.includes(option.value)}
+              onClick={() =>
+                onChange({
+                  ...preferences,
+                  jobTypes: toggleValue(preferences.jobTypes, option.value),
+                })
+              }
+            >
+              {option.label}
+            </Chip>
+          ))}
+        </Group>
+
+        <Group title="Nivel">
+          {LEVEL_OPTIONS.map((option) => (
+            <Chip
+              key={option.value}
+              active={preferences.levels.includes(option.value)}
+              onClick={() =>
+                onChange({ ...preferences, levels: toggleValue(preferences.levels, option.value) })
+              }
+            >
+              {option.label}
+            </Chip>
+          ))}
+        </Group>
+
+        <Group title="Experiencia">
           <Chip
-            key={option.value}
-            active={preferences.modes.includes(option.value)}
-            onClick={() =>
-              onChange({ ...preferences, modes: toggleValue(preferences.modes, option.value) })
-            }
+            active={preferences.noExperience}
+            onClick={() => onChange({ ...preferences, noExperience: !preferences.noExperience })}
           >
-            {option.label}
+            Sin experiencia previa
           </Chip>
-        ))}
-      </Group>
+        </Group>
+      </PanelSection>
 
-      <Group title="Nivel">
-        {LEVEL_OPTIONS.map((option) => (
-          <Chip
-            key={option.value}
-            active={preferences.levels.includes(option.value)}
-            onClick={() =>
-              onChange({ ...preferences, levels: toggleValue(preferences.levels, option.value) })
-            }
-          >
-            {option.label}
-          </Chip>
-        ))}
-      </Group>
-
-      <Group title="Jornada">
-        {JOB_TYPE_OPTIONS.map((option) => (
-          <Chip
-            key={option.value}
-            active={preferences.jobTypes.includes(option.value)}
-            onClick={() =>
-              onChange({
-                ...preferences,
-                jobTypes: toggleValue(preferences.jobTypes, option.value),
-              })
-            }
-          >
-            {option.label}
-          </Chip>
-        ))}
-      </Group>
-
-      <Group title="Experiencia">
-        <Chip
-          active={preferences.noExperience}
-          onClick={() => onChange({ ...preferences, noExperience: !preferences.noExperience })}
-        >
-          Sin experiencia previa
-        </Chip>
-      </Group>
-
-      <Group title="Apariencia">
-        {THEME_OPTIONS.map((option) => (
-          <Chip
-            key={option.value}
-            active={theme === option.value}
-            onClick={() => onChangeTheme(option.value)}
-          >
-            <option.icon aria-hidden className="size-3.5" />
-            {option.label}
-          </Chip>
-        ))}
-      </Group>
-
-      <div className="space-y-3">
+      <PanelSection
+        summary={advancedSummary(sources, allSources, feeds)}
+        title="Avanzado"
+        {...section("advanced")}
+      >
         {allSources.length > 0 ? (
           <Group title="Fuentes">
             {allSources.map((source) => (
@@ -250,7 +253,7 @@ export function PreferencesPanel({
           results={feedResults}
           onChange={onChangeFeeds}
         />
-      </div>
+      </PanelSection>
 
       <div className="flex items-center justify-between gap-3 border-t border-onpanel/10 pt-3">
         <p className="text-[11px] leading-snug text-onpanel/50">

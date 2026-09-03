@@ -175,11 +175,9 @@ export function DynamicIsland({
                   feedsLoading={feedsLoading}
                   preferences={preferences}
                   sources={sources}
-                  theme={theme}
                   onChange={onChangePreferences}
                   onChangeFeeds={onChangeFeeds}
                   onChangeSources={onChangeSources}
-                  onChangeTheme={onChangeTheme}
                 />
               ) : (
                 <ProfilePanel
@@ -187,8 +185,10 @@ export function DynamicIsland({
                   counts={counts}
                   preferences={preferences}
                   profile={profile}
+                  theme={theme}
                   usage={usage}
                   onChange={onChangeProfile}
+                  onChangeTheme={onChangeTheme}
                   onEraseEverything={onEraseEverything}
                   onImportCv={onImportCv}
                   onRestartOnboarding={() => {
