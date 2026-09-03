@@ -163,6 +163,32 @@ describe("loadFeed", () => {
   });
 });
 
+describe("cuando la base no está", () => {
+  afterEach(() => {
+    process.env.DB_FILE = ":memory:";
+    closeDb();
+    clearFeedCache();
+  });
+
+  /* Las propias son un agregado; el tablero es el producto. Antes de esto una
+     base ilegible tiraba abajo /api/jobs, /api/meta y /api/market enteros, o
+     sea toda la parte del sitio que le importa a alguien buscando trabajo. */
+  test("sirve lo scrapeado en vez de tirar abajo el tablero", async () => {
+    process.env.DB_FILE = join(FIXTURES, "no", "se", "puede", "jobit.db");
+    closeDb();
+    clearFeedCache();
+
+    /* Un directorio donde el archivo no puede existir. */
+    writeFileSync(join(FIXTURES, "no"), "no soy una carpeta", "utf8");
+
+    const result = await loadFeed();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.jobs).toHaveLength(3);
+    expect(result.value.sources).toEqual(["buscojobs"]);
+  });
+});
+
 describe("invalidación del caché", () => {
   afterEach(() => setSystemTime());
 
