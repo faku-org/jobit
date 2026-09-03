@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchJob, isAbortError } from "../lib/api.ts";
+import { describeJob } from "../lib/meta.ts";
 import { setSharedJobId, sharedJobId } from "../lib/share.ts";
 import type { Job } from "../lib/types.ts";
 
@@ -35,10 +36,6 @@ export function useJobLink(openJob: Job | null, onOpen: (job: Job) => void): voi
     setSharedJobId(openJob?.id ?? null);
     if (!openJob) return;
 
-    const previous = document.title;
-    document.title = `${openJob.title} · JobIt`;
-    return () => {
-      document.title = previous;
-    };
+    return describeJob(openJob);
   }, [openJob, resolving]);
 }
