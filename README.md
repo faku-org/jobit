@@ -101,6 +101,29 @@ El embed acepta `&theme=light` o `&theme=dark`; sin el parámetro sigue el
 esquema del navegador. Solo lee la oferta, enlaza al aviso original y no toca
 nada de lo guardado en el navegador de quien la ve.
 
+## Indexado y previsualizaciones
+
+El dominio de producción es `https://jobs.wefaber.net`. Está escrito a mano en
+cuatro lugares, así que un cambio de dominio los toca a los cuatro:
+`web/index.html` (canonical, `og:url`, `og:image`), `web/public/robots.txt` y
+`web/public/sitemap.xml`.
+
+La cáscara que se sirve trae el título, la descripción, el canonical, las
+etiquetas Open Graph y Twitter, el manifiesto y un JSON-LD con `WebSite` y
+`WebApplication`. La imagen de previsualización es `web/public/og.png`
+(1200x630), generada del banner de `web/brand/`.
+
+Mientras la app corre, `web/src/lib/meta.ts` reescribe título y descripción con
+la oferta abierta: lo ven la pestaña, el historial y los buscadores que ejecutan
+JavaScript, no los scrapers de WhatsApp o LinkedIn, que leen la cáscara y paran
+ahí. Por eso un `?job=<id>` compartido siempre previsualiza como la portada. El
+canonical manda cualquier query string a la raíz, y el `?embed=` además se marca
+`noindex` en tiempo de ejecución.
+
+No hay JSON-LD `JobPosting` a propósito: las ofertas se enlazan al aviso
+original y no se republican, y marcarlas acá como si vivieran en JobIt es lo que
+Google penaliza en los agregadores.
+
 ## Fuentes
 
 | Fuente | Estado |

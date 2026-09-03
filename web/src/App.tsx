@@ -18,6 +18,7 @@ import { useDebounced } from "./hooks/useDebounced.ts";
 import { useJobPrefs } from "./hooks/useJobPrefs.ts";
 import { useJobLink } from "./hooks/useJobLink.ts";
 import { useJobs } from "./hooks/useJobs.ts";
+import { useViewLink } from "./hooks/useViewLink.ts";
 import { useCustomFeeds } from "./hooks/useCustomFeeds.ts";
 import { useMarket } from "./hooks/useMarket.ts";
 import { useStats } from "./hooks/useStats.ts";
@@ -27,6 +28,7 @@ import { fadeUpTransition } from "./lib/motion.ts";
 import { pluralOffers } from "./lib/format.ts";
 import { isOnboarded } from "./lib/profile.ts";
 import { isEmptyRanking, toRanking } from "./lib/ranking.ts";
+import { readViewState } from "./lib/url.ts";
 import {
   EMPTY_FILTERS,
   STATE_SOURCE,
@@ -76,8 +78,11 @@ function useMeta(): Meta | null {
 }
 
 export default function App() {
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [view, setView] = useState<View>("all");
+  /** Read once on mount, so a shared link paints its own section on the first
+   * render instead of the board and then a jump. */
+  const [linked] = useState(readViewState);
+  const [filters, setFilters] = useState<Filters>(linked.filters);
+  const [view, setView] = useState<View>(linked.view);
   /** A deliberate detour to look at what was discarded, not a display option:
    * discarding means gone, and this is the way back. */
   const [reviewingDiscarded, setReviewingDiscarded] = useState(false);
@@ -102,6 +107,17 @@ export default function App() {
   const debouncedQuery = useDebounced(filters.q);
   useTheme(prefs.theme);
   useJobLink(openJob, setOpenJob);
+  useViewLink(
+    view,
+    filters,
+    (state) => {
+      setView(state.view);
+      setFilters(state.filters);
+      setSavedCategory("");
+      setReviewingDiscarded(false);
+    },
+    !showIntro,
+  );
 
   const savedIds = [...prefs.saved].sort();
   const discardedIds = [...prefs.dismissed].sort();

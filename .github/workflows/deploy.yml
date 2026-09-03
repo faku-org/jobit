@@ -1,0 +1,38 @@
+name: Deploy
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-jobit
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+      # El build vive en web/dist: el script de la raíz corre --cwd web.
+      - name: Build
+        run: bun run build
+
+      - name: Deploy to /var/www/jobs.wefaber.net/
+        run: |
+          rsync -a --delete web/dist/ /var/www/jobs.wefaber.net/

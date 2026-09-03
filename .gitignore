@@ -31,3 +31,6 @@ worker/output/
 
 # telemetría anónima que escribe la API
 data/
+
+# salida de graphify
+graphify-out/

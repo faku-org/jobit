@@ -2,14 +2,85 @@
 <html lang="es-UY">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Ofertas de trabajo en Uruguay, con y sin experiencia · JobIt</title>
     <meta
       name="description"
-      content="Ofertas de trabajo en Uruguay de todos los rubros, con filtro para puestos sin experiencia previa."
+      content="Buscador de ofertas de trabajo de todo Uruguay en un solo lugar: filtrá por rubro, departamento y jornada, y encontrá los puestos que no piden experiencia previa."
     />
-    <title>JobIt · Ofertas de trabajo en Uruguay</title>
+    <link rel="canonical" href="https://jobs.wefaber.net/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e3f2fd" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a1220" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="JobIt" />
+    <meta property="og:locale" content="es_UY" />
+    <meta property="og:url" content="https://jobs.wefaber.net/" />
+    <meta property="og:title" content="JobIt · Ofertas de trabajo en Uruguay" />
+    <meta
+      property="og:description"
+      content="Las ofertas de trabajo de Uruguay en un solo lugar, con filtro para los puestos que no piden experiencia previa."
+    />
+    <meta property="og:image" content="https://jobs.wefaber.net/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="JobIt · Te ayudamos a progresar" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="JobIt · Ofertas de trabajo en Uruguay" />
+    <meta
+      name="twitter:description"
+      content="Las ofertas de trabajo de Uruguay en un solo lugar, con filtro para los puestos que no piden experiencia previa."
+    />
+    <meta name="twitter:image" content="https://jobs.wefaber.net/og.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://jobs.wefaber.net/#website",
+            "url": "https://jobs.wefaber.net/",
+            "name": "JobIt",
+            "description": "Buscador de ofertas de trabajo de Uruguay, de todos los rubros, pensado para encontrar el primer empleo.",
+            "inLanguage": "es-UY"
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://jobs.wefaber.net/#app",
+            "url": "https://jobs.wefaber.net/",
+            "name": "JobIt",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Any",
+            "browserRequirements": "Requires JavaScript",
+            "inLanguage": "es-UY",
+            "isPartOf": { "@id": "https://jobs.wefaber.net/#website" },
+            "description": "Junta las ofertas de trabajo publicadas en portales uruguayos y los llamados de Uruguay Concursa, las filtra por rubro, departamento, jornada y nivel, y marca las que no piden experiencia previa. Funciona sin cuenta: todo se guarda en el navegador.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "UYU"
+            },
+            "featureList": [
+              "Filtro por rubro, departamento, jornada y modalidad",
+              "Marca de puestos sin experiencia previa",
+              "Llamados públicos de Uruguay Concursa ordenados por fecha de cierre",
+              "Lista de guardadas y seguimiento de postulaciones",
+              "Orden según el perfil de quien busca"
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script>
       /* Paints the stored theme before first render so there is no flash. */
       try {
@@ -26,6 +97,21 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>JobIt · Ofertas de trabajo en Uruguay</h1>
+      <p>
+        JobIt junta en un solo lugar las ofertas de trabajo publicadas en portales uruguayos y los
+        llamados del Estado en Uruguay Concursa. Se filtran por rubro, departamento, jornada y
+        modalidad, y las que no piden experiencia previa quedan marcadas, para que encontrar el
+        primer empleo no dependa de revisar cinco sitios distintos.
+      </p>
+      <p>
+        La aplicación necesita JavaScript para funcionar. Mientras tanto, las fuentes que consulta
+        están abiertas:
+        <a href="https://www.buscojobs.com.uy/">BuscoJobs Uruguay</a> y
+        <a href="https://www.uruguayconcursa.gub.uy/">Uruguay Concursa</a>.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
