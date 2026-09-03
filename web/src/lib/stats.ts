@@ -24,7 +24,7 @@ export interface AnonymousStats {
   sources: string[];
 }
 
-const KNOWN_SOURCES = ["buscojobs", "gallito", "uruguayconcursa"];
+const KNOWN_SOURCES = ["jobit", "buscojobs", "gallito", "uruguayconcursa"];
 
 const cap = (value: number, max: number): number => Math.min(Math.max(Math.round(value), 0), max);
 

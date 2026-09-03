@@ -66,8 +66,7 @@ function uniqueSlug(base: string, excludeId?: string): string {
   return `${root}-${Date.now()}`;
 }
 
-const trim = (value: string | undefined, max: number): string =>
-  (value ?? "").trim().slice(0, max);
+const trim = (value: string | undefined, max: number): string => (value ?? "").trim().slice(0, max);
 
 /** Solo http(s): un javascript: en el sitio de una empresa sería un enlace
  * armado desde el panel hacia quien mire la ficha. */
@@ -130,9 +129,7 @@ export function list(query: CompanyQuery = {}): Company[] {
 }
 
 export function byId(id: string): Company | null {
-  return (
-    db().query<Company, [string]>("SELECT * FROM companies WHERE id = ?").get(id) ?? null
-  );
+  return db().query<Company, [string]>("SELECT * FROM companies WHERE id = ?").get(id) ?? null;
 }
 
 export function counts(): Record<CompanyStatus, number> {
@@ -199,10 +196,15 @@ export function update(
   const name = input.name === undefined ? current.name : trim(input.name, MAX_NAME);
   if (!name) return { ok: false, error: "la empresa necesita un nombre" };
 
-  const email = input.email === undefined ? { ok: true as const, value: current.email } : cleanEmail(input.email);
+  const email =
+    input.email === undefined
+      ? { ok: true as const, value: current.email }
+      : cleanEmail(input.email);
   if (!email.ok) return email;
   const website =
-    input.website === undefined ? { ok: true as const, value: current.website } : cleanUrl(input.website);
+    input.website === undefined
+      ? { ok: true as const, value: current.website }
+      : cleanUrl(input.website);
   if (!website.ok) return website;
 
   if (input.status !== undefined && !isStatus(input.status)) {

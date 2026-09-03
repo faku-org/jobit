@@ -9,5 +9,8 @@
   },
   "devDependencies": {
     "@types/bun": "^1.3.0"
+  },
+  "exports": {
+    "./categories": "./src/categories.ts"
   }
 }

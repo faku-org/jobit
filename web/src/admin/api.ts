@@ -78,3 +78,96 @@ export const updateCompany = (id: string, input: Partial<CompanyInput>): Promise
 
 export const deleteCompany = (id: string): Promise<{ status: string }> =>
   send(`/companies/${id}`, { method: "DELETE" });
+
+export const OFFER_STATUSES = ["draft", "published", "archived"] as const;
+export type OfferStatus = (typeof OFFER_STATUSES)[number];
+
+export const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {
+  draft: "Borrador",
+  published: "Publicada",
+  archived: "Archivada",
+};
+
+export interface Offer {
+  id: string;
+  company_id: string;
+  company_name: string;
+  company_status: CompanyStatus;
+  title: string;
+  description: string;
+  requirements: string;
+  category: string;
+  department: string;
+  city: string;
+  level: string;
+  remote: string;
+  job_type: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  no_experience: boolean;
+  closes_at: string;
+  apply_url: string;
+  status: OfferStatus;
+  created_at: string;
+  updated_at: string;
+  published_at: string;
+}
+
+export interface OfferList {
+  offers: Offer[];
+  counts: Record<OfferStatus, number>;
+}
+
+export interface OfferInput {
+  company_id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  department?: string;
+  city?: string;
+  level?: string;
+  remote?: string;
+  job_type?: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  no_experience?: boolean;
+  closes_at?: string;
+  apply_url?: string;
+  status?: OfferStatus;
+}
+
+export function listOffers(status: OfferStatus | ""): Promise<OfferList> {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const query = params.toString();
+  return send(`/offers${query ? `?${query}` : ""}`);
+}
+
+export const createOffer = (input: OfferInput): Promise<Offer> =>
+  send("/offers", { method: "POST", body: JSON.stringify(input) });
+
+export const updateOffer = (id: string, input: Partial<OfferInput>): Promise<Offer> =>
+  send(`/offers/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+
+export const deleteOffer = (id: string): Promise<{ status: string }> =>
+  send(`/offers/${id}`, { method: "DELETE" });
+
+/** Las mismas del catálogo del worker, que es lo que la API acepta. */
+export const CATEGORIES: { slug: string; label: string }[] = [
+  { slug: "ventas", label: "Ventas y comercial" },
+  { slug: "atencion-cliente", label: "Atención al cliente" },
+  { slug: "administracion", label: "Administración y gestión" },
+  { slug: "oficios", label: "Oficios y construcción" },
+  { slug: "produccion", label: "Producción e industria" },
+  { slug: "logistica", label: "Logística y distribución" },
+  { slug: "contabilidad-finanzas", label: "Contabilidad y finanzas" },
+  { slug: "tecnologia", label: "Tecnología" },
+  { slug: "datos-analisis", label: "Análisis e investigación" },
+  { slug: "salud", label: "Salud" },
+  { slug: "ingenieria", label: "Ingeniería" },
+  { slug: "marketing", label: "Marketing y publicidad" },
+  { slug: "rrhh", label: "Recursos humanos" },
+  { slug: "educacion", label: "Educación" },
+  { slug: "diseno", label: "Diseño y creatividad" },
+  { slug: "otros", label: "Otros" },
+];

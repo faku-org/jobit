@@ -33,6 +33,35 @@ CREATE TABLE IF NOT EXISTS companies (
 
 CREATE INDEX IF NOT EXISTS companies_status ON companies (status, name);
 
+/* Las ofertas que se publican acá, no las que scrapea el worker. Borrar la
+   empresa se lleva las suyas: no tienen sentido sin ella. */
+CREATE TABLE IF NOT EXISTS offers (
+  id                   TEXT PRIMARY KEY,
+  company_id           TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  title                TEXT NOT NULL,
+  description          TEXT NOT NULL DEFAULT '',
+  requirements         TEXT NOT NULL DEFAULT '',
+  category             TEXT NOT NULL DEFAULT 'otros',
+  department           TEXT NOT NULL DEFAULT '',
+  city                 TEXT NOT NULL DEFAULT '',
+  level                TEXT NOT NULL DEFAULT '',
+  remote               TEXT NOT NULL DEFAULT '',
+  job_type             TEXT NOT NULL DEFAULT '',
+  salary_min           INTEGER,
+  salary_max           INTEGER,
+  no_experience        INTEGER NOT NULL DEFAULT 0,
+  experience_years_min INTEGER,
+  closes_at            TEXT NOT NULL DEFAULT '',
+  apply_url            TEXT NOT NULL DEFAULT '',
+  status               TEXT NOT NULL DEFAULT 'draft',
+  created_at           TEXT NOT NULL,
+  updated_at           TEXT NOT NULL,
+  published_at         TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS offers_feed ON offers (status, published_at DESC);
+CREATE INDEX IF NOT EXISTS offers_company ON offers (company_id);
+
 /* El token nunca se guarda: solo su sha256, así que una copia de la base no
    alcanza para hacerse pasar por una sesión abierta. */
 CREATE TABLE IF NOT EXISTS admin_sessions (

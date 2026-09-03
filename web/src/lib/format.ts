@@ -27,6 +27,7 @@ export const APPLICATION_STATUS_LABEL: Record<ApplicationStatus, string> = {
 };
 
 export const SOURCE_LABEL: Record<string, string> = {
+  jobit: "JobIt",
   buscojobs: "BuscoJobs",
   gallito: "Gallito",
   uruguayconcursa: "Uruguay Concursa",

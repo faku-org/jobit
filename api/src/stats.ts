@@ -26,7 +26,12 @@ export const statsSchema = t.Object({
   saved: t.Integer({ minimum: 0, maximum: 10_000 }),
   applications: t.Integer({ minimum: 0, maximum: 10_000 }),
   sources: t.Array(
-    t.Union([t.Literal("buscojobs"), t.Literal("gallito"), t.Literal("uruguayconcursa")]),
+    t.Union([
+      t.Literal("jobit"),
+      t.Literal("buscojobs"),
+      t.Literal("gallito"),
+      t.Literal("uruguayconcursa"),
+    ]),
     { maxItems: 5 },
   ),
 });

@@ -7,7 +7,8 @@ import { type Limit, clientKey, take } from "./limit.ts";
 import { buildMarketReport } from "./market.ts";
 import { type Ranking, isEmptyRanking } from "./rank.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
-import { jobsFilePath, loadJobs } from "./store.ts";
+import { loadFeed } from "./feed.ts";
+import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -181,7 +182,7 @@ export const app = new Elysia()
   .get(
     "/api/jobs",
     async ({ query, status }) => {
-      const file = await loadJobs();
+      const file = await loadFeed();
       if (!file.ok) return status(503, { error: unavailable(file.error) });
 
       const levels = parseSet("level", query.level, LEVELS);
@@ -215,14 +216,14 @@ export const app = new Elysia()
     { query: jobsQuerySchema },
   )
   .get("/api/jobs/:id", async ({ params, status }) => {
-    const file = await loadJobs();
+    const file = await loadFeed();
     if (!file.ok) return status(503, { error: unavailable(file.error) });
 
     const job = file.value.jobs.find((candidate) => candidate.id === params.id);
     return job ?? status(404, { error: "oferta no encontrada" });
   })
   .get("/api/meta", async ({ status }) => {
-    const file = await loadJobs();
+    const file = await loadFeed();
     if (!file.ok) return status(503, { error: unavailable(file.error) });
 
     const { count, scraped_at, sources, jobs } = file.value;
@@ -238,7 +239,7 @@ export const app = new Elysia()
   })
   /** The board as a whole, with nothing in it about the person asking. */
   .get("/api/market", async ({ status }) => {
-    const file = await loadJobs();
+    const file = await loadFeed();
     if (!file.ok) return status(503, { error: unavailable(file.error) });
     return buildMarketReport(file.value.jobs, file.value.scraped_at);
   })

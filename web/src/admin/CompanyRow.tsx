@@ -27,7 +27,9 @@ export function CompanyRow({ company, busy, onSetStatus, onSetNotes, onRemove }:
     <li className="rounded-xl border border-sky/60 bg-surface p-4 shadow-[var(--shadow-hairline)]">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <h3 className="text-sm font-semibold tracking-tight text-ink">{company.name}</h3>
-        <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${BADGE[company.status]}`}>
+        <span
+          className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${BADGE[company.status]}`}
+        >
           {STATUS_LABEL[company.status]}
         </span>
         <code className="text-[11px] text-ink/40">/{company.slug}</code>
