@@ -50,6 +50,7 @@ jobs:
           rsync -rltO --delete \
             --exclude '.git' \
             --exclude 'node_modules' \
+            --exclude '.bun' \
             --exclude 'web/dist' \
             --exclude 'worker/output' \
             --exclude 'worker/cache' \
