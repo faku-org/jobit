@@ -1,5 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
+import { admin } from "./admin.ts";
+import { adminEnabled } from "./auth.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
 import { buildMarketReport } from "./market.ts";
@@ -175,6 +177,7 @@ export const app = new Elysia()
     set.headers["referrer-policy"] = "no-referrer";
   })
   .get("/health", () => ({ status: "ok" }))
+  .use(admin)
   .get(
     "/api/jobs",
     async ({ query, status }) => {
@@ -259,4 +262,9 @@ if (import.meta.main) {
   console.log(`reading ${jobsFilePath()}`);
   console.log(`stats -> ${statsFilePath()}`);
   console.log(`cors origins: ${CORS_ORIGINS.join(", ")}`);
+  console.log(
+    adminEnabled()
+      ? "admin: habilitado"
+      : "admin: apagado (falta ADMIN_PASSWORD_HASH), /api/admin responde 404",
+  );
 }

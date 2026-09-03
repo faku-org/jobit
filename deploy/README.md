@@ -38,6 +38,35 @@ El workflow reinicia el servicio, así que el usuario del runner necesita esa
 <runner> ALL=(root) NOPASSWD: /bin/systemctl restart jobit-api, /bin/systemctl status jobit-api
 ```
 
+## El panel de admin
+
+Vive en `https://jobs.wefaber.net/admin` y la credencial es un hash argon2id en
+el entorno del servicio. No hay tabla de usuarios ni clave en texto plano en
+ningún lado.
+
+```bash
+bun -e 'console.log(await Bun.password.hash(prompt("clave: ")))'
+```
+
+Ese hash empieza con `$argon2id$...` y **tiene varios `$` adentro**. Si se pega
+sin comillas en un `.env` o en una línea de shell, el shell expande `$argon2id`,
+`$v` y `$m` como variables vacías y la clave deja de coincidir sin dar ningún
+error claro. En la unidad de systemd va entre comillas simples:
+
+```ini
+Environment='ADMIN_PASSWORD_HASH=$argon2id$v=19$m=65536,t=2,p=1$...'
+```
+
+Sin esa variable el panel queda apagado entero y `/api/admin` contesta 404, así
+que un despliegue al que se le olvidó configurarla se queda sin admin en vez de
+con un admin abierto.
+
+Para cerrar todas las sesiones abiertas, por ejemplo si se cambia la clave:
+
+```bash
+sqlite3 /srv/jobit/data/jobit.db 'DELETE FROM admin_sessions;'
+```
+
 ## nginx
 
 ```bash

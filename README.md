@@ -18,7 +18,7 @@ ofertas piden más nivel del que tiene.
 |---|---|
 | `worker/` | Scrapers de portales uruguayos. Escribe `worker/output/jobs.json`. |
 | `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
-| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español. |
+| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español y panel en `/admin`. |
 
 ## Uso
 
@@ -123,6 +123,44 @@ canonical manda cualquier query string a la raíz, y el `?embed=` además se mar
 No hay JSON-LD `JobPosting` a propósito: las ofertas se enlazan al aviso
 original y no se republican, y marcarlas acá como si vivieran en JobIt es lo que
 Google penaliza en los agregadores.
+
+## Panel de administración
+
+En `/admin`, con su propio bundle: quien entra a buscar trabajo no se baja el
+código de administrar empresas. Por ahora administra empresas, que es la mitad
+operativa de que puedan publicar directo en vez de depender del scrapeo.
+
+La credencial es un hash argon2id en `ADMIN_PASSWORD_HASH`. No hay tabla de
+usuarios ni clave en texto plano en ningún lado, y sin esa variable el panel
+queda apagado entero: `/api/admin` contesta 404, así que un despliegue sin
+configurar se queda sin admin en vez de con un admin abierto.
+
+```bash
+bun -e 'console.log(await Bun.password.hash(prompt("clave: ")))'
+```
+
+Ojo que el hash trae varios `$`, así que en un `.env` o en systemd va entre
+comillas simples. Sin comillas el shell se los come y la clave deja de coincidir
+sin dar un error que lo explique.
+
+Para levantarlo en local:
+
+```bash
+ADMIN_PASSWORD_HASH='<el hash>' ADMIN_INSECURE_COOKIES=true bun run dev
+```
+
+`ADMIN_INSECURE_COOKIES` saca el flag `secure` de la cookie, que en `http://`
+la haría inservible. En producción no se pone.
+
+La sesión es una cookie `HttpOnly`, `SameSite=Strict`, con alcance
+`/api/admin` y vencimiento de 12 horas. En la base solo se guarda el sha256 del
+token, nunca el token, así que una copia del archivo no alcanza para hacerse
+pasar por una sesión abierta. Probar claves está limitado a diez intentos cada
+quince minutos por dirección.
+
+Las empresas viven en SQLite (`data/jobit.db`, `DB_FILE` para moverlo), aparte
+del JSON del scraper, que se reescribe entero en cada corrida y no es lugar para
+algo que la app edita.
 
 ## Fuentes
 

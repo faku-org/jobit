@@ -20,6 +20,12 @@ Environment=PORT=3000
 Environment=CORS_ORIGIN=https://jobs.wefaber.net
 Environment=JOBS_FILE=/srv/jobit/worker/output/jobs.json
 Environment=STATS_FILE=/srv/jobit/data/stats.jsonl
+Environment=DB_FILE=/srv/jobit/data/jobit.db
+
+# El hash de la clave del panel. Va entre comillas simples porque argon2id trae
+# varios $ adentro. Sin esta línea el panel queda apagado y /api/admin da 404.
+# Se genera con: bun -e 'console.log(await Bun.password.hash(prompt("clave: ")))'
+# Environment='ADMIN_PASSWORD_HASH=$argon2id$v=19$m=65536,t=2,p=1$...'
 
 # Aislamiento. ProtectSystem=strict deja todo el disco de solo lectura salvo
 # lo que se liste abajo, que es únicamente donde se escriben las estadísticas.
