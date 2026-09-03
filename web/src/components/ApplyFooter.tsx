@@ -1,8 +1,10 @@
 import { ArrowUpRight, CheckCheck } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useState } from "react";
+import { applyEvent } from "../lib/events.ts";
 import { fadeUpTransition } from "../lib/motion.ts";
 import { chipClass } from "../lib/styles.ts";
+import { track } from "../lib/track.ts";
 import type { Job } from "../lib/types.ts";
 
 interface ApplyFooterProps {
@@ -75,7 +77,10 @@ export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProp
             rel="noreferrer noopener"
             target="_blank"
             whileTap={{ scale: 0.97 }}
-            onClick={() => setAsking(!isApplied)}
+            onClick={() => {
+              track(applyEvent(job));
+              setAsking(!isApplied);
+            }}
           >
             {isApplied ? "Ver el aviso" : "Postularme"}
             <ArrowUpRight aria-hidden className="size-4" />

@@ -1,4 +1,4 @@
-import { type Role, roleOf } from "./roles.ts";
+import { type Role, roleOf } from "@jobit/worker/roles";
 import type { Job, JobType, Level, WorkMode } from "./types.ts";
 
 const DAY_MS = 86_400_000;

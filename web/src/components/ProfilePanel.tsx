@@ -11,6 +11,7 @@ import {
   withDegrees,
 } from "../lib/profile.ts";
 import { type Usage, anonymousStats } from "../lib/stats.ts";
+import { pendingEvents } from "../lib/track.ts";
 import type { Facet, Preferences } from "../lib/types.ts";
 import { Combobox } from "./Combobox.tsx";
 import { CvImport } from "./CvImport.tsx";
@@ -52,6 +53,9 @@ export function ProfilePanel({
 }: ProfilePanelProps) {
   const [showPayload, setShowPayload] = useState(false);
   const payload = anonymousStats(profile, usage);
+  /* Lo que está en la cola ahora mismo, no un ejemplo: si dice que no se
+     manda el texto que escribiste, se puede comprobar acá. */
+  const events = pendingEvents();
 
   const pickEducation = (level: EducationLevel) =>
     onChange({ ...profile, education: profile.education === level ? "" : level });
@@ -131,9 +135,10 @@ export function ProfilePanel({
             onChange={(event) => onChange({ ...profile, shareStats: event.target.checked })}
           />
           <span className="text-[11px] leading-relaxed text-onpanel/75">
-            Compartir estadísticas anónimas de uso. Se manda una vez por día: tu nivel educativo y
-            cuántos títulos, cursos, guardadas y postulaciones tenés. Sin nombre, sin identificador
-            y sin cuáles son.
+            Compartir estadísticas anónimas de uso. Una vez por día: tu nivel educativo y cuántos
+            títulos, cursos, guardadas y postulaciones tenés. Y mientras navegás: qué puesto estás
+            buscando, qué filtros usás y a qué avisos les diste a “Postularme”. Sin nombre, sin
+            identificador y sin el texto que escribís.
           </span>
         </label>
 
@@ -159,7 +164,7 @@ export function ProfilePanel({
               initial={{ height: 0, opacity: 0 }}
               transition={fadeUpTransition}
             >
-              {JSON.stringify(payload, null, 2)}
+              {JSON.stringify({ resumen: payload, eventos: events }, null, 2)}
             </motion.pre>
           ) : null}
         </AnimatePresence>

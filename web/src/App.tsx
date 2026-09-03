@@ -22,6 +22,7 @@ import { useViewLink } from "./hooks/useViewLink.ts";
 import { useCustomFeeds } from "./hooks/useCustomFeeds.ts";
 import { useMarket } from "./hooks/useMarket.ts";
 import { useStats } from "./hooks/useStats.ts";
+import { useSearchTracking, useTracking } from "./hooks/useTracking.ts";
 import { useTheme } from "./hooks/useTheme.ts";
 import { fetchJob, fetchMeta, isAbortError } from "./lib/api.ts";
 import { fadeUpTransition } from "./lib/motion.ts";
@@ -233,10 +234,14 @@ export default function App() {
   const usage = {
     saved: prefs.saved.size,
     applications: prefs.applications.length,
+    interviews: prefs.applications.filter((entry) => entry.status === "interview").length,
+    closed: prefs.applications.filter((entry) => entry.status === "closed").length,
     sources: prefs.sources,
   };
 
   useStats(prefs.profile, usage, prefs.statsSentAt, prefs.markStatsSent);
+  useTracking(prefs.profile.shareStats);
+  useSearchTracking(filters, total, status === "ready");
 
   const openTracked = (application: Application) => {
     setOpeningId(application.id);

@@ -6,6 +6,7 @@ import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
 import { buildMarketReport } from "./market.ts";
 import { type Ranking, isEmptyRanking } from "./rank.ts";
+import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed } from "./feed.ts";
 import { jobsFilePath } from "./store.ts";
@@ -35,6 +36,12 @@ const READ_LIMIT: Limit = { windowMs: MINUTE, max: 120 };
  * hunting.
  */
 const WRITE_LIMIT: Limit = { windowMs: HOUR, max: 20 };
+/**
+ * Los eventos se mandan en lote cada vez que la pestaña se esconde, y cambiar
+ * de aplicación esconde la pestaña: son bastantes más envíos que el resumen
+ * diario, cada uno de a veinte filas como mucho.
+ */
+const EVENTS_LIMIT: Limit = { windowMs: HOUR, max: 60 };
 
 /**
  * A failed read names a path on the box. That is nothing the browser can act
@@ -163,11 +170,19 @@ function readRanking(query: JobsQueryParams): Ranking | undefined {
 export const app = new Elysia()
   .use(cors({ origin: CORS_ORIGINS }))
   /** Writing costs a line on disk, reading costs a scan of the board: the two
-   * get their own budget, and their own bucket per client. */
+   * get their own budget, and their own bucket per client. El panel queda con
+   * el presupuesto de lectura: escribe seguido y ya se defiende solo, con la
+   * sesión y con su propio límite en el login. */
   .onBeforeHandle(({ request, server, path, set, status }) => {
     const key = clientKey(request, server?.requestIP(request)?.address ?? null);
-    const write = path === "/api/stats";
-    const allowance = take(`${write ? "w" : "r"}:${key}`, write ? WRITE_LIMIT : READ_LIMIT);
+    const [bucket, limit] =
+      path === "/api/events"
+        ? (["e", EVENTS_LIMIT] as const)
+        : request.method === "POST" && !path.startsWith("/api/admin")
+          ? (["w", WRITE_LIMIT] as const)
+          : (["r", READ_LIMIT] as const);
+
+    const allowance = take(`${bucket}:${key}`, limit);
     if (allowance.ok) return;
 
     set.headers["retry-after"] = String(allowance.retryAfter);
@@ -255,6 +270,21 @@ export const app = new Elysia()
       }
     },
     { body: statsSchema },
+  )
+  /** Un lote de eventos de uso. events.ts recorta cada uno contra vocabularios
+   * conocidos, así que el archivo nunca guarda texto libre. */
+  .post(
+    "/api/events",
+    async ({ body, status }) => {
+      try {
+        const written = await appendEvents(body.events);
+        return { status: "ok", written };
+      } catch (cause) {
+        console.error(`[jobit] no se pudieron escribir los eventos: ${String(cause)}`);
+        return status(503, { error: "no se pudieron registrar los eventos" });
+      }
+    },
+    { body: eventsSchema },
   );
 
 if (import.meta.main) {
@@ -262,6 +292,7 @@ if (import.meta.main) {
   console.log(`jobit api on http://${HOST}:${PORT}`);
   console.log(`reading ${jobsFilePath()}`);
   console.log(`stats -> ${statsFilePath()}`);
+  console.log(`eventos -> ${eventsFilePath()}`);
   console.log(`cors origins: ${CORS_ORIGINS.join(", ")}`);
   console.log(
     adminEnabled()

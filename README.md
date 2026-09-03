@@ -51,6 +51,7 @@ que proxea `/api` hacia la API.
 | `GET /api/jobs/:id` | Una oferta completa. |
 | `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
 | `POST /api/stats` | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`. |
+| `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -64,7 +65,7 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 | `job_type` | `full_time`, `part_time`, `internship`. |
 | `no_experience` | `true` para ofertas que no piden experiencia previa. |
 | `days` | Solo ofertas de los últimos N días. |
-| `source` | Fuentes separadas por coma (`buscojobs`, `uruguayconcursa`). |
+| `source` | Fuentes separadas por coma (`jobit`, `buscojobs`, `uruguayconcursa`). |
 | `sort` | `recent` (por defecto) o `closing`, que ordena por fecha de cierre. |
 | `ids` | Lista de ids separados por coma. |
 | `limit` / `offset` | Paginado. `limit` por defecto 50, máximo 200. |
@@ -73,18 +74,39 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 coma y la oferta matchea con cualquiera de ellos. Una oferta sin teletrabajo
 cuenta como `onsite`.
 
-Variables de entorno: `PORT` (3000), `JOBS_FILE` (ruta al JSON del worker),
-`STATS_FILE` (ruta del `.jsonl` de estadísticas), `CORS_ORIGIN` (origen del dev
-server de Vite).
+Variables de entorno: `PORT` (3000), `HOST` (127.0.0.1), `JOBS_FILE` (ruta al
+JSON del worker), `DB_FILE` (SQLite de empresas y ofertas propias),
+`STATS_FILE` y `EVENTS_FILE` (rutas de los `.jsonl`), `CORS_ORIGIN` (origen del
+dev server de Vite), `ADMIN_PASSWORD_HASH_FILE` (archivo con el hash del panel;
+sin él `/api/admin` responde 404).
 
 ## Perfil y estadísticas
 
 El perfil (nivel educativo, títulos, cursos, años de experiencia) se guarda solo
-en `localStorage`, junto con las guardadas, los descartes y el seguimiento. Lo
-único que sale del navegador es un resumen anónimo que se manda una vez por día
-a `POST /api/stats`: nivel educativo y cantidades, sin texto libre, sin
-identificador y sin ip ni user agent guardados. El panel de perfil muestra el
-JSON exacto que se envía y tiene el interruptor para apagarlo.
+en `localStorage`, junto con las guardadas, los descartes y el seguimiento.
+
+Con el interruptor prendido salen del navegador dos cosas, las dos sin
+identificador y sin que se guarde ip ni user agent:
+
+- **Un resumen por día** a `POST /api/stats`: nivel educativo y cantidades
+  (títulos, cursos, guardadas, postulaciones, cuántas pasaron a entrevista y
+  cuántas se cerraron).
+- **Eventos de uso** a `POST /api/events`, en lote y recién cuando la pestaña se
+  esconde: qué puesto se buscó, qué filtros se usaron y a qué avisos se les dio
+  a "Postularme".
+
+Ninguno de los dos lleva texto libre. Lo que se escribe en el buscador no sale:
+sale el puesto que ese texto nombra, del mismo catálogo con el que se cuentan
+los avisos (`worker/src/roles.ts`), o `otro` cuando no nombra ninguno. Y la API
+vuelve a recortar todo contra ese vocabulario antes de escribir, así que el
+archivo no puede terminar guardando texto libre por más que alguien se lo mande
+a mano.
+
+Las filas se estampan con el día y nunca con la hora, y no hay sesión ni orden
+entre ellas, así que dos eventos del mismo navegador quedan indistinguibles de
+dos de navegadores distintos. El panel de perfil muestra el JSON exacto que se
+envía, incluida la cola de eventos sin mandar, y tiene el interruptor para
+apagarlo.
 
 ## Compartir y embeber
 

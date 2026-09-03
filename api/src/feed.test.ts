@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, setSystemTime } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -160,5 +160,25 @@ describe("loadFeed", () => {
 
   test("devuelve el mismo objeto mientras nada cambie", async () => {
     expect(await feed()).toBe(await feed());
+  });
+});
+
+describe("invalidación del caché", () => {
+  afterEach(() => setSystemTime());
+
+  /* Con el reloj quieto las dos escrituras comparten `updated_at` al
+     milisegundo. Si la versión del caché se armara solo con esa marca, aprobar
+     la empresa no invalidaría nada y la oferta quedaría afuera del tablero
+     hasta que algo más cambiara. */
+  test("aprobar en el mismo milisegundo en que se creó la empresa igual invalida", async () => {
+    setSystemTime(new Date("2026-09-03T12:00:00.000Z"));
+
+    const created = companies.create({ name: "Gamma", status: "pending" });
+    if (!created.ok) throw new Error("no se creó");
+    offers.create({ company_id: created.value.id, title: "Urgente", status: "published" });
+    expect((await feed()).jobs).toHaveLength(3);
+
+    companies.update(created.value.id, { status: "approved" });
+    expect((await feed()).jobs).toHaveLength(4);
   });
 });

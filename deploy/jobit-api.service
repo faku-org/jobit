@@ -20,6 +20,7 @@ Environment=PORT=3000
 Environment=CORS_ORIGIN=https://jobs.wefaber.net
 Environment=JOBS_FILE=/srv/jobit/worker/output/jobs.json
 Environment=STATS_FILE=/srv/jobit/data/stats.jsonl
+Environment=EVENTS_FILE=/srv/jobit/data/events.jsonl
 Environment=DB_FILE=/srv/jobit/data/jobit.db
 
 # La clave del panel: un archivo con el hash argon2id y nada más. Se apunta a

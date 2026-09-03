@@ -26,6 +26,7 @@
       "name": "@jobit/web",
       "version": "0.0.0",
       "dependencies": {
+        "@jobit/worker": "workspace:*",
         "lucide-react": "^1.31.0",
         "motion": "^13.1.1",
         "pdfjs-dist": "^6.3.289",

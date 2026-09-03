@@ -4,6 +4,10 @@ import type { Profile } from "./profile.ts";
 export interface Usage {
   saved: number;
   applications: number;
+  /** Postulaciones que dejaron de estar en "aplicada": cuántas siguieron a
+   * entrevista y cuántas se cerraron. */
+  interviews: number;
+  closed: number;
   sources: string[];
 }
 
@@ -21,6 +25,8 @@ export interface AnonymousStats {
   experience_years: number | null;
   saved: number;
   applications: number;
+  interviews: number;
+  closed: number;
   sources: string[];
 }
 
@@ -37,6 +43,8 @@ export function anonymousStats(profile: Profile, usage: Usage): AnonymousStats {
     experience_years: profile.experienceYears === null ? null : cap(profile.experienceYears, 60),
     saved: cap(usage.saved, 10_000),
     applications: cap(usage.applications, 10_000),
+    interviews: cap(usage.interviews, 10_000),
+    closed: cap(usage.closed, 10_000),
     sources: usage.sources.filter((source) => KNOWN_SOURCES.includes(source)).slice(0, 5),
   };
 }

@@ -324,11 +324,17 @@ export function remove(id: string): boolean {
  * qué se ve: si mirara solo ofertas, suspender una empresa dejaría las suyas a
  * la vista hasta que algo más cambiara, que es exactamente lo que un portón de
  * moderación no puede hacer.
+ *
+ * `total_changes()` va adelante porque los `updated_at` tienen resolución de
+ * milisegundo: crear una empresa y aprobarla enseguida da dos veces la misma
+ * marca, y sin este contador la aprobación no invalidaría nada. Es el número
+ * de escrituras de la conexión, así que cambia sí o sí con cada una.
  */
 export function version(): string {
   const row = db()
     .query<
       {
+        writes: number;
         offers: number;
         offersLast: string | null;
         companies: number;
@@ -337,6 +343,7 @@ export function version(): string {
       []
     >(
       `SELECT
+         total_changes()                              AS writes,
          (SELECT COUNT(*) FROM offers)                AS offers,
          (SELECT MAX(updated_at) FROM offers)         AS offersLast,
          (SELECT COUNT(*) FROM companies)             AS companies,
@@ -345,7 +352,13 @@ export function version(): string {
     .get();
 
   if (!row) return "0";
-  return `${row.offers}:${row.offersLast ?? ""}:${row.companies}:${row.companiesLast ?? ""}`;
+  return [
+    row.writes,
+    row.offers,
+    row.offersLast ?? "",
+    row.companies,
+    row.companiesLast ?? "",
+  ].join(":");
 }
 
 /**
