@@ -77,6 +77,107 @@ span {
   user-select: none;
 }
 
+/* Lo que la página deduce sola (la lectura de un CV, el calce de una oferta
+   contra el perfil) lleva un aura: un gradiente de la propia paleta que recorre
+   el borde y un resplandor detrás. Es la única marca de "esto lo escribió el
+   sitio, no vos", así que no se usa en ningún otro lado. */
+.aura {
+  position: relative;
+}
+
+/* El contenido va por encima del resplandor y por debajo del hilo del borde. */
+.aura > * {
+  position: relative;
+  border-radius: inherit;
+}
+
+.aura::before,
+.aura::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    var(--color-brand),
+    var(--color-sky),
+    var(--color-mist),
+    var(--color-brand),
+    var(--color-sky)
+  );
+  background-size: 300% 100%;
+  animation: aura-drift 7s linear infinite;
+}
+
+/* El resplandor. */
+.aura::before {
+  inset: -5px;
+  opacity: 0.35;
+  filter: blur(11px);
+}
+
+/* El hilo: se recorta el relleno y queda solo el anillo. */
+.aura::after {
+  inset: -1px;
+  padding: 1.5px;
+  opacity: 0.9;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+/* Mientras se está generando: más rápido y más presente, para que se vea que
+   algo está pasando y no que la pantalla se colgó. */
+.aura-busy::before {
+  opacity: 0.6;
+  animation-duration: 2.2s;
+}
+
+.aura-busy::after {
+  animation-duration: 2.2s;
+}
+
+@keyframes aura-drift {
+  to {
+    background-position: 300% 50%;
+  }
+}
+
+/* El ícono que la acompaña: brilla siempre, respira mientras trabaja. */
+.aura-spark {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-brand) 70%, transparent));
+}
+
+.aura-spark-busy {
+  animation: aura-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes aura-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/* Quien pidió menos movimiento se queda con el gradiente quieto, que sigue
+   diciendo lo mismo. */
+@media (prefers-reduced-motion: reduce) {
+  .aura::before,
+  .aura::after,
+  .aura-spark-busy {
+    animation: none;
+  }
+}
+
 /* The two inputs of the salary range share one track: each is stretched over
    it and made transparent to the pointer, so only the thumbs are grabbable and
    both stay reachable however close together they sit. */

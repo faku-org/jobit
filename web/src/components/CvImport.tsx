@@ -1,4 +1,4 @@
-import { Check, FileUp, Loader2, ShieldCheck, Sparkles, Upload, X } from "lucide-react";
+import { Check, FileUp, ShieldCheck, Upload, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type ChangeEvent, useRef, useState } from "react";
 import { COURSES, DEGREES } from "../lib/catalog.ts";
@@ -6,6 +6,7 @@ import { type CvReading, EMPTY_READING, isEmptyReading, readCv } from "../lib/cv
 import { fadeUpTransition } from "../lib/motion.ts";
 import { EDUCATION_LABEL, type Profile } from "../lib/profile.ts";
 import type { Facet, Preferences } from "../lib/types.ts";
+import { Aura, AuraSpark } from "./Aura.tsx";
 
 interface CvImportProps {
   profile: Profile;
@@ -176,6 +177,9 @@ export function CvImport({
     setPasted("");
   };
 
+  /** Reading a PDF is the one wait in the app, and it happens in this tab. */
+  const busy = stage === "reading";
+
   const found =
     reading.degrees.length +
     reading.courses.length +
@@ -204,19 +208,21 @@ export function CvImport({
 
       {stage !== "review" ? (
         <div className="space-y-2">
-          <button
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-onpanel/10 px-3 py-2.5 text-xs font-medium text-onpanel/85 transition-colors hover:bg-onpanel/20 hover:text-onpanel disabled:opacity-60"
-            disabled={stage === "reading"}
-            type="button"
-            onClick={() => input.current?.click()}
-          >
-            {stage === "reading" ? (
-              <Loader2 aria-hidden className="size-4 animate-spin" />
-            ) : (
-              <Upload aria-hidden className="size-4" />
-            )}
-            {stage === "reading" ? "Leyendo el archivo…" : "Elegir archivo (PDF o texto)"}
-          </button>
+          <Aura busy className="rounded-xl" on={busy}>
+            <button
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-onpanel/10 px-3 py-2.5 text-xs font-medium text-onpanel/85 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+              disabled={busy}
+              type="button"
+              onClick={() => input.current?.click()}
+            >
+              {busy ? (
+                <AuraSpark busy className="size-4 text-sky" />
+              ) : (
+                <Upload aria-hidden className="size-4" />
+              )}
+              {busy ? "Leyendo el archivo…" : "Elegir archivo (PDF o texto)"}
+            </button>
+          </Aura>
 
           <details>
             <summary className="cursor-pointer text-[11px] font-medium text-onpanel/50 transition-colors hover:text-onpanel">
@@ -256,109 +262,111 @@ export function CvImport({
             initial={{ height: 0, opacity: 0 }}
             transition={fadeUpTransition}
           >
-            <div className="space-y-4 rounded-xl bg-onpanel/10 px-3 py-3">
-              <div className="flex items-start justify-between gap-2">
-                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-onpanel">
-                  <Sparkles aria-hidden className="size-3.5 text-sky" />
-                  {found === 0 ? "No encontré nada de la lista" : `Encontré ${found} cosas`}
-                </p>
-                <button
-                  aria-label="Descartar la lectura"
-                  className="shrink-0 rounded-md p-1 text-onpanel/50 transition-colors hover:bg-onpanel/15 hover:text-onpanel"
-                  type="button"
-                  onClick={() => {
-                    setStage("idle");
-                    setError(null);
-                  }}
-                >
-                  <X aria-hidden className="size-3.5" />
-                </button>
+            <Aura className="rounded-xl">
+              <div className="space-y-4 rounded-xl bg-onpanel/10 px-3 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-onpanel">
+                    <AuraSpark className="size-3.5 text-sky" />
+                    {found === 0 ? "No encontré nada de la lista" : `Encontré ${found} cosas`}
+                  </p>
+                  <button
+                    aria-label="Descartar la lectura"
+                    className="shrink-0 rounded-md p-1 text-onpanel/50 transition-colors hover:bg-onpanel/15 hover:text-onpanel"
+                    type="button"
+                    onClick={() => {
+                      setStage("idle");
+                      setError(null);
+                    }}
+                  >
+                    <X aria-hidden className="size-3.5" />
+                  </button>
+                </div>
+
+                {found > 0 ? (
+                  <p className="text-[11px] leading-relaxed text-onpanel/60">
+                    Tocá para sacar lo que no corresponda. Se suma a tu perfil, no lo reemplaza.
+                  </p>
+                ) : null}
+
+                {reading.education !== "" ? (
+                  <Group title="Nivel educativo">
+                    <Pick
+                      checked={kept("education")}
+                      label={EDUCATION_LABEL[reading.education]}
+                      onToggle={() => toggle("education")}
+                    />
+                  </Group>
+                ) : null}
+
+                {reading.degrees.length > 0 ? (
+                  <Group title="Títulos">
+                    {reading.degrees.map((id) => (
+                      <Pick
+                        key={id}
+                        checked={kept(`degree:${id}`)}
+                        label={labelOf(id)}
+                        onToggle={() => toggle(`degree:${id}`)}
+                      />
+                    ))}
+                  </Group>
+                ) : null}
+
+                {reading.courses.length > 0 ? (
+                  <Group title="Cursos y certificaciones">
+                    {reading.courses.map((id) => (
+                      <Pick
+                        key={id}
+                        checked={kept(`course:${id}`)}
+                        label={labelOf(id)}
+                        onToggle={() => toggle(`course:${id}`)}
+                      />
+                    ))}
+                  </Group>
+                ) : null}
+
+                {reading.experienceYears !== null ? (
+                  <Group title="Años de experiencia">
+                    <Pick
+                      checked={kept("experience")}
+                      label={
+                        reading.experienceYears === 0
+                          ? "Sin experiencia"
+                          : `${reading.experienceYears} ${reading.experienceYears === 1 ? "año" : "años"}`
+                      }
+                      onToggle={() => toggle("experience")}
+                    />
+                  </Group>
+                ) : null}
+
+                {reading.categories.length > 0 ? (
+                  <Group title="Rubros que sugiere">
+                    {reading.categories.map((slug) => (
+                      <Pick
+                        key={slug}
+                        checked={kept(`category:${slug}`)}
+                        label={categories.find((facet) => facet.value === slug)?.label ?? slug}
+                        onToggle={() => toggle(`category:${slug}`)}
+                      />
+                    ))}
+                  </Group>
+                ) : null}
+
+                <div className="flex items-center gap-2 border-t border-onpanel/10 pt-3">
+                  <button
+                    className="rounded-lg bg-sky px-3 py-1.5 text-[11px] font-semibold text-ink transition-colors hover:bg-sky/85 disabled:opacity-40"
+                    disabled={found === 0}
+                    type="button"
+                    onClick={apply}
+                  >
+                    Sumar a mi perfil
+                  </button>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-onpanel/45">
+                    <ShieldCheck aria-hidden className="size-3" />
+                    El archivo no salió de tu navegador
+                  </span>
+                </div>
               </div>
-
-              {found > 0 ? (
-                <p className="text-[11px] leading-relaxed text-onpanel/60">
-                  Tocá para sacar lo que no corresponda. Se suma a tu perfil, no lo reemplaza.
-                </p>
-              ) : null}
-
-              {reading.education !== "" ? (
-                <Group title="Nivel educativo">
-                  <Pick
-                    checked={kept("education")}
-                    label={EDUCATION_LABEL[reading.education]}
-                    onToggle={() => toggle("education")}
-                  />
-                </Group>
-              ) : null}
-
-              {reading.degrees.length > 0 ? (
-                <Group title="Títulos">
-                  {reading.degrees.map((id) => (
-                    <Pick
-                      key={id}
-                      checked={kept(`degree:${id}`)}
-                      label={labelOf(id)}
-                      onToggle={() => toggle(`degree:${id}`)}
-                    />
-                  ))}
-                </Group>
-              ) : null}
-
-              {reading.courses.length > 0 ? (
-                <Group title="Cursos y certificaciones">
-                  {reading.courses.map((id) => (
-                    <Pick
-                      key={id}
-                      checked={kept(`course:${id}`)}
-                      label={labelOf(id)}
-                      onToggle={() => toggle(`course:${id}`)}
-                    />
-                  ))}
-                </Group>
-              ) : null}
-
-              {reading.experienceYears !== null ? (
-                <Group title="Años de experiencia">
-                  <Pick
-                    checked={kept("experience")}
-                    label={
-                      reading.experienceYears === 0
-                        ? "Sin experiencia"
-                        : `${reading.experienceYears} ${reading.experienceYears === 1 ? "año" : "años"}`
-                    }
-                    onToggle={() => toggle("experience")}
-                  />
-                </Group>
-              ) : null}
-
-              {reading.categories.length > 0 ? (
-                <Group title="Rubros que sugiere">
-                  {reading.categories.map((slug) => (
-                    <Pick
-                      key={slug}
-                      checked={kept(`category:${slug}`)}
-                      label={categories.find((facet) => facet.value === slug)?.label ?? slug}
-                      onToggle={() => toggle(`category:${slug}`)}
-                    />
-                  ))}
-                </Group>
-              ) : null}
-
-              <div className="flex items-center gap-2 border-t border-onpanel/10 pt-3">
-                <button
-                  className="rounded-lg bg-sky px-3 py-1.5 text-[11px] font-semibold text-ink transition-colors hover:bg-sky/85 disabled:opacity-40"
-                  disabled={found === 0}
-                  type="button"
-                  onClick={apply}
-                >
-                  Sumar a mi perfil
-                </button>
-                <span className="inline-flex items-center gap-1 text-[10px] text-onpanel/45">
-                  <ShieldCheck aria-hidden className="size-3" />
-                  El archivo no salió de tu navegador
-                </span>
-              </div>
-            </div>
+            </Aura>
           </motion.div>
         ) : null}
       </AnimatePresence>
