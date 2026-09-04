@@ -96,7 +96,7 @@ export function PreferencesPanel({
   return (
     <div className="space-y-4 px-4 pt-1 pb-4">
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">
+        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
           Orden del listado
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -115,7 +115,7 @@ export function PreferencesPanel({
             Lo más nuevo
           </Chip>
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-onpanel/45">
+        <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
           Con la primera opción el orden lo deciden tus rubros, tu zona, tu sueldo y lo que cargaste
           en el perfil. Nada se descarta por no coincidir, solo baja de lugar.
         </p>
@@ -247,7 +247,7 @@ export function PreferencesPanel({
       </PanelSection>
 
       <div className="flex items-center justify-between gap-3 border-t border-onpanel/10 pt-3">
-        <p className="text-[11px] leading-snug text-onpanel/50">
+        <p className="text-[11px] leading-snug text-onpanel-muted">
           {meta ? (
             <span className="inline-flex items-center gap-1.5">
               <RefreshCw aria-hidden className="size-3" />
@@ -259,7 +259,7 @@ export function PreferencesPanel({
         </p>
         {count > 0 || hidden > 0 ? (
           <button
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium text-onpanel/60 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium text-onpanel/60 transition-colors hover:bg-onpanel-wash hover:text-onpanel"
             type="button"
             onClick={() => onChange(EMPTY_PREFERENCES)}
           >

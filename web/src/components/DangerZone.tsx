@@ -21,14 +21,14 @@ export function DangerZone({ counts, onEraseEverything }: DangerZoneProps) {
 
   return (
     <div className="space-y-3 border-t border-onpanel/10 pt-3">
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">
+      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
         Borrar datos
       </p>
 
       <div>
         <button
           aria-expanded={pending}
-          className="inline-flex w-full items-center gap-2 rounded-lg bg-onpanel/10 px-2.5 py-2 text-left text-[11px] font-medium text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+          className="inline-flex w-full items-center gap-2 rounded-lg bg-onpanel-wash px-2.5 py-2 text-left text-[11px] font-medium text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
           type="button"
           onClick={() => setPending((current) => !current)}
         >

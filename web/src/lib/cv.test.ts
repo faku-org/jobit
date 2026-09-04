@@ -158,6 +158,31 @@ describe("readCv por secciones", () => {
   });
 });
 
+describe("readCv ubicación", () => {
+  test("a city names its department", () => {
+    const reading = read("Facundo\nCiudad de la Costa, Uruguay (Canelones)\nDesarrollador");
+    expect(reading.places).toEqual([
+      { department: "Canelones", label: "Ciudad de la Costa (Canelones)" },
+    ]);
+  });
+
+  test("a department named on its own is enough", () => {
+    expect(read("Vivo en Montevideo.").places).toEqual([
+      { department: "Montevideo", label: "Montevideo" },
+    ]);
+  });
+
+  test("city and department of the same place do not duplicate", () => {
+    const reading = read("Ciudad de la Costa, Canelones, Uruguay");
+    expect(reading.places).toHaveLength(1);
+    expect(reading.places[0]?.department).toBe("Canelones");
+  });
+
+  test("uruguay the country is not a department", () => {
+    expect(read("Nacionalidad: Uruguaya.").places).toEqual([]);
+  });
+});
+
 describe("splitCv", () => {
   test("cada línea pertenece al último encabezado leído", () => {
     const blocks = splitCv(fold("Ana\nEXPERIENCIA LABORAL\nCajera\nFORMACIÓN\nBachillerato"));

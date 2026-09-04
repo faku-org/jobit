@@ -69,7 +69,7 @@ export function CompanyForm({ onCreate }: { onCreate: (input: CompanyInput) => P
           Crear
         </button>
         <button
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink/60 hover:bg-mist"
+          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted hover:bg-mist"
           type="button"
           onClick={() => {
             setOpen(false);
@@ -78,7 +78,7 @@ export function CompanyForm({ onCreate }: { onCreate: (input: CompanyInput) => P
         >
           Cancelar
         </button>
-        <span className="ml-auto text-[11px] text-ink/40">Entra como pendiente</span>
+        <span className="ml-auto text-[11px] text-faint">Entra como pendiente</span>
       </div>
     </form>
   );

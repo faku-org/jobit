@@ -1,4 +1,4 @@
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { useMemo } from "react";
 import {
   type Block,
@@ -9,6 +9,7 @@ import {
 } from "../lib/description.ts";
 import { findMarks, findPerks, findProfileMatches } from "../lib/perks.ts";
 import type { Profile } from "../lib/profile.ts";
+import { AuraSpark } from "./Aura.tsx";
 
 interface JobDescriptionProps {
   text: string;
@@ -77,7 +78,7 @@ function BlockView({ block, profile }: { block: Block; profile: Profile }) {
       <dl className="mt-3 grid gap-x-3 gap-y-1.5 rounded-xl bg-mist px-3.5 py-3 sm:grid-cols-[auto_1fr]">
         {block.rows.map((row) => (
           <div key={row.label} className="contents">
-            <dt className="text-xs font-medium text-ink/50 sm:text-right">{row.label}</dt>
+            <dt className="text-xs font-medium text-muted sm:text-right">{row.label}</dt>
             <dd className="mb-1.5 text-sm text-ink/85 sm:mb-0">
               <Spans marks={findMarks(row.value, profile)} text={row.value} />
             </dd>
@@ -124,8 +125,8 @@ export function JobDescription({ text, profile }: JobDescriptionProps) {
     <div>
       {perks.length > 0 || matches.length > 0 ? (
         <div className="mb-4 rounded-xl border border-brand/30 bg-brand/5 px-3.5 py-3">
-          <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ink/60 uppercase">
-            <Sparkles aria-hidden className="size-3.5 text-brand" />
+          <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
+            <AuraSpark />
             Puntos a favor
           </p>
 

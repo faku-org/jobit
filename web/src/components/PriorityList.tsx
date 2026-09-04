@@ -24,10 +24,12 @@ export function PriorityList({ title, values, labelOf, empty, onChange }: Priori
 
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">{title}</p>
+      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        {title}
+      </p>
 
       {values.length === 0 ? (
-        <p className="mt-2 text-[11px] leading-relaxed text-onpanel/45">{empty}</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">{empty}</p>
       ) : (
         <ol className="mt-2 space-y-1">
           <AnimatePresence initial={false} mode="popLayout">
@@ -38,7 +40,7 @@ export function PriorityList({ title, values, labelOf, empty, onChange }: Priori
                   key={value}
                   layout
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-2 rounded-lg bg-onpanel/10 py-1.5 pr-1.5 pl-2.5"
+                  className="flex items-center gap-2 rounded-lg bg-onpanel-wash py-1.5 pr-1.5 pl-2.5"
                   exit={{ opacity: 0, y: -6 }}
                   initial={{ opacity: 0, y: 6 }}
                   transition={{ ...fadeUpTransition, layout: fadeUpTransition }}
@@ -50,7 +52,7 @@ export function PriorityList({ title, values, labelOf, empty, onChange }: Priori
 
                   <button
                     aria-label={`Subir ${label}`}
-                    className="shrink-0 rounded-md p-1 text-onpanel/50 transition-colors hover:bg-onpanel/15 hover:text-onpanel disabled:opacity-25 disabled:hover:bg-transparent"
+                    className="shrink-0 rounded-md p-1 text-onpanel-muted transition-colors hover:bg-onpanel/15 hover:text-onpanel disabled:opacity-25 disabled:hover:bg-transparent"
                     disabled={index === 0}
                     type="button"
                     onClick={() => move(index, index - 1)}
@@ -59,7 +61,7 @@ export function PriorityList({ title, values, labelOf, empty, onChange }: Priori
                   </button>
                   <button
                     aria-label={`Bajar ${label}`}
-                    className="shrink-0 rounded-md p-1 text-onpanel/50 transition-colors hover:bg-onpanel/15 hover:text-onpanel disabled:opacity-25 disabled:hover:bg-transparent"
+                    className="shrink-0 rounded-md p-1 text-onpanel-muted transition-colors hover:bg-onpanel/15 hover:text-onpanel disabled:opacity-25 disabled:hover:bg-transparent"
                     disabled={index === values.length - 1}
                     type="button"
                     onClick={() => move(index, index + 1)}
@@ -68,7 +70,7 @@ export function PriorityList({ title, values, labelOf, empty, onChange }: Priori
                   </button>
                   <button
                     aria-label={`Quitar ${label}`}
-                    className="shrink-0 rounded-md p-1 text-onpanel/50 transition-colors hover:bg-onpanel/15 hover:text-onpanel"
+                    className="shrink-0 rounded-md p-1 text-onpanel-muted transition-colors hover:bg-onpanel/15 hover:text-onpanel"
                     type="button"
                     onClick={() => onChange(values.filter((item) => item !== value))}
                   >

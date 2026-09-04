@@ -122,7 +122,7 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
                 <motion.p
                   animate={{ opacity: 1 }}
                   className={`flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium ${
-                    failed ? "text-ink/60" : "text-brand"
+                    failed ? "text-muted" : "text-brand"
                   }`}
                   exit={{ opacity: 0 }}
                   initial={{ opacity: 0 }}

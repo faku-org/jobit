@@ -49,7 +49,7 @@ export function JobList({ jobs, byCategory = false, renderJob }: JobListProps) {
         <section key={group.value}>
           <h2 className="mb-3 flex items-baseline gap-2 px-1">
             <span className="text-sm font-semibold tracking-tight text-ink">{group.label}</span>
-            <span className="text-xs text-ink/50 tabular-nums">{group.jobs.length}</span>
+            <span className="text-xs text-muted tabular-nums">{group.jobs.length}</span>
           </h2>
           <div className="space-y-3">
             <AnimatePresence initial={false}>

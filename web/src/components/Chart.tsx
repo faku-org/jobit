@@ -43,7 +43,7 @@ function Bars({ rows }: { rows: ChartRow[] }) {
           <>
             <div className="flex items-baseline justify-between gap-3">
               <span className="min-w-0 truncate text-sm text-ink/85">{row.label}</span>
-              <span className="shrink-0 text-xs text-ink/50 tabular-nums">
+              <span className="shrink-0 text-xs text-muted tabular-nums">
                 {row.note ?? counter.format(row.value)}
               </span>
             </div>
@@ -154,7 +154,7 @@ function Donut({ rows: given }: { rows: ChartRow[] }) {
               style={{ opacity: sliceOpacity(index, rows.length) }}
             />
             <span className="min-w-0 flex-1 truncate text-sm text-ink/85">{row.label}</span>
-            <span className="shrink-0 text-xs text-ink/50 tabular-nums">
+            <span className="shrink-0 text-xs text-muted tabular-nums">
               {percent.format(share(row.value, total))}
             </span>
           </li>
@@ -181,7 +181,7 @@ function Table({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-sky/50 text-left text-[11px] tracking-wide text-ink/45 uppercase">
+          <tr className="border-b border-sky/50 text-left text-[11px] tracking-wide text-faint uppercase">
             <th className="pb-2 font-semibold">Nombre</th>
             <th className="pb-2 text-right font-semibold">{unit}</th>
             {showShare ? <th className="pb-2 text-right font-semibold">Parte</th> : null}
@@ -203,11 +203,11 @@ function Table({
                   row.label
                 )}
               </td>
-              <td className="py-2 text-right text-ink/70 tabular-nums whitespace-nowrap">
+              <td className="py-2 text-right text-soft tabular-nums whitespace-nowrap">
                 {row.note ?? counter.format(row.value)}
               </td>
               {showShare ? (
-                <td className="py-2 text-right text-ink/45 tabular-nums">
+                <td className="py-2 text-right text-faint tabular-nums">
                   {percent.format(share(row.value, total))}
                 </td>
               ) : null}
@@ -239,7 +239,7 @@ export function Chart({
   additive?: boolean;
 }) {
   if (rows.length === 0) {
-    return <p className="py-6 text-center text-sm text-ink/50">{empty}</p>;
+    return <p className="py-6 text-center text-sm text-muted">{empty}</p>;
   }
   if (kind === "donut" && additive) return <Donut rows={rows} />;
   if (kind === "table") return <Table rows={rows} showShare={additive} unit={unit} />;
@@ -265,7 +265,7 @@ export function ChartSwitch({
           className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
             kind === option
               ? "bg-surface text-ink shadow-[var(--shadow-hairline)]"
-              : "text-ink/50 hover:text-ink"
+              : "text-muted hover:text-ink"
           }`}
           type="button"
           onClick={() => onChange(option)}

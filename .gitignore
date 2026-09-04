@@ -35,6 +35,10 @@ data/
 # salida de graphify
 graphify-out/
 
+# capturas locales de verificación
+web/tmp-shots/
+web/tmp-verify.mjs
+
 # variables de entorno: el archivo real nunca va al repo, el ejemplo sí
 .env
 .env.*

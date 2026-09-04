@@ -334,7 +334,7 @@ export default function App() {
 
         {VIEW_HINT[view] ? (
           <FadeUp delay={0.03}>
-            <p className="mt-3 px-1 text-xs leading-relaxed text-ink/50">{VIEW_HINT[view]}</p>
+            <p className="mt-3 px-1 text-xs leading-relaxed text-muted">{VIEW_HINT[view]}</p>
           </FadeUp>
         ) : null}
 
@@ -406,7 +406,7 @@ export default function App() {
               </div>
             ) : null}
 
-            <div className="mt-6 mb-3 flex h-5 items-center px-1 text-xs text-ink/50">
+            <div className="mt-6 mb-3 flex h-5 items-center px-1 text-xs text-muted">
               {status === "ready" || status === "loadingMore" ? (
                 <motion.span
                   key={`${total}-${visible.length}-${discardedHere}-${sort}`}
@@ -426,14 +426,14 @@ export default function App() {
             {reviewing ? (
               <FadeUp>
                 <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-sky/60 bg-mist px-3.5 py-2.5">
-                  <p className="text-xs leading-relaxed text-ink/70">
+                  <p className="text-xs leading-relaxed text-soft">
                     {prefs.dismissed.size === 1
                       ? "Estás viendo la oferta que descartaste."
                       : `Estás viendo las ${prefs.dismissed.size} ofertas que descartaste.`}{" "}
                     Tocá el ícono de deshacer en cualquiera para devolverla a la lista.
                   </p>
                   <button
-                    className="ml-auto shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-ink/60 transition-colors hover:bg-surface hover:text-ink"
+                    className="ml-auto shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
                     type="button"
                     onClick={() => setReviewingDiscarded(false)}
                   >
@@ -450,7 +450,7 @@ export default function App() {
                     <span className="text-sm font-semibold tracking-tight text-ink">
                       De tus fuentes
                     </span>
-                    <span className="text-xs text-ink/50 tabular-nums">{feedJobs.length}</span>
+                    <span className="text-xs text-muted tabular-nums">{feedJobs.length}</span>
                   </h2>
                   <div className="space-y-3">
                     {feedJobs.map((job) => (

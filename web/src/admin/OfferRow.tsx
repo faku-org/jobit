@@ -3,7 +3,7 @@ import { useState } from "react";
 import { CATEGORIES, type Offer, OFFER_STATUS_LABEL, type OfferStatus } from "./api.ts";
 
 const BADGE: Record<OfferStatus, string> = {
-  draft: "bg-ink/10 text-ink/60",
+  draft: "bg-wash text-muted",
   published: "bg-emerald-100 text-emerald-800",
   archived: "bg-amber-100 text-amber-800",
 };
@@ -52,11 +52,11 @@ export function OfferRow({ offer, busy, onSetStatus, onRemove }: Props) {
         <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${BADGE[offer.status]}`}>
           {OFFER_STATUS_LABEL[offer.status]}
         </span>
-        <span className="text-xs text-ink/60">{offer.company_name}</span>
-        {busy ? <Loader2 aria-hidden className="size-3.5 animate-spin text-ink/40" /> : null}
+        <span className="text-xs text-muted">{offer.company_name}</span>
+        {busy ? <Loader2 aria-hidden className="size-3.5 animate-spin text-faint" /> : null}
       </div>
 
-      {meta.length > 0 ? <p className="mt-1 text-xs text-ink/50">{meta.join(" · ")}</p> : null}
+      {meta.length > 0 ? <p className="mt-1 text-xs text-muted">{meta.join(" · ")}</p> : null}
 
       {stuck ? (
         <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-800">

@@ -29,7 +29,7 @@ export function CategoryChips({ groups, selected, onSelect }: CategoryChipsProps
           className={`${chip} ${
             selected === option.value
               ? "border-panel bg-panel text-onpanel"
-              : "border-sky/60 bg-surface text-ink/60 hover:border-brand hover:text-ink"
+              : "border-sky/60 bg-surface text-muted hover:border-brand hover:text-ink"
           }`}
           type="button"
           whileTap={{ scale: 0.95 }}

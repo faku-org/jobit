@@ -131,7 +131,7 @@ function summary(profile: Profile, preferences: Preferences, categories: Facet[]
 /** Shown in the two steps that need the board's own rubros and zonas. */
 function WaitingForBoard() {
   return (
-    <p className="rounded-xl bg-onpanel/10 px-3 py-2.5 text-xs leading-relaxed text-onpanel/60">
+    <p className="rounded-xl bg-onpanel-wash px-3 py-2.5 text-xs leading-relaxed text-onpanel/60">
       Cargando los rubros y las zonas del momento…
     </p>
   );
@@ -304,7 +304,7 @@ export function Onboarding({
           />
 
           {draftProfile.experienceYears === 0 ? (
-            <p className="rounded-xl bg-onpanel/10 px-3 py-2.5 text-xs leading-relaxed text-onpanel/70">
+            <p className="rounded-xl bg-onpanel-wash px-3 py-2.5 text-xs leading-relaxed text-onpanel/70">
               Perfecto: las ofertas marcadas “sin experiencia” van a quedar arriba de todo.
             </p>
           ) : null}
@@ -452,7 +452,7 @@ export function Onboarding({
       hint: "Revisá que sea lo que querías. Se cambia cuando quieras desde Preferencias.",
       body:
         lines.length === 0 ? (
-          <p className="rounded-xl bg-onpanel/10 px-3 py-3 text-sm leading-relaxed text-onpanel/70">
+          <p className="rounded-xl bg-onpanel-wash px-3 py-3 text-sm leading-relaxed text-onpanel/70">
             No cargaste nada, así que vas a ver todas las ofertas ordenadas por fecha. Podés
             completarlo cuando quieras desde Preferencias.
           </p>
@@ -521,14 +521,14 @@ export function Onboarding({
             <h1 className="mt-4 text-2xl leading-tight font-semibold tracking-tight text-ink sm:mt-5 sm:text-[28px]">
               Bienvenido a JobIt
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-ink/70">
+            <p className="mt-2 text-sm leading-relaxed text-soft">
               Juntamos en un solo lugar las ofertas de trabajo de Uruguay, de todos los rubros y de
               todos los portales, con y sin experiencia.
             </p>
 
             <div className="mt-5 flex gap-2.5 rounded-2xl border border-sky/60 bg-surface px-4 py-3 sm:mt-6">
               <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
-              <p className="text-sm leading-relaxed text-ink/70">
+              <p className="text-sm leading-relaxed text-soft">
                 Lo que hagas acá <strong className="font-semibold">no sube a ninguna nube</strong>.
                 No hay cuenta ni contraseña: todo queda guardado en este navegador y las empresas no
                 ven nada de esto.
@@ -558,7 +558,7 @@ export function Onboarding({
             <h1 className="text-2xl leading-tight font-semibold tracking-tight text-ink sm:text-[28px]">
               Armemos tu lista
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-ink/70">
+            <p className="mt-2 text-sm leading-relaxed text-soft">
               Un minuto de preguntas y la lista sale ordenada para vos desde la primera vez. Si
               tenés el CV a mano, lo leo y te salteo la mitad.
             </p>
@@ -568,7 +568,7 @@ export function Onboarding({
                 <motion.li
                   key={promise}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-2.5 text-sm leading-relaxed text-ink/70"
+                  className="flex gap-2.5 text-sm leading-relaxed text-soft"
                   initial={{ opacity: 0, y: 8 }}
                   transition={{ ...fadeUpTransition, delay: stagger(position + 1, 0.07, 0.3) }}
                 >
@@ -609,7 +609,7 @@ export function Onboarding({
                 <ArrowRight aria-hidden className="size-4" />
               </motion.button>
               <button
-                className="rounded-xl px-3 py-2.5 text-sm font-medium text-ink/55 transition-colors hover:bg-surface hover:text-ink"
+                className="rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
                 type="button"
                 onClick={skip}
               >
@@ -637,7 +637,7 @@ export function Onboarding({
             <h2 className="mt-5 text-xl font-semibold tracking-tight text-ink">
               {answered ? "Listo, tu lista está armada" : "Listo, vamos a las ofertas"}
             </h2>
-            <p className="mt-1.5 text-sm text-ink/60">
+            <p className="mt-1.5 text-sm text-muted">
               {lines.length > 0
                 ? lines[0]
                 : "Vas a ver todas las ofertas, de la más nueva a la más vieja."}
@@ -657,7 +657,7 @@ export function Onboarding({
                 <step.icon aria-hidden className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-onpanel/50 tabular-nums">
+                <p className="text-[11px] font-medium text-onpanel-muted tabular-nums">
                   Paso {index + 1} de {steps.length}
                 </p>
                 <h2
@@ -668,7 +668,7 @@ export function Onboarding({
                 </h2>
               </div>
               <button
-                className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium text-onpanel/50 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
+                className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium text-onpanel-muted transition-colors hover:bg-onpanel-wash hover:text-onpanel"
                 type="button"
                 onClick={skip}
               >
@@ -690,7 +690,7 @@ export function Onboarding({
             <p className="px-5 pt-3 text-xs leading-relaxed text-onpanel/60">{step.hint}</p>
 
             {cvMissed && index === 0 ? (
-              <p className="mx-5 mt-2 rounded-lg bg-onpanel/10 px-2.5 py-2 text-[11px] leading-relaxed text-onpanel/70">
+              <p className="mx-5 mt-2 rounded-lg bg-onpanel-wash px-2.5 py-2 text-[11px] leading-relaxed text-onpanel/70">
                 Del archivo no salió nada de la lista, así que vamos por las preguntas. Podés volver
                 a probar con otro archivo desde Perfil.
               </p>
@@ -700,7 +700,7 @@ export function Onboarding({
 
             <div className="mt-3 flex items-center gap-2 border-t border-onpanel/10 px-5 py-3.5">
               <button
-                className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-onpanel/60 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
+                className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-onpanel/60 transition-colors hover:bg-onpanel-wash hover:text-onpanel"
                 type="button"
                 onClick={back}
               >

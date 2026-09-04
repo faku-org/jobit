@@ -85,7 +85,7 @@ export function ProfilePanel({
 
   return (
     <div className="space-y-5 px-4 pt-1 pb-4">
-      <div className="flex gap-2.5 rounded-xl bg-onpanel/10 px-3 py-2.5">
+      <div className="flex gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
         <p className="text-[11px] leading-relaxed text-onpanel/75">
           Todo lo que cargues acá queda guardado <strong>en este navegador</strong>. No se sube a
@@ -130,7 +130,7 @@ export function ProfilePanel({
       <div>
         <button
           aria-expanded={restarting}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-onpanel/10 px-2.5 py-1.5 text-[11px] font-medium text-onpanel/75 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-onpanel-wash px-2.5 py-1.5 text-[11px] font-medium text-onpanel/75 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
           type="button"
           onClick={() => setRestarting((current) => !current)}
         >
@@ -220,7 +220,7 @@ export function ProfilePanel({
           {showPayload ? (
             <motion.pre
               animate={{ height: "auto", opacity: 1 }}
-              className="overflow-x-auto rounded-lg bg-onpanel/10 p-2.5 text-[10px] leading-relaxed text-onpanel/80"
+              className="overflow-x-auto rounded-lg bg-onpanel-wash p-2.5 text-[10px] leading-relaxed text-onpanel/80"
               exit={{ height: 0, opacity: 0 }}
               initial={{ height: 0, opacity: 0 }}
               transition={fadeUpTransition}

@@ -78,7 +78,7 @@ function Toggle({
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
         active
           ? "border-panel bg-panel text-onpanel"
-          : "border-sky/60 bg-surface text-ink/60 hover:border-brand hover:text-ink"
+          : "border-sky/60 bg-surface text-muted hover:border-brand hover:text-ink"
       }`}
       type="button"
       whileTap={{ scale: 0.95 }}
@@ -117,7 +117,7 @@ export function FilterBar({
         />
         <input
           aria-label="Buscar ofertas"
-          className={`${fieldClass} py-2.5 pr-10 pl-10 placeholder:text-ink/40`}
+          className={`${fieldClass} py-2.5 pr-10 pl-10 placeholder:text-faint`}
           placeholder="Buscar por puesto, empresa, ciudad o palabra de la descripción"
           type="text"
           value={filters.q}
@@ -126,7 +126,7 @@ export function FilterBar({
         {filters.q ? (
           <button
             aria-label="Limpiar búsqueda"
-            className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-0.5 text-ink/40 transition-colors hover:text-ink"
+            className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-0.5 text-faint transition-colors hover:text-ink"
             type="button"
             onClick={() => onChange({ ...filters, q: "" })}
           >
@@ -201,7 +201,7 @@ export function FilterBar({
 
         {isDirty ? (
           <button
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/50 transition-colors hover:bg-mist hover:text-ink"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-mist hover:text-ink"
             type="button"
             onClick={onReset}
           >

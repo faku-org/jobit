@@ -193,7 +193,7 @@ export function JobChips({ job, actions }: JobChipsProps) {
       ) : null}
 
       {salary ? (
-        <span className={`${chipClass} bg-ink/10 text-ink`}>
+        <span className={`${chipClass} bg-wash text-ink`}>
           <Wallet aria-hidden className="size-3.5" />
           {salary}
         </span>
@@ -206,7 +206,7 @@ export function JobChips({ job, actions }: JobChipsProps) {
               ? mutedChip
               : meets
                 ? `${chipClass} bg-brand/15 text-ink`
-                : `${chipClass} bg-ink/10 text-ink/60`
+                : `${chipClass} bg-wash text-muted`
           }
           title={
             meets === null
@@ -226,7 +226,7 @@ export function JobChips({ job, actions }: JobChipsProps) {
         <span
           className={
             closing === "cerrada" || closing === "cierra hoy" || closing === "cierra mañana"
-              ? `${chipClass} bg-ink/10 text-ink`
+              ? `${chipClass} bg-wash text-ink`
               : mutedChip
           }
         >

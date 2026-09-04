@@ -29,7 +29,7 @@ export function PanelSection({ title, summary, open, onToggle, children }: Panel
       >
         <ChevronDown
           aria-hidden
-          className={`size-3.5 shrink-0 text-onpanel/50 transition-transform ${
+          className={`size-3.5 shrink-0 text-onpanel-muted transition-transform ${
             open ? "" : "-rotate-90"
           }`}
         />
@@ -37,7 +37,7 @@ export function PanelSection({ title, summary, open, onToggle, children }: Panel
           {title}
         </span>
         {!open && summary !== "" ? (
-          <span className="min-w-0 flex-1 truncate text-right text-[11px] text-onpanel/45">
+          <span className="min-w-0 flex-1 truncate text-right text-[11px] text-onpanel-faint">
             {summary}
           </span>
         ) : null}

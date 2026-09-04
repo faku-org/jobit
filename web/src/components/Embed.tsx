@@ -43,10 +43,10 @@ function Card({ job }: { job: Job }) {
             {job.title}
           </a>
         </h1>
-        <span className="shrink-0 text-xs text-ink/50">{relativeDate(job.date_posted)}</span>
+        <span className="shrink-0 text-xs text-muted">{relativeDate(job.date_posted)}</span>
       </div>
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/70">
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-soft">
         {job.company ? (
           <span className="inline-flex items-center gap-1.5">
             <Briefcase aria-hidden className="size-3.5 shrink-0 text-brand" />
@@ -73,7 +73,7 @@ function Card({ job }: { job: Job }) {
           </span>
         ) : null}
         {salary ? (
-          <span className={`${chipClass} bg-ink/10 text-ink`}>
+          <span className={`${chipClass} bg-wash text-ink`}>
             <Wallet aria-hidden className="size-3.5" />
             {salary}
           </span>
@@ -82,7 +82,7 @@ function Card({ job }: { job: Job }) {
 
       <div className="mt-4 flex items-center justify-between gap-3">
         <a
-          className="inline-flex items-center gap-1 text-xs font-medium text-ink/50 transition-colors hover:text-ink"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-ink"
           href={jobLink(job.id)}
           rel="noreferrer noopener"
           target="_blank"
@@ -128,7 +128,7 @@ export function Embed({ id, theme }: EmbedProps) {
   if (error) {
     return (
       <Frame>
-        <p className="text-sm text-ink/70">Esta oferta ya no está disponible.</p>
+        <p className="text-sm text-soft">Esta oferta ya no está disponible.</p>
         <a
           className="mt-1 inline-block text-sm font-medium text-brand"
           href={jobLink(id)}

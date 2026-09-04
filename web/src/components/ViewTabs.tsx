@@ -38,7 +38,7 @@ export function ViewTabs({ view, savedCount, trackedCount, onChange }: ViewTabsP
             key={tab.value}
             aria-selected={active}
             className={`relative flex min-h-10 grow basis-auto items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-medium whitespace-nowrap transition-colors sm:min-h-0 sm:basis-0 sm:py-2 sm:text-sm ${
-              active ? "text-onpanel" : "text-ink/60 hover:text-ink"
+              active ? "text-onpanel" : "text-muted hover:text-ink"
             }`}
             role="tab"
             type="button"

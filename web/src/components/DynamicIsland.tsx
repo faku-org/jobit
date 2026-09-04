@@ -120,7 +120,7 @@ export function DynamicIsland({
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               open || count > 0
                 ? "bg-sky text-ink hover:bg-sky/80"
-                : "bg-onpanel/10 text-onpanel/80 hover:bg-onpanel/20 hover:text-onpanel"
+                : "bg-onpanel-wash text-onpanel/80 hover:bg-onpanel/20 hover:text-onpanel"
             }`}
             type="button"
             onClick={() => setOpen((current) => !current)}

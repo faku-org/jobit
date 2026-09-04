@@ -13,7 +13,7 @@ interface CustomSourcesProps {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-onpanel/20 bg-onpanel/5 px-2.5 py-1.5 text-xs text-onpanel outline-none transition-colors placeholder:text-onpanel/40 focus:border-sky";
+  "w-full rounded-lg border border-onpanel/20 bg-onpanel/5 px-2.5 py-1.5 text-xs text-onpanel outline-none transition-colors placeholder:text-onpanel-faint focus:border-sky";
 
 const EXAMPLE = `{
   "jobs": [
@@ -74,7 +74,7 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
     <div>
       <button
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase transition-colors hover:text-onpanel"
+        className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase transition-colors hover:text-onpanel"
         type="button"
         onClick={() => setOpen((current) => !current)}
       >
@@ -96,7 +96,7 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
             initial={{ height: 0, opacity: 0 }}
             transition={fadeUpTransition}
           >
-            <p className="mt-2 text-[11px] leading-relaxed text-onpanel/50">
+            <p className="mt-2 text-[11px] leading-relaxed text-onpanel-muted">
               Para quien pueda publicar un feed propio: una URL que devuelva JSON con un array de
               ofertas, o un objeto con <code className="text-onpanel/70">jobs</code>. Se lee desde
               tu navegador, así que tiene que estar servida por https y con CORS abierto. No pasa
@@ -108,7 +108,7 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
                 {feeds.map((feed) => {
                   const result = resultOf(feed.id);
                   return (
-                    <li key={feed.id} className="rounded-xl bg-onpanel/10 px-2.5 py-2">
+                    <li key={feed.id} className="rounded-xl bg-onpanel-wash px-2.5 py-2">
                       <div className="flex items-center gap-2">
                         <input
                           aria-label={`Usar ${feed.label}`}
@@ -119,11 +119,11 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-medium text-onpanel">{feed.label}</p>
-                          <p className="truncate text-[10px] text-onpanel/45">{feed.url}</p>
+                          <p className="truncate text-[10px] text-onpanel-faint">{feed.url}</p>
                         </div>
                         <button
                           aria-label={`Quitar ${feed.label}`}
-                          className="shrink-0 rounded-md p-1 text-onpanel/50 transition-colors hover:bg-onpanel/15 hover:text-onpanel"
+                          className="shrink-0 rounded-md p-1 text-onpanel-muted transition-colors hover:bg-onpanel/15 hover:text-onpanel"
                           type="button"
                           onClick={() => onChange(feeds.filter((item) => item.id !== feed.id))}
                         >
@@ -137,9 +137,9 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
                             <>
                               <Loader2
                                 aria-hidden
-                                className="size-3 animate-spin text-onpanel/50"
+                                className="size-3 animate-spin text-onpanel-muted"
                               />
-                              <span className="text-onpanel/50">Leyendo…</span>
+                              <span className="text-onpanel-muted">Leyendo…</span>
                             </>
                           ) : result?.error ? (
                             <>
@@ -163,7 +163,7 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
             ) : null}
 
             {full ? (
-              <p className="mt-3 text-[11px] text-onpanel/45">
+              <p className="mt-3 text-[11px] text-onpanel-faint">
                 Llegaste al máximo de {MAX_FEEDS} fuentes propias.
               </p>
             ) : (
@@ -187,7 +187,7 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
                     onChange={(event) => setLabel(event.target.value)}
                   />
                   <button
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-onpanel/10 px-2.5 text-xs font-medium text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel disabled:opacity-40"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-onpanel-wash px-2.5 text-xs font-medium text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel disabled:opacity-40"
                     disabled={!valid}
                     type="submit"
                   >
@@ -199,13 +199,13 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
             )}
 
             <details className="mt-3">
-              <summary className="cursor-pointer text-[11px] font-medium text-onpanel/50 transition-colors hover:text-onpanel">
+              <summary className="cursor-pointer text-[11px] font-medium text-onpanel-muted transition-colors hover:text-onpanel">
                 Ver el formato esperado
               </summary>
-              <pre className="mt-2 overflow-x-auto rounded-lg bg-onpanel/10 p-2.5 text-[10px] leading-relaxed text-onpanel/75">
+              <pre className="mt-2 overflow-x-auto rounded-lg bg-onpanel-wash p-2.5 text-[10px] leading-relaxed text-onpanel/75">
                 {EXAMPLE}
               </pre>
-              <p className="mt-1.5 text-[10px] leading-relaxed text-onpanel/45">
+              <p className="mt-1.5 text-[10px] leading-relaxed text-onpanel-faint">
                 Solo <code>title</code> y <code>apply_url</code> son obligatorios. El resto sigue
                 los mismos valores que la API: <code>category</code> como slug de rubro,{" "}
                 <code>level</code> entry/mid/senior, <code>remote</code> remote/hybrid,{" "}

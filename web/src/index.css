@@ -1,16 +1,44 @@
 @import "tailwindcss";
 
+@property --aura-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: true;
+}
+
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
 
   /* Palette: mist / sky / brand / ink, plus the two surfaces they sit on.
-     Every other tone is one of these with an opacity modifier, so the UI stays
-     inside the palette. The dark theme below swaps the values, never the
-     names, so components never branch on the theme. */
+     Brand steps stay for fills and the aura. Copy is ink (or a lighter ink),
+     never a sky/brand fill used as text. The dark theme swaps values, never
+     names. */
   --color-mist: #e3f2fd;
   --color-sky: #90caf9;
   --color-brand: #2196f3;
   --color-ink: #0d47a1;
+
+  --color-brand-50: #e3f2fd;
+  --color-brand-100: #bbdefb;
+  --color-brand-200: #90caf9;
+  --color-brand-300: #64b5f6;
+  --color-brand-400: #42a5f5;
+  --color-brand-500: #2196f3;
+  --color-brand-600: #1e88e5;
+  --color-brand-700: #1976d2;
+  --color-brand-800: #1565c0;
+  --color-brand-900: #0d47a1;
+
+  /* Lettering: ink aclarado con blanco. No es brand ni sky. wash es fondo
+     quieto; line es un pelo, no un recuadro. */
+  --color-muted: color-mix(in srgb, var(--color-ink) 55%, #fff);
+  --color-soft: color-mix(in srgb, var(--color-ink) 72%, #fff);
+  --color-faint: color-mix(in srgb, var(--color-ink) 40%, #fff);
+  --color-wash: #e3f2fd;
+  --color-line: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --color-onpanel-muted: color-mix(in srgb, var(--color-onpanel) 78%, transparent);
+  --color-onpanel-faint: color-mix(in srgb, var(--color-onpanel) 56%, transparent);
+  --color-onpanel-wash: color-mix(in srgb, var(--color-onpanel) 14%, transparent);
 
   /* Cards and inputs. */
   --color-surface: #ffffff;
@@ -27,24 +55,21 @@
   --shadow-hairline: 0 1px 2px rgba(13, 71, 161, 0.06);
   --scrim: rgba(13, 71, 161, 0.35);
 
-  /* Los tres tonos del aura, todos sacados de la paleta. Se definen una sola
-     vez porque `var()` se resuelve en el elemento que los usa, así que el tema
-     oscuro los cambia solo al cambiar brand, sky e ink.
-
-     Los tres son brand o más claros que brand, y ninguno se acerca a `mist` ni
-     a `ink`: el aura se dibuja sobre cuatro fondos (la tarjeta y la página en
-     los dos temas, más el panel azul), y un tono oscuro se pierde contra alguno
-     de ellos. Así era como el borde parecía no tener lado izquierdo. */
+  /* Tonos del aura: siempre más claros que ink, para que el hilo se lea
+     contra la tarjeta, la página y el panel. El conic gira con --aura-angle. */
   --aura-1: var(--color-brand);
-  --aura-2: color-mix(in srgb, var(--color-brand) 60%, var(--color-sky));
-  --aura-3: color-mix(in srgb, var(--color-brand) 50%, #fff);
-  --aura-gradient: linear-gradient(
-    115deg,
+  --aura-2: var(--color-brand-300);
+  --aura-3: color-mix(in srgb, var(--color-sky) 35%, #fff);
+  --aura-4: var(--color-brand-400);
+  --aura-gradient: conic-gradient(
+    from var(--aura-angle),
     var(--aura-1),
-    var(--aura-2),
+    var(--aura-4),
     var(--aura-3),
+    var(--aura-2),
     var(--aura-1),
-    var(--aura-2)
+    var(--aura-4),
+    var(--aura-3)
   );
 }
 
@@ -52,18 +77,44 @@
   color-scheme: dark;
 
   --color-mist: #0a1220;
-  --color-sky: #33507d;
+  --color-sky: #3e6fa3;
   --color-brand: #4c9ffe;
-  --color-ink: #dfeaf8;
+  --color-ink: #eef3f8;
+
+  --color-brand-50: #0d2137;
+  --color-brand-100: #133152;
+  --color-brand-200: #1a4470;
+  --color-brand-300: #2a5f96;
+  --color-brand-400: #3d7cc0;
+  --color-brand-500: #4c9ffe;
+  --color-brand-600: #7ab6ff;
+  --color-brand-700: #a8ceff;
+  --color-brand-800: #cde0ff;
+  --color-brand-900: #e8f1ff;
+
+  --color-muted: #c5ced8;
+  --color-soft: #d8e0e8;
+  --color-faint: #9aa6b4;
+  --color-wash: #133152;
+  --color-line: color-mix(in srgb, var(--color-ink) 12%, transparent);
+  --color-onpanel-muted: #d5dde6;
+  --color-onpanel-faint: #b7c2ce;
+  --color-onpanel-wash: color-mix(in srgb, var(--color-onpanel) 12%, transparent);
+
   --color-surface: #111c2e;
   --color-panel: #17243a;
   --color-onpanel: #e6effb;
 
-  --shadow-panel: 0 8px 30px rgba(0, 0, 0, 0.55);
-  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 8px 30px rgba(6, 16, 36, 0.58);
+  --shadow-card: 0 2px 10px rgba(6, 16, 36, 0.48);
   --shadow-match: 0 4px 20px rgba(76, 159, 254, 0.22);
-  --shadow-hairline: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --scrim: rgba(2, 6, 14, 0.7);
+  --shadow-hairline: 0 1px 2px rgba(6, 16, 36, 0.4);
+  --scrim: rgba(4, 12, 28, 0.72);
+
+  --aura-1: #4c9ffe;
+  --aura-2: #7ab6ff;
+  --aura-3: #dbeafe;
+  --aura-4: #93c5fd;
 }
 
 @layer base {
@@ -98,130 +149,118 @@ span {
 }
 
 /* Lo que la página deduce sola (la lectura de un CV, el calce de una oferta
-   contra el perfil) lleva un aura: un resplandor de la propia paleta que se
-   derrama por fuera de la tarjeta y queda difuminado atrás del vidrio. Es la
-   única marca de "esto lo escribió el sitio, no vos", así que no se usa en
-   ningún otro lado. */
-/* Tres capas, y el orden importa: el resplandor abajo, el vidrio en el medio y
-   el hilo arriba. `isolation` las encierra acá adentro para que los z-index no
-   se midan contra media página. */
+   contra el perfil) lleva un aura: un resplandor que nace en el borde y un
+   vidrio que entra desde el filo, sin tapar lo de adentro. Es la única marca
+   de "esto lo escribió el sitio, no vos", así que no se usa en ningún otro
+   lado.
+
+   El hilo es un pelo en el filo, no un recuadro: el gradiente vive en
+   `border-box` y el relleno opaco en `padding-box`, así el contenido no puede
+   quedar debajo del color. El resplandor se derrama para afuera. El vidrio
+   es un marco enmascarado, solo en el filo. */
 .aura {
+  --aura-fill: color-mix(in srgb, var(--color-brand) 6%, var(--aura-base, var(--color-surface)));
   position: relative;
   isolation: isolate;
+  overflow: visible;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--aura-fill), var(--aura-fill)) padding-box,
+    var(--aura-gradient) border-box;
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  animation: aura-spin 8s linear infinite;
 }
 
-.aura::before,
-.aura::after {
+/* El halo: detrás de la superficie, borroso, solo se ve lo que sobresale
+   del filo. Pegado al borde para que no quede una banda de gradiente entero
+   al costado de la tarjeta. */
+.aura::before {
   content: "";
   position: absolute;
+  inset: -6px;
+  z-index: -1;
   border-radius: inherit;
   pointer-events: none;
   background: var(--aura-gradient);
-  background-size: 300% 100%;
-  animation: aura-drift 7s linear infinite;
+  opacity: 0.55;
+  filter: blur(18px);
 }
 
-/* El resplandor, uno solo para las dos mitades: tiñe la tarjeta por debajo y
-   el mismo color se derrama por fuera.
-
-   Va pegado al borde y no más afuera. Con la caja sobresaliendo, el blur le
-   suavizaba el filo pero dejaba una banda del gradiente entero al costado de
-   la tarjeta; desde el borde, en cambio, lo que sale es la mitad de afuera del
-   desenfoque, que es un halo que se apaga solo. */
-.aura::before {
-  inset: -3px;
-  z-index: 0;
-  opacity: 0.6;
-  filter: blur(22px);
-}
-
-/* El hilo: se recorta el relleno y queda solo el anillo. */
-.aura::after {
-  inset: -1px;
-  z-index: 2;
-  padding: 1.5px;
-  opacity: 0.85;
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
-}
-
-/* El vidrio. Va entre el resplandor y el hilo, y lo borronea al pasar: eso es
-   lo que separa un glassmorphism de un fondo translúcido y nada más.
-
-   El fondo nunca es un gris: es la superficie con brand adentro. `--aura-tone`
-   gradúa cuánto (una tarjeta que confirma algo puede pedir más color que una
-   que no sabe) y `--aura-base` cambia la superficie, para lo que vive sobre el
-   panel en vez de sobre una tarjeta. */
+/* El vidrio del filo. Absoluto, sin pointer, enmascarado al marco: el centro
+   queda limpio y el texto pinta arriba. `--aura-tone` carga más o menos
+   color en el borde (una tarjeta que confirma algo puede pedir más que una
+   que no sabe). `--aura-base` ya pintó la superficie. */
 .aura-glass {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   border-radius: inherit;
-  /* Bastante opaco. Lo de adentro son botones y texto, y varios traen su propio
-     fondo translúcido encima: con el vidrio más fino, el gradiente se leía a
-     través de toda la pila y los dejaba lavados. */
-  background: color-mix(
-    in srgb,
-    color-mix(
-        in srgb,
-        var(--color-brand) var(--aura-tone, 12%),
-        var(--aura-base, var(--color-surface))
-      )
-      88%,
-    transparent
-  );
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--aura-3) var(--aura-tone, 28%), transparent) 0%,
+      transparent 34%
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--aura-2) var(--aura-tone, 28%), transparent) 0%,
+      transparent 20%,
+      transparent 80%,
+      color-mix(in srgb, var(--aura-2) var(--aura-tone, 28%), transparent) 100%
+    );
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--aura-1) 20%, transparent);
+  mask-image: radial-gradient(ellipse 76% 70% at 50% 50%, transparent 46%, #000 100%);
+  -webkit-mask-image: radial-gradient(ellipse 76% 70% at 50% 50%, transparent 46%, #000 100%);
+}
+
+.aura-body {
+  position: relative;
+  z-index: 2;
 }
 
 /* Mientras se está generando: más rápido y más presente, para que se vea que
    algo está pasando y no que la pantalla se colgó. */
+.aura-busy {
+  animation-duration: 2.6s;
+}
+
 .aura-busy::before {
-  opacity: 0.7;
-  animation-duration: 2.2s;
+  inset: -8px;
+  opacity: 0.72;
+  filter: blur(22px);
 }
 
-.aura-busy::after {
-  animation-duration: 2.2s;
-}
-
-@keyframes aura-drift {
+@keyframes aura-spin {
   to {
-    background-position: 300% 50%;
+    --aura-angle: 360deg;
   }
 }
 
-/* El ícono que la acompaña: brilla siempre, respira mientras trabaja. */
+/* El orbe viene en gris mate. Lo empujamos al ink del fondo para que se lea:
+   puntos oscuros sobre papel, puntos claros sobre el panel y el tema oscuro. */
 .aura-spark {
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-brand) 70%, transparent));
+  display: block;
+  filter: contrast(2.1) brightness(0.42) drop-shadow(0 0 0.7px var(--color-ink));
 }
 
-.aura-spark-busy {
-  animation: aura-pulse 1.5s ease-in-out infinite;
+[data-theme="dark"] .aura-spark:not(.aura-spark-panel) {
+  filter: contrast(2) brightness(1.7) drop-shadow(0 0 0.7px var(--color-ink));
 }
 
-@keyframes aura-pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(0.9);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
+.aura-spark-panel {
+  filter: contrast(2) brightness(1.75) drop-shadow(0 0 0.8px var(--color-onpanel));
 }
 
 /* Quien pidió menos movimiento se queda con el gradiente quieto, que sigue
-   diciendo lo mismo. */
+   diciendo lo mismo. El orbe ya se congela solo. */
 @media (prefers-reduced-motion: reduce) {
-  .aura::before,
-  .aura::after,
-  .aura-spark-busy {
+  .aura {
     animation: none;
   }
 }

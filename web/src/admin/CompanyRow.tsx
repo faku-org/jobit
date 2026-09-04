@@ -5,7 +5,7 @@ import { type Company, type CompanyStatus, STATUS_LABEL } from "./api.ts";
 const BADGE: Record<CompanyStatus, string> = {
   pending: "bg-amber-100 text-amber-800",
   approved: "bg-emerald-100 text-emerald-800",
-  suspended: "bg-ink/10 text-ink/60",
+  suspended: "bg-wash text-muted",
 };
 
 interface Props {
@@ -32,12 +32,12 @@ export function CompanyRow({ company, busy, onSetStatus, onSetNotes, onRemove }:
         >
           {STATUS_LABEL[company.status]}
         </span>
-        <code className="text-[11px] text-ink/40">/{company.slug}</code>
-        {busy ? <Loader2 aria-hidden className="size-3.5 animate-spin text-ink/40" /> : null}
+        <code className="text-[11px] text-faint">/{company.slug}</code>
+        {busy ? <Loader2 aria-hidden className="size-3.5 animate-spin text-faint" /> : null}
       </div>
 
       {company.email || company.website ? (
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-ink/60">
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-muted">
           {company.email ? <span>{company.email}</span> : null}
           {company.website ? (
             <a

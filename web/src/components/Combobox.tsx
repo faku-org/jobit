@@ -102,9 +102,11 @@ export function Combobox<T extends CatalogEntry>({
   return (
     <div ref={container}>
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">{label}</p>
+        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+          {label}
+        </p>
         {selected.length > 0 ? (
-          <span className="text-[10px] text-onpanel/40 tabular-nums">
+          <span className="text-[10px] text-onpanel-faint tabular-nums">
             {selected.length}/{max}
           </span>
         ) : null}
@@ -123,7 +125,7 @@ export function Combobox<T extends CatalogEntry>({
                 <span className="truncate">{entry.label}</span>
                 <button
                   aria-label={`Quitar ${entry.label}`}
-                  className="shrink-0 rounded-full text-ink/60 transition-colors hover:text-ink"
+                  className="shrink-0 rounded-full text-muted transition-colors hover:text-ink"
                   type="button"
                   onClick={() => remove(id)}
                 >
@@ -138,14 +140,14 @@ export function Combobox<T extends CatalogEntry>({
       <div className="relative mt-2">
         <Search
           aria-hidden
-          className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-onpanel/40"
+          className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-onpanel-faint"
         />
         <input
           ref={input}
           aria-autocomplete="list"
           aria-expanded={open}
           aria-label={label}
-          className="w-full rounded-lg border border-onpanel/20 bg-onpanel/5 py-1.5 pr-8 pl-8 text-xs text-onpanel outline-none transition-colors placeholder:text-onpanel/40 focus:border-sky disabled:opacity-50"
+          className="w-full rounded-lg border border-onpanel/20 bg-onpanel/5 py-1.5 pr-8 pl-8 text-xs text-onpanel outline-none transition-colors placeholder:text-onpanel-faint focus:border-sky disabled:opacity-50"
           disabled={full}
           placeholder={full ? `Llegaste al máximo de ${max}` : placeholder}
           role="combobox"
@@ -160,7 +162,7 @@ export function Combobox<T extends CatalogEntry>({
         />
         <ChevronDown
           aria-hidden
-          className={`pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-onpanel/40 transition-transform ${
+          className={`pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-onpanel-faint transition-transform ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -180,13 +182,13 @@ export function Combobox<T extends CatalogEntry>({
             transition={fadeUpTransition}
           >
             {options.length === 0 ? (
-              <p className="px-2.5 py-3 text-center text-[11px] text-onpanel/50">
+              <p className="px-2.5 py-3 text-center text-[11px] text-onpanel-muted">
                 No hay nada con ese nombre en la lista.
               </p>
             ) : (
               groups.map(([group, items]) => (
                 <div key={group}>
-                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold tracking-wide text-onpanel/40 uppercase">
+                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold tracking-wide text-onpanel-faint uppercase">
                     {group}
                   </p>
                   {items.map(({ entry, index }) => (
@@ -196,7 +198,7 @@ export function Combobox<T extends CatalogEntry>({
                       className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
                         index === active
                           ? "bg-onpanel/15 text-onpanel"
-                          : "text-onpanel/75 hover:bg-onpanel/10"
+                          : "text-onpanel/75 hover:bg-onpanel-wash"
                       }`}
                       data-index={index}
                       role="option"

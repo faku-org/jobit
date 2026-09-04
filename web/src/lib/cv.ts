@@ -14,8 +14,16 @@ export interface CvReading {
   experienceYears: number | null;
   /** Rubros the CV points at, offered as a starting preference. */
   categories: string[];
+  /** Departamentos (and the city label, when the CV named one). */
+  places: CvPlace[];
   /** How much text was read, so an empty result can be explained. */
   characters: number;
+}
+
+/** A place the CV named, in the same vocabulary the board uses for offers. */
+export interface CvPlace {
+  department: string;
+  label: string;
 }
 
 export const EMPTY_READING: CvReading = {
@@ -24,6 +32,7 @@ export const EMPTY_READING: CvReading = {
   education: "",
   experienceYears: null,
   categories: [],
+  places: [],
   characters: 0,
 };
 
@@ -32,7 +41,8 @@ export const isEmptyReading = (reading: CvReading): boolean =>
   reading.courses.length === 0 &&
   reading.education === "" &&
   reading.experienceYears === null &&
-  reading.categories.length === 0;
+  reading.categories.length === 0 &&
+  reading.places.length === 0;
 
 /**
  * The parts of a CV. The same word means different things depending on where
@@ -170,6 +180,70 @@ const CATEGORY_HINTS: [RegExp, string][] = [
   [/atencion al publico|servicio al cliente|mesa de ayuda|postventa/, "atencion-cliente"],
 ];
 
+/** The 19 departments, written as a CV writes them. */
+const DEPARTMENTS: { value: string; pattern: RegExp }[] = [
+  { value: "Artigas", pattern: /\bartigas\b/ },
+  { value: "Canelones", pattern: /\bcanelones\b/ },
+  { value: "Cerro Largo", pattern: /\bcerro largo\b/ },
+  { value: "Colonia", pattern: /\bcolonia(?: del sacramento)?\b/ },
+  { value: "Durazno", pattern: /\bdurazno\b/ },
+  { value: "Flores", pattern: /\bflores\b/ },
+  { value: "Florida", pattern: /\bflorida\b/ },
+  { value: "Lavalleja", pattern: /\blavalleja\b/ },
+  { value: "Maldonado", pattern: /\bmaldonado\b/ },
+  { value: "Montevideo", pattern: /\bmontevideo\b|\bmvd\b/ },
+  { value: "Paysandú", pattern: /\bpaysandu\b/ },
+  { value: "Río Negro", pattern: /\brio negro\b/ },
+  { value: "Rivera", pattern: /\brivera\b/ },
+  { value: "Rocha", pattern: /\brocha\b/ },
+  { value: "Salto", pattern: /\bsalto\b/ },
+  { value: "San José", pattern: /\bsan jose\b/ },
+  { value: "Soriano", pattern: /\bsoriano\b/ },
+  { value: "Tacuarembó", pattern: /\btacuarembo\b/ },
+  { value: "Treinta y Tres", pattern: /\btreinta y tres\b/ },
+];
+
+/** Cities that name a department the board actually filters by. */
+const CITIES: { pattern: RegExp; department: string; label: string }[] = [
+  { pattern: /ciudad de la costa/, department: "Canelones", label: "Ciudad de la Costa" },
+  { pattern: /\bel pinar\b/, department: "Canelones", label: "El Pinar" },
+  { pattern: /\bsolymar\b/, department: "Canelones", label: "Solymar" },
+  { pattern: /\bshangrila\b|\bshangri-?la\b/, department: "Canelones", label: "Shangrilá" },
+  { pattern: /\blasc?\s*piedras\b/, department: "Canelones", label: "Las Piedras" },
+  { pattern: /\bpando\b/, department: "Canelones", label: "Pando" },
+  { pattern: /\batlantida\b/, department: "Canelones", label: "Atlántida" },
+  { pattern: /\bsalinas\b/, department: "Canelones", label: "Salinas" },
+  { pattern: /\bbarros blancos\b/, department: "Canelones", label: "Barros Blancos" },
+  { pattern: /\bla paz\b/, department: "Canelones", label: "La Paz" },
+  { pattern: /\bpaso carrasco\b/, department: "Canelones", label: "Paso Carrasco" },
+  { pattern: /\bpunta del este\b/, department: "Maldonado", label: "Punta del Este" },
+  { pattern: /\bpiriapolis\b/, department: "Maldonado", label: "Piriápolis" },
+  { pattern: /\bciudad del plata\b/, department: "San José", label: "Ciudad del Plata" },
+  { pattern: /\bcarmelo\b/, department: "Colonia", label: "Carmelo" },
+  { pattern: /\bfray bentos\b/, department: "Río Negro", label: "Fray Bentos" },
+  { pattern: /\bmelo\b/, department: "Cerro Largo", label: "Melo" },
+  { pattern: /\bminas\b/, department: "Lavalleja", label: "Minas" },
+  { pattern: /\bchuy\b/, department: "Rocha", label: "Chuy" },
+  { pattern: /\bla paloma\b/, department: "Rocha", label: "La Paloma" },
+];
+
+function readPlaces(folded: string): CvPlace[] {
+  const byDept = new Map<string, string>();
+
+  for (const city of CITIES) {
+    if (city.pattern.test(folded)) byDept.set(city.department, city.label);
+  }
+  for (const dep of DEPARTMENTS) {
+    if (!dep.pattern.test(folded) || byDept.has(dep.value)) continue;
+    byDept.set(dep.value, dep.value);
+  }
+
+  return [...byDept.entries()].map(([department, label]) => ({
+    department,
+    label: label === department ? department : `${label} (${department})`,
+  }));
+}
+
 /** "5 años de experiencia", however the sentence is arranged around it. */
 const STATED_YEARS = /(\d{1,2})\s*(?:\+\s*)?an?os?\s+(?:de\s+)?experiencia/;
 
@@ -268,6 +342,9 @@ export function readCv(text: string, thisYear = new Date().getFullYear()): CvRea
    * they do through their projects instead. */
   const doing =
     blocks.experience.trim() === "" ? scope("projects", "profile") : scope("experience", "profile");
+  /** Location lives in the header. If there is no profile block, the whole
+   * text is searched, which is how a one-line CV still names a city. */
+  const where = blocks.profile.trim() === "" ? folded : blocks.profile;
 
   const degrees = withoutGenericBachillerato(
     DEGREES.filter((entry) => matches(catalogPattern(entry), studied)).map((entry) => entry.id),
@@ -294,6 +371,7 @@ export function readCv(text: string, thisYear = new Date().getFullYear()): CvRea
     education,
     experienceYears: readExperience(worked, thisYear),
     categories: [...new Set(categories)],
+    places: readPlaces(where),
     characters: text.trim().length,
   };
 }

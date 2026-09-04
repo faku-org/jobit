@@ -27,7 +27,7 @@ export function SalaryRange({ value, onChange, tone = "panel" }: SalaryRangeProp
   const min = value.min ?? FLOOR;
   const max = value.max ?? CEILING;
 
-  const onMuted = tone === "panel" ? "text-onpanel/50" : "text-ink/50";
+  const onMuted = tone === "panel" ? "text-onpanel-muted" : "text-muted";
   const onStrong = tone === "panel" ? "text-onpanel" : "text-ink";
   const trackBase = tone === "panel" ? "bg-onpanel/15" : "bg-mist";
 

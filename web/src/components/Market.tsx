@@ -61,7 +61,7 @@ function Panel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold tracking-tight text-ink">{title}</h2>
-          {hint ? <p className="mt-1 text-xs leading-relaxed text-ink/50">{hint}</p> : null}
+          {hint ? <p className="mt-1 text-xs leading-relaxed text-muted">{hint}</p> : null}
         </div>
         {aside}
       </div>
@@ -76,7 +76,7 @@ function Figure({ value, label }: { value: string; label: string }) {
       <p className="text-xl leading-none font-semibold tracking-tight text-ink tabular-nums">
         {value}
       </p>
-      <p className="mt-1.5 text-xs leading-snug text-ink/55">{label}</p>
+      <p className="mt-1.5 text-xs leading-snug text-muted">{label}</p>
     </div>
   );
 }
@@ -89,7 +89,7 @@ function SalaryBand({ salary }: { salary: SalarySummary }) {
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-sm text-ink/70">La mitad de las ofertas paga entre</span>
+        <span className="text-sm text-soft">La mitad de las ofertas paga entre</span>
         <span className="text-sm font-semibold text-ink tabular-nums">{formatBand(salary)}</span>
       </div>
 
@@ -107,7 +107,7 @@ function SalaryBand({ salary }: { salary: SalarySummary }) {
         />
       </div>
 
-      <div className="mt-2 flex justify-between text-[11px] text-ink/45 tabular-nums">
+      <div className="mt-2 flex justify-between text-[11px] text-faint tabular-nums">
         <span>{formatPesos(salary.min)}</span>
         <span className="font-medium text-brand">mediana {formatPesos(salary.median)}</span>
         <span>{formatPesos(salary.max)}</span>
@@ -236,7 +236,7 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
                 key={entry.id}
                 aria-selected={active}
                 className={`relative flex min-h-10 grow basis-auto items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-medium whitespace-nowrap transition-colors sm:min-h-0 sm:basis-0 sm:py-2 ${
-                  active ? "text-onpanel" : "text-ink/60 hover:text-ink"
+                  active ? "text-onpanel" : "text-muted hover:text-ink"
                 }`}
                 role="tab"
                 type="button"
@@ -271,7 +271,7 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
             />
             <input
               aria-label="Filtrar lo que se muestra"
-              className={`${fieldClass} py-2.5 pr-10 pl-10 placeholder:text-ink/40`}
+              className={`${fieldClass} py-2.5 pr-10 pl-10 placeholder:text-faint`}
               placeholder={
                 section === "zonas" ? "Filtrar por departamento" : "Filtrar por puesto o rubro"
               }
@@ -282,7 +282,7 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
             {query ? (
               <button
                 aria-label="Limpiar"
-                className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-0.5 text-ink/40 transition-colors hover:text-ink"
+                className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-0.5 text-faint transition-colors hover:text-ink"
                 type="button"
                 onClick={() => setQuery("")}
               >
@@ -417,7 +417,7 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
         ) : null}
       </FadeUp>
 
-      <p className="px-1 pb-2 text-center text-[11px] leading-relaxed text-ink/45">
+      <p className="px-1 pb-2 text-center text-[11px] leading-relaxed text-faint">
         <Sparkles aria-hidden className="mr-1 inline size-3 align-[-1px] text-brand" />
         Calculado sobre {report.count.toLocaleString("es-UY")} avisos de{" "}
         {report.sources.map((source) => SOURCE_LABEL[source.value] ?? source.value).join(" y ")},

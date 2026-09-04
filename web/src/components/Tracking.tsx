@@ -33,7 +33,7 @@ function StatusPicker({
           className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
             status === option
               ? "bg-panel text-onpanel"
-              : "bg-mist text-ink/60 hover:bg-sky/40 hover:text-ink"
+              : "bg-mist text-muted hover:bg-sky/40 hover:text-ink"
           }`}
           type="button"
           onClick={() => onSetStatus(option)}
@@ -68,13 +68,13 @@ export function Tracking({
         <p className="mt-4 text-[15px] font-medium text-ink">
           Todavía no seguís ninguna postulación
         </p>
-        <p className="mt-1 text-sm text-ink/60">
+        <p className="mt-1 text-sm text-muted">
           Cuando le des a “Postularme” te pregunto si finalmente mandaste el CV, y la oferta aparece
           acá.
         </p>
-        <p className="mx-auto mt-4 max-w-sm text-xs leading-relaxed text-ink/50">
-          <strong className="font-medium text-ink/70">Guardadas</strong> son las que estás pensando;
-          <strong className="font-medium text-ink/70"> Seguimiento</strong> son las que ya mandaste,
+        <p className="mx-auto mt-4 max-w-sm text-xs leading-relaxed text-muted">
+          <strong className="font-medium text-soft">Guardadas</strong> son las que estás pensando;
+          <strong className="font-medium text-soft"> Seguimiento</strong> son las que ya mandaste,
           con el estado de cada una. Una oferta pasa sola de una lista a la otra cuando te postulás.
         </p>
       </div>
@@ -94,7 +94,7 @@ export function Tracking({
             <span className="text-sm font-semibold tracking-tight text-ink">
               {APPLICATION_STATUS_LABEL[group.status]}
             </span>
-            <span className="text-xs text-ink/50 tabular-nums">{group.entries.length}</span>
+            <span className="text-xs text-muted tabular-nums">{group.entries.length}</span>
           </h2>
 
           <div className="space-y-3">
@@ -128,12 +128,12 @@ export function Tracking({
                           </button>
                         )}
                       </h3>
-                      <p className="mt-0.5 truncate text-xs text-ink/60">
+                      <p className="mt-0.5 truncate text-xs text-muted">
                         {[entry.company, entry.categoryLabel].filter(Boolean).join(" · ")}
                         {entry.appliedAt ? ` · postulado el ${formatDay(entry.appliedAt)}` : ""}
                       </p>
                       {goneIds.has(entry.id) ? (
-                        <p className="mt-1 text-[11px] text-ink/45">
+                        <p className="mt-1 text-[11px] text-faint">
                           El aviso ya no está publicado. Queda acá lo que guardamos cuando te
                           postulaste.
                         </p>
@@ -144,7 +144,7 @@ export function Tracking({
                       {goneIds.has(entry.id) ? null : (
                         <button
                           aria-label="Ver la oferta completa"
-                          className="inline-flex size-8 items-center justify-center rounded-lg text-ink/50 transition-colors hover:bg-mist hover:text-ink"
+                          className="inline-flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-mist hover:text-ink"
                           disabled={openingId === entry.id}
                           type="button"
                           onClick={() => onOpen(entry)}
@@ -159,7 +159,7 @@ export function Tracking({
                       {entry.applyUrl ? (
                         <a
                           aria-label="Abrir el aviso"
-                          className="inline-flex size-8 items-center justify-center rounded-lg text-ink/50 transition-colors hover:bg-mist hover:text-ink"
+                          className="inline-flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-mist hover:text-ink"
                           href={entry.applyUrl}
                           rel="noreferrer noopener"
                           target="_blank"
@@ -169,7 +169,7 @@ export function Tracking({
                       ) : null}
                       <button
                         aria-label="Quitar del seguimiento"
-                        className="inline-flex size-8 items-center justify-center rounded-lg text-ink/40 transition-colors hover:bg-mist hover:text-ink"
+                        className="inline-flex size-8 items-center justify-center rounded-lg text-faint transition-colors hover:bg-mist hover:text-ink"
                         type="button"
                         onClick={() => onRemove(entry.id)}
                       >

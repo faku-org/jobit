@@ -90,7 +90,7 @@ export function Select({ label, value, options, onChange }: SelectProps) {
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
       >
-        <span className={`truncate ${value === "" ? "text-ink/60" : ""}`}>{selected?.label}</span>
+        <span className={`truncate ${value === "" ? "text-muted" : ""}`}>{selected?.label}</span>
         <ChevronDown
           aria-hidden
           className={`pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-brand transition-transform ${
@@ -117,7 +117,7 @@ export function Select({ label, value, options, onChange }: SelectProps) {
                 key={option.value}
                 aria-selected={option.value === value}
                 className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors ${
-                  index === active ? "bg-mist text-ink" : "text-ink/75"
+                  index === active ? "bg-mist text-ink" : "text-soft"
                 }`}
                 id={`${id}-${index}`}
                 role="option"

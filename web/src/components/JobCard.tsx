@@ -102,7 +102,7 @@ export function JobCard({
         </div>
       </div>
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/70">
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-soft">
         {job.company ? (
           <span className="inline-flex items-center gap-1.5">
             <Building2 aria-hidden className="size-3.5 shrink-0 text-brand" />
@@ -125,7 +125,7 @@ export function JobCard({
           job={job}
           left={
             <button
-              className="-mx-1 inline-flex min-h-10 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium whitespace-nowrap text-ink/50 transition-colors hover:text-ink sm:mx-0 sm:min-h-0 sm:px-1"
+              className="-mx-1 inline-flex min-h-10 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium whitespace-nowrap text-muted transition-colors hover:text-ink sm:mx-0 sm:min-h-0 sm:px-1"
               type="button"
               onClick={() => onOpen(job)}
             >

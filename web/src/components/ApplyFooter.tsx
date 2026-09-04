@@ -35,7 +35,7 @@ export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProp
             transition={fadeUpTransition}
           >
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand/50 bg-mist px-3 py-2.5">
-              <p className="text-xs text-ink/75">¿Te postulaste finalmente?</p>
+              <p className="text-xs text-soft">¿Te postulaste finalmente?</p>
               <div className="flex gap-1.5">
                 <button
                   className={`${answerClass} bg-panel text-onpanel hover:bg-brand`}
@@ -48,7 +48,7 @@ export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProp
                   Sí, seguir esta
                 </button>
                 <button
-                  className={`${answerClass} text-ink/60 hover:bg-sky/25 hover:text-ink`}
+                  className={`${answerClass} text-muted hover:bg-sky/25 hover:text-ink`}
                   type="button"
                   onClick={() => setAsking(false)}
                 >

@@ -34,7 +34,7 @@ interface JobModalProps {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="text-xs font-semibold tracking-wide text-ink/50 uppercase">{title}</h3>
+      <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h3>
       <div className="mt-2">{children}</div>
     </section>
   );
@@ -46,7 +46,7 @@ function ApplicationList({ applications }: { applications: Application[] }) {
       {applications.map((entry) => (
         <li key={entry.id} className="flex items-baseline justify-between gap-3 text-sm">
           <span className="min-w-0 truncate text-ink/80">{entry.title}</span>
-          <span className="shrink-0 text-xs text-ink/50">
+          <span className="shrink-0 text-xs text-muted">
             {APPLICATION_STATUS_LABEL[entry.status]}
             {entry.appliedAt ? ` · ${formatDay(entry.appliedAt)}` : ""}
           </span>
@@ -137,7 +137,7 @@ export function JobModal({
             >
               {job.title}
             </h2>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/70">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-soft">
               {job.company ? (
                 <span className="inline-flex items-center gap-1.5">
                   <Building2 aria-hidden className="size-3.5 shrink-0 text-brand" />
@@ -199,7 +199,7 @@ export function JobModal({
             {job.description ? (
               <JobDescription profile={tagActions.profile} text={job.description} />
             ) : (
-              <p className="text-sm text-ink/50">
+              <p className="text-sm text-muted">
                 Esta oferta todavía no tiene la descripción descargada. Suele aparecer en la próxima
                 actualización; mientras tanto podés abrir el aviso original.
               </p>
@@ -243,7 +243,7 @@ export function JobModal({
             </Section>
           ) : null}
 
-          <p className="text-xs text-ink/50">
+          <p className="text-xs text-muted">
             Fuente: {SOURCE_LABEL[job.source] ?? job.source}
             {job.vacancies && job.vacancies > 1 ? ` · ${job.vacancies} vacantes` : ""}
             {job.duplicates.length > 0 ? ` · ${job.duplicates.length} publicación repetida` : ""}
@@ -255,7 +255,7 @@ export function JobModal({
             isApplied={isApplied}
             job={job}
             left={
-              <p className="text-xs text-ink/50">
+              <p className="text-xs text-muted">
                 {isApplied
                   ? "Está en tu lista de seguimiento."
                   : "Te pregunto si te postulaste al volver."}

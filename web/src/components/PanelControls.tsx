@@ -19,7 +19,7 @@ export function PanelChip({
       className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors sm:min-h-0 sm:px-3 sm:py-1.5 sm:text-xs ${
         active
           ? "bg-sky text-ink"
-          : "bg-onpanel/10 text-onpanel/75 hover:bg-onpanel/20 hover:text-onpanel"
+          : "bg-onpanel-wash text-onpanel/75 hover:bg-onpanel/20 hover:text-onpanel"
       }`}
       type="button"
       onClick={onClick}
@@ -33,7 +33,9 @@ export function PanelChip({
 export function PanelGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">{title}</p>
+      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        {title}
+      </p>
       <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
     </div>
   );
@@ -41,8 +43,8 @@ export function PanelGroup({ title, children }: { title: string; children: React
 
 const STANCE_STYLE: Record<Stance, string> = {
   wanted: "bg-sky text-ink",
-  hidden: "bg-onpanel/10 text-onpanel/40 line-through decoration-onpanel/40",
-  neutral: "bg-onpanel/10 text-onpanel/75 hover:bg-onpanel/20 hover:text-onpanel",
+  hidden: "bg-onpanel-wash text-onpanel-faint line-through decoration-onpanel-faint",
+  neutral: "bg-onpanel-wash text-onpanel/75 hover:bg-onpanel/20 hover:text-onpanel",
 };
 
 const STANCE_HINT: Record<Stance, string> = {
@@ -72,8 +74,10 @@ export function StanceChips({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">{title}</p>
-      <p className="mt-1 text-[11px] leading-relaxed text-onpanel/45">{hint}</p>
+      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        {title}
+      </p>
+      <p className="mt-1 text-[11px] leading-relaxed text-onpanel-faint">{hint}</p>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         {facets.map((facet) => {

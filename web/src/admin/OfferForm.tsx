@@ -182,7 +182,7 @@ export function OfferForm({ companies, onCreate }: Props) {
           {...text("salary_max")}
         />
 
-        <label className="flex items-center gap-2 text-xs text-ink/70">
+        <label className="flex items-center gap-2 text-xs text-soft">
           <input
             checked={form.no_experience}
             className="size-4 accent-[var(--color-brand)]"
@@ -191,7 +191,7 @@ export function OfferForm({ companies, onCreate }: Props) {
           />
           No pide experiencia
         </label>
-        <label className="flex items-center gap-2 text-xs text-ink/60">
+        <label className="flex items-center gap-2 text-xs text-muted">
           Cierra
           <input className={field} type="date" {...text("closes_at")} />
         </label>
@@ -220,7 +220,7 @@ export function OfferForm({ companies, onCreate }: Props) {
           Crear
         </button>
         <button
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink/60 hover:bg-mist"
+          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted hover:bg-mist"
           type="button"
           onClick={() => {
             setOpen(false);
@@ -229,7 +229,7 @@ export function OfferForm({ companies, onCreate }: Props) {
         >
           Cancelar
         </button>
-        <span className="ml-auto text-[11px] text-ink/40">Nace en borrador</span>
+        <span className="ml-auto text-[11px] text-faint">Nace en borrador</span>
       </div>
     </form>
   );

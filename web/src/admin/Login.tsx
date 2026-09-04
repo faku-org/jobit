@@ -33,11 +33,11 @@ export function Login({ onEntered }: { onEntered: () => void }) {
         </span>
 
         <h1 className="mt-4 text-xl font-semibold tracking-tight text-ink">Panel de JobIt</h1>
-        <p className="mt-1.5 text-sm leading-relaxed text-ink/60">
+        <p className="mt-1.5 text-sm leading-relaxed text-muted">
           Administración de empresas. Nada de acá es público.
         </p>
 
-        <label className="mt-5 block text-xs font-medium text-ink/70" htmlFor="password">
+        <label className="mt-5 block text-xs font-medium text-soft" htmlFor="password">
           Clave
         </label>
         <input

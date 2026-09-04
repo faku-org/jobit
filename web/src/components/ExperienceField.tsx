@@ -24,12 +24,12 @@ const OPTIONS: { value: number; label: string }[] = [
  * it is the answer that turns on the first-job offers.
  */
 export function ExperienceField({ value, onChange, tone = "panel" }: ExperienceFieldProps) {
-  const muted = tone === "panel" ? "text-onpanel/50" : "text-ink/50";
+  const muted = tone === "panel" ? "text-onpanel-muted" : "text-muted";
   const active = tone === "panel" ? "bg-sky text-ink" : "bg-panel text-onpanel";
   const idle =
     tone === "panel"
-      ? "bg-onpanel/10 text-onpanel/75 hover:bg-onpanel/20 hover:text-onpanel"
-      : "bg-mist text-ink/70 hover:bg-sky/50 hover:text-ink";
+      ? "bg-onpanel-wash text-onpanel/75 hover:bg-onpanel/20 hover:text-onpanel"
+      : "bg-mist text-soft hover:bg-sky/50 hover:text-ink";
 
   return (
     <div>

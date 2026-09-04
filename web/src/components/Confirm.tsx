@@ -30,7 +30,7 @@ export function Confirm({ open, title, losing, action, tone, onCancel, onConfirm
           initial={{ height: 0, opacity: 0 }}
           transition={fadeUpTransition}
         >
-          <div className="mt-2 rounded-xl border border-onpanel/20 bg-onpanel/10 px-3 py-3">
+          <div className="mt-2 rounded-xl border border-onpanel/20 bg-onpanel-wash px-3 py-3">
             <p className="flex gap-2 text-[11px] leading-relaxed font-medium text-onpanel">
               <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
               {title}
@@ -50,7 +50,7 @@ export function Confirm({ open, title, losing, action, tone, onCancel, onConfirm
                 {action}
               </button>
               <button
-                className="rounded-lg px-3 py-1.5 text-[11px] font-medium text-onpanel/60 transition-colors hover:bg-onpanel/10 hover:text-onpanel"
+                className="rounded-lg px-3 py-1.5 text-[11px] font-medium text-onpanel/60 transition-colors hover:bg-onpanel-wash hover:text-onpanel"
                 type="button"
                 onClick={onCancel}
               >

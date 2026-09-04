@@ -20,8 +20,8 @@ const STATUS_ICON: Record<CheckStatus, typeof Check> = {
 
 const STATUS_STYLE: Record<CheckStatus, string> = {
   ok: "bg-sky text-ink",
-  short: "bg-ink/10 text-ink/60",
-  unknown: "bg-mist text-ink/45",
+  short: "bg-wash text-muted",
+  unknown: "bg-wash text-faint",
 };
 
 /**
@@ -30,9 +30,9 @@ const STATUS_STYLE: Record<CheckStatus, string> = {
  * pide más brand que la que no tiene con qué contestar.
  */
 const HEADLINE_TONE: Record<CheckStatus, string> = {
-  ok: "[--aura-tone:20%]",
-  short: "[--aura-tone:12%]",
-  unknown: "[--aura-tone:7%]",
+  ok: "[--aura-tone:36%]",
+  short: "[--aura-tone:24%]",
+  unknown: "[--aura-tone:16%]",
 };
 
 /**
@@ -56,12 +56,12 @@ export function JobFit({ job, profile }: JobFitProps) {
         {hasFit(fit) ? (
           <>
             <h3 className="flex items-center gap-1.5 text-sm font-semibold tracking-tight text-ink">
-              <AuraSpark className="size-3.5 shrink-0 text-brand" />
+              <AuraSpark className="shrink-0" />
               {fitHeadline(fit)}
             </h3>
 
             {fit.unknownProfile ? (
-              <p className="mt-1 text-xs leading-relaxed text-ink/55">
+              <p className="mt-1 text-xs leading-relaxed text-muted">
                 Cargá tus estudios y tu experiencia en Perfil y esto pasa a decirte, en cada oferta,
                 si llegás a lo que piden.
               </p>
@@ -85,7 +85,7 @@ export function JobFit({ job, profile }: JobFitProps) {
                     </span>
                     <span className="text-[13px] leading-snug text-ink/80">
                       {check.asks}
-                      {check.yours ? <span className="text-ink/45"> · {check.yours}</span> : null}
+                      {check.yours ? <span className="text-faint"> · {check.yours}</span> : null}
                     </span>
                   </motion.li>
                 );
@@ -107,13 +107,13 @@ export function JobFit({ job, profile }: JobFitProps) {
               </div>
             ) : null}
 
-            {gap ? <p className="mt-3 text-xs leading-relaxed text-ink/55">{gap}</p> : null}
+            {gap ? <p className="mt-3 text-xs leading-relaxed text-muted">{gap}</p> : null}
           </>
         ) : null}
 
         {tips.length > 0 ? (
-          <div className={hasFit(fit) ? "mt-4 border-t border-ink/10 pt-3" : ""}>
-            <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ink/55 uppercase">
+          <div className={hasFit(fit) ? "mt-4 border-t border-line pt-3" : ""}>
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
               <Lightbulb aria-hidden className="size-3.5 text-brand" />
               Antes de postularte
             </p>
@@ -122,7 +122,7 @@ export function JobFit({ job, profile }: JobFitProps) {
                 <motion.li
                   key={tip}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-2.5 text-[13px] leading-relaxed text-ink/75"
+                  className="flex gap-2.5 text-[13px] leading-relaxed text-soft"
                   initial={{ opacity: 0, y: 4 }}
                   transition={{ ...fadeUpTransition, delay: stagger(index) }}
                 >

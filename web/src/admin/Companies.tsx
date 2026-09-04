@@ -94,9 +94,9 @@ export function Companies({ onFail, onCount }: Props) {
       </div>
 
       {loading ? (
-        <p className="mt-6 text-xs text-ink/50">Cargando…</p>
+        <p className="mt-6 text-xs text-muted">Cargando…</p>
       ) : companies.length === 0 ? (
-        <p className="mt-6 rounded-xl border border-dashed border-sky/70 px-4 py-8 text-center text-xs text-ink/50">
+        <p className="mt-6 rounded-xl border border-dashed border-sky/70 px-4 py-8 text-center text-xs text-muted">
           {q || status
             ? "Nada que coincida con eso."
             : "Todavía no hay empresas. Agregá la primera."}
