@@ -161,12 +161,14 @@ export function ProfilePanel({
         />
       </div>
 
-      <CvImport
-        categories={categories}
-        preferences={preferences}
-        profile={profile}
-        onApply={onImportCv}
-      />
+      <div className="border-t border-onpanel/10 pt-3">
+        <CvImport
+          categories={categories}
+          preferences={preferences}
+          profile={profile}
+          onApply={onImportCv}
+        />
+      </div>
 
       <div className="border-t border-onpanel/10 pt-3">
         <PanelGroup title="Apariencia">

@@ -12,6 +12,13 @@ interface CvImportProps {
   preferences: Preferences;
   categories: Facet[];
   onApply: (profile: Profile, preferences: Preferences) => void;
+  /** What the block calls itself, so the onboarding can offer it as a shortcut
+   * rather than as one more field of the profile. */
+  title?: string;
+  /** Where a reading that recognised nothing goes. The panel says so and lets
+   * the person try another file; the onboarding has somewhere better to send
+   * them, so it takes over instead of leaving a dead end on the first screen. */
+  onEmpty?: () => void;
 }
 
 /** Bigger than this is not a CV, and reading it would lock the tab. */
@@ -66,7 +73,14 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
  * every item switchable, because a wrong guess about somebody's studies is
  * worse than no guess at all.
  */
-export function CvImport({ profile, preferences, categories, onApply }: CvImportProps) {
+export function CvImport({
+  profile,
+  preferences,
+  categories,
+  onApply,
+  onEmpty,
+  title = "Importar tu CV",
+}: CvImportProps) {
   const [stage, setStage] = useState<Stage>("idle");
   const [reading, setReading] = useState<CvReading>(EMPTY_READING);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
@@ -85,6 +99,14 @@ export function CvImport({ profile, preferences, categories, onApply }: CvImport
 
   const present = (text: string) => {
     const found = readCv(text);
+
+    if (isEmptyReading(found) && onEmpty) {
+      setStage("idle");
+      setError(null);
+      onEmpty();
+      return;
+    }
+
     setReading(found);
     setDropped(new Set());
     setStage("review");
@@ -162,11 +184,9 @@ export function CvImport({ profile, preferences, categories, onApply }: CvImport
     (reading.experienceYears === null ? 0 : 1);
 
   return (
-    <div className="space-y-3 border-t border-onpanel/10 pt-3">
+    <div className="space-y-3">
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">
-          Importar tu CV
-        </p>
+        <p className="text-[11px] font-semibold tracking-wide text-onpanel/50 uppercase">{title}</p>
         <p className="mt-1 text-[11px] leading-relaxed text-onpanel/50">
           Leo el archivo <strong>en este navegador</strong> y busco tus títulos, cursos y años de
           experiencia. No se sube a ningún lado. También sirve tu perfil de LinkedIn: entrá a tu

@@ -34,6 +34,7 @@ import {
   withDepartmentStances,
 } from "../lib/types.ts";
 import { Combobox } from "./Combobox.tsx";
+import { CvImport } from "./CvImport.tsx";
 import { ExperienceField } from "./ExperienceField.tsx";
 import { PanelChip, PanelGroup, StanceChips } from "./PanelControls.tsx";
 import { PriorityList } from "./PriorityList.tsx";
@@ -204,6 +205,9 @@ export function Onboarding({
   const [phase, setPhase] = useState<Phase>("cover");
   const [leaving, setLeaving] = useState(false);
   const [index, setIndex] = useState(0);
+  /** A CV that gave nothing away is not worth a screen of its own: the
+   * questions start, and this is the one line that explains why. */
+  const [cvMissed, setCvMissed] = useState(false);
 
   const ready = categories.length > 0;
 
@@ -463,6 +467,14 @@ export function Onboarding({
   const skip = () => onFinish(profile, preferences);
   const back = () => (index === 0 ? setPhase("cover") : setIndex((current) => current - 1));
 
+  /** The CV answers the first two steps, so a good reading starts at the third
+   * with what it found already loaded and every chip still editable. */
+  const startAt = (id: string) => {
+    const position = steps.findIndex((entry) => entry.id === id);
+    setIndex(position < 0 ? 0 : position);
+    setPhase("steps");
+  };
+
   return (
     <motion.div
       animate={{ opacity: leaving ? 0 : 1 }}
@@ -520,6 +532,26 @@ export function Onboarding({
               </p>
             </div>
 
+            {/* El atajo: las dos primeras preguntas ya están contestadas en el
+                CV de quien lo tiene a mano. */}
+            <div className="mt-5 rounded-[22px] bg-panel px-4 py-4 text-onpanel shadow-[var(--shadow-panel)] sm:mt-6">
+              <CvImport
+                categories={categories}
+                preferences={draftPreferences}
+                profile={draftProfile}
+                title="Subí tu CV y te completo esto"
+                onApply={(profile, preferences) => {
+                  setDraftProfile(profile);
+                  setDraftPreferences(preferences);
+                  startAt("areas");
+                }}
+                onEmpty={() => {
+                  setCvMissed(true);
+                  startAt("studies");
+                }}
+              />
+            </div>
+
             <div className="mt-6 flex flex-wrap items-center gap-2 sm:mt-7">
               <motion.button
                 className="inline-flex items-center gap-2 rounded-2xl bg-panel px-5 py-3 text-sm font-semibold text-onpanel shadow-[var(--shadow-panel)] transition-opacity hover:opacity-90"
@@ -527,7 +559,7 @@ export function Onboarding({
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setPhase("steps")}
               >
-                Empezar
+                Prefiero contestar yo
                 <ArrowRight aria-hidden className="size-4" />
               </motion.button>
               <button
@@ -610,6 +642,13 @@ export function Onboarding({
             </div>
 
             <p className="px-5 pt-3 text-xs leading-relaxed text-onpanel/60">{step.hint}</p>
+
+            {cvMissed && index === 0 ? (
+              <p className="mx-5 mt-2 rounded-lg bg-onpanel/10 px-2.5 py-2 text-[11px] leading-relaxed text-onpanel/70">
+                Del archivo no salió nada de la lista, así que vamos por las preguntas. Podés volver
+                a probar con otro archivo desde Perfil.
+              </p>
+            ) : null}
 
             <StepBody step={step.id}>{step.body}</StepBody>
 
