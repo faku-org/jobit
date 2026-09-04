@@ -7,7 +7,8 @@ interface AuraProps {
   on?: boolean;
   /** True while the answer is still being worked out: the aura speeds up. */
   busy?: boolean;
-  /** The rounding has to match the box inside, so it comes from the caller. */
+  /** The rounding, and any tuning of `--aura-tone` or `--aura-base`, since only
+   * the caller knows what the block sits on. */
   className?: string;
   children: ReactNode;
 }
@@ -15,18 +16,19 @@ interface AuraProps {
 /**
  * The mark of something the page worked out on its own: what it read in a CV,
  * how an offer measures against the profile. A gradient of the app's own
- * palette runs around the block and glows behind it, so an answer nobody typed
- * never passes for one that somebody did.
+ * palette glows around the block and keeps going underneath it, blurred by the
+ * glass, so an answer nobody typed never passes for one that somebody did.
  *
- * The whole effect lives in `.aura` in index.css; this only names it and keeps
- * the content above the glow.
+ * It brings the surface with it: what goes inside should be padding and
+ * content, no background of its own, or the glow has nothing to shine through.
+ * The whole effect lives in `.aura` in index.css.
  */
 export function Aura({ on = true, busy = false, className = "", children }: AuraProps) {
   if (!on) return <>{children}</>;
 
   return (
     <div className={`aura ${busy ? "aura-busy" : ""} ${className}`.trim()}>
-      <div>{children}</div>
+      <div className="aura-glass">{children}</div>
     </div>
   );
 }

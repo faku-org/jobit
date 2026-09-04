@@ -24,10 +24,15 @@ const STATUS_STYLE: Record<CheckStatus, string> = {
   unknown: "bg-mist text-ink/45",
 };
 
-const HEADLINE_STYLE: Record<CheckStatus, string> = {
-  ok: "border-brand/40 bg-brand/5",
-  short: "border-sky/60 bg-mist",
-  unknown: "border-sky/50 bg-surface",
+/**
+ * Cuánto color se le pone al vidrio. Es la misma escala de siempre, un solo
+ * tono de la paleta más o menos cargado: la tarjeta que confirma que calzás
+ * pide más brand que la que no tiene con qué contestar.
+ */
+const HEADLINE_TONE: Record<CheckStatus, string> = {
+  ok: "[--aura-tone:20%]",
+  short: "[--aura-tone:12%]",
+  unknown: "[--aura-tone:7%]",
 };
 
 /**
@@ -46,8 +51,8 @@ export function JobFit({ job, profile }: JobFitProps) {
   if (!hasFit(fit) && tips.length === 0) return null;
 
   return (
-    <Aura className="rounded-2xl">
-      <section className={`rounded-2xl border px-4 py-3.5 ${HEADLINE_STYLE[fit.status]}`}>
+    <Aura className={`rounded-2xl ${HEADLINE_TONE[fit.status]}`}>
+      <section className="rounded-2xl px-4 py-3.5">
         {hasFit(fit) ? (
           <>
             <h3 className="flex items-center gap-1.5 text-sm font-semibold tracking-tight text-ink">

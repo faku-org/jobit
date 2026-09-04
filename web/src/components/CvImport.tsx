@@ -8,6 +8,10 @@ import { EDUCATION_LABEL, type Profile } from "../lib/profile.ts";
 import type { Facet, Preferences } from "../lib/types.ts";
 import { Aura, AuraSpark } from "./Aura.tsx";
 
+/** Las dos auras de acá viven sobre el panel y no sobre una tarjeta, así que el
+ * vidrio se tiñe desde ese fondo. */
+const ON_PANEL = "[--aura-base:var(--color-panel)] [--aura-tone:26%]";
+
 interface CvImportProps {
   profile: Profile;
   preferences: Preferences;
@@ -208,15 +212,15 @@ export function CvImport({
 
       {stage !== "review" ? (
         <div className="space-y-2">
-          <Aura busy className="rounded-xl" on={busy}>
+          <Aura busy className={`rounded-xl ${ON_PANEL}`} on={busy}>
             <button
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-onpanel/10 px-3 py-2.5 text-xs font-medium text-onpanel/85 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-medium transition-colors ${busy ? "text-onpanel" : "bg-onpanel/10 text-onpanel/85 hover:bg-onpanel/20 hover:text-onpanel"}`}
               disabled={busy}
               type="button"
               onClick={() => input.current?.click()}
             >
               {busy ? (
-                <AuraSpark busy className="size-4 text-sky" />
+                <AuraSpark busy className="size-4 text-onpanel" />
               ) : (
                 <Upload aria-hidden className="size-4" />
               )}
@@ -257,16 +261,18 @@ export function CvImport({
         {stage === "review" ? (
           <motion.div
             animate={{ height: "auto", opacity: 1 }}
-            className="overflow-hidden"
+            /* El alto se anima, así que esto recorta; el padding es el aire que
+               necesita el resplandor para no quedar cortado contra el borde. */
+            className="-mx-3 -mb-2 overflow-hidden px-3 pt-1 pb-2"
             exit={{ height: 0, opacity: 0 }}
             initial={{ height: 0, opacity: 0 }}
             transition={fadeUpTransition}
           >
-            <Aura className="rounded-xl">
-              <div className="space-y-4 rounded-xl bg-onpanel/10 px-3 py-3">
+            <Aura className={`rounded-xl ${ON_PANEL}`}>
+              <div className="space-y-4 rounded-xl px-3 py-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-onpanel">
-                    <AuraSpark className="size-3.5 text-sky" />
+                    <AuraSpark className="size-3.5 text-onpanel" />
                     {found === 0 ? "No encontré nada de la lista" : `Encontré ${found} cosas`}
                   </p>
                   <button
