@@ -102,8 +102,12 @@ span {
    derrama por fuera de la tarjeta y queda difuminado atrás del vidrio. Es la
    única marca de "esto lo escribió el sitio, no vos", así que no se usa en
    ningún otro lado. */
+/* Tres capas, y el orden importa: el resplandor abajo, el vidrio en el medio y
+   el hilo arriba. `isolation` las encierra acá adentro para que los z-index no
+   se midan contra media página. */
 .aura {
   position: relative;
+  isolation: isolate;
 }
 
 .aura::before,
@@ -117,18 +121,24 @@ span {
   animation: aura-drift 7s linear infinite;
 }
 
-/* El resplandor, uno solo para las dos mitades: se derrama bastante más allá
-   del borde y sigue debajo de la tarjeta, así el color que la rodea es el
-   mismo que la tiñe por dentro. */
+/* El resplandor, uno solo para las dos mitades: tiñe la tarjeta por debajo y
+   el mismo color se derrama por fuera.
+
+   Va pegado al borde y no más afuera. Con la caja sobresaliendo, el blur le
+   suavizaba el filo pero dejaba una banda del gradiente entero al costado de
+   la tarjeta; desde el borde, en cambio, lo que sale es la mitad de afuera del
+   desenfoque, que es un halo que se apaga solo. */
 .aura::before {
-  inset: -10px;
-  opacity: 0.45;
-  filter: blur(18px);
+  inset: -3px;
+  z-index: 0;
+  opacity: 0.6;
+  filter: blur(22px);
 }
 
 /* El hilo: se recorta el relleno y queda solo el anillo. */
 .aura::after {
   inset: -1px;
+  z-index: 2;
   padding: 1.5px;
   opacity: 0.85;
   -webkit-mask:
@@ -149,7 +159,11 @@ span {
    panel en vez de sobre una tarjeta. */
 .aura-glass {
   position: relative;
+  z-index: 1;
   border-radius: inherit;
+  /* Bastante opaco. Lo de adentro son botones y texto, y varios traen su propio
+     fondo translúcido encima: con el vidrio más fino, el gradiente se leía a
+     través de toda la pila y los dejaba lavados. */
   background: color-mix(
     in srgb,
     color-mix(
@@ -157,7 +171,7 @@ span {
         var(--color-brand) var(--aura-tone, 12%),
         var(--aura-base, var(--color-surface))
       )
-      76%,
+      88%,
     transparent
   );
   backdrop-filter: blur(16px) saturate(160%);
