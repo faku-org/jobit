@@ -45,6 +45,10 @@ interface OnboardingProps {
   preferences: Preferences;
   categories: Facet[];
   departments: Facet[];
+  /** False for a browser that already got the welcome and is only here again
+   * because the configuration was restarted: it knows what JobIt is. */
+  showWelcome: boolean;
+  onWelcomeSeen: () => void;
   onFinish: (profile: Profile, preferences: Preferences) => void;
 }
 
@@ -75,11 +79,15 @@ interface Step {
 }
 
 /**
- * The cover, the questions, and the beat that hands over to the app. Landing
- * straight on the list and having a dialog drop on top of it read as an
- * interruption, so the intro now owns the screen until it is done.
+ * The welcome, the setup, the questions, and the beat that hands over to the
+ * app. Landing straight on the list and having a dialog drop on top of it read
+ * as an interruption, so the intro owns the screen until it is done.
+ *
+ * The welcome and the setup are two screens and not one because they answer
+ * different questions: "qué es esto y adónde va lo que cargo" comes first and
+ * once, "cómo querés arrancar" comes every time the configuration is redone.
  */
-type Phase = "cover" | "steps" | "done";
+type Phase = "welcome" | "setup" | "steps" | "done";
 
 /** Long enough to read one line, short enough that nobody waits for it. */
 const HANDOVER_MS = 1100;
@@ -198,11 +206,13 @@ export function Onboarding({
   preferences,
   categories,
   departments,
+  showWelcome,
+  onWelcomeSeen,
   onFinish,
 }: OnboardingProps) {
   const [draftProfile, setDraftProfile] = useState<Profile>(profile);
   const [draftPreferences, setDraftPreferences] = useState<Preferences>(preferences);
-  const [phase, setPhase] = useState<Phase>("cover");
+  const [phase, setPhase] = useState<Phase>(showWelcome ? "welcome" : "setup");
   const [leaving, setLeaving] = useState(false);
   const [index, setIndex] = useState(0);
   /** A CV that gave nothing away is not worth a screen of its own: the
@@ -465,7 +475,14 @@ export function Onboarding({
    * question: on a first visit that leaves everything empty, and on a rerun it
    * leaves what was already saved exactly as it was. */
   const skip = () => onFinish(profile, preferences);
-  const back = () => (index === 0 ? setPhase("cover") : setIndex((current) => current - 1));
+  const back = () => (index === 0 ? setPhase("setup") : setIndex((current) => current - 1));
+
+  /** Read once: what the welcome says does not change, and somebody who
+   * restarts the configuration is not asking to be introduced again. */
+  const leaveWelcome = () => {
+    onWelcomeSeen();
+    setPhase("setup");
+  };
 
   /** The CV answers the first two steps, so a good reading starts at the third
    * with what it found already loaded and every chip still editable. */
@@ -482,9 +499,9 @@ export function Onboarding({
       transition={{ duration: leaving ? FAREWELL_MS / 1000 : 0 }}
     >
       <div className="mx-auto flex min-h-svh max-w-lg items-center px-5 py-7 sm:py-10">
-        {phase === "cover" ? (
+        {phase === "welcome" ? (
           <motion.section
-            key="cover"
+            key="welcome"
             animate={{ opacity: 1, y: 0 }}
             className="w-full"
             initial={{ opacity: 0, y: 16 }}
@@ -505,8 +522,45 @@ export function Onboarding({
               Bienvenido a JobIt
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-ink/70">
-              Juntamos las ofertas de trabajo de Uruguay en un solo lugar. Antes de mostrártelas, un
-              minuto de preguntas para que la lista salga ordenada para vos desde la primera vez.
+              Juntamos en un solo lugar las ofertas de trabajo de Uruguay, de todos los rubros y de
+              todos los portales, con y sin experiencia.
+            </p>
+
+            <div className="mt-5 flex gap-2.5 rounded-2xl border border-sky/60 bg-surface px-4 py-3 sm:mt-6">
+              <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
+              <p className="text-sm leading-relaxed text-ink/70">
+                Lo que hagas acá <strong className="font-semibold">no sube a ninguna nube</strong>.
+                No hay cuenta ni contraseña: todo queda guardado en este navegador y las empresas no
+                ven nada de esto.
+              </p>
+            </div>
+
+            <div className="mt-6 sm:mt-7">
+              <motion.button
+                className="inline-flex items-center gap-2 rounded-2xl bg-panel px-5 py-3 text-sm font-semibold text-onpanel shadow-[var(--shadow-panel)] transition-opacity hover:opacity-90"
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={leaveWelcome}
+              >
+                Entendido, seguimos
+                <ArrowRight aria-hidden className="size-4" />
+              </motion.button>
+            </div>
+          </motion.section>
+        ) : phase === "setup" ? (
+          <motion.section
+            key="setup"
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full"
+            initial={{ opacity: 0, y: 16 }}
+            transition={fadeUpTransition}
+          >
+            <h1 className="text-2xl leading-tight font-semibold tracking-tight text-ink sm:text-[28px]">
+              Armemos tu lista
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-ink/70">
+              Un minuto de preguntas y la lista sale ordenada para vos desde la primera vez. Si
+              tenés el CV a mano, lo leo y te salteo la mitad.
             </p>
 
             <ul className="mt-5 space-y-2 sm:mt-6 sm:space-y-2.5">
@@ -523,14 +577,6 @@ export function Onboarding({
                 </motion.li>
               ))}
             </ul>
-
-            <div className="mt-5 flex gap-2.5 rounded-2xl border border-sky/60 bg-surface px-4 py-3 sm:mt-6">
-              <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
-              <p className="text-xs leading-relaxed text-ink/65">
-                Todo queda guardado <strong className="font-semibold">en este navegador</strong>. No
-                hay cuenta, no se sube a ninguna nube y las empresas no ven nada de esto.
-              </p>
-            </div>
 
             {/* El atajo: las dos primeras preguntas ya están contestadas en el
                 CV de quien lo tiene a mano. */}

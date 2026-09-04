@@ -42,6 +42,11 @@ bun run dev
 La API queda en `http://localhost:3000` y la web en `http://localhost:5173`,
 que proxea `/api` hacia la API.
 
+La intro pasa una sola vez por navegador, así que para volver a verla entera
+(bienvenida, configuración, las preguntas y el traspaso a la app) se agrega
+`?dev=onboarding` a la URL. No borra nada de lo guardado: vale para esa carga y
+termina donde termina la de verdad.
+
 ## API
 
 | Endpoint | Descripción |

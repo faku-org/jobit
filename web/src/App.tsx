@@ -27,6 +27,7 @@ import { useTheme } from "./hooks/useTheme.ts";
 import { fetchJob, fetchMeta, isAbortError } from "./lib/api.ts";
 import { fadeUpTransition } from "./lib/motion.ts";
 import { pluralOffers } from "./lib/format.ts";
+import { readDevFlags } from "./lib/dev.ts";
 import { isOnboarded } from "./lib/profile.ts";
 import { isEmptyRanking, toRanking } from "./lib/ranking.ts";
 import { readViewState } from "./lib/url.ts";
@@ -82,6 +83,11 @@ export default function App() {
   /** Read once on mount, so a shared link paints its own section on the first
    * render instead of the board and then a jump. */
   const [linked] = useState(readViewState);
+  /** `?dev=onboarding` replays the whole first visit over storage that already
+   * has answers in it, which is the only way to look at it twice. It ends
+   * where the real one ends: finishing hands the app over as always. */
+  const [dev] = useState(readDevFlags);
+  const [replayingIntro, setReplayingIntro] = useState(dev.onboarding);
   const [filters, setFilters] = useState<Filters>(linked.filters);
   const [view, setView] = useState<View>(linked.view);
   /** A deliberate detour to look at what was discarded, not a display option:
@@ -104,7 +110,7 @@ export default function App() {
    * at all: the list used to load behind the questions and have them dropped
    * on top, which read as an interruption rather than a welcome.
    */
-  const showIntro = !isOnboarded(prefs.profile);
+  const showIntro = !isOnboarded(prefs.profile) || replayingIntro;
   const debouncedQuery = useDebounced(filters.q);
   useTheme(prefs.theme);
   useJobLink(openJob, setOpenJob);
@@ -267,7 +273,12 @@ export default function App() {
         departments={meta?.departments ?? []}
         preferences={prefs.preferences}
         profile={prefs.profile}
-        onFinish={prefs.completeOnboarding}
+        showWelcome={prefs.introSeenAt === "" || replayingIntro}
+        onFinish={(profile, preferences) => {
+          setReplayingIntro(false);
+          prefs.completeOnboarding(profile, preferences);
+        }}
+        onWelcomeSeen={prefs.markIntroSeen}
       />
     );
   }

@@ -37,6 +37,10 @@ interface Stored {
   profile: Profile;
   /** When the anonymous summary was last sent, so it goes at most once a day. */
   statsSentAt: string;
+  /** When this browser was told what JobIt is. Rehacer la configuración keeps
+   * it: the questions are worth asking again, the welcome is not. Borrar todos
+   * mis datos takes it with everything else, which is what it promises. */
+  introSeenAt: string;
 }
 
 const EMPTY: Stored = {
@@ -49,6 +53,7 @@ const EMPTY: Stored = {
   theme: "system",
   profile: EMPTY_PROFILE,
   statsSentAt: "",
+  introSeenAt: "",
 };
 
 /** Titles and courses are picked from a list, so the cap is a sanity bound. */
@@ -214,6 +219,7 @@ function read(): Stored {
       theme: oneOf(parsed.theme, THEMES, "system"),
       profile: withMigratedExperience(readProfile(parsed.profile), parsed.preferences),
       statsSentAt: text(parsed.statsSentAt),
+      introSeenAt: text(parsed.introSeenAt),
     };
   } catch {
     return EMPTY;
@@ -234,6 +240,7 @@ export interface JobPrefs {
   theme: Theme;
   profile: Profile;
   statsSentAt: string;
+  introSeenAt: string;
   toggleSaved: (id: string) => void;
   toggleDismissed: (id: string) => void;
   clearDismissed: () => void;
@@ -252,6 +259,8 @@ export interface JobPrefs {
   /** Wipes everything this browser holds and starts over from nothing. */
   eraseEverything: () => void;
   markStatsSent: (at: string) => void;
+  /** Records that the welcome was read, so a restart lands on the questions. */
+  markIntroSeen: () => void;
   /** Records that the person did send the application, keeping a snapshot. */
   addApplication: (job: Job) => void;
   setApplicationStatus: (id: string, status: ApplicationStatus) => void;
@@ -349,6 +358,12 @@ export function useJobPrefs(): JobPrefs {
     setStored((current) => ({ ...current, statsSentAt: at }));
   }, []);
 
+  const markIntroSeen = useCallback(() => {
+    setStored((current) =>
+      current.introSeenAt === "" ? { ...current, introSeenAt: new Date().toISOString() } : current,
+    );
+  }, []);
+
   const addApplication = useCallback((job: Job) => {
     setStored((current) =>
       current.applications.some((entry) => entry.id === job.id)
@@ -384,6 +399,7 @@ export function useJobPrefs(): JobPrefs {
     theme: stored.theme,
     profile: stored.profile,
     statsSentAt: stored.statsSentAt,
+    introSeenAt: stored.introSeenAt,
     toggleSaved,
     toggleDismissed,
     clearDismissed,
@@ -396,6 +412,7 @@ export function useJobPrefs(): JobPrefs {
     restartOnboarding,
     eraseEverything,
     markStatsSent,
+    markIntroSeen,
     addApplication,
     setApplicationStatus,
     removeApplication,
