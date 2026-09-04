@@ -118,7 +118,6 @@ function readPreferences(value: unknown): Preferences {
     hiddenDepartments,
     levels: within(raw.levels, LEVELS),
     jobTypes: within(raw.jobTypes, JOB_TYPES),
-    noExperience: raw.noExperience === true,
     salary: readSalary(raw.salary),
     rankByFit: raw.rankByFit !== false,
   };
@@ -141,6 +140,19 @@ function readProfile(value: unknown): Profile {
     shareStats: raw.shareStats !== false,
     onboardedAt: text(raw.onboardedAt),
   };
+}
+
+/**
+ * "Sin experiencia previa" used to be a preference of its own, asked again a
+ * panel away from the profile's own "años de experiencia". Only the profile
+ * asks now, so the old answer moves there instead of being dropped; somebody
+ * who already said how many years they have keeps what they said.
+ */
+function withMigratedExperience(profile: Profile, preferences: unknown): Profile {
+  if (profile.experienceYears !== null) return profile;
+  if (typeof preferences !== "object" || preferences === null) return profile;
+  const raw = preferences as Record<string, unknown>;
+  return raw.noExperience === true ? { ...profile, experienceYears: 0 } : profile;
 }
 
 function readFeeds(value: unknown): CustomFeed[] {
@@ -200,7 +212,7 @@ function read(): Stored {
       sources: strings(parsed.sources),
       feeds: readFeeds(parsed.feeds),
       theme: oneOf(parsed.theme, THEMES, "system"),
-      profile: readProfile(parsed.profile),
+      profile: withMigratedExperience(readProfile(parsed.profile), parsed.preferences),
       statsSentAt: text(parsed.statsSentAt),
     };
   } catch {

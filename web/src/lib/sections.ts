@@ -49,7 +49,6 @@ export function workSummary(preferences: Preferences): string {
     preferences.modes.map((mode) => WORK_MODE_LABEL[mode]).join(", "),
     preferences.jobTypes.map((type) => JOB_TYPE_LABEL[type]).join(", "),
     preferences.levels.map((level) => LEVEL_LABEL[level]).join(", "),
-    preferences.noExperience ? "sin experiencia" : "",
   ]);
 }
 

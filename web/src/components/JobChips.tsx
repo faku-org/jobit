@@ -25,7 +25,14 @@ import {
 import { type Profile, meetsEducation } from "../lib/profile.ts";
 import { fadeUpTransition } from "../lib/motion.ts";
 import { chipClass, menuItemClass, mutedChip, popoverClass } from "../lib/styles.ts";
-import { type Job, type Preferences, type Tag, isPreferredTag, workMode } from "../lib/types.ts";
+import {
+  type Job,
+  type Preferences,
+  type Tag,
+  canPrefer,
+  isPreferredTag,
+  workMode,
+} from "../lib/types.ts";
 
 /** What the chips of a card know, and what they can do to the list around them. */
 export interface TagActions {
@@ -111,15 +118,17 @@ function TagChip({ tag, actions, icon: Icon, tone = mutedChip }: TagChipProps) {
             >
               Ver ofertas así
             </MenuItem>
-            <MenuItem
-              icon={Star}
-              onClick={() => {
-                actions.onTogglePreferred(tag);
-                setOpen(false);
-              }}
-            >
-              {preferred ? "Quitar de prioridades" : "Priorizar este tag"}
-            </MenuItem>
+            {canPrefer(tag) ? (
+              <MenuItem
+                icon={Star}
+                onClick={() => {
+                  actions.onTogglePreferred(tag);
+                  setOpen(false);
+                }}
+              >
+                {preferred ? "Quitar de prioridades" : "Priorizar este tag"}
+              </MenuItem>
+            ) : null}
           </motion.div>
         ) : null}
       </AnimatePresence>

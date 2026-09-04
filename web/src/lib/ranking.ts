@@ -35,7 +35,7 @@ export function toRanking(preferences: Preferences, profile: Profile): Ranking {
     jobTypes: preferences.jobTypes,
     /** The floor of the range is what the person is aiming at. */
     salaryTarget: preferences.salary.min,
-    noExperience: preferences.noExperience || profile.experienceYears === 0,
+    noExperience: profile.experienceYears === 0,
     education: profile.education === "" ? null : EDUCATION_RANK[profile.education],
     experienceYears: profile.experienceYears,
   };

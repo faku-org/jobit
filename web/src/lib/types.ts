@@ -197,7 +197,6 @@ export interface Preferences {
   hiddenDepartments: string[];
   levels: Level[];
   jobTypes: JobType[];
-  noExperience: boolean;
   salary: SalaryPreference;
   /** Order the feed by fit instead of by date. */
   rankByFit: boolean;
@@ -211,7 +210,6 @@ export const EMPTY_PREFERENCES: Preferences = {
   hiddenDepartments: [],
   levels: [],
   jobTypes: [],
-  noExperience: false,
   salary: EMPTY_SALARY,
   rankByFit: true,
 };
@@ -251,7 +249,6 @@ export const preferenceCount = (preferences: Preferences): number =>
   preferences.departments.length +
   preferences.levels.length +
   preferences.jobTypes.length +
-  (preferences.noExperience ? 1 : 0) +
   (hasSalaryPreference(preferences.salary) ? 1 : 0);
 
 /** What the person told the app to keep out; counted apart, it reads as a
@@ -277,7 +274,6 @@ export function matchesPreferences(job: Job, preferences: Preferences): boolean 
   if (jobTypes.length > 0 && (job.job_type === null || !jobTypes.includes(job.job_type))) {
     return false;
   }
-  if (preferences.noExperience && !job.no_experience) return false;
   return true;
 }
 
@@ -292,6 +288,11 @@ export interface Tag {
   label: string;
 }
 
+/** Every dimension but one can be starred. Wanting the offers that ask for no
+ * experience is what the profile already says with "ninguna", so that chip
+ * filters and nothing more. */
+export const canPrefer = (tag: Tag): boolean => tag.dimension !== "noExperience";
+
 export function isPreferredTag(tag: Tag, preferences: Preferences): boolean {
   switch (tag.dimension) {
     case "category":
@@ -303,7 +304,7 @@ export function isPreferredTag(tag: Tag, preferences: Preferences): boolean {
     case "jobType":
       return preferences.jobTypes.includes(tag.value as JobType);
     case "noExperience":
-      return preferences.noExperience;
+      return false;
   }
 }
 
@@ -320,7 +321,7 @@ export function togglePreferredTag(preferences: Preferences, tag: Tag): Preferen
     case "jobType":
       return { ...preferences, jobTypes: toggleValue(preferences.jobTypes, tag.value as JobType) };
     case "noExperience":
-      return { ...preferences, noExperience: !preferences.noExperience };
+      return preferences;
   }
 }
 

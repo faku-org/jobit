@@ -81,10 +81,6 @@ describe("workSummary", () => {
       workSummary(preferences({ salary: { min: null, max: null, includeUnknown: false } })),
     ).toBe("con sueldo publicado");
   });
-
-  test("wanting no experience shows up", () => {
-    expect(workSummary(preferences({ noExperience: true }))).toBe("sin experiencia");
-  });
 });
 
 describe("advancedSummary", () => {

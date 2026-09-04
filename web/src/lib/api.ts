@@ -113,7 +113,7 @@ function buildQuery(request: JobsRequest): string {
 
   if (filters.q.trim()) params.set("q", filters.q.trim());
   if (filters.department) params.set("department", filters.department);
-  if (filters.noExperience || preferences?.noExperience) params.set("no_experience", "true");
+  if (filters.noExperience) params.set("no_experience", "true");
   if (filters.days !== null) params.set("days", String(filters.days));
   params.set("limit", String(PAGE_SIZE));
   params.set("offset", String(offset));

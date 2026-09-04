@@ -217,15 +217,6 @@ export function PreferencesPanel({
             </Chip>
           ))}
         </Group>
-
-        <Group title="Experiencia">
-          <Chip
-            active={preferences.noExperience}
-            onClick={() => onChange({ ...preferences, noExperience: !preferences.noExperience })}
-          >
-            Sin experiencia previa
-          </Chip>
-        </Group>
       </PanelSection>
 
       <PanelSection
