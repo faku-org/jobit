@@ -257,15 +257,15 @@ export function CvImport({
         </p>
       ) : null}
 
+      {/* La lectura aparece con el mismo fundido que el resto de la app y no
+          desplegando el alto: eso pedía recortar lo que sobresale, y lo que
+          sobresale acá es el resplandor, que quedaba cortado al ras. */}
       <AnimatePresence initial={false}>
         {stage === "review" ? (
           <motion.div
-            animate={{ height: "auto", opacity: 1 }}
-            /* El alto se anima, así que esto recorta; el padding es el aire que
-               necesita el resplandor para no quedar cortado contra el borde. */
-            className="-mx-3 -mb-2 overflow-hidden px-3 pt-1 pb-2"
-            exit={{ height: 0, opacity: 0 }}
-            initial={{ height: 0, opacity: 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            initial={{ opacity: 0, y: -4 }}
             transition={fadeUpTransition}
           >
             <Aura className={`rounded-xl ${ON_PANEL}`}>
