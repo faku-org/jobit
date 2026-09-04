@@ -34,11 +34,77 @@ export const isEmptyReading = (reading: CvReading): boolean =>
   reading.experienceYears === null &&
   reading.categories.length === 0;
 
+/**
+ * The parts of a CV. The same word means different things depending on where
+ * it sits: "arquitectura" under formación is a título and under proyectos is
+ * a way of building software, and a year range under formación is time studying
+ * and not time working.
+ */
+export type CvBlock = "profile" | "education" | "experience" | "projects" | "skills";
+
+/** Anything before the first heading: the name, the headline, the summary. */
+const FIRST_BLOCK: CvBlock = "profile";
+
+const HEADINGS: [RegExp, CvBlock][] = [
+  [/^(?:perfil|resumen|sobre mi|acerca de|objetivo|presentacion)/, "profile"],
+  [/^(?:formacion|educacion|estudios|escolaridad|academic)/, "education"],
+  [
+    /^(?:experiencia|trayectoria|historial laboral|antecedentes laborales|empleos|work experience)/,
+    "experience",
+  ],
+  [/^(?:proyectos|portfolio|trabajos destacados)/, "projects"],
+  [
+    /^(?:habilidades|aptitudes|competencias|conocimientos|herramientas|tecnologias|stack|skills|idiomas|cursos|certificaci|capacitaci|otros estudios)/,
+    "skills",
+  ],
+];
+
+/** A heading is a line on its own. A sentence that happens to start with
+ * "experiencia en atención al cliente" is not one. */
+const MAX_HEADING = 60;
+
+function headingOf(line: string): CvBlock | "" {
+  /** Bullets, emoji and the rules some templates draw are not part of it. */
+  const bare = line.replace(/[^a-z0-9\s]+/g, " ").trim();
+  if (bare === "" || bare.length > MAX_HEADING) return "";
+  const found = HEADINGS.find(([pattern]) => pattern.test(bare));
+  return found ? found[1] : "";
+}
+
+/** Folded text in, folded blocks out. Every line belongs to the last heading
+ * seen, which is how a CV reads to a person too. */
+export function splitCv(folded: string): Record<CvBlock, string> {
+  const lines: Record<CvBlock, string[]> = {
+    profile: [],
+    education: [],
+    experience: [],
+    projects: [],
+    skills: [],
+  };
+  let current = FIRST_BLOCK;
+
+  for (const line of folded.split(/\r?\n/)) {
+    const heading = headingOf(line);
+    if (heading === "") lines[current].push(line);
+    else current = heading;
+  }
+
+  return {
+    profile: lines.profile.join("\n"),
+    education: lines.education.join("\n"),
+    experience: lines.experience.join("\n"),
+    projects: lines.projects.join("\n"),
+    skills: lines.skills.join("\n"),
+  };
+}
+
 /** Education levels named outright, for a CV that lists no specific título. */
 const EDUCATION_PHRASES: [RegExp, EducationLevel][] = [
   [/posgrado|maestria|master\b|doctorado|\bphd\b|mba\b/, "postgrad"],
   [/universitari|licenciatur|licenciad|ingenier|arquitect|contador publico|abogac/, "university"],
-  [/terciari|tecnicatur|\butu\b|tecnico superior|instituto tecnologico/, "technical"],
+  /** UTU is left out on purpose: it gives bachilleratos as well as tecnicaturas,
+   * so the school alone says nothing about the level. */
+  [/terciari|tecnicatur|tecnico superior|instituto tecnologico/, "technical"],
   [/bachillerato|secundaria completa|liceo completo|educacion media/, "secondary"],
   [/ciclo basico/, "secondary_basic"],
   [/primaria completa|escuela primaria/, "primary"],
@@ -47,15 +113,15 @@ const EDUCATION_PHRASES: [RegExp, EducationLevel][] = [
 /** The rubros a CV points at, from the words it uses for the work itself. */
 const CATEGORY_HINTS: [RegExp, string][] = [
   [
-    /desarroll(?:o|ador) de software|programaci|javascript|typescript|python\b|\bjava\b|\breact\b|backend|frontend|devops|\bqa\b|base de datos|\bsql\b|soporte tecnico|help ?desk|redes y|ciberseguridad/,
+    /desarroll\w*\s+(?:de\s+)?(?:software|web|movil|aplicaciones|sistemas)|full ?stack|programaci|javascript|typescript|python\b|\bjava\b|\breact\b|backend|frontend|devops|\bqa\b|base de datos|\bsql\b|soporte tecnico|help ?desk|redes y|ciberseguridad/,
     "tecnologia",
   ],
   [
-    /analisis de datos|power ?bi|data science|ciencia de datos|estadistic|investigacion de mercado/,
+    /analisis de datos|power ?bi|data science|ciencia de datos|\bestadistica\b|analisis estadistico|investigacion de mercado/,
     "datos-analisis",
   ],
   [
-    /contabilidad|contador|auditori|liquidacion de sueldos|conciliaci|balance|impuestos|finanzas/,
+    /contabilidad|contador|auditoria (?:contable|interna|externa|financiera|de gestion)|liquidacion de sueldos|conciliaci|balance (?:general|contable)|impuestos|finanzas/,
     "contabilidad-finanzas",
   ],
   [
@@ -79,11 +145,13 @@ const CATEGORY_HINTS: [RegExp, string][] = [
     "administracion",
   ],
   [
-    /logistic|deposito|almacen|distribucion|reparto|chofer|autoelevador|inventario|picking/,
+    /logistic|deposito|\balmacen(?:es|ero|era)?\b|distribucion|reparto|chofer|autoelevador|inventario|picking/,
     "logistica",
   ],
+  /** Not a bare "producción": a CV that puts an API "en producción" is talking
+   * about deploying software, not about a planta. */
   [
-    /produccion|planta industrial|manufactura|operario|linea de produccion|control de calidad|envasado/,
+    /planta industrial|manufactura|operari[oa]|linea de produccion|control de calidad|envasado|produccion industrial|produccion en planta/,
     "produccion",
   ],
   [
@@ -153,6 +221,15 @@ export function readExperience(folded: string, thisYear = new Date().getFullYear
   return Math.min(mergedSpan(ranges), MAX_YEARS);
 }
 
+const GENERIC_BACHILLERATO = "bach-generico";
+
+/** That entry reads "otra orientación": next to the orientation it names, it is
+ * not another título, it is the same one listed twice. */
+function withoutGenericBachillerato(degrees: string[]): string[] {
+  const named = degrees.some((id) => id.startsWith("bach-") && id !== GENERIC_BACHILLERATO);
+  return named ? degrees.filter((id) => id !== GENERIC_BACHILLERATO) : degrees;
+}
+
 const matches = (pattern: RegExp, text: string): boolean =>
   new RegExp(pattern.source, pattern.flags.replace("g", "")).test(text);
 
@@ -171,30 +248,51 @@ export function readCv(text: string, thisYear = new Date().getFullYear()): CvRea
   const folded = fold(text);
   if (folded.trim() === "") return EMPTY_READING;
 
-  const degrees = DEGREES.filter((entry) => matches(catalogPattern(entry), folded)).map(
-    (entry) => entry.id,
+  const blocks = splitCv(folded);
+  /** A CV with no headings the reader recognises is read whole, which is what
+   * this did for every CV before the blocks existed. */
+  const scope = (...names: CvBlock[]): string => {
+    const parts = names.map((name) => blocks[name]).filter((part) => part.trim() !== "");
+    return parts.length === 0 ? folded : parts.join("\n");
+  };
+
+  /** Títulos and level come from where somebody lists what they studied. */
+  const studied = scope("education", "profile");
+  /** Cursos too, plus the skills and languages block. What a job or a project
+   * happened to involve is not a course somebody took. */
+  const learned = scope("education", "skills", "profile");
+  /** Years worked, never years enrolled: the dates under formación are the
+   * length of a degree. */
+  const worked = scope("experience", "profile");
+  /** The rubro comes from the work itself. Somebody with no jobs yet says what
+   * they do through their projects instead. */
+  const doing =
+    blocks.experience.trim() === "" ? scope("projects", "profile") : scope("experience", "profile");
+
+  const degrees = withoutGenericBachillerato(
+    DEGREES.filter((entry) => matches(catalogPattern(entry), studied)).map((entry) => entry.id),
   );
-  const courses = COURSES.filter((entry) => matches(catalogPattern(entry), folded)).map(
+  const courses = COURSES.filter((entry) => matches(catalogPattern(entry), learned)).map(
     (entry) => entry.id,
   );
 
   /** The títulos found imply a level; a bare mention fills in when they do not. */
   const implied = levelFromDegrees(degrees);
-  const stated = statedEducation(folded);
+  const stated = statedEducation(studied);
   const education =
     implied === "" || (stated !== "" && EDUCATION_RANK[stated] > EDUCATION_RANK[implied])
       ? stated
       : implied;
 
   const categories = CATEGORY_HINTS.flatMap(([pattern, slug]) =>
-    pattern.test(folded) ? [slug] : [],
+    pattern.test(doing) ? [slug] : [],
   );
 
   return {
     degrees,
     courses,
     education,
-    experienceYears: readExperience(folded, thisYear),
+    experienceYears: readExperience(worked, thisYear),
     categories: [...new Set(categories)],
     characters: text.trim().length,
   };

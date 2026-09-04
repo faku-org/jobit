@@ -70,6 +70,21 @@ const postgrad = (id: string, label: string, aliases?: string[], match?: RegExp)
   ...(match ? { match } : {}),
 });
 
+/**
+ * A bachillerato is named by its orientación, and the words around it change
+ * with the school: "Bachillerato en Informática", "Bachillerato Tecnológico en
+ * Informática", "Bachillerato - opción Informática", "Bachiller Informática".
+ * Matching the label word for word recognised only the first of the four.
+ */
+const BACHILLERATO =
+  /bachiller(?:ato)?[\s:.\-–—·|]*(?:tecnologico|profesional|general)?[\s:.\-–—·|]*(?:en|de|orientacion|opcion)?[\s:.\-–—·|]*/
+    .source;
+
+const oriented =
+  (id: string, label: string, aliases?: string[]) =>
+  (orientation: RegExp): DegreeEntry =>
+    secondary(id, label, aliases, new RegExp(`${BACHILLERATO}(?:${orientation.source})`, "g"));
+
 /** Títulos as they are named in Uruguay: secundaria, UTU, terciario, posgrado. */
 export const DEGREES: DegreeEntry[] = [
   {
@@ -88,18 +103,32 @@ export const DEGREES: DegreeEntry[] = [
     match: /ciclo b[aá]sico/g,
   },
 
-  secondary("bach-ciencias-biologicas", "Bachillerato en Ciencias Biológicas", ["biológico"]),
-  secondary("bach-ciencias-sociales", "Bachillerato en Ciencias Sociales y Humanidades"),
-  secondary("bach-derecho", "Bachillerato en Derecho"),
-  secondary("bach-economia", "Bachillerato en Economía y Administración"),
-  secondary("bach-ingenieria", "Bachillerato en Ingeniería"),
-  secondary("bach-arquitectura", "Bachillerato en Arquitectura y Diseño"),
-  secondary("bach-medicina", "Bachillerato en Ciencias Biológicas orientación Medicina"),
+  oriented("bach-ciencias-biologicas", "Bachillerato en Ciencias Biológicas", ["biológico"])(
+    /ciencias biologicas|biologico/,
+  ),
+  oriented(
+    "bach-ciencias-sociales",
+    "Bachillerato en Ciencias Sociales y Humanidades",
+  )(/ciencias sociales|humanidades/),
+  oriented("bach-derecho", "Bachillerato en Derecho")(/derecho/),
+  oriented(
+    "bach-economia",
+    "Bachillerato en Economía y Administración",
+  )(/economia(?: y administracion)?/),
+  oriented("bach-ingenieria", "Bachillerato en Ingeniería")(/ingenieria/),
+  oriented(
+    "bach-arquitectura",
+    "Bachillerato en Arquitectura y Diseño",
+  )(/arquitectura(?: y diseno)?/),
+  oriented("bach-medicina", "Bachillerato en Ciencias Biológicas orientación Medicina")(/medicina/),
   secondary("bach-agrario", "Bachillerato Agrario"),
   secondary("bach-artistico", "Bachillerato Artístico"),
-  secondary("bach-informatica", "Bachillerato en Informática"),
-  secondary("bach-deporte", "Bachillerato en Educación Física y Deporte"),
-  secondary("bach-turismo", "Bachillerato en Turismo"),
+  oriented("bach-informatica", "Bachillerato en Informática")(/informatica|computacion/),
+  oriented(
+    "bach-deporte",
+    "Bachillerato en Educación Física y Deporte",
+  )(/educacion fisica|deporte/),
+  oriented("bach-turismo", "Bachillerato en Turismo")(/turismo/),
   secondary(
     "bach-generico",
     "Bachillerato completo (otra orientación)",
@@ -209,7 +238,15 @@ export const DEGREES: DegreeEntry[] = [
   university("ing-quimica", "Ingeniería Química"),
   university("ing-agronomica", "Ingeniería Agronómica", ["agronomía"]),
   university("ing-alimentos", "Ingeniería en Alimentos"),
-  university("arquitectura", "Arquitectura"),
+  /** "Arquitectura de microservicios", "arquitectura de la información" y
+   * "arquitectura de contenido" son maneras de construir software, no el
+   * título: sin esto un CV de programación decía carrera universitaria. */
+  university(
+    "arquitectura",
+    "Arquitectura",
+    undefined,
+    /arquitect[oa]s?|arquitectura(?!\s+(?:de\s+)?(?:software|microservicios|sistemas|contenidos?|datos|informacion|informaci[oó]n|de\s+la\s+informaci[oó]n|hexagonal|limpia|serverless|cloud))/g,
+  ),
   university("lic-diseno", "Licenciatura en Diseño (gráfico, industrial, textil)"),
   university("medicina", "Doctor en Medicina", undefined, /doctor en medicina|\bmedicina\b/g),
   university("lic-enfermeria", "Licenciatura en Enfermería"),
@@ -252,21 +289,21 @@ export const COURSES: CatalogEntry[] = [
     id: "ingles-basico",
     label: "Inglés básico (A1-A2)",
     group: "Idiomas",
-    match: /ingl[eé]s\s*(?:b[aá]sico|inicial|a1|a2)/g,
+    match: /ingl[eé]s[\s:.()|·-]*(?:b[aá]sico|inicial|a1|a2)/g,
   },
   {
     id: "ingles-intermedio",
     label: "Inglés intermedio (B1-B2)",
     group: "Idiomas",
     aliases: ["first"],
-    match: /ingl[eé]s\s*(?:intermedio|medio|b1|b2)|first certificate/g,
+    match: /ingl[eé]s[\s:.()|·-]*(?:intermedio|medio|b1|b2)|first certificate/g,
   },
   {
     id: "ingles-avanzado",
     label: "Inglés avanzado (C1-C2)",
     group: "Idiomas",
     aliases: ["proficiency"],
-    match: /ingl[eé]s\s*(?:avanzado|fluido|c1|c2|bilingue)|proficiency/g,
+    match: /ingl[eé]s[\s:.()|·-]*(?:avanzado|fluido|c1|c2|biling[uü]e)|proficiency/g,
   },
   { id: "portugues", label: "Portugués", group: "Idiomas", match: /portugu[eé]s/g },
   { id: "italiano", label: "Italiano", group: "Idiomas", match: /italiano/g },
@@ -615,9 +652,11 @@ export const COURSES: CatalogEntry[] = [
   { id: "barberia", label: "Barbería", group: "Oficios", match: /barber[ií]a|barbero/g },
   {
     id: "estetica",
+    /** Suelta, "estética" es un adjetivo que aparece en cualquier CV de
+     * diseño: el oficio se nombra con su especialidad o con el sustantivo. */
     label: "Estética y cosmetología",
     group: "Oficios",
-    match: /est[eé]tica|cosmetolog[ií]a/g,
+    match: /est[eé]tica (?:integral|facial|corporal|profesional)|esteticista|cosmetolog[ií]a/g,
   },
   { id: "manicuria", label: "Manicuría", group: "Oficios", match: /manicur[ií]a|manicura/g },
   {

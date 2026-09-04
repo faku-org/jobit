@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { fold } from "./catalog.ts";
-import { isEmptyReading, readCv, readExperience } from "./cv.ts";
+import { isEmptyReading, readCv, readExperience, splitCv } from "./cv.ts";
 
 const YEAR = 2026;
 const read = (text: string) => readCv(text, YEAR);
@@ -78,5 +78,97 @@ describe("readCv", () => {
 
   test("counts the text it managed to read, to explain an empty result", () => {
     expect(read("hola mundo").characters).toBe(10);
+  });
+});
+
+/** Un CV real, con sus secciones, sin datos de nadie. Los dos que motivaron
+ * esto se leían como un arquitecto universitario con seis años de experiencia. */
+const CV = `
+Desarrollador Web Full-Stack
+
+RESUMEN PROFESIONAL
+Egresando del Bachillerato Tecnológico en Informática de UTU, con experiencia
+construyendo y desplegando productos web con APIs en producción.
+
+FORMACIÓN ACADÉMICA
+Bachillerato Tecnológico en Informática — UTU
+3.er año en curso · Egreso estimado: 2026
+
+EXPERIENCIA PROFESIONAL
+Desarrollador web freelance · Buenno (restaurante italiano) · 2026
+Sitio bilingüe con menú, buscador y filtros.
+
+PROYECTOS DESTACADOS
+Lux — Arquitectura de microservicios y almacenamiento de artefactos, con
+auditoría de cambios y estadísticas de uso. Sitio de marketing aparte.
+
+HABILIDADES TÉCNICAS
+TypeScript, JavaScript, SQL, arquitectura de contenido
+
+HABILIDADES BLANDAS
+Orientación a producto: diseño UI con estética cuidada
+
+IDIOMAS
+Inglés: B2 Level
+`;
+
+describe("readCv por secciones", () => {
+  const reading = read(CV);
+
+  test("un título nombrado en proyectos no es un título", () => {
+    expect(reading.degrees).not.toContain("arquitectura");
+    expect(reading.education).toBe("secondary");
+  });
+
+  test("el bachillerato se reconoce por su orientación, sin duplicar el genérico", () => {
+    expect(reading.degrees).toEqual(["bach-informatica"]);
+  });
+
+  test("lo que se hizo en un trabajo no es un curso que se tomó", () => {
+    expect(reading.courses).not.toContain("italiano");
+    expect(reading.courses).not.toContain("estetica");
+  });
+
+  test("el nivel de idioma se lee aunque lo separen dos puntos", () => {
+    expect(reading.courses).toContain("ingles-intermedio");
+  });
+
+  test("el rubro sale del trabajo, no de las herramientas ni de los proyectos", () => {
+    expect(reading.categories).toEqual(["tecnologia"]);
+  });
+
+  test("las fechas de la formación no son años trabajados", () => {
+    const estudiante = read(`
+      EXPERIENCIA LABORAL
+      Cajero · 2023 – Actualidad
+
+      FORMACIÓN ACADÉMICA
+      Tecnicatura en Tecnología · 2024 – Actualidad
+      Bachillerato – Opción Informática · 2020 – 2023
+    `);
+    expect(estudiante.experienceYears).toBe(YEAR - 2023);
+    expect(estudiante.education).toBe("technical");
+  });
+
+  test("un CV sin encabezados se sigue leyendo entero", () => {
+    const suelto = read("Licenciatura en Informática. Inglés avanzado. 5 años de experiencia.");
+    expect(suelto.degrees).toContain("lic-informatica");
+    expect(suelto.courses).toContain("ingles-avanzado");
+    expect(suelto.experienceYears).toBe(5);
+  });
+});
+
+describe("splitCv", () => {
+  test("cada línea pertenece al último encabezado leído", () => {
+    const blocks = splitCv(fold("Ana\nEXPERIENCIA LABORAL\nCajera\nFORMACIÓN\nBachillerato"));
+    expect(blocks.profile.trim()).toBe("ana");
+    expect(blocks.experience.trim()).toBe("cajera");
+    expect(blocks.education.trim()).toBe("bachillerato");
+  });
+
+  test("una oración que empieza como un encabezado no es uno", () => {
+    const linea = "experiencia en atencion al cliente y gestion operativa en entornos exigentes";
+    expect(splitCv(linea).profile.trim()).toBe(linea);
+    expect(splitCv(linea).experience).toBe("");
   });
 });
