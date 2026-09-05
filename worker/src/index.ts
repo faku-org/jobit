@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { DetailCache } from "./cache.ts";
 import { dedupe } from "./dedupe.ts";
+import { keepIfEmpty } from "./keep.ts";
 import { toJob } from "./normalize.ts";
 import { buscojobs } from "./sources/buscojobs.ts";
 import { uruguayconcursa } from "./sources/uruguayconcursa.ts";
@@ -70,10 +71,20 @@ async function enrich(
   });
 }
 
+async function readPrevious(): Promise<Job[] | undefined> {
+  try {
+    const file = (await Bun.file(OUTPUT_PATH).json()) as JobsFile;
+    return Array.isArray(file.jobs) ? file.jobs : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function run(): Promise<void> {
   const options = parseArgs(Bun.argv.slice(2));
   const startedAt = Date.now();
   const cache = await DetailCache.load();
+  const previous = await readPrevious();
   log(`cache: ${cache.size} detalles`);
 
   const jobs: Job[] = [];
@@ -81,8 +92,21 @@ async function run(): Promise<void> {
 
   for (const source of SOURCES) {
     log(`\n[${source.id}] recolectando listados`);
-    const stubs = await source.collect(log);
+    let stubs: JobStub[] = [];
+    try {
+      stubs = await source.collect(log);
+    } catch (cause) {
+      log(`[${source.id}] falló la recolección: ${String(cause)}`);
+    }
     log(`[${source.id}] ${stubs.length} ofertas listadas`);
+
+    const kept = keepIfEmpty(source.id, stubs.length, previous);
+    if (kept) {
+      log(`[${source.id}] se conservan ${kept.length} de la corrida anterior`);
+      for (const job of kept) liveKeys.add(`${job.source}:${job.source_id}`);
+      jobs.push(...kept);
+      continue;
+    }
 
     for (const stub of stubs) liveKeys.add(`${source.id}:${stub.source_id}`);
     jobs.push(...(await enrich(source, stubs, cache, options)));

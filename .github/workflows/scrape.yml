@@ -1,0 +1,20 @@
+name: Scrape
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: scrape-jobit
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: self-hosted
+    timeout-minutes: 40
+    steps:
+      # Corre sobre el deploy en /srv/jobit, no sobre el checkout: el output
+      # y el cache de detalles viven ahí, fuera del rsync.
+      - name: Scrape into /srv/jobit
+        run: |
+          cd /srv/jobit
+          PATH=/opt/bun:$PATH /opt/bun/bun run scrape
