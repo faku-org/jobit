@@ -1,0 +1,224 @@
+@import "./index.css";
+
+/**
+ * Las dos legales son una sección aparte del sitio, con su propia navegación:
+ * la isla de arriba es la misma que la de la app, el índice de la izquierda
+ * queda fijo mientras se lee y marca en qué sección está la lectura, y los dos
+ * documentos se saltan entre sí sin volver al buscador.
+ *
+ * El estilo va por etiqueta y no por clase en cada párrafo: son documentos de
+ * texto, no una interfaz, y el html se tiene que poder editar sin arrastrar
+ * una fila de utilidades atrás de cada punto.
+ */
+
+@layer components {
+  /* La misma isla flotante de la app, sin las partes que acá no hacen nada. */
+  .legal-island {
+    @apply pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4 sm:top-4;
+  }
+
+  .legal-island > div {
+    @apply pointer-events-auto flex w-full max-w-5xl items-center gap-3 rounded-[26px] bg-panel px-3 py-2.5 text-onpanel shadow-[var(--shadow-panel)] ring-1 ring-onpanel/10 sm:px-4;
+  }
+
+  .legal-brand {
+    @apply flex min-w-0 flex-1 items-center gap-3 no-underline;
+  }
+
+  .legal-brand img {
+    @apply size-8 shrink-0 rounded-full;
+  }
+
+  .legal-brand div {
+    @apply min-w-0;
+  }
+
+  .legal-brand strong {
+    @apply block text-[15px] leading-tight font-semibold tracking-tight text-onpanel;
+  }
+
+  .legal-brand span {
+    @apply block truncate text-xs text-onpanel/60;
+  }
+
+  .legal-back {
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full bg-onpanel-wash px-3 py-1.5 text-xs font-medium text-onpanel/80 no-underline transition-colors hover:bg-onpanel/20 hover:text-onpanel;
+  }
+
+  .legal {
+    @apply mx-auto max-w-5xl px-5 pt-24 pb-16 sm:pt-28;
+  }
+
+  .legal-head {
+    @apply mb-8;
+  }
+
+  .legal-head h1 {
+    @apply text-2xl font-semibold tracking-tight text-ink sm:text-3xl;
+  }
+
+  .legal-head p {
+    @apply mt-1.5 text-xs text-muted;
+  }
+
+  .legal-grid {
+    @apply gap-10 lg:grid lg:grid-cols-[13rem_1fr] lg:items-start;
+  }
+
+  /* En una columna angosta el índice es una fila que se arrastra; recién en
+     lg se convierte en la columna fija que acompaña la lectura. */
+  .legal-side {
+    @apply mb-8 space-y-3 lg:sticky lg:top-28 lg:mb-0;
+  }
+
+  /* Los dos documentos, con el mismo patrón que las pestañas de la app. */
+  .legal-docs {
+    @apply flex gap-1 rounded-2xl border border-sky/50 bg-surface p-1;
+  }
+
+  .legal-docs a {
+    @apply flex-1 rounded-xl px-3 py-2 text-center text-xs font-medium text-muted no-underline transition-colors hover:text-ink;
+  }
+
+  .legal-docs a[aria-current="page"] {
+    @apply bg-panel text-onpanel hover:text-onpanel;
+  }
+
+  /* El índice. En el teléfono es un desplegable cerrado, como los grupos del
+     panel de la app: catorce secciones abiertas arriba del texto son catorce
+     cosas entre la persona y lo que vino a leer. Recién en lg se abre como la
+     columna que acompaña la lectura y el resumen de arriba desaparece. */
+  .legal-toc {
+    @apply rounded-xl border border-sky/50 bg-surface lg:rounded-none lg:border-0 lg:bg-transparent;
+  }
+
+  .legal-toc summary {
+    @apply flex cursor-pointer list-none items-center gap-2 px-3.5 py-3 text-sm font-medium text-ink;
+  }
+
+  /* En lg el índice se ve siempre, con el desplegable abierto o cerrado: el
+     resumen que lo abriría no se dibuja, así que el estado del `details` no
+     puede ser lo que decide si hay índice. Va con `@supports` porque el
+     navegador que no entienda `::details-content` tiene que quedarse con el
+     resumen a la vista y no con una columna vacía. */
+  @media (width >= 64rem) {
+    @supports selector(::details-content) {
+      .legal-toc summary {
+        display: none;
+      }
+
+      .legal-toc::details-content {
+        content-visibility: visible;
+      }
+    }
+  }
+
+  .legal-toc summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .legal-toc summary svg {
+    @apply size-4 shrink-0 text-muted transition-transform;
+  }
+
+  .legal-toc[open] summary svg {
+    @apply rotate-180;
+  }
+
+  /* El total, para que el desplegable diga cuánto hay antes de abrirlo. */
+  .legal-toc summary span {
+    @apply ml-auto text-xs text-faint tabular-nums;
+  }
+
+  .legal-toc nav {
+    @apply flex flex-col gap-0.5 p-1.5 pt-0 lg:gap-1 lg:p-0;
+  }
+
+  /* En el teléfono cada entrada es algo que se toca, así que va con el alto
+     de los otros controles de la app y no con el de una lista. */
+  .legal-toc a {
+    @apply flex items-baseline gap-2 rounded-lg px-3 py-2.5 text-xs leading-relaxed text-muted no-underline transition-colors hover:bg-wash hover:text-ink lg:py-1.5;
+  }
+
+  .legal-toc a[aria-current="true"] {
+    @apply bg-wash font-medium text-ink;
+  }
+
+  .legal-toc a span {
+    @apply text-[10px] text-faint tabular-nums;
+  }
+
+  .legal-toc a[aria-current="true"] span {
+    @apply text-brand;
+  }
+
+  /* El documento. Cada sección se corre sola por debajo de la isla cuando se
+     llega por el índice o por un enlace con ancla. */
+  .legal-doc section {
+    @apply scroll-mt-28;
+  }
+
+  .legal-doc h2 {
+    @apply mt-9 mb-2 text-base font-semibold tracking-tight text-ink;
+  }
+
+  .legal-doc h3 {
+    @apply mt-5 mb-1.5 text-sm font-semibold text-ink;
+  }
+
+  .legal-doc p {
+    @apply mb-3 text-[15px] leading-relaxed text-soft;
+  }
+
+  .legal-doc ul {
+    @apply mb-3 space-y-1.5 pl-5;
+  }
+
+  .legal-doc li {
+    @apply list-disc text-[15px] leading-relaxed text-soft;
+  }
+
+  .legal-doc li::marker {
+    @apply text-sky;
+  }
+
+  .legal-doc a {
+    @apply text-brand underline underline-offset-2 transition-colors hover:text-ink;
+  }
+
+  .legal-doc strong {
+    @apply font-semibold text-ink;
+  }
+
+  .legal-doc code {
+    @apply rounded bg-wash px-1.5 py-0.5 font-mono text-[13px] text-ink;
+  }
+
+  /* El resumen de arriba: lo mismo que dice el documento, en tres líneas, para
+     quien no va a leer las catorce secciones. No reemplaza al texto. */
+  .legal-lead {
+    @apply rounded-2xl border border-sky/50 bg-surface p-5;
+  }
+
+  .legal-lead p:last-child {
+    @apply mb-0;
+  }
+
+  /* Lo que hay que ver aunque se lea en diagonal. Misma caja que el resto,
+     un poco más marcada por el borde. */
+  .legal-note {
+    @apply my-5 rounded-xl border border-brand/45 bg-surface px-4 py-3.5;
+  }
+
+  .legal-note p {
+    @apply mb-0 text-sm;
+  }
+
+  .legal-foot {
+    @apply mt-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-6 text-xs text-faint;
+  }
+
+  .legal-foot a {
+    @apply text-soft no-underline transition-colors hover:text-ink;
+  }
+}

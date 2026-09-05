@@ -181,6 +181,27 @@ export function ProfilePanel({
             </motion.pre>
           ) : null}
         </AnimatePresence>
+
+        {/* Las legales van acá y no en un pie de página: es el único lugar de la
+            app donde alguien está mirando qué se guarda y qué se comparte. */}
+        <p className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-[11px] text-onpanel/50">
+          <a
+            className="underline underline-offset-2 transition-colors hover:text-onpanel"
+            href="/privacidad"
+            rel="noopener"
+            target="_blank"
+          >
+            Política de privacidad
+          </a>
+          <a
+            className="underline underline-offset-2 transition-colors hover:text-onpanel"
+            href="/terminos"
+            rel="noopener"
+            target="_blank"
+          >
+            Términos del servicio
+          </a>
+        </p>
       </div>
     </div>
   );

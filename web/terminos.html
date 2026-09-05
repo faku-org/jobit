@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="es-UY">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Términos del servicio · JobIt</title>
+    <meta
+      name="description"
+      content="Condiciones de uso de JobIt: qué es y qué no es el buscador, de quién son las ofertas, qué se puede hacer con ellas y qué responsabilidad tiene cada uno."
+    />
+    <link rel="canonical" href="https://jobs.wefaber.net/terminos" />
+    <meta name="robots" content="index, follow" />
+
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e3f2fd" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a1220" />
+
+    <script>
+      /* Mismo criterio que la app: el tema se pinta antes del primer render. */
+      try {
+        const stored = JSON.parse(localStorage.getItem("jobit.prefs.v1") || "{}");
+        const theme =
+          stored.theme === "light" || stored.theme === "dark"
+            ? stored.theme
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
+
+    <link rel="stylesheet" href="/src/legal.css" />
+  </head>
+  <body>
+    <header class="legal-island">
+      <div>
+        <a class="legal-brand" href="/">
+          <img alt="" aria-hidden="true" src="/logo.png" />
+          <div>
+            <strong>JobIt</strong>
+            <span>Términos y privacidad</span>
+          </div>
+        </a>
+        <a class="legal-back" href="/">Volver al buscador</a>
+      </div>
+    </header>
+
+    <main class="legal">
+      <div class="legal-head">
+        <h1>Términos del servicio</h1>
+        <p>Última actualización: 5 de setiembre de 2026</p>
+      </div>
+
+      <div class="legal-grid">
+        <aside class="legal-side">
+          <nav class="legal-docs" aria-label="Documentos">
+            <a aria-current="page" href="/terminos">Términos</a>
+            <a href="/privacidad">Privacidad</a>
+          </nav>
+
+          <details class="legal-toc" open>
+            <summary>
+              <svg
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+              Secciones
+              <span>14</span>
+            </summary>
+
+            <nav aria-label="Secciones de los términos" data-toc>
+              <a href="#quienes-somos"><span>01</span> Quiénes somos</a>
+              <a href="#que-es"><span>02</span> Qué es y qué no es</a>
+              <a href="#quien-puede"><span>03</span> Quién puede usarlo</a>
+              <a href="#terceros"><span>04</span> Ofertas de terceros</a>
+              <a href="#navegador"><span>05</span> Lo tuyo, en tu navegador</a>
+              <a href="#uso"><span>06</span> Uso permitido</a>
+              <a href="#fuentes"><span>07</span> Tus propias fuentes</a>
+              <a href="#embed"><span>08</span> Embeber una oferta</a>
+              <a href="#empresas"><span>09</span> Empresas que publican</a>
+              <a href="#marca"><span>10</span> Marca y contenidos</a>
+              <a href="#garantias"><span>11</span> El servicio, como está</a>
+              <a href="#cambios"><span>12</span> Cambios</a>
+              <a href="#ley"><span>13</span> Ley aplicable</a>
+              <a href="#contacto"><span>14</span> Contacto</a>
+            </nav>
+          </details>
+        </aside>
+
+        <div class="legal-doc">
+          <div class="legal-lead">
+            <p>
+              <strong>JobIt junta avisos de trabajo que publican otros.</strong> No somos una
+              agencia de empleo: no seleccionamos, no recibimos postulaciones y no tenemos contacto
+              con las empresas por vos. Cada oferta enlaza al aviso original y ahí termina lo
+              nuestro.
+            </p>
+            <p>
+              Es gratis, no pide cuenta y <strong>nunca vas a tener que pagar nada</strong> para ver
+              una oferta o postularte.
+            </p>
+          </div>
+
+          <section id="quienes-somos">
+            <h2>1. Quiénes somos</h2>
+            <p>
+              JobIt es un buscador de ofertas de trabajo de Uruguay operado por Faber
+              (<a href="https://wefaber.net">wefaber.net</a>) en
+              <a href="https://jobs.wefaber.net/">jobs.wefaber.net</a>. Para cualquier consulta
+              sobre estos términos escribinos a
+              <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>.
+            </p>
+            <p>
+              Usar el sitio significa aceptar lo que sigue. Si algo de esto no te cierra, el uso del
+              servicio no es obligatorio para nadie.
+            </p>
+          </section>
+
+          <section id="que-es">
+            <h2>2. Qué es JobIt y qué no es</h2>
+            <p>
+              JobIt reúne en un solo lugar avisos de trabajo publicados en portales uruguayos, los
+              llamados del Estado en Uruguay Concursa y las ofertas que las empresas cargan directo
+              en nuestro panel. Los filtra, los ordena y te lleva al aviso original.
+            </p>
+            <p>Lo que no es, para que quede escrito:</p>
+            <ul>
+              <li>
+                <strong>No es una agencia de empleo ni una consultora de selección.</strong> No
+                participamos del proceso, no evaluamos candidatos y no recomendamos a nadie.
+              </li>
+              <li>
+                <strong>No recibimos ni enviamos postulaciones.</strong> Cuando tocás "Postularme"
+                salís al sitio de la fuente o de la empresa, y la postulación ocurre allá, con sus
+                reglas.
+              </li>
+              <li>
+                <strong>No cobramos nada.</strong> Ni a quien busca trabajo ni por destacar un aviso
+                por encima de otro.
+              </li>
+            </ul>
+          </section>
+
+          <section id="quien-puede">
+            <h2>3. Quién puede usarlo</h2>
+            <p>
+              No hace falta registrarse ni dar ningún dato. Alcanza con un navegador con JavaScript
+              habilitado.
+            </p>
+            <p>
+              En Uruguay la edad mínima para trabajar es 15 años y quien tiene menos de 18 necesita
+              la autorización del INAU, un trámite que corresponde al adolescente y al empleador y
+              en el que JobIt no interviene. Si sos menor de edad, lo razonable es que uses el sitio
+              con conocimiento de quien te tiene a cargo.
+            </p>
+          </section>
+
+          <section id="terceros">
+            <h2>4. Las ofertas son de terceros</h2>
+            <p>
+              El texto de cada aviso, el sueldo, los requisitos, la fecha de cierre y los datos de
+              contacto los publica la fuente, no nosotros. Los tomamos como están y los enlazamos.
+            </p>
+            <ul>
+              <li>
+                No verificamos que una oferta sea real, que siga vigente, que las condiciones sean
+                las que dice ni que la empresa exista.
+              </li>
+              <li>
+                Una oferta puede haberse cerrado o cambiado después de que la leímos. La lista se
+                actualiza cuando corre el scraper, no en tiempo real.
+              </li>
+              <li>
+                Si un aviso está mal, desactualizado o es falso, escribinos y lo sacamos, pero la
+                responsabilidad por lo publicado es de quien lo publicó.
+              </li>
+            </ul>
+
+            <div class="legal-note">
+              <p>
+                <strong>Cuidado con las estafas.</strong> Ninguna búsqueda laboral legítima te va a
+                pedir plata por adelantado, un depósito, tus datos de tarjeta, tus claves ni una
+                copia de tu documento antes de una entrevista. Verificá siempre en el aviso original
+                y en la página de la empresa antes de mandar nada.
+              </p>
+            </div>
+          </section>
+
+          <section id="navegador">
+            <h2>5. Lo tuyo vive en tu navegador</h2>
+            <p>
+              Tu perfil, tus guardadas, los descartes, el seguimiento de postulaciones y todas tus
+              preferencias se guardan en tu navegador y no tienen copia en ningún servidor nuestro.
+              Eso es lo que permite usar JobIt sin cuenta, y también significa que
+              <strong
+                >si limpiás los datos del sitio, cambiás de navegador o de dispositivo, o navegás en
+                modo incógnito, eso se pierde</strong
+              >
+              y no lo podemos recuperar. El detalle completo está en la
+              <a href="/privacidad">Política de privacidad</a>.
+            </p>
+          </section>
+
+          <section id="uso">
+            <h2>6. Uso permitido</h2>
+            <p>
+              JobIt está pensado para que una persona busque trabajo. Sobre esa base, no se puede:
+            </p>
+            <ul>
+              <li>
+                Bajar el catálogo de forma automatizada o masiva, ni copiarlo para armar otro
+                servicio.
+              </li>
+              <li>Republicar las ofertas como propias o sin enlazar al aviso original.</li>
+              <li>Revender el acceso, los datos o cualquier parte del servicio.</li>
+              <li>
+                Saltear los límites de peticiones, intentar entrar al panel de administración o
+                probar claves.
+              </li>
+              <li>
+                Usar los datos de contacto que aparecen en los avisos para publicidad, spam o
+                cualquier fin ajeno a postularse.
+              </li>
+              <li>
+                Interferir con el funcionamiento del servicio o de la infraestructura que lo corre.
+              </li>
+            </ul>
+          </section>
+
+          <section id="fuentes">
+            <h2>7. Las fuentes que agregás vos</h2>
+            <p>
+              JobIt te deja sumar tus propias URLs de feeds. Esas direcciones las pide tu navegador
+              directo al sitio de destino: no pasan por nuestro servidor y no las guardamos. Sos
+              responsable de tener derecho a consumir ese feed y de cumplir con los términos del
+              sitio que lo publica.
+            </p>
+          </section>
+
+          <section id="embed">
+            <h2>8. Embeber una oferta</h2>
+            <p>
+              Cada aviso se puede embeber en otra página con <code>?embed=&lt;id&gt;</code>. Está
+              permitido mientras no se altere el contenido, se mantenga el enlace al aviso original
+              y no se presente como propio ni dentro de un contexto engañoso, discriminatorio o
+              ilegal. Podemos pedir que se baje un embed que no cumpla.
+            </p>
+          </section>
+
+          <section id="empresas">
+            <h2>9. Empresas que publican</h2>
+            <p>
+              Quien carga una oferta en el panel declara que el puesto es real, que está autorizado
+              a publicarlo y que el aviso no discrimina por sexo, raza, religión, orientación, edad,
+              discapacidad, situación sindical ni ninguna otra condición ajena a la idoneidad para
+              el cargo, en línea con las leyes 16.045 y 17.677. Podemos editar o dar de baja
+              cualquier aviso que no cumpla, sin aviso previo.
+            </p>
+          </section>
+
+          <section id="marca">
+            <h2>10. Marca y contenidos</h2>
+            <p>
+              El nombre JobIt, el diseño del sitio y el código son de Faber. El contenido de cada
+              aviso es de quien lo publicó: lo mostramos citado y enlazado a su fuente, sin
+              apropiárnoslo.
+            </p>
+          </section>
+
+          <section id="garantias">
+            <h2>11. El servicio se ofrece como está</h2>
+            <p>
+              JobIt se presta tal cual está y según disponibilidad. Puede cortarse, cambiar o dejar
+              de existir. No garantizamos que consigas trabajo, que la información esté completa o
+              exacta, ni que el sitio esté siempre disponible.
+            </p>
+            <p>
+              Dentro de lo que permite la ley, no respondemos por los daños que puedan derivarse del
+              uso del sitio, de una oferta falsa, vencida o incorrecta, ni de lo que pase en el
+              sitio de un tercero al que hayas llegado desde acá. Nada de esto recorta los derechos
+              irrenunciables que te da la ley 17.250 de relaciones de consumo.
+            </p>
+          </section>
+
+          <section id="cambios">
+            <h2>12. Cambios en estos términos</h2>
+            <p>
+              Si cambian, la versión nueva se publica en esta misma página con su fecha. Seguir
+              usando el sitio después de un cambio significa aceptarlo.
+            </p>
+          </section>
+
+          <section id="ley">
+            <h2>13. Ley aplicable</h2>
+            <p>
+              Se aplica la ley uruguaya y cualquier conflicto se resuelve ante los tribunales de
+              Montevideo, Uruguay.
+            </p>
+          </section>
+
+          <section id="contacto">
+            <h2>14. Contacto</h2>
+            <p>
+              Dudas, reclamos, un aviso que hay que bajar o una empresa que quiere publicar:
+              <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>.
+            </p>
+          </section>
+
+          <div class="legal-foot">
+            <a href="/">JobIt</a>
+            <a href="/privacidad">Política de privacidad</a>
+            <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/src/legal.ts"></script>
+  </body>
+</html>
