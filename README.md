@@ -57,6 +57,7 @@ termina donde termina la de verdad.
 | `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
 | `POST /api/stats` | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`. |
 | `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
+| `GET /api/admin/usage` | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión. |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -154,8 +155,18 @@ Google penaliza en los agregadores.
 ## Panel de administración
 
 En `/admin`, con su propio bundle: quien entra a buscar trabajo no se baja el
-código de administrar empresas. Por ahora administra empresas, que es la mitad
-operativa de que puedan publicar directo en vez de depender del scrapeo.
+código de administrar empresas. Tiene tres pestañas: **Empresas** y **Ofertas**,
+que son la mitad operativa de que puedan publicar directo en vez de depender del
+scrapeo, y **Uso**, que es lo único del sistema que mira el uso de todos juntos.
+
+Uso lee de vuelta `stats.jsonl` y `events.jsonl` sobre una ventana de 7, 30 o 90
+días: cuántos resúmenes llegaron, qué se buscó, qué búsquedas no devolvieron ni
+una oferta, qué avisos concentran los clicks en "Postularme", qué filtros se
+usan, y las guardadas, postulaciones, entrevistas y cerradas del período. Es de
+solo lectura y no agrega ni un dato nuevo: cuenta filas que ya estaban escritas,
+sin identificador y con el día y nunca la hora, así que sigue sin haber nada por
+persona. Las búsquedas sin resultados son el único corte que dice qué se busca y
+el tablero no tiene.
 
 La credencial es un hash argon2id. No hay tabla de usuarios ni clave en texto
 plano en ningún lado, y sin hash configurado el panel queda apagado entero:

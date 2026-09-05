@@ -1,20 +1,21 @@
 import { degreeById } from "./catalog.ts";
+import { EDUCATION_RANK, type EducationLevel } from "./education.ts";
 import type { Job } from "./types.ts";
+
+/** Se re-exportan para que el nivel educativo se siga leyendo desde el perfil,
+ * que es donde se usa en la app. */
+export {
+  EDUCATION_LABEL,
+  EDUCATION_LEVELS,
+  EDUCATION_RANK,
+  type EducationLevel,
+} from "./education.ts";
 
 /**
  * What the person studied. Everything about the profile lives in this file and
  * in the browser: nothing here is ever sent anywhere, and the only thing that
  * leaves is the anonymous summary built in stats.ts.
  */
-export type EducationLevel =
-  | "none"
-  | "primary"
-  | "secondary_basic"
-  | "secondary"
-  | "technical"
-  | "university"
-  | "postgrad";
-
 export interface Profile {
   /** Empty until the person picks one. */
   education: EducationLevel | "";
@@ -36,36 +37,6 @@ export const EMPTY_PROFILE: Profile = {
   experienceYears: null,
   shareStats: true,
   onboardedAt: "",
-};
-
-export const EDUCATION_LEVELS: EducationLevel[] = [
-  "none",
-  "primary",
-  "secondary_basic",
-  "secondary",
-  "technical",
-  "university",
-  "postgrad",
-];
-
-export const EDUCATION_LABEL: Record<EducationLevel, string> = {
-  none: "Sin estudios formales",
-  primary: "Primaria",
-  secondary_basic: "Ciclo básico",
-  secondary: "Bachillerato",
-  technical: "Técnico o terciario",
-  university: "Universitario",
-  postgrad: "Posgrado",
-};
-
-export const EDUCATION_RANK: Record<EducationLevel, number> = {
-  none: 0,
-  primary: 1,
-  secondary_basic: 2,
-  secondary: 3,
-  technical: 4,
-  university: 5,
-  postgrad: 6,
 };
 
 /** Each source writes the requirement its own way, so it is read as text. */

@@ -152,6 +152,57 @@ export const updateOffer = (id: string, input: Partial<OfferInput>): Promise<Off
 export const deleteOffer = (id: string): Promise<{ status: string }> =>
   send(`/offers/${id}`, { method: "DELETE" });
 
+/** El uso que ya llegó a los .jsonl, sumado por la API. No hay nada por
+ * persona acá: son filas contadas, igual que como se escribieron. */
+export interface UsageCount {
+  value: string;
+  count: number;
+}
+
+export interface UsageLabelled extends UsageCount {
+  label: string;
+}
+
+export interface UsageJob {
+  id: string;
+  title: string;
+  company: string;
+  source: string;
+  url: string;
+  count: number;
+}
+
+export interface UsageDay {
+  day: string;
+  summaries: number;
+  searches: number;
+  applies: number;
+}
+
+export interface UsageReport {
+  days: number;
+  from: string;
+  to: string;
+  summaries: number;
+  searches: number;
+  applies: number;
+  saved: number;
+  applications: number;
+  interviews: number;
+  closed: number;
+  empty: number;
+  education: UsageCount[];
+  sources: UsageCount[];
+  roles: UsageLabelled[];
+  emptyRoles: UsageLabelled[];
+  filters: UsageCount[];
+  categories: UsageLabelled[];
+  jobs: UsageJob[];
+  daily: UsageDay[];
+}
+
+export const getUsage = (days: number): Promise<UsageReport> => send(`/usage?days=${days}`);
+
 /** Las mismas del catálogo del worker, que es lo que la API acepta. */
 export const CATEGORIES: { slug: string; label: string }[] = [
   { slug: "ventas", label: "Ventas y comercial" },

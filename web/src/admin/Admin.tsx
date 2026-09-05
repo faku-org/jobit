@@ -3,10 +3,12 @@ import { useCallback, useState } from "react";
 import { Unauthorized, logout } from "./api.ts";
 import { Companies } from "./Companies.tsx";
 import { Offers } from "./Offers.tsx";
+import { Usage } from "./Usage.tsx";
 
 const TABS = [
   { id: "companies", label: "Empresas" },
   { id: "offers", label: "Ofertas" },
+  { id: "usage", label: "Uso" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["id"];
@@ -77,8 +79,10 @@ export function Admin({ onLeft }: { onLeft: () => void }) {
             lo que la otra puede mostrar. */}
         {tab === "companies" ? (
           <Companies onCount={setTotal} onFail={handle} />
-        ) : (
+        ) : tab === "offers" ? (
           <Offers onFail={handle} />
+        ) : (
+          <Usage onFail={handle} />
         )}
       </main>
     </div>

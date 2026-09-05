@@ -12,6 +12,7 @@ import { COMPANY_STATUSES } from "./companies.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
 import * as offers from "./offers.ts";
 import { OFFER_STATUSES } from "./offers.ts";
+import { loadUsage } from "./usage.ts";
 
 /**
  * Probar claves es lo único que se puede atacar sin estar adentro, así que
@@ -113,6 +114,11 @@ export const admin = new Elysia({ prefix: "/api/admin" })
     },
   })
   .get("/session", () => ({ status: "ok" }))
+  /** Lo que ya llegó a stats.jsonl y events.jsonl, sumado. Vive acá y no en
+   * /api porque es lo único del sistema que mira el uso de todos juntos. */
+  .get("/usage", ({ query }) => loadUsage(query.days ?? 30), {
+    query: t.Object({ days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })) }),
+  })
   .get(
     "/companies",
     ({ query }) => ({
