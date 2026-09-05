@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="es-UY">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Política de privacidad · JobIt</title>
+    <meta
+      name="description"
+      content="Qué guarda JobIt y dónde: el perfil y las guardadas quedan en tu navegador, el CV se lee en tu máquina y lo único que sale son números anónimos que se apagan en un click."
+    />
+    <link rel="canonical" href="https://jobs.wefaber.net/privacidad" />
+    <meta name="robots" content="index, follow" />
+
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e3f2fd" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a1220" />
+
+    <script>
+      /* Mismo criterio que la app: el tema se pinta antes del primer render. */
+      try {
+        const stored = JSON.parse(localStorage.getItem("jobit.prefs.v1") || "{}");
+        const theme =
+          stored.theme === "light" || stored.theme === "dark"
+            ? stored.theme
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
+
+    <link rel="stylesheet" href="/src/legal.css" />
+  </head>
+  <body>
+    <header class="legal-island">
+      <div>
+        <a class="legal-brand" href="/">
+          <img alt="" aria-hidden="true" src="/logo.png" />
+          <div>
+            <strong>JobIt</strong>
+            <span>Términos y privacidad</span>
+          </div>
+        </a>
+        <a class="legal-back" href="/">Volver al buscador</a>
+      </div>
+    </header>
+
+    <main class="legal">
+      <div class="legal-head">
+        <h1>Política de privacidad</h1>
+        <p>Última actualización: 5 de setiembre de 2026</p>
+      </div>
+
+      <div class="legal-grid">
+        <aside class="legal-side">
+          <nav class="legal-docs" aria-label="Documentos">
+            <a href="/terminos">Términos</a>
+            <a aria-current="page" href="/privacidad">Privacidad</a>
+          </nav>
+
+          <details class="legal-toc" open>
+            <summary>
+              <svg
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+              Secciones
+              <span>13</span>
+            </summary>
+
+            <nav aria-label="Secciones de la política" data-toc>
+              <a href="#responsable"><span>01</span> Quién responde</a>
+              <a href="#navegador"><span>02</span> Lo que queda en tu navegador</a>
+              <a href="#cv"><span>03</span> El CV</a>
+              <a href="#que-sale"><span>04</span> Lo único que sale</a>
+              <a href="#registros"><span>05</span> Registros del servidor</a>
+              <a href="#cookies"><span>06</span> Cookies</a>
+              <a href="#terceros"><span>07</span> Terceros</a>
+              <a href="#menores"><span>08</span> Menores</a>
+              <a href="#derechos"><span>09</span> Tus derechos</a>
+              <a href="#conservacion"><span>10</span> Cuánto se conserva</a>
+              <a href="#seguridad"><span>11</span> Seguridad</a>
+              <a href="#cambios"><span>12</span> Cambios</a>
+              <a href="#contacto"><span>13</span> Contacto</a>
+            </nav>
+          </details>
+        </aside>
+
+        <div class="legal-doc">
+          <div class="legal-lead">
+            <p>
+              <strong>No hay cuenta, no hay contraseña y no hay ningún identificador tuyo.</strong>
+              Tu perfil, tus guardadas y tus postulaciones viven en tu navegador y no tienen copia
+              en ningún servidor.
+            </p>
+            <p>
+              <strong>El CV se lee en tu máquina.</strong> El archivo no se sube a ningún lado ni
+              pasa por ninguna IA.
+            </p>
+            <p>
+              Lo único que sale son <strong>números anónimos de uso</strong>, sin texto libre y sin
+              nada que apunte a vos. Los podés ver enteros y apagarlos desde Perfil.
+            </p>
+          </div>
+
+          <section id="responsable">
+            <h2>1. Quién responde por esto</h2>
+            <p>
+              JobIt lo opera Faber (<a href="https://wefaber.net">wefaber.net</a>) desde
+              <a href="https://jobs.wefaber.net/">jobs.wefaber.net</a>. Consultas sobre privacidad:
+              <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>. Nos regimos por la ley 18.331
+              de protección de datos personales de Uruguay y su reglamentación.
+            </p>
+          </section>
+
+          <section id="navegador">
+            <h2>2. Lo que queda en tu navegador</h2>
+            <p>
+              El sitio guarda esto en el almacenamiento local de tu navegador, bajo las claves
+              <code>jobit.prefs.v1</code> y <code>jobit.sections.v1</code>. Nada de esta lista sale
+              de tu dispositivo:
+            </p>
+            <ul>
+              <li>
+                <strong>Tu perfil:</strong> nivel educativo, títulos, cursos y años de experiencia.
+              </li>
+              <li>
+                <strong>Tus preferencias:</strong> modalidad, jornada, nivel, rubros, departamentos
+                y rango de sueldo.
+              </li>
+              <li><strong>Las ofertas guardadas</strong> y las que descartaste.</li>
+              <li>
+                <strong>El seguimiento de postulaciones:</strong> el título del aviso, la empresa,
+                el rubro, la fuente, el enlace y en qué estado está (postulada, entrevista,
+                cerrada).
+              </li>
+              <li>
+                <strong>Las fuentes propias</strong> que hayas agregado, con su nombre y su URL.
+              </li>
+              <li>
+                <strong>Ajustes de la interfaz:</strong> el tema, qué secciones dejaste abiertas, si
+                ya viste la intro y la fecha del último envío de estadísticas.
+              </li>
+            </ul>
+            <p>
+              Esto se borra entero desde
+              <strong>Perfil, Borrar datos, "Borrar todos mis datos de este navegador"</strong>, o
+              limpiando los datos del sitio desde tu navegador. Como no hay copia en ningún
+              servidor, borrarlo es definitivo.
+            </p>
+          </section>
+
+          <section id="cv">
+            <h2>3. El CV</h2>
+            <p>
+              Cuando importás un CV en PDF, txt o markdown (hasta 8 MB), el archivo
+              <strong>se lee en tu navegador</strong>. No se sube a nuestro servidor, no se guarda y
+              no se manda a ningún servicio de terceros ni a ningún modelo de inteligencia
+              artificial.
+            </p>
+            <p>
+              De esa lectura solo queda lo que coincide con los catálogos que usa la app: títulos,
+              cursos, rubros y departamento. El resto del texto, que es donde están tu nombre, tu
+              teléfono y tu historia laboral, se descarta y nunca se guarda. Lo que la lectura
+              propone lo confirmás vos antes de que entre al perfil.
+            </p>
+          </section>
+
+          <section id="que-sale">
+            <h2>4. Lo único que sale del navegador</h2>
+            <p>
+              Hay un interruptor en Perfil,
+              <strong>"Compartir estadísticas anónimas de uso"</strong>, que viene prendido y se
+              apaga en un click. Mientras esté prendido salen dos cosas, las dos sin identificador,
+              sin sesión y sin que se guarde tu IP ni tu user agent junto a ellas:
+            </p>
+
+            <h3>Un resumen, una vez por día</h3>
+            <ul>
+              <li>Tu nivel educativo y si tenés algún título.</li>
+              <li>Cuántos títulos, cuántos cursos y cuántos años de experiencia.</li>
+              <li>
+                Cuántas ofertas guardaste, a cuántas te postulaste, cuántas pasaron a entrevista y
+                cuántas se cerraron.
+              </li>
+              <li>De qué fuentes son las ofertas que mirás.</li>
+            </ul>
+
+            <h3>Eventos de uso, en lote, cuando dejás la pestaña</h3>
+            <ul>
+              <li>
+                <strong>Búsquedas:</strong> qué puesto se buscó, en qué rubro, qué filtros estaban
+                puestos (los nombres, no sus valores) y cuántos resultados dio.
+              </li>
+              <li>
+                <strong>Clicks en "Postularme":</strong> el id de la oferta, su fuente y su rubro.
+                El id identifica a un aviso público, no a quien lo abrió.
+              </li>
+            </ul>
+
+            <div class="legal-note">
+              <p>
+                <strong>Lo que escribís en el buscador no sale.</strong> Sale el puesto que ese
+                texto nombra, tomado del mismo catálogo con el que se clasifican los avisos, o
+                "otro" cuando no nombra ninguno. El servidor vuelve a recortar lo que recibe contra
+                ese mismo vocabulario antes de escribirlo, así que el archivo no puede terminar
+                guardando texto libre por más que alguien se lo mande a mano.
+              </p>
+            </div>
+
+            <p>
+              Cada fila se estampa con el día y nunca con la hora, y no hay sesión ni orden entre
+              ellas: dos eventos del mismo navegador son indistinguibles de dos de navegadores
+              distintos. Sirve para saber qué se busca, qué búsquedas no encuentran nada y qué le
+              falta al catálogo, no para seguir a nadie.
+            </p>
+            <p>
+              El panel de perfil te muestra el <strong>JSON exacto que se envía</strong>, incluida
+              la cola de eventos que todavía no salió. Si apagás el interruptor, deja de salir todo,
+              y lo que se había juntado antes se descarta en vez de mandarse de despedida.
+            </p>
+          </section>
+
+          <section id="registros">
+            <h2>5. Los registros del servidor</h2>
+            <p>
+              Como cualquier sitio web, el servidor anota las peticiones que recibe: dirección IP,
+              fecha, la dirección pedida, el código de respuesta y el user agent. Sirve para
+              diagnosticar fallas y frenar abusos, se rota y se borra solo a las pocas semanas, y no
+              se cruza con lo del punto 4 ni se usa para armar un perfil de nadie.
+            </p>
+            <p>
+              Un detalle honesto: cuando buscás, el término viaja en la dirección de la consulta a
+              la API, así que <strong>ese texto sí queda en el registro de acceso</strong> junto a
+              la IP de quien lo pidió, mientras ese registro exista. Es la única parte del sistema
+              donde eso pasa, y es la razón por la que el resto está armado como está.
+            </p>
+            <p>
+              La API también lleva una cuenta de peticiones por dirección IP para limitar abusos.
+              Vive en memoria, nunca se escribe a disco y se descarta cuando la ventana se cierra.
+            </p>
+          </section>
+
+          <section id="cookies">
+            <h2>6. Cookies</h2>
+            <p>
+              La app pública <strong>no usa ninguna cookie</strong>. No hay analítica de terceros,
+              ni píxeles, ni scripts, ni fuentes tipográficas cargadas desde afuera. Por eso tampoco
+              vas a ver un cartel pidiéndote que aceptes cookies.
+            </p>
+            <p>
+              La única cookie del sistema es la sesión del panel de administración: solo la recibe
+              quien administra, es HttpOnly, SameSite=Strict, alcanza únicamente a
+              <code>/api/admin</code> y vence a las 12 horas.
+            </p>
+          </section>
+
+          <section id="terceros">
+            <h2>7. Terceros</h2>
+            <ul>
+              <li>
+                <strong>Cuando salís a una oferta</strong> (BuscoJobs, Uruguay Concursa, la web de
+                la empresa) entrás a un sitio ajeno, con su propia política de privacidad. El
+                navegador se va sin decir de dónde viene, porque el sitio manda
+                <code>Referrer-Policy: no-referrer</code>.
+              </li>
+              <li>
+                <strong>Las fuentes propias que agregues</strong> las pide tu navegador directo al
+                sitio de destino, que va a ver tu dirección IP. Nosotros no intermediamos ese
+                pedido.
+              </li>
+              <li>
+                <strong>Compartir una oferta</strong> usa el menú de tu sistema operativo o
+                WhatsApp, según lo que elijas. Nosotros no vemos con quién la compartiste.
+              </li>
+              <li>
+                <strong>Dónde corre todo:</strong> en un único servidor bajo nuestro control. No hay
+                proveedores procesando datos por nosotros, ni analítica, ni servicios en la nube
+                involucrados en las estadísticas.
+              </li>
+            </ul>
+          </section>
+
+          <section id="menores">
+            <h2>8. Menores</h2>
+            <p>
+              JobIt está pensado para quien busca su primer empleo, así que lo usan personas
+              jóvenes. No pedimos nombre, documento, teléfono, correo ni ningún dato que identifique
+              a nadie, y por lo tanto tampoco los pedimos a un menor. Nada de lo que sale del
+              navegador permite saber quién es ni qué edad tiene quien está buscando.
+            </p>
+          </section>
+
+          <section id="derechos">
+            <h2>9. Tus derechos</h2>
+            <p>
+              La ley 18.331 te da derecho a acceder a tus datos, rectificarlos, actualizarlos,
+              incluirlos y suprimirlos. Acá eso se traduce de una forma bastante directa:
+            </p>
+            <ul>
+              <li>
+                <strong>Acceso:</strong> todo lo tuyo está en tu navegador y lo ves en el panel de
+                perfil, incluido el JSON exacto de lo que se comparte.
+              </li>
+              <li>
+                <strong>Rectificación:</strong> editás el perfil y las preferencias cuando quieras,
+                desde la misma pantalla.
+              </li>
+              <li>
+                <strong>Supresión:</strong> el botón "Borrar todos mis datos de este navegador"
+                borra todo de una, sin pedirnos permiso ni esperar respuesta.
+              </li>
+            </ul>
+            <p>
+              Sobre las filas anónimas: no llevan identificador, así que
+              <strong>ni siquiera nosotros podemos saber cuáles son tuyas</strong> para mostrártelas
+              o borrarlas. Lo que sí podés hacer es dejar de generarlas apagando el interruptor.
+            </p>
+            <p>
+              Si querés consultar algo, escribinos a
+              <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>. Y si considerás que tus
+              derechos no fueron respetados, podés reclamar ante la
+              <a href="https://www.gub.uy/unidad-reguladora-control-datos-personales/"
+                >Unidad Reguladora y de Control de Datos Personales (URCDP)</a
+              >.
+            </p>
+          </section>
+
+          <section id="conservacion">
+            <h2>10. Cuánto se conserva cada cosa</h2>
+            <ul>
+              <li><strong>Lo de tu navegador:</strong> hasta que vos lo borres.</li>
+              <li>
+                <strong>Las filas anónimas de uso:</strong> se conservan mientras sirvan para
+                entender qué se busca y mejorar el catálogo. Al no tener identificador, no son datos
+                de una persona.
+              </li>
+              <li>
+                <strong>Los registros del servidor:</strong> se rotan y se borran a las pocas
+                semanas.
+              </li>
+            </ul>
+          </section>
+
+          <section id="seguridad">
+            <h2>11. Seguridad</h2>
+            <p>
+              El sitio se sirve solo por HTTPS, con HSTS y una política de contenidos que impide
+              cargar scripts de afuera. El panel de administración no tiene tabla de usuarios ni
+              contraseñas en texto plano: guarda un hash argon2id de la clave y, de la sesión
+              abierta, solo el sha256 del token, así que una copia del archivo no alcanza para
+              hacerse pasar por nadie.
+            </p>
+          </section>
+
+          <section id="cambios">
+            <h2>12. Cambios</h2>
+            <p>
+              Si esta política cambia, la versión nueva queda publicada acá con su fecha arriba. Los
+              cambios que afecten qué sale del navegador se avisan además dentro de la app.
+            </p>
+          </section>
+
+          <section id="contacto">
+            <h2>13. Contacto</h2>
+            <p>
+              <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>. Escribinos también si
+              encontrás algo en el sitio que no coincida con lo que dice este documento.
+            </p>
+          </section>
+
+          <div class="legal-foot">
+            <a href="/">JobIt</a>
+            <a href="/terminos">Términos del servicio</a>
+            <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/src/legal.ts"></script>
+  </body>
+</html>

@@ -114,6 +114,45 @@ dos de navegadores distintos. El panel de perfil muestra el JSON exacto que se
 envía, incluida la cola de eventos sin mandar, y tiene el interruptor para
 apagarlo.
 
+## Términos y privacidad
+
+`web/terminos.html` y `web/privacidad.html`, dos entradas más del build. No
+cargan React: el estilo sale de `web/src/legal.css`, que importa el mismo
+`index.css` que la app, y todo el javascript es `web/src/legal.ts`, dos kilos
+que hacen tres cosas, las tres opcionales: marcan en el índice la sección que se
+está leyendo, pliegan ese índice en el teléfono y cambian de un documento al
+otro sin recargar la página. Sin javascript el índice es una lista de enlaces
+que andan y cambiar de documento es navegar.
+
+Las dos comparten cáscara: arriba la misma isla de la app y al costado el
+índice, fijo mientras se lee. En el teléfono ese índice es un desplegable
+cerrado, como los grupos del panel: el `<details>` viene abierto en el html, así
+que sin javascript se ve entero. En `lg` el resumen que lo abre no se dibuja y
+el índice se muestra igual aunque el `details` esté cerrado, con
+`::details-content` detrás de un `@supports`, porque si eso dependiera del
+estado del `details` una ventana agrandada podría quedarse sin índice y sin
+forma de abrirlo.
+
+Cambiar entre los dos documentos no recarga: se pide el html, se reemplaza el
+`<main>`, se actualizan el título y el canonical y la url queda como si se
+hubiera navegado, con el `popstate` atendido. El otro documento se trae medio
+segundo después de cargar, así que el primer cambio no espera a la red.
+
+Se sirven en `/terminos` y `/privacidad`, y como el build deja los archivos con
+`.html` cada una necesita su `location =` en `deploy/nginx.conf`, igual que
+`/admin`: el catch-all devolvería la app y la url quedaría mostrando el
+buscador. Esa misma regla la repite un plugin en `web/vite.config.ts` para el
+dev server y para `vite preview`, que si no devuelven la app entera, con React y
+el worker de PDF, donde el servidor devuelve un documento de texto. Están en el
+sitemap y se enlazan desde el panel de perfil, abajo del interruptor de
+estadísticas.
+
+La política describe el sistema tal cual está, así que cambiar qué sale del
+navegador es cambiar el documento: el punto 4 lista campo por campo lo que
+arman `web/src/lib/stats.ts` y `web/src/lib/events.ts`, y el punto 5 admite lo
+único que el resto del diseño no evita, que el término de búsqueda viaja en la
+query de `/api/jobs` y queda en el `access_log` de nginx junto a la ip.
+
 ## Compartir y embeber
 
 Cada oferta tiene un botón de compartir, tanto en la tarjeta como en el panel:
