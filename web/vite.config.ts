@@ -4,7 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const API_TARGET = process.env.API_URL ?? "http://localhost:3000";
+/** 127.0.0.1 y no "localhost": la API escucha en IPv4 (HOST por defecto es
+ * 127.0.0.1) y macOS resuelve "localhost" a ::1 primero, así que el proxy
+ * terminaba en cualquier otro proceso que tuviera el puerto en IPv6. */
+const API_TARGET = process.env.API_URL ?? "http://127.0.0.1:3000";
 
 const PROXY = { "/api": { target: API_TARGET, changeOrigin: true } };
 
