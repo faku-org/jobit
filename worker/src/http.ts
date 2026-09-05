@@ -1,4 +1,7 @@
-const USER_AGENT = "jobit/0.1 (personal job-search tool)";
+/** BuscoJobs answers 403 to the old bot UA from a VPS. A browser UA is
+ * enough from some networks; the datacenter IP may still be blocked. */
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 interface RequestOptions {
   retries?: number;

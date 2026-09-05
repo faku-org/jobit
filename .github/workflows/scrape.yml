@@ -13,8 +13,8 @@ jobs:
     timeout-minutes: 40
     steps:
       # Corre sobre el deploy en /srv/jobit, no sobre el checkout: el output
-      # y el cache de detalles viven ahí, fuera del rsync.
+      # y el cache de detalles viven ahí, fuera del rsync. El cron lo hace
+      # como `jobit`; el runner no puede escribir ese jobs.json (EACCES).
       - name: Scrape into /srv/jobit
-        run: |
-          cd /srv/jobit
-          PATH=/opt/bun:$PATH /opt/bun/bun run scrape
+        working-directory: /srv/jobit
+        run: sudo -u jobit env PATH=/opt/bun:$PATH /opt/bun/bun run scrape
