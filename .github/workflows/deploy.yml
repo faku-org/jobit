@@ -39,11 +39,18 @@ jobs:
       # Va el repo entero porque package.json declara workspaces y bun necesita
       # verlos para resolver. Lo que el worker scrapea y lo que la API escribe
       # quedan fuera del sync, para no borrar las ofertas ni las estadísticas.
+      #
+      # Sin -a a propósito: el runner no es root y los dirs preexistentes de
+      # /srv/jobit son de jobit (con ACL). -a intentaría chgrp, chmod y utimes
+      # sobre dirs ajenos y muere con EPERM (exit 23). -rltO solo transfiere
+      # contenido; los archivos nuevos quedan con los permisos del umask del
+      # runner (644/755), que la API lee como jobit por o+r.
       - name: Deploy API to /srv/jobit/
         run: |
-          rsync -a --delete \
+          rsync -rltO --delete \
             --exclude '.git' \
             --exclude 'node_modules' \
+            --exclude '.bun' \
             --exclude 'web/dist' \
             --exclude 'worker/output' \
             --exclude 'worker/cache' \
@@ -59,7 +66,7 @@ jobs:
       - name: Check it came back
         run: |
           for attempt in $(seq 1 10); do
-            if curl -fsS http://127.0.0.1:3000/health > /dev/null; then
+            if curl -fsS http://127.0.0.1:3200/health > /dev/null; then
               echo "API arriba"
               exit 0
             fi

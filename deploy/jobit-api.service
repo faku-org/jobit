@@ -9,14 +9,18 @@ Type=simple
 User=jobit
 Group=jobit
 WorkingDirectory=/srv/jobit
-ExecStart=/usr/local/bin/bun run api/src/index.ts
+# Bun propio en /opt/bun: ProtectHome=true aísla /home, donde vive el bun de
+# hermes (~/.bun/bin/bun, symlink en /usr/local/bin/bun). Tras un upgrade de
+# bun de hermes, refrescar con: sudo cp $(readlink -f /usr/local/bin/bun) /opt/bun/bun
+ExecStart=/opt/bun/bun run api/src/index.ts
 Restart=on-failure
 RestartSec=5
 
 # Solo escucha en loopback: nginx es el único que llega, y por eso el
 # x-forwarded-for que el limitador usa para contar es confiable.
 Environment=HOST=127.0.0.1
-Environment=PORT=3000
+# 3200: en el VPS de producción el 3000 ya lo usa gantt (OhMyGantt).
+Environment=PORT=3200
 Environment=CORS_ORIGIN=https://jobs.wefaber.net
 Environment=JOBS_FILE=/srv/jobit/worker/output/jobs.json
 Environment=STATS_FILE=/srv/jobit/data/stats.jsonl

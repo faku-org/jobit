@@ -13,6 +13,13 @@ Todo lo de acá es de una sola vez, en el VPS.
 sudo useradd --system --home /srv/jobit --shell /usr/sbin/nologin jobit
 sudo mkdir -p /srv/jobit/data /srv/jobit/worker/output /var/www/jobs.wefaber.net
 sudo chown -R jobit:jobit /srv/jobit
+
+El servicio corre como `jobit` con `ProtectHome=true`: necesita un bun propio,
+fuera de `/home` (el de hermes vive en `~/.bun` y jobit no puede ejecutarlo):
+
+```bash
+sudo mkdir -p /opt/bun && sudo cp /home/hermes/.bun/bin/bun /opt/bun/bun
+```
 ```
 
 El usuario del runner necesita poder escribir en las dos rutas que sincroniza:
@@ -54,7 +61,7 @@ lo explique.
 Por eso va a un archivo, que nadie interpola:
 
 ```bash
-sudo -u jobit bun -e 'await Bun.write("/srv/jobit/data/admin.hash", await Bun.password.hash(prompt("clave: ")))'
+sudo -u jobit /opt/bun/bun -e 'await Bun.write("/srv/jobit/data/admin.hash", await Bun.password.hash(prompt("clave: ")))'
 sudo chmod 600 /srv/jobit/data/admin.hash
 ```
 
@@ -93,7 +100,7 @@ archivo queda fuera del deploy a propósito. El scrapeo va por cron, con el
 usuario del servicio:
 
 ```
-15 */6 * * * cd /srv/jobit && /usr/local/bin/bun run scrape
+15 */6 * * * cd /srv/jobit && PATH=/opt/bun:$PATH /opt/bun/bun run scrape
 ```
 
 La API relee el archivo cuando le cambia el mtime, así que no hay que
