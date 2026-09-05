@@ -200,7 +200,17 @@ export interface Preferences {
   salary: SalaryPreference;
   /** Order the feed by fit instead of by date. */
   rankByFit: boolean;
+  /** How tightly “Para vos” and the match sort follow the profile. */
+  mix: Mix;
 }
+
+/** broad = every preference hit; focused = a short list of the best hits. */
+export type Mix = "broad" | "balanced" | "focused";
+
+export const MIXES: Mix[] = ["broad", "balanced", "focused"];
+
+export const isMix = (value: unknown): value is Mix =>
+  typeof value === "string" && (MIXES as readonly string[]).includes(value);
 
 export const EMPTY_PREFERENCES: Preferences = {
   modes: [],
@@ -212,6 +222,7 @@ export const EMPTY_PREFERENCES: Preferences = {
   jobTypes: [],
   salary: EMPTY_SALARY,
   rankByFit: true,
+  mix: "balanced",
 };
 
 /** Adds or removes a value from one of the preference lists. */

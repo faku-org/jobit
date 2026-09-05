@@ -14,6 +14,10 @@ import type {
 
 export const PAGE_SIZE = 50;
 
+/** Lo máximo que la API sirve de una: sirve para recuperar de un pedido lo que
+ * ya se había paginado, en vez de volver a la primera página. */
+export const MAX_PAGE = 200;
+
 /** Everything that decides which offers come back, minus the page. */
 export interface JobsQueryOptions {
   filters: Filters;
@@ -36,6 +40,8 @@ export interface JobsQueryOptions {
 
 export interface JobsRequest extends JobsQueryOptions {
   offset: number;
+  /** Cuántas traer; una página si no se dice otra cosa. */
+  limit?: number;
 }
 
 /** An id no job can have, so the API answers an impossible query with zero rows. */
@@ -72,6 +78,7 @@ function appendRanking(params: URLSearchParams, ranking: Ranking): void {
   if (ranking.experienceYears !== null) {
     params.set("rank_experience", String(ranking.experienceYears));
   }
+  if (ranking.mix !== "balanced") params.set("rank_mix", ranking.mix);
 }
 
 function buildQuery(request: JobsRequest): string {
@@ -115,10 +122,17 @@ function buildQuery(request: JobsRequest): string {
   if (filters.department) params.set("department", filters.department);
   if (filters.noExperience) params.set("no_experience", "true");
   if (filters.days !== null) params.set("days", String(filters.days));
-  params.set("limit", String(PAGE_SIZE));
+  params.set("limit", String(Math.min(request.limit ?? PAGE_SIZE, MAX_PAGE)));
   params.set("offset", String(offset));
   return params.toString();
 }
+
+/**
+ * La misma consulta, sin la página: dos vistas con los mismos filtros piden lo
+ * mismo y comparten lo ya traído. Es la clave de la caché y de los prefetch.
+ */
+export const jobsQueryKey = (options: JobsQueryOptions): string =>
+  buildQuery({ ...options, offset: 0, limit: PAGE_SIZE });
 
 /** True for the rejection a cancelled fetch throws, which is never an error. */
 export const isAbortError = (error: unknown): boolean =>
@@ -132,6 +146,12 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 export function fetchJobs(request: JobsRequest, signal?: AbortSignal): Promise<JobsResponse> {
   return getJson<JobsResponse>(`/api/jobs?${buildQuery(request)}`, signal);
+}
+
+/** La misma consulta pero ya armada, que es como viaja un prefetch: la clave
+ * de la caché es exactamente la query de su primera página. */
+export function fetchJobsQuery(query: string, signal?: AbortSignal): Promise<JobsResponse> {
+  return getJson<JobsResponse>(`/api/jobs?${query}`, signal);
 }
 
 /** One offer by id, used by a shared link and by the embed. */

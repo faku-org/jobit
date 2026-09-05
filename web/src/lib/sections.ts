@@ -53,20 +53,16 @@ export function workSummary(preferences: Preferences): string {
 }
 
 /** An empty source list means every board, which is worth saying out loud. */
-export function advancedSummary(
-  sources: string[],
-  allSources: string[],
-  feeds: CustomFeed[],
-): string {
-  const own = feeds.filter((feed) => feed.enabled).length;
-  const chosen =
-    sources.length === 0
-      ? allSources.length > 0
-        ? "todas las fuentes"
-        : ""
-      : sources.length === 1 && sources[0] !== undefined
-        ? (SOURCE_LABEL[sources[0]] ?? sources[0])
-        : plural(sources.length, "fuente", "fuentes");
+export function sourcesSummary(sources: string[], allSources: string[]): string {
+  if (sources.length === 0) return allSources.length > 0 ? "todas las fuentes" : "";
+  const [only] = sources;
+  if (sources.length === 1 && only !== undefined) return SOURCE_LABEL[only] ?? only;
+  return plural(sources.length, "fuente", "fuentes");
+}
 
-  return join([chosen, own > 0 ? plural(own, "feed propio", "feeds propios") : ""]);
+/** Lo que hay en Avanzado son los feeds que este navegador lee por su cuenta:
+ * los que están apagados no cuentan porque no traen nada. */
+export function advancedSummary(feeds: CustomFeed[]): string {
+  const own = feeds.filter((feed) => feed.enabled).length;
+  return own === 0 ? "" : plural(own, "feed propio", "feeds propios");
 }

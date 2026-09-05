@@ -1,50 +1,51 @@
 import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { CategoryChips } from "./components/CategoryChips.tsx";
-import { DynamicIsland } from "./components/DynamicIsland.tsx";
-import { FadeUp } from "./components/FadeUp.tsx";
-import { FilterBar } from "./components/FilterBar.tsx";
-import { JobCard } from "./components/JobCard.tsx";
-import { JobList } from "./components/JobList.tsx";
-import { JobModal } from "./components/JobModal.tsx";
-import { Market } from "./components/Market.tsx";
-import { Onboarding } from "./components/Onboarding.tsx";
-import { EmptyState, ErrorState, JobListSkeleton } from "./components/States.tsx";
-import { Tracking } from "./components/Tracking.tsx";
-import type { TagActions } from "./components/JobChips.tsx";
-import { ViewTabs } from "./components/ViewTabs.tsx";
+import { CategoryChips } from "./components/board/CategoryChips.tsx";
+import { DynamicIsland } from "./components/board/DynamicIsland.tsx";
+import { FadeUp } from "./components/ui/FadeUp.tsx";
+import { FilterBar } from "./components/board/FilterBar.tsx";
+import { JobCard } from "./components/job/JobCard.tsx";
+import { JobList } from "./components/job/JobList.tsx";
+import { JobModal } from "./components/job/JobModal.tsx";
+import { Market } from "./components/market/Market.tsx";
+import { Onboarding } from "./components/profile/Onboarding.tsx";
+import { EmptyState, ErrorState, JobListSkeleton } from "./components/board/States.tsx";
+import { Tracking } from "./components/board/Tracking.tsx";
+import type { TagActions } from "./components/job/JobChips.tsx";
+import { ViewTabs } from "./components/board/ViewTabs.tsx";
 import { useDebounced } from "./hooks/useDebounced.ts";
 import { useJobPrefs } from "./hooks/useJobPrefs.ts";
 import { useJobLink } from "./hooks/useJobLink.ts";
 import { useJobs } from "./hooks/useJobs.ts";
 import { useViewLink } from "./hooks/useViewLink.ts";
 import { useCustomFeeds } from "./hooks/useCustomFeeds.ts";
-import { useMarket } from "./hooks/useMarket.ts";
+import { prefetchMarket, useMarket } from "./hooks/useMarket.ts";
+import { usePrefetchViews } from "./hooks/usePrefetch.ts";
 import { useStats } from "./hooks/useStats.ts";
 import { useSearchTracking, useTracking } from "./hooks/useTracking.ts";
 import { useTheme } from "./hooks/useTheme.ts";
-import { fetchJob, fetchMeta, isAbortError } from "./lib/api.ts";
+import { fetchJob, fetchMeta, isAbortError, jobsQueryKey } from "./lib/api.ts";
+import { prefetchJobs } from "./lib/jobsCache.ts";
+import { BOARD_VIEWS, type BoardContext, jobsQuery } from "./lib/query.ts";
 import { fadeUpTransition } from "./lib/motion.ts";
 import { pluralOffers } from "./lib/format.ts";
 import { readDevFlags } from "./lib/dev.ts";
 import { isOnboarded } from "./lib/profile.ts";
-import { isEmptyRanking, toRanking } from "./lib/ranking.ts";
+import { pickHighlights } from "./lib/match.ts";
+import { toRanking } from "./lib/ranking.ts";
 import { readViewState } from "./lib/url.ts";
 import {
   EMPTY_FILTERS,
-  STATE_SOURCE,
   type Filters,
   type Application,
   type Job,
   type Meta,
-  type Sort,
   type Tag,
   type View,
   applyTagToFilters,
   groupByCategory,
   hasActiveFilters,
-  hasSalaryPreference,
   hiddenCount,
   matchesFilters,
   matchesPreferences,
@@ -150,43 +151,46 @@ export default function App() {
    * profile changes this object, which changes the query, which refetches.
    */
   const ranking = toRanking(prefs.preferences, prefs.profile);
-  const canRank = !isEmptyRanking(ranking);
-  /** The saved view is the person's own order, and the Estado view is a race
-   * against a deadline: neither is the place to second-guess with a score. */
-  const sort: Sort | undefined = isStateView
-    ? "closing"
-    : !isSavedView && prefs.preferences.rankByFit && canRank
-      ? "match"
-      : undefined;
+  /**
+   * Todo lo que decide qué ofertas pide una lista. Sale de acá y no de cada
+   * vista porque la misma cuenta la necesitan dos: la que se está mirando y la
+   * que se va a tocar, que se trae de fondo con esta misma consulta.
+   */
+  const board: BoardContext = {
+    filters: { ...filters, q: debouncedQuery },
+    preferences: prefs.preferences,
+    ranking,
+    savedIds,
+    discardedIds,
+    sources: prefs.sources,
+    similarOnly,
+    reviewing,
+  };
 
-  const { jobs, total, status, error, hasMore, loadMore } = useJobs(
-    {
-      filters: {
-        ...filters,
-        q: debouncedQuery,
-        category: isSavedView ? "" : filters.category,
-      },
-      ids: isSavedView
-        ? savedIds.length > 0
-          ? savedIds
-          : ["none"]
-        : reviewing
-          ? discardedIds
-          : undefined,
-      preferences: similarOnly ? prefs.preferences : undefined,
-      hiddenCategories: isSavedView ? undefined : prefs.preferences.hiddenCategories,
-      hiddenDepartments: isSavedView ? undefined : prefs.preferences.hiddenDepartments,
-      salary:
-        !isSavedView && hasSalaryPreference(prefs.preferences.salary)
-          ? prefs.preferences.salary
-          : undefined,
-      /** Reviewing shows everything discarded, whichever board it came from. */
-      sources: isStateView ? [STATE_SOURCE] : reviewing ? undefined : prefs.sources,
-      sort,
-      ranking: sort === "match" ? ranking : undefined,
-    },
-    !showIntro,
+  const query = jobsQuery(view, board);
+  const sort = query.sort;
+
+  const { jobs, total, status, error, hasMore, loadMore } = useJobs(query, !showIntro);
+
+  /** Una lista de guardadas vacía no tiene nada que adelantar: sabemos sin
+   * preguntar que vuelve vacía. */
+  const worthPrefetching = (candidate: View): boolean =>
+    candidate !== view && (candidate !== "saved" || savedIds.length > 0);
+
+  /** Las otras listas, traídas en el rato libre que deja la primera. */
+  const asleep = BOARD_VIEWS.filter(worthPrefetching).map((candidate) =>
+    jobsQueryKey(jobsQuery(candidate, board)),
   );
+  usePrefetchViews(asleep, !showIntro && status === "ready");
+
+  /** Al apuntar una pestaña, antes del clic: lo que tarda en bajar el dedo
+   * suele alcanzar para que la lista ya esté cuando se suelta. */
+  const prefetchView = (next: View) => {
+    if (next === "market") prefetchMarket();
+    else if (next !== "tracking" && worthPrefetching(next)) {
+      prefetchJobs(jobsQueryKey(jobsQuery(next, board)));
+    }
+  };
 
   const matches = new Set(
     hasPreferences
@@ -212,6 +216,16 @@ export default function App() {
         );
 
   const kept = reviewing ? jobs : jobs.filter((job) => !prefs.dismissed.has(job.id));
+  const highlights = pickHighlights(
+    [
+      ...(openJob ? [openJob] : []),
+      ...feedJobs.filter((job) => job.id !== openJob?.id),
+      ...kept.filter((job) => job.id !== openJob?.id),
+    ],
+    prefs.preferences,
+    ranking,
+    prefs.profile,
+  );
   const savedGroups = isSavedView ? groupByCategory(kept) : [];
   const visible =
     isSavedView && savedCategory ? kept.filter((job) => job.category === savedCategory) : kept;
@@ -297,7 +311,6 @@ export default function App() {
           saved: prefs.saved.size,
           applications: prefs.applications.length,
           dismissed: prefs.dismissed.size,
-          preferences: preferenceCount(prefs.preferences) + hiddenCount(prefs.preferences),
         }}
         departments={meta?.departments ?? []}
         feedResults={customFeeds.results}
@@ -319,7 +332,6 @@ export default function App() {
           prefs.setProfile(nextProfile);
           prefs.setPreferences(nextPreferences);
         }}
-        onRestartOnboarding={prefs.restartOnboarding}
       />
 
       <main className="mx-auto max-w-3xl px-5 pt-24 pb-16 sm:pt-28">
@@ -329,6 +341,7 @@ export default function App() {
             trackedCount={prefs.applications.length}
             view={view}
             onChange={changeView}
+            onPrefetch={prefetchView}
           />
         </FadeUp>
 
@@ -452,13 +465,13 @@ export default function App() {
                     </span>
                     <span className="text-xs text-muted tabular-nums">{feedJobs.length}</span>
                   </h2>
-                  <div className="space-y-3">
+                  <div className="isolate space-y-3">
                     {feedJobs.map((job) => (
                       <JobCard
                         key={job.id}
                         isApplied={prefs.appliedIds.has(job.id)}
                         isDismissed={prefs.dismissed.has(job.id)}
-                        isMatch={hasPreferences && matchesPreferences(job, prefs.preferences)}
+                        isMatch={highlights.has(job.id)}
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
                         tagActions={tagActions}
@@ -496,7 +509,7 @@ export default function App() {
                       <JobCard
                         isApplied={prefs.appliedIds.has(job.id)}
                         isDismissed={prefs.dismissed.has(job.id)}
-                        isMatch={hasPreferences && matches.has(job.id)}
+                        isMatch={highlights.has(job.id)}
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
                         tagActions={tagActions}
@@ -537,7 +550,7 @@ export default function App() {
           applications={prefs.applications}
           isApplied={prefs.appliedIds.has(openJob.id)}
           isDismissed={prefs.dismissed.has(openJob.id)}
-          isMatch={hasPreferences && matchesPreferences(openJob, prefs.preferences)}
+          isMatch={highlights.has(openJob.id)}
           isSaved={prefs.saved.has(openJob.id)}
           job={openJob}
           tagActions={tagActions}

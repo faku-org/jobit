@@ -119,4 +119,9 @@ describe("toRanking", () => {
   test("an untouched profile and no preferences rank nothing", () => {
     expect(isEmptyRanking(toRanking(EMPTY_PREFERENCES, EMPTY_PROFILE))).toBe(true);
   });
+
+  test("the mix travels with the ranking", () => {
+    expect(toRanking(preferences({ mix: "focused" }), EMPTY_PROFILE).mix).toBe("focused");
+    expect(toRanking(EMPTY_PREFERENCES, EMPTY_PROFILE).mix).toBe("balanced");
+  });
 });

@@ -3,7 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
-import { Embed } from "./components/Embed.tsx";
+import { Embed } from "./components/ui/Embed.tsx";
 import { markEmbedNotIndexable } from "./lib/meta.ts";
 import { embedRequest } from "./lib/share.ts";
 

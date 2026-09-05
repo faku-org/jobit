@@ -5,7 +5,7 @@ import { adminEnabled } from "./auth.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
 import { buildMarketReport } from "./market.ts";
-import { type Ranking, isEmptyRanking } from "./rank.ts";
+import { type Ranking, isEmptyRanking, isMix } from "./rank.ts";
 import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed } from "./feed.ts";
@@ -138,6 +138,7 @@ const jobsQuerySchema = t.Object({
   rank_no_experience: t.Optional(t.BooleanString()),
   rank_education: t.Optional(t.Numeric({ minimum: 0 })),
   rank_experience: t.Optional(t.Numeric({ minimum: 0 })),
+  rank_mix: t.Optional(t.String()),
   limit: t.Optional(t.Numeric()),
   offset: t.Optional(t.Numeric()),
 });
@@ -162,6 +163,7 @@ function readRanking(query: JobsQueryParams): Ranking | undefined {
       query.rank_experience === undefined
         ? null
         : clamp(Math.round(query.rank_experience), 0, MAX_EXPERIENCE_YEARS),
+    mix: isMix(query.rank_mix) ? query.rank_mix : "balanced",
   };
 
   return isEmptyRanking(ranking) ? undefined : ranking;

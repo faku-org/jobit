@@ -56,7 +56,11 @@
   --scrim: rgba(13, 71, 161, 0.35);
 
   /* Tonos del aura: siempre más claros que ink, para que el hilo se lea
-     contra la tarjeta, la página y el panel. El conic gira con --aura-angle. */
+     contra la tarjeta, la página y el panel. El conic gira con --aura-angle.
+
+     La vuelta cierra donde empezó: un cónico que termina en otro color que el
+     del arranque tiene una costura en el ángulo cero. Abajo del desenfoque del
+     halo no se veía, pero en un hilo de un píxel es un tajo. */
   --aura-1: var(--color-brand);
   --aura-2: var(--color-brand-300);
   --aura-3: color-mix(in srgb, var(--color-sky) 35%, #fff);
@@ -69,7 +73,8 @@
     var(--aura-2),
     var(--aura-1),
     var(--aura-4),
-    var(--aura-3)
+    var(--aura-3),
+    var(--aura-1)
   );
 }
 
@@ -185,6 +190,12 @@ span {
   background: var(--aura-gradient);
   opacity: 0.55;
   filter: blur(18px);
+  /* Entre trabajando y en calma hay un salto de brillo. Sin esto se lee como
+     un flash al montar la tarjeta; con esto, como que el halo se asienta. */
+  transition:
+    opacity 420ms ease,
+    filter 420ms ease,
+    inset 420ms ease;
 }
 
 /* El vidrio del filo. Absoluto, sin pointer, enmascarado al marco: el centro
@@ -236,6 +247,46 @@ span {
   filter: blur(22px);
 }
 
+/* Match cards: spinning thread on the rim, bloom behind. No isolation
+   here: the bloom's z-index: -1 has to live in the list, so neighboring
+   cards paint over it instead of the glow covering them. */
+.aura-edge {
+  position: relative;
+  overflow: visible;
+}
+
+.aura-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--aura-gradient);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: aura-spin 8s linear infinite;
+}
+
+.aura-edge::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--aura-gradient);
+  opacity: 0.5;
+  filter: blur(24px);
+  animation: aura-spin 8s linear infinite;
+}
+
 @keyframes aura-spin {
   to {
     --aura-angle: 360deg;
@@ -260,8 +311,14 @@ span {
 /* Quien pidió menos movimiento se queda con el gradiente quieto, que sigue
    diciendo lo mismo. El orbe ya se congela solo. */
 @media (prefers-reduced-motion: reduce) {
-  .aura {
+  .aura,
+  .aura-edge::before,
+  .aura-edge::after {
     animation: none;
+  }
+
+  .aura::before {
+    transition: none;
   }
 }
 

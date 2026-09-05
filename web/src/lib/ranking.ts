@@ -1,5 +1,5 @@
 import { EDUCATION_RANK, type Profile } from "./profile.ts";
-import type { JobType, Level, Preferences, WorkMode } from "./types.ts";
+import type { JobType, Level, Mix, Preferences, WorkMode } from "./types.ts";
 
 /**
  * The soft half of a query: what should come first, as opposed to what should
@@ -18,6 +18,7 @@ export interface Ranking {
   /** Education held, on the same 0-6 scale as EDUCATION_RANK. */
   education: number | null;
   experienceYears: number | null;
+  mix: Mix;
 }
 
 /**
@@ -38,6 +39,7 @@ export function toRanking(preferences: Preferences, profile: Profile): Ranking {
     noExperience: profile.experienceYears === 0,
     education: profile.education === "" ? null : EDUCATION_RANK[profile.education],
     experienceYears: profile.experienceYears,
+    mix: preferences.mix,
   };
 }
 

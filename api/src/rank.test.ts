@@ -125,6 +125,16 @@ describe("scoreJob", () => {
     expect(soon).toBeGreaterThan(later);
     expect(gone).toBeLessThan(later);
   });
+
+  test("broad lets a fresh off-category offer beat a stale match", () => {
+    const wanted = job({ category: "tecnologia", date_posted: "2026-06-01T00:00:00" });
+    const other = job({ category: "salud", date_posted: "2026-08-16T00:00:00" });
+    const focused = rank({ categories: ["tecnologia"], mix: "focused" });
+    const broad = rank({ categories: ["tecnologia"], mix: "broad" });
+
+    expect(scoreJob(wanted, focused, NOW)).toBeGreaterThan(scoreJob(other, focused, NOW));
+    expect(scoreJob(other, broad, NOW)).toBeGreaterThan(scoreJob(wanted, broad, NOW));
+  });
 });
 
 describe("requiredEducation", () => {

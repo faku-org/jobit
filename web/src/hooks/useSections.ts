@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-export type SectionId = "search" | "work" | "advanced";
+export type SectionId = "search" | "work" | "sources" | "advanced";
 
 /** Kept apart from the preferences: this is where the panel was left, not
  * something the person answered, and it must not travel in the stats payload. */
@@ -8,7 +8,12 @@ const STORAGE_KEY = "jobit.sections.v1";
 
 /** The first one open is the one everybody comes for; the rest wait to be
  * asked. */
-const CLOSED: Record<SectionId, boolean> = { search: true, work: false, advanced: false };
+const CLOSED: Record<SectionId, boolean> = {
+  search: true,
+  work: false,
+  sources: false,
+  advanced: false,
+};
 
 function read(): Record<SectionId, boolean> {
   try {
@@ -20,6 +25,7 @@ function read(): Record<SectionId, boolean> {
     return {
       search: typeof stored.search === "boolean" ? stored.search : CLOSED.search,
       work: typeof stored.work === "boolean" ? stored.work : CLOSED.work,
+      sources: typeof stored.sources === "boolean" ? stored.sources : CLOSED.sources,
       advanced: typeof stored.advanced === "boolean" ? stored.advanced : CLOSED.advanced,
     };
   } catch {

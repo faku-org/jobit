@@ -22,7 +22,16 @@ export interface Ranking {
   /** Education held, on the 0-6 scale the web app uses. */
   education: number | null;
   experienceYears: number | null;
+  /** How hard fit outweighs recency. Missing reads as balanced. */
+  mix: Mix;
 }
+
+export type Mix = "broad" | "balanced" | "focused";
+
+export const MIXES: Mix[] = ["broad", "balanced", "focused"];
+
+export const isMix = (value: unknown): value is Mix =>
+  typeof value === "string" && (MIXES as readonly string[]).includes(value);
 
 export const EMPTY_RANKING: Ranking = {
   categories: [],
@@ -34,6 +43,7 @@ export const EMPTY_RANKING: Ranking = {
   noExperience: false,
   education: null,
   experienceYears: null,
+  mix: "balanced",
 };
 
 export const isEmptyRanking = (ranking: Ranking): boolean =>
@@ -71,6 +81,13 @@ const PENALTY = {
   education: 16,
   experience: 12,
 } as const;
+
+/** Recency vs fit. Balanced is the historical weights (scale 1). */
+const MIX_SCALE: Record<Mix, { fit: number; recency: number }> = {
+  focused: { fit: 1.2, recency: 0.4 },
+  balanced: { fit: 1, recency: 1 },
+  broad: { fit: 0.4, recency: 2.4 },
+};
 
 /** First place is worth the full weight, last place a fraction of it. */
 function positionWeight(index: number, length: number): number {
@@ -142,28 +159,29 @@ function closingScore(job: Job, now: number): number {
  * can say "coincide en rubro y modalidad" by asking the same questions.
  */
 export function scoreJob(job: Job, ranking: Ranking, now: number = Date.now()): number {
-  let score = 0;
+  const scale = MIX_SCALE[ranking.mix];
+  let fit = 0;
 
-  score +=
+  fit +=
     WEIGHT.category *
     positionWeight(ranking.categories.indexOf(job.category), ranking.categories.length);
 
   if (job.department) {
-    score +=
+    fit +=
       WEIGHT.department *
       positionWeight(ranking.departments.indexOf(job.department), ranking.departments.length);
   }
 
-  score += WEIGHT.mode * inList(ranking.modes, job.remote ?? "onsite");
-  score += WEIGHT.level * inList(ranking.levels, job.level);
-  score += WEIGHT.jobType * inList(ranking.jobTypes, job.job_type);
+  fit += WEIGHT.mode * inList(ranking.modes, job.remote ?? "onsite");
+  fit += WEIGHT.level * inList(ranking.levels, job.level);
+  fit += WEIGHT.jobType * inList(ranking.jobTypes, job.job_type);
 
   if (ranking.salaryTarget !== null) {
-    score += WEIGHT.salary * salaryFit(job, ranking.salaryTarget);
+    fit += WEIGHT.salary * salaryFit(job, ranking.salaryTarget);
   }
-  if (ranking.noExperience && job.no_experience) score += WEIGHT.noExperience;
-  if (ranking.education !== null) score += educationScore(job, ranking.education);
-  if (ranking.experienceYears !== null) score += experienceScore(job, ranking.experienceYears);
+  if (ranking.noExperience && job.no_experience) fit += WEIGHT.noExperience;
+  if (ranking.education !== null) fit += educationScore(job, ranking.education);
+  if (ranking.experienceYears !== null) fit += experienceScore(job, ranking.experienceYears);
 
-  return score + recencyScore(job, now) + closingScore(job, now);
+  return fit * scale.fit + (recencyScore(job, now) + closingScore(job, now)) * scale.recency;
 }

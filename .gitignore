@@ -35,6 +35,9 @@ data/
 # salida de graphify
 graphify-out/
 
+# índice local de CodeGraph (MCP)
+.codegraph/
+
 # capturas locales de verificación
 web/tmp-shots/
 web/tmp-verify.mjs

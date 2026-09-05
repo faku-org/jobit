@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { CustomFeed } from "./feed.ts";
-import { advancedSummary, searchSummary, workSummary } from "./sections.ts";
+import { advancedSummary, searchSummary, sourcesSummary, workSummary } from "./sections.ts";
 import type { Facet, Preferences } from "./types.ts";
 import { EMPTY_PREFERENCES } from "./types.ts";
 
@@ -83,25 +83,29 @@ describe("workSummary", () => {
   });
 });
 
-describe("advancedSummary", () => {
+describe("sourcesSummary", () => {
   const all = ["buscojobs", "gallito"];
 
   test("no source chosen means every one of them", () => {
-    expect(advancedSummary([], all, [])).toBe("todas las fuentes");
+    expect(sourcesSummary([], all)).toBe("todas las fuentes");
   });
 
   test("a board with no sources yet says nothing", () => {
-    expect(advancedSummary([], [], [])).toBe("");
+    expect(sourcesSummary([], [])).toBe("");
   });
 
   test("one source is named, more than one is counted", () => {
-    expect(advancedSummary(["gallito"], all, [])).toBe("Gallito");
-    expect(advancedSummary(["gallito", "buscojobs"], all, [])).toBe("2 fuentes");
+    expect(sourcesSummary(["gallito"], all)).toBe("Gallito");
+    expect(sourcesSummary(["gallito", "buscojobs"], all)).toBe("2 fuentes");
+  });
+});
+
+describe("advancedSummary", () => {
+  test("no feeds of your own says nothing", () => {
+    expect(advancedSummary([])).toBe("");
   });
 
   test("only the feeds that are on are counted", () => {
-    expect(advancedSummary([], all, [feed(), feed({ id: "feed-2", enabled: false })])).toBe(
-      "todas las fuentes · 1 feed propio",
-    );
+    expect(advancedSummary([feed(), feed({ id: "feed-2", enabled: false })])).toBe("1 feed propio");
   });
 });

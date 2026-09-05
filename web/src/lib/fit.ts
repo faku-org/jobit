@@ -46,12 +46,18 @@ function educationCheck(job: Job, profile: Profile): Check | null {
 
 const years = (count: number): string => (count === 1 ? "1 año" : `${count} años`);
 
+const yoursExperience = (count: number | null): string => {
+  if (count === null) return "No cargaste tus años de experiencia";
+  if (count === 0) return "No tenés experiencia";
+  return `Tenés ${years(count)}`;
+};
+
 function experienceCheck(job: Job, profile: Profile): Check | null {
   if (job.no_experience) {
     return {
       id: "experience",
       asks: "No pide experiencia previa",
-      yours: profile.experienceYears === null ? "" : `Tenés ${years(profile.experienceYears)}`,
+      yours: "",
       status: "ok",
     };
   }
@@ -61,10 +67,7 @@ function experienceCheck(job: Job, profile: Profile): Check | null {
   return {
     id: "experience",
     asks: `${years(job.experience_years_min)} de experiencia`,
-    yours:
-      profile.experienceYears === null
-        ? "No cargaste tus años de experiencia"
-        : `Tenés ${years(profile.experienceYears)}`,
+    yours: yoursExperience(profile.experienceYears),
     status:
       profile.experienceYears === null
         ? "unknown"

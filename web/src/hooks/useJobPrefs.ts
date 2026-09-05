@@ -12,6 +12,7 @@ import {
   type ApplicationStatus,
   EMPTY_PREFERENCES,
   EMPTY_SALARY,
+  isMix,
   type Job,
   type JobType,
   type Level,
@@ -37,9 +38,9 @@ interface Stored {
   profile: Profile;
   /** When the anonymous summary was last sent, so it goes at most once a day. */
   statsSentAt: string;
-  /** When this browser was told what JobIt is. Rehacer la configuración keeps
-   * it: the questions are worth asking again, the welcome is not. Borrar todos
-   * mis datos takes it with everything else, which is what it promises. */
+  /** When this browser was told what JobIt is, so the welcome is shown once.
+   * Borrar todos mis datos takes it with everything else, which is what it
+   * promises: después de borrar, la bienvenida vuelve a aparecer. */
   introSeenAt: string;
 }
 
@@ -125,6 +126,7 @@ function readPreferences(value: unknown): Preferences {
     jobTypes: within(raw.jobTypes, JOB_TYPES),
     salary: readSalary(raw.salary),
     rankByFit: raw.rankByFit !== false,
+    mix: isMix(raw.mix) ? raw.mix : "balanced",
   };
 }
 
@@ -252,14 +254,11 @@ export interface JobPrefs {
   /** Saves what the onboarding collected in one write, so the list is not
    * refetched once per step of it. */
   completeOnboarding: (profile: Profile, preferences: Preferences) => void;
-  /** Clears what decides the order and asks the questions again, leaving the
-   * profile and the lists alone. Starting the rerun over the old answers left
-   * leftovers in every step that got skipped. */
-  restartOnboarding: () => void;
   /** Wipes everything this browser holds and starts over from nothing. */
   eraseEverything: () => void;
   markStatsSent: (at: string) => void;
-  /** Records that the welcome was read, so a restart lands on the questions. */
+  /** Records that the welcome was read, so quien vuelve a mitad del alta cae
+   * directo en las preguntas. */
   markIntroSeen: () => void;
   /** Records that the person did send the application, keeping a snapshot. */
   addApplication: (job: Job) => void;
@@ -334,15 +333,6 @@ export function useJobPrefs(): JobPrefs {
     }));
   }, []);
 
-  const restartOnboarding = useCallback(() => {
-    setStored((current) => ({
-      ...current,
-      preferences: EMPTY_PREFERENCES,
-      sources: [],
-      profile: { ...current.profile, onboardedAt: "" },
-    }));
-  }, []);
-
   const eraseEverything = useCallback(() => {
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -409,7 +399,6 @@ export function useJobPrefs(): JobPrefs {
     setTheme,
     setProfile,
     completeOnboarding,
-    restartOnboarding,
     eraseEverything,
     markStatsSent,
     markIntroSeen,
