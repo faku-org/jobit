@@ -1,4 +1,4 @@
-import { Briefcase, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { useScrolledPast } from "../../hooks/useScrolledPast.ts";
@@ -16,6 +16,7 @@ import {
 } from "../../lib/types.ts";
 import { PreferencesPanel } from "../profile/Preferences.tsx";
 import { ProfilePanel } from "../profile/ProfilePanel.tsx";
+import LOGO from "../../../brand/JobIt.png";
 
 interface DynamicIslandProps {
   meta: Meta | null;
@@ -92,7 +93,9 @@ export function DynamicIsland({
             layout
             className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-white"
           >
-            <Briefcase aria-hidden className="size-4" />
+            <picture>
+              <img src={LOGO} alt="JobIt" className="size-full rounded-full" />
+            </picture>
           </motion.span>
 
           <motion.div layout className="min-w-0 flex-1">
