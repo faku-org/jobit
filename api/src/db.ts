@@ -186,6 +186,45 @@ CREATE TABLE IF NOT EXISTS service_hours (
   to_time    TEXT NOT NULL,
   PRIMARY KEY (service_id, weekday, from_time)
 );
+
+/* Lo que dijo el filtro la última vez que el servicio pidió publicarse. El
+   puntaje ordena la cola y los motivos la explican; decidir sigue siendo de
+   una persona, salvo lo inequívoco. */
+CREATE TABLE IF NOT EXISTS moderation_reviews (
+  service_id TEXT PRIMARY KEY REFERENCES services(id) ON DELETE CASCADE,
+  score      INTEGER NOT NULL DEFAULT 0,
+  reasons    TEXT NOT NULL DEFAULT '[]',
+  decision   TEXT NOT NULL DEFAULT 'queue',
+  decided_by TEXT NOT NULL DEFAULT '',
+  decided_at TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS moderation_reviews_score ON moderation_reviews (score DESC);
+
+/* Para reconocer que el mismo contenido volvió hace falta acordarse de lo
+   rechazado. Se guarda el hash del texto y su firma MinHash, que no se puede
+   volver texto: alcanza para el dedupe y no deja el contenido de nadie
+   guardado en una tabla de descartes. */
+CREATE TABLE IF NOT EXISTS moderation_prints (
+  text_hash  TEXT PRIMARY KEY,
+  service_id TEXT NOT NULL DEFAULT '',
+  kind       TEXT NOT NULL,
+  signature  TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS moderation_prints_kind ON moderation_prints (kind);
+
+/* La denuncia desde la ficha pública, que alimenta la misma cola. Sin quién
+   denunció: un motivo de una lista corta y el día. */
+CREATE TABLE IF NOT EXISTS service_reports (
+  service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  reason     TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  handled    INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS service_reports_service ON service_reports (service_id, handled);
 `;
 
 let handle: Database | null = null;

@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import * as queue from "./queue.ts";
 import * as services from "./services.ts";
 import {
   CURRENCIES,
@@ -63,6 +64,18 @@ type ServiceBody = typeof serviceBody.static;
 const toInput = (body: Partial<ServiceBody>): Partial<services.ServiceInput> =>
   body as Partial<services.ServiceInput>;
 
+/**
+ * Mandar algo a la cola lo hace pasar por el filtro. Lo que vuelve es el
+ * servicio como quedó: si el filtro lo devolvió a borrador, quien publica lo
+ * ve en el acto y no se queda esperando una aprobación que no va a llegar.
+ */
+function moderated(service: services.Service): services.Service {
+  if (service.status !== "pending") return service;
+
+  queue.submit(service);
+  return services.byId(service.id) ?? service;
+}
+
 export const publish = new Elysia()
   .guard({
     beforeHandle({ cookie, status }) {
@@ -83,7 +96,9 @@ export const publish = new Elysia()
     "/api/services",
     ({ body, me, status }) => {
       const created = services.create(me.id, { ...toInput(body), title: body.title });
-      return created.ok ? status(201, created.value) : status(422, { error: created.error });
+      return created.ok
+        ? status(201, moderated(created.value))
+        : status(422, { error: created.error });
     },
     { body: serviceBody },
   )
@@ -91,7 +106,7 @@ export const publish = new Elysia()
     "/api/services/:id",
     ({ body, me, params, status }) => {
       const updated = services.update(params.id, me.id, toInput(body));
-      if (updated.ok) return updated.value;
+      if (updated.ok) return moderated(updated.value);
 
       /** El servicio de otra persona y el que no existe contestan lo mismo:
        * saber cuál es cuál diría qué ids existen. */

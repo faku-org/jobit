@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
 import { accounts } from "./accounts.ts";
+import { catalog } from "./catalog.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
@@ -208,6 +209,7 @@ export const app = new Elysia()
   .use(admin)
   .use(accounts)
   .use(publish)
+  .use(catalog)
   .get(
     "/api/jobs",
     async ({ query, status }) => {

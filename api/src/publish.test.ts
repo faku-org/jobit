@@ -115,6 +115,14 @@ describe("con sesión", () => {
     expect(await editar.json()).toEqual(await inventado.json());
   });
 
+  test("mandarlo a la cola lo pasa por el filtro", async () => {
+    const cookie = await sesion();
+    const created = (await (await crear(cookie, { status: "pending" })).json()) as { id: string };
+
+    const { reviewOf } = await import("./queue.ts");
+    expect(reviewOf(created.id)).not.toBeNull();
+  });
+
   test("borrar lo propio anda, lo ajeno no", async () => {
     const mio = await sesion();
     const created = (await (await crear(mio)).json()) as { id: string };
@@ -126,5 +134,99 @@ describe("con sesión", () => {
     expect((await call(`/api/services/${created.id}`, send("DELETE", undefined, mio))).status).toBe(
       200,
     );
+  });
+});
+
+describe("la cola en el panel", () => {
+  const PANEL = "abrite sesamo";
+
+  /** La cookie del panel, que es otra sesión y otra cookie. */
+  async function admin(): Promise<string> {
+    process.env.ADMIN_PASSWORD_HASH = await Bun.password.hash(PANEL);
+    const response = await call("/api/admin/login", send("POST", { password: PANEL }));
+    return cookieOf(response);
+  }
+
+  test("muestra lo que espera, con el motivo al lado", async () => {
+    const cookie = await sesion();
+    await crear(cookie, { status: "pending", description: "Escribime al 099 123 456", skills: [] });
+
+    const response = await call("/api/admin/services", send("GET", undefined, await admin()));
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as {
+      queue: { review: { score: number; reasons: { code: string }[] } | null }[];
+      counts: { pending: number };
+    };
+    expect(body.counts.pending).toBe(1);
+    expect(body.queue[0]?.review?.score).toBeGreaterThan(0);
+    expect(body.queue[0]?.review?.reasons.map((reason) => reason.code)).toContain("telefono");
+  });
+
+  test("aprobar publica", async () => {
+    const cookie = await sesion();
+    const created = (await (await crear(cookie, { status: "pending" })).json()) as { id: string };
+
+    const response = await call(
+      `/api/admin/services/${created.id}/decision`,
+      send("POST", { decision: "approved" }, await admin()),
+    );
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { service: { status: string } }).service.status).toBe(
+      "published",
+    );
+  });
+
+  test("sin sesión de panel no se decide nada", async () => {
+    expect(
+      (await call("/api/admin/services/loquesea/decision", send("POST", { decision: "approved" })))
+        .status,
+    ).toBe(401);
+  });
+});
+
+describe("denunciar", () => {
+  test("lo publicado se puede denunciar sin cuenta, y sube en la cola", async () => {
+    const cookie = await sesion();
+    const created = (await (await crear(cookie, { status: "pending" })).json()) as {
+      id: string;
+      slug: string;
+    };
+
+    const { decide, counts } = await import("./queue.ts");
+    decide(created.id, "approved");
+
+    const response = await call(
+      `/api/services/${created.slug}/report`,
+      send("POST", { reason: "spam" }),
+    );
+    expect(response.status).toBe(200);
+    expect(counts().reported).toBe(1);
+  });
+
+  test("lo que no está publicado no existe para denunciar", async () => {
+    const cookie = await sesion();
+    const created = (await (await crear(cookie)).json()) as { slug: string };
+
+    expect(
+      (await call(`/api/services/${created.slug}/report`, send("POST", { reason: "spam" }))).status,
+    ).toBe(404);
+  });
+
+  test("un motivo que no está en la lista no entra", async () => {
+    const cookie = await sesion();
+    const created = (await (await crear(cookie, { status: "pending" })).json()) as {
+      id: string;
+      slug: string;
+    };
+
+    const { decide } = await import("./queue.ts");
+    decide(created.id, "approved");
+
+    const response = await call(
+      `/api/services/${created.slug}/report`,
+      send("POST", { reason: "porque si" }),
+    );
+    expect(response.status).toBe(422);
   });
 });
