@@ -10,6 +10,7 @@ import { type Ranking, isEmptyRanking, isMix } from "./rank.ts";
 import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed } from "./feed.ts";
+import { publish } from "./publish.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 
@@ -206,6 +207,7 @@ export const app = new Elysia()
   .get("/health", () => ({ status: "ok" }))
   .use(admin)
   .use(accounts)
+  .use(publish)
   .get(
     "/api/jobs",
     async ({ query, status }) => {

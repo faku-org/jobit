@@ -12,6 +12,7 @@
   },
   "exports": {
     "./categories": "./src/categories.ts",
+    "./departments": "./src/departments.ts",
     "./roles": "./src/roles.ts"
   }
 }

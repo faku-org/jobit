@@ -117,6 +117,75 @@ CREATE TABLE IF NOT EXISTS user_recovery_codes (
   used_at   TEXT NOT NULL DEFAULT '',
   PRIMARY KEY (user_id, code_hash)
 );
+
+/* Lo que alguien ofrece hacer, que no es una oferta de empleo y no entra en
+   /api/jobs. Borrar la cuenta se lleva sus servicios: no tienen sentido sin
+   quien los presta.
+
+   rating_avg y rating_count los escribe la calificación y acá solo se leen.
+   Nada llega a 'published' sin pasar por moderación. */
+CREATE TABLE IF NOT EXISTS services (
+  id                TEXT PRIMARY KEY,
+  user_id           TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title             TEXT NOT NULL,
+  slug              TEXT NOT NULL UNIQUE,
+  summary           TEXT NOT NULL DEFAULT '',
+  description       TEXT NOT NULL DEFAULT '',
+  category          TEXT NOT NULL DEFAULT 'otros',
+  department        TEXT NOT NULL DEFAULT '',
+  city              TEXT NOT NULL DEFAULT '',
+  remote            TEXT NOT NULL DEFAULT '',
+  fixed_price       INTEGER NOT NULL DEFAULT 0,
+  work_style        TEXT NOT NULL DEFAULT '',
+  experience_years  INTEGER,
+  availability_note TEXT NOT NULL DEFAULT '',
+  response_time     TEXT NOT NULL DEFAULT '',
+  status            TEXT NOT NULL DEFAULT 'draft',
+  rating_avg        REAL NOT NULL DEFAULT 0,
+  rating_count      INTEGER NOT NULL DEFAULT 0,
+  created_at        TEXT NOT NULL,
+  updated_at        TEXT NOT NULL,
+  published_at      TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS services_feed ON services (status, published_at DESC);
+CREATE INDEX IF NOT EXISTS services_user ON services (user_id);
+CREATE INDEX IF NOT EXISTS services_category ON services (status, category);
+
+/* El orden es la prioridad que le da quien publica, no un detalle de cómo se
+   dibuja. */
+CREATE TABLE IF NOT EXISTS service_skills (
+  service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  skill      TEXT NOT NULL,
+  position   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (service_id, skill)
+);
+
+/* Los extras no son otra tabla: son filas con kind = 'extra'. Se muestran
+   distinto y son lo mismo. El monto se guarda como se publicó y no se
+   convierte nunca. */
+CREATE TABLE IF NOT EXISTS service_prices (
+  service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  kind       TEXT NOT NULL DEFAULT 'base',
+  label      TEXT NOT NULL DEFAULT '',
+  amount     INTEGER NOT NULL DEFAULT 0,
+  currency   TEXT NOT NULL DEFAULT 'UYU',
+  unit       TEXT NOT NULL DEFAULT '',
+  notes      TEXT NOT NULL DEFAULT '',
+  position   INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS service_prices_service ON service_prices (service_id);
+
+/* "from" y "to" son palabras reservadas en SQL, así que las columnas llevan
+   el sufijo. Las horas son HH:MM y el día es 0 (domingo) a 6. */
+CREATE TABLE IF NOT EXISTS service_hours (
+  service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  weekday    INTEGER NOT NULL,
+  from_time  TEXT NOT NULL,
+  to_time    TEXT NOT NULL,
+  PRIMARY KEY (service_id, weekday, from_time)
+);
 `;
 
 let handle: Database | null = null;

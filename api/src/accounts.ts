@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
+import { type CookieJar, clearSessionCookie, sessionToken, setSessionCookie } from "./session.ts";
 import * as users from "./users.ts";
-import { SESSION_COOKIE } from "./users.ts";
 
 /**
  * El lado de quien publica: alta, login, segundo paso, recuperación y borrado.
@@ -9,34 +9,6 @@ import { SESSION_COOKIE } from "./users.ts";
  * El login es por handle y contraseña, no por correo, justamente para que el
  * correo pueda faltar.
  */
-const SECURE_COOKIES = process.env.ADMIN_INSECURE_COOKIES !== "true";
-
-/** Alcance /api: la cookie del panel tiene otro nombre, así que no se pisan. */
-const COOKIE_PATH = "/api";
-
-const tokenOf = (value: unknown): string | undefined =>
-  typeof value === "string" && value.length > 0 ? value : undefined;
-
-interface CookieJar {
-  [key: string]:
-    | { set: (options: Record<string, unknown>) => void; remove: () => void }
-    | undefined;
-}
-
-function setSessionCookie(cookie: CookieJar, token: string, expiresAt: string): void {
-  cookie[SESSION_COOKIE]?.set({
-    value: token,
-    httpOnly: true,
-    secure: SECURE_COOKIES,
-    /** lax y no strict: quien vuelve desde un enlace compartido tiene que
-     * llegar con la sesión puesta. Lo que escribe va por POST con JSON, que
-     * un formulario ajeno no puede armar. */
-    sameSite: "lax",
-    path: COOKIE_PATH,
-    expires: new Date(expiresAt),
-  });
-}
-
 const registerBody = t.Object({
   handle: t.String({ maxLength: 40 }),
   display_name: t.String({ maxLength: 80 }),
@@ -92,7 +64,7 @@ export const accounts = new Elysia()
   .post(
     "/api/auth/totp",
     async ({ body, cookie, status }) => {
-      const token = tokenOf(cookie[SESSION_COOKIE]?.value);
+      const token = sessionToken(cookie as CookieJar);
       const userId = users.pendingSessionUser(token);
       if (!token || !userId) return status(401, { error: "volvé a empezar el ingreso" });
 
@@ -130,7 +102,7 @@ export const accounts = new Elysia()
   .post(
     "/api/auth/logout",
     ({ body, cookie }) => {
-      const token = tokenOf(cookie[SESSION_COOKIE]?.value);
+      const token = sessionToken(cookie as CookieJar);
       if (body?.all === true) {
         const user = users.sessionUser(token);
         if (user) users.destroyUserSessions(user.id);
@@ -138,7 +110,7 @@ export const accounts = new Elysia()
         users.destroyUserSession(token);
       }
 
-      cookie[SESSION_COOKIE]?.remove();
+      clearSessionCookie(cookie as CookieJar);
       return { status: "ok" };
     },
     { body: t.Optional(t.Object({ all: t.Optional(t.Boolean()) })) },
@@ -146,14 +118,14 @@ export const accounts = new Elysia()
   /** De acá para abajo hace falta la sesión. */
   .guard({
     beforeHandle({ cookie, status }) {
-      if (!users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value))) {
+      if (!users.sessionUser(sessionToken(cookie as CookieJar))) {
         return status(401, { error: "no hay sesión" });
       }
     },
   })
   .derive(({ cookie }) => ({
     /** El guard de arriba ya se aseguró de que exista. */
-    me: users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value)) as users.User,
+    me: users.sessionUser(sessionToken(cookie as CookieJar)) as users.User,
   }))
   .get("/api/me", ({ me }) => ({ user: me, recovery: users.recoveryState(me.id) }))
   .patch(
@@ -188,7 +160,7 @@ export const accounts = new Elysia()
       }
 
       users.removeUser(me.id);
-      cookie[SESSION_COOKIE]?.remove();
+      clearSessionCookie(cookie as CookieJar);
       return { status: "ok" };
     },
     { body: t.Object({ password: t.String({ maxLength: 200 }) }) },
