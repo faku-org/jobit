@@ -72,6 +72,51 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS admin_sessions_expiry ON admin_sessions (expires_at);
+
+/* Las cuentas de quien publica un servicio. No se cruzan con el admin, que
+   sigue sin tabla: su credencial vive en el entorno.
+
+   Se guarda lo mínimo para poder volver a entrar y editar lo propio. El correo
+   es opcional y solo sirve para recuperar la cuenta, así que va cifrado en
+   reposo, igual que el secreto TOTP. Nada de IP, user agent ni historial de
+   inicios de sesión, y las fechas son el día y no el momento: la hora exacta
+   de lo que hace alguien no hace falta para que esto funcione. */
+CREATE TABLE IF NOT EXISTS users (
+  id              TEXT PRIMARY KEY,
+  handle          TEXT NOT NULL UNIQUE,
+  display_name    TEXT NOT NULL,
+  password_hash   TEXT NOT NULL,
+  email_enc       TEXT NOT NULL DEFAULT '',
+  totp_secret_enc TEXT NOT NULL DEFAULT '',
+  totp_enabled    INTEGER NOT NULL DEFAULT 0,
+  status          TEXT NOT NULL DEFAULT 'active',
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL
+);
+
+/* Copia la forma de admin_sessions: solo el sha256 del token, nunca el token.
+   pending_totp marca la sesión que abrió el login pero todavía no pasó el
+   segundo paso; no vale para nada hasta que lo pase. */
+CREATE TABLE IF NOT EXISTS user_sessions (
+  token_hash   TEXT PRIMARY KEY,
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  pending_totp INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL,
+  expires_at   TEXT NOT NULL,
+  last_seen    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS user_sessions_expiry ON user_sessions (expires_at);
+CREATE INDEX IF NOT EXISTS user_sessions_user ON user_sessions (user_id);
+
+/* La única salida de quien no dejó correo. Se guardan hasheados y se muestran
+   una sola vez. */
+CREATE TABLE IF NOT EXISTS user_recovery_codes (
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code_hash TEXT NOT NULL,
+  used_at   TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (user_id, code_hash)
+);
 `;
 
 let handle: Database | null = null;
