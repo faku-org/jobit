@@ -14,6 +14,7 @@ import * as offers from "./offers.ts";
 import { OFFER_STATUSES } from "./offers.ts";
 import * as queue from "./queue.ts";
 import { DECISIONS } from "./queue.ts";
+import { REVIEW_STATUSES, byId as reviewsById } from "./reviews.ts";
 import { byId as servicesById } from "./services.ts";
 import { loadUsage } from "./usage.ts";
 
@@ -199,4 +200,14 @@ export const admin = new Elysia({ prefix: "/api/admin" })
         ? { status: "ok", service: servicesById(params.id) }
         : status(404, { error: "ese servicio no existe" }),
     { body: t.Object({ decision: t.Union(DECISIONS.map((value) => t.Literal(value))) }) },
+  )
+  /** Lo denunciado adentro de un servicio: la calificación se baja o se deja,
+   * y en las dos la denuncia queda atendida. */
+  .post(
+    "/services/reviews/:id/decision",
+    ({ body, params, status }) =>
+      queue.decideReview(params.id, body.status)
+        ? { status: "ok", review: reviewsById(params.id) }
+        : status(404, { error: "esa calificación no existe" }),
+    { body: t.Object({ status: t.Union(REVIEW_STATUSES.map((value) => t.Literal(value))) }) },
   );

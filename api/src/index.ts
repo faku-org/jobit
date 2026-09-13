@@ -12,6 +12,7 @@ import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed } from "./feed.ts";
 import { publish } from "./publish.ts";
+import { ratings } from "./ratings.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 
@@ -209,6 +210,7 @@ export const app = new Elysia()
   .use(admin)
   .use(accounts)
   .use(publish)
+  .use(ratings)
   .use(catalog)
   .get(
     "/api/jobs",

@@ -7,6 +7,8 @@ import {
   review,
   textHash,
 } from "./moderation.ts";
+import * as reviews from "./reviews.ts";
+import type { Review as ServiceReview } from "./reviews.ts";
 import * as services from "./services.ts";
 import type { Service } from "./services.ts";
 
@@ -137,11 +139,15 @@ export interface QueueItem {
   service: Service;
   review: StoredReview | null;
   reports: number;
+  /** Las calificaciones denunciadas de ese servicio, que se miran de a una:
+   * el servicio sigue publicado y lo que hay para decidir es una fila. */
+  reported_reviews: ServiceReview[];
 }
 
 /**
- * Lo que hay para mirar: lo que espera, lo que el filtro rechazó solo y lo
- * denunciado. Ordenado por puntaje, que es para lo que sirve el puntaje.
+ * Lo que hay para mirar: lo que espera, lo que el filtro rechazó solo, lo
+ * denunciado y los servicios con alguna calificación denunciada. Ordenado por
+ * puntaje, que es para lo que sirve el puntaje.
  */
 export function pending(): QueueItem[] {
   const waiting = services.list({ status: "pending" });
@@ -162,21 +168,43 @@ export function pending(): QueueItem[] {
     .map((row) => services.byId(row.service_id))
     .filter((service): service is Service => service !== null);
 
+  const withReportedReviews = db()
+    .query<{ service_id: string }, []>(
+      "SELECT DISTINCT service_id FROM review_reports WHERE handled = 0",
+    )
+    .all()
+    .map((row) => services.byId(row.service_id))
+    .filter((service): service is Service => service !== null);
+
   const byId = new Map<string, Service>();
-  for (const service of [...waiting, ...autoRejected, ...reported]) byId.set(service.id, service);
+  for (const service of [...waiting, ...autoRejected, ...reported, ...withReportedReviews]) {
+    byId.set(service.id, service);
+  }
 
   return [...byId.values()]
     .map((service) => ({
       service,
       review: reviewOf(service.id),
       reports: reportCount(service.id),
+      reported_reviews: reportedReviews(service.id),
     }))
     .sort(
       (a, b) =>
-        b.reports - a.reports ||
+        b.reports + b.reported_reviews.length - (a.reports + a.reported_reviews.length) ||
         (b.review?.score ?? 0) - (a.review?.score ?? 0) ||
         a.service.updated_at.localeCompare(b.service.updated_at),
     );
+}
+
+/** Las calificaciones denunciadas que todavía nadie miró. */
+export function reportedReviews(serviceId: string): ServiceReview[] {
+  return db()
+    .query<{ review_id: string }, [string]>(
+      "SELECT DISTINCT review_id FROM review_reports WHERE service_id = ? AND handled = 0",
+    )
+    .all(serviceId)
+    .map((row) => reviews.byId(row.review_id))
+    .filter((found): found is ServiceReview => found !== null);
 }
 
 export const reportCount = (serviceId: string): number =>
@@ -226,12 +254,49 @@ export function report(serviceId: string, reason: ReportReason, now: Date = new 
   return true;
 }
 
-export const counts = (): { pending: number; reported: number } => ({
+/**
+ * Denunciar una calificación va a la misma cola, con los mismos motivos y sin
+ * quién denunció. Lo que cambia es qué se mira: la fila, no el servicio.
+ */
+export function reportReview(
+  reviewId: string,
+  reason: ReportReason,
+  now: Date = new Date(),
+): boolean {
+  const review = reviews.byId(reviewId);
+  if (!review || review.status !== "visible") return false;
+
+  db().run(
+    "INSERT INTO review_reports (review_id, service_id, reason, created_at) VALUES (?, ?, ?, ?)",
+    [reviewId, review.service_id, reason, day(now)],
+  );
+  return true;
+}
+
+/**
+ * La decisión de una persona sobre una calificación denunciada. Bajarla la
+ * saca del promedio; dejarla solo cierra la denuncia. En las dos la denuncia
+ * queda atendida: si no, vuelve a la cola para siempre.
+ */
+export function decideReview(reviewId: string, status: reviews.ReviewStatus): boolean {
+  if (!reviews.setStatus(reviewId, status)) return false;
+
+  db().run("UPDATE review_reports SET handled = 1 WHERE review_id = ?", [reviewId]);
+  return true;
+}
+
+export const counts = (): { pending: number; reported: number; reported_reviews: number } => ({
   pending: services.counts().pending,
   reported:
     db()
       .query<{ n: number }, []>(
         "SELECT COUNT(DISTINCT service_id) AS n FROM service_reports WHERE handled = 0",
+      )
+      .get()?.n ?? 0,
+  reported_reviews:
+    db()
+      .query<{ n: number }, []>(
+        "SELECT COUNT(DISTINCT review_id) AS n FROM review_reports WHERE handled = 0",
       )
       .get()?.n ?? 0,
 });
