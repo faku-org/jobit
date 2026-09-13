@@ -577,6 +577,168 @@ export function update(
 export const remove = (id: string, userId: string): boolean =>
   db().run("DELETE FROM services WHERE id = ? AND user_id = ?", [id, userId]).changes > 0;
 
+export const SERVICE_SORTS = ["recent", "rating", "price"] as const;
+export type ServiceSort = (typeof SERVICE_SORTS)[number];
+
+export interface PublicQuery {
+  q?: string;
+  category?: string;
+  department?: string;
+  remote?: string;
+  /** Los topes se leen en `currency`, que por defecto son pesos. */
+  price_min?: number;
+  price_max?: number;
+  currency?: Currency;
+  rating_min?: number;
+  sort?: ServiceSort;
+  limit: number;
+  offset: number;
+}
+
+export interface ServicesPage {
+  total: number;
+  offset: number;
+  limit: number;
+  services: Service[];
+  /**
+   * Si el precio se pudo comparar entre monedas. Cuando es false, pedir el
+   * orden por precio devuelve lo más reciente y los topes de precio en dólares
+   * no se aplican: sin tasa, ordenar sería inventar.
+   */
+  price_sort: boolean;
+}
+
+/**
+ * El mínimo de los precios base, llevado a pesos para poder comparar. Sin tasa
+ * los montos en dólares quedan en NULL, que SQLite deja afuera del MIN y del
+ * orden: un servicio en dólares no desaparece de la lista, solo no se ordena
+ * por precio.
+ */
+/** La tasa va en el SQL y no como parámetro: la expresión aparece varias veces
+ * en la misma consulta y llevar la cuenta de en cuáles es más frágil que
+ * escribir un número que ya vino validado como número. */
+const priceInPesos = (rate: number | null): string => `
+  (SELECT MIN(CASE WHEN p.currency = 'UYU' THEN p.amount
+                   ${rate === null ? "" : `WHEN p.currency = 'USD' THEN p.amount * ${rate}`}
+                   ELSE NULL END)
+     FROM service_prices p
+    WHERE p.service_id = s.id AND p.kind = 'base')
+`;
+
+type QueryParam = string | number | null;
+
+/** Lo público: solo `published`, y con los filtros de la sección. */
+export function search(query: PublicQuery, usdRate: number | null = null): ServicesPage {
+  const rate = Number.isFinite(usdRate) ? usdRate : null;
+  const price = priceInPesos(rate);
+
+  const where: string[] = ["s.status = 'published'"];
+  const params: QueryParam[] = [];
+
+  const push = (clause: string, ...values: QueryParam[]): void => {
+    where.push(clause);
+    params.push(...values);
+  };
+
+  const q = query.q?.trim();
+  if (q) {
+    const like = `%${q}%`;
+    push(
+      `(s.title LIKE ? OR s.summary LIKE ? OR s.description LIKE ?
+        OR EXISTS (SELECT 1 FROM service_skills k WHERE k.service_id = s.id AND k.skill LIKE ?))`,
+      like,
+      like,
+      like,
+      like,
+    );
+  }
+
+  if (query.category) push("s.category = ?", query.category);
+  if (query.department) push("s.department = ?", query.department);
+  if (query.remote) push("s.remote = ?", query.remote);
+  if (query.rating_min) push("s.rating_avg >= ?", query.rating_min);
+
+  /** Un tope en dólares sin tasa no se puede comparar contra un precio en
+   * pesos, así que no se aplica en vez de recortar de más. */
+  const canCompare = query.currency !== "USD" || rate !== null;
+  const toPesos = (value: number): number =>
+    query.currency === "USD" ? Math.round(value * (rate ?? 1)) : value;
+
+  if (canCompare && query.price_min !== undefined) {
+    push(`${price} >= ?`, toPesos(query.price_min));
+  }
+  if (canCompare && query.price_max !== undefined) {
+    push(`${price} <= ?`, toPesos(query.price_max));
+  }
+
+  const clause = `WHERE ${where.join(" AND ")}`;
+
+  const total =
+    db()
+      .query<{ n: number }, QueryParam[]>(
+        `SELECT COUNT(*) AS n FROM services s JOIN users u ON u.id = s.user_id ${clause}`,
+      )
+      .get(...params)?.n ?? 0;
+
+  const priceSort = rate !== null;
+  const order =
+    query.sort === "rating"
+      ? "s.rating_avg DESC, s.rating_count DESC, s.published_at DESC"
+      : query.sort === "price" && priceSort
+        ? `${price} IS NULL, ${price} ASC, s.published_at DESC`
+        : "s.published_at DESC, s.title";
+
+  const services = db()
+    .query<JoinedRow, QueryParam[]>(`${SELECT} ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`)
+    .all(...params, query.limit, query.offset)
+    .map(hydrate);
+
+  return { total, offset: query.offset, limit: query.limit, services, price_sort: priceSort };
+}
+
+export type PublicService = Omit<Service, "user_id">;
+
+/**
+ * Lo que sale a la calle. Va sin el id de la cuenta: quién publica ya viaja
+ * como handle y nombre, y el id interno solo serviría para atar entre sí cosas
+ * que nadie de afuera tiene por qué atar.
+ */
+export const publicView = (service: Service): PublicService => {
+  const { user_id: _ownerId, ...rest } = service;
+  return rest;
+};
+
+export interface ServiceFacet {
+  value: string;
+  count: number;
+}
+
+export interface ServicesMeta {
+  count: number;
+  categories: ServiceFacet[];
+  departments: ServiceFacet[];
+  remote: ServiceFacet[];
+}
+
+/** Las facetas de los filtros, contadas sobre lo que está publicado. */
+export function meta(): ServicesMeta {
+  const facet = (column: string): ServiceFacet[] =>
+    db()
+      .query<ServiceFacet, []>(
+        `SELECT ${column} AS value, COUNT(*) AS count
+           FROM services WHERE status = 'published' AND ${column} <> ''
+          GROUP BY ${column} ORDER BY count DESC, value`,
+      )
+      .all();
+
+  return {
+    count: counts().published,
+    categories: facet("category"),
+    departments: facet("department"),
+    remote: facet("remote"),
+  };
+}
+
 /**
  * Lo que decide la moderación. `published_at` se escribe la primera vez que
  * algo se publica y no se vuelve a tocar: es la fecha de alta en el tablero.

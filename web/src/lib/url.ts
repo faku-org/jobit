@@ -22,7 +22,7 @@ export interface ViewState {
   filters: Filters;
 }
 
-const VIEWS: View[] = ["all", "saved", "tracking", "state", "market"];
+const VIEWS: View[] = ["all", "saved", "tracking", "state", "services", "market"];
 const LEVELS: Level[] = ["entry", "mid", "senior"];
 const MODES: WorkMode[] = ["onsite", "remote", "hybrid"];
 const JOB_TYPES: JobType[] = ["full_time", "part_time", "internship"];
@@ -56,8 +56,13 @@ const positiveInteger = (raw: string | null): number | null => {
 export function readViewState(search: string = window.location.search): ViewState {
   const params = new URLSearchParams(search);
 
+  /** Un enlace a un servicio no trae pestaña, pero sí dice cuál: abrir la
+   * ficha sobre el tablero de ofertas dejaría atrás una lista que no tiene
+   * nada que ver con lo que la persona vino a mirar. */
+  const linkedService = params.get("service") ? "services" : "all";
+
   return {
-    view: VIEWS.find((value) => value === params.get(PARAM.view)) ?? "all",
+    view: VIEWS.find((value) => value === params.get(PARAM.view)) ?? linkedService,
     filters: {
       ...EMPTY_FILTERS,
       q: params.get(PARAM.q)?.slice(0, MAX_QUERY) ?? "",
