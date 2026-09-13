@@ -225,6 +225,47 @@ CREATE TABLE IF NOT EXISTS service_reports (
 );
 
 CREATE INDEX IF NOT EXISTS service_reports_service ON service_reports (service_id, handled);
+
+/* La calificación: un voto por persona y por servicio, y nadie se califica a
+   sí mismo (lo revisa el modelo, que es quien sabe de quién es el servicio).
+
+   Borrar la cuenta no borra la reseña, le saca el autor: la nota es de un
+   tercero y sigue valiendo. Por eso el autor es SET NULL y no CASCADE, y por
+   eso el UNIQUE tolera varias filas sin autor, que en SQLite son distintas
+   entre sí.
+
+   created_at es el día, como todo el resto: la hora exacta de una acción es
+   un dato que correlaciona personas.
+
+   La respuesta de quien publica es una sola: esto no es un hilo. Y edited
+   marca la única corrección que se permite. */
+CREATE TABLE IF NOT EXISTS service_reviews (
+  id             TEXT PRIMARY KEY,
+  service_id     TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  author_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  rating         INTEGER NOT NULL,
+  comment        TEXT NOT NULL DEFAULT '',
+  reply          TEXT NOT NULL DEFAULT '',
+  status         TEXT NOT NULL DEFAULT 'visible',
+  edited         INTEGER NOT NULL DEFAULT 0,
+  created_at     TEXT NOT NULL,
+  UNIQUE (service_id, author_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS service_reviews_service ON service_reviews (service_id, status);
+
+/* Denunciar una reseña va a la misma cola que denunciar el servicio, pero en
+   su propia tabla: el servicio se sigue viendo y lo que hay que mirar es una
+   fila de adentro. Tampoco guarda quién denunció. */
+CREATE TABLE IF NOT EXISTS review_reports (
+  review_id  TEXT NOT NULL REFERENCES service_reviews(id) ON DELETE CASCADE,
+  service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  reason     TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  handled    INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS review_reports_service ON review_reports (service_id, handled);
 `;
 
 let handle: Database | null = null;
