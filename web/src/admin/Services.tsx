@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { type Decision, type QueueItem, decideService, listServiceQueue } from "./api.ts";
+import {
+  type Decision,
+  type QueueItem,
+  type ReviewStatus,
+  decideReview,
+  decideService,
+  listServiceQueue,
+} from "./api.ts";
 import { ServiceRow } from "./ServiceRow.tsx";
 
 interface Props {
@@ -13,7 +20,7 @@ interface Props {
  */
 export function Services({ onFail }: Props) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [counts, setCounts] = useState({ pending: 0, reported: 0 });
+  const [counts, setCounts] = useState({ pending: 0, reported: 0, reported_reviews: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -41,11 +48,24 @@ export function Services({ onFail }: Props) {
       .finally(() => setBusyId(null));
   };
 
+  /** La fila que se bloquea es la del servicio: la calificación se decide
+   * adentro y el resto de la tarjeta tiene que esperar igual. */
+  const decideFlagged = (serviceId: string, reviewId: string, status: ReviewStatus) => {
+    setBusyId(serviceId);
+    decideReview(reviewId, status)
+      .then(refresh)
+      .catch(onFail)
+      .finally(() => setBusyId(null));
+  };
+
   return (
     <>
       <p className="text-xs text-muted">
         {counts.pending} {counts.pending === 1 ? "servicio esperando" : "servicios esperando"}
         {counts.reported > 0 ? ` · ${counts.reported} con denuncias` : ""}
+        {counts.reported_reviews > 0
+          ? ` · ${counts.reported_reviews} ${counts.reported_reviews === 1 ? "calificación denunciada" : "calificaciones denunciadas"}`
+          : ""}
       </p>
 
       {loading ? (
@@ -62,6 +82,9 @@ export function Services({ onFail }: Props) {
               busy={busyId === item.service.id}
               item={item}
               onDecide={(decision) => decide(item.service.id, decision)}
+              onDecideReview={(reviewId, status) =>
+                decideFlagged(item.service.id, reviewId, status)
+              }
             />
           ))}
         </ul>

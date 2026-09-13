@@ -22,7 +22,7 @@ import {
 import { serviceShare } from "../../lib/share.ts";
 import { chipClass, iconButtonClass, menuItemClass, mutedChip } from "../../lib/styles.ts";
 import { ShareMenu } from "../ui/ShareMenu.tsx";
-import { Rating } from "./Rating.tsx";
+import { Reviews } from "./Reviews.tsx";
 
 interface ServiceModalProps {
   service: Service;
@@ -303,7 +303,12 @@ export function ServiceModal({ service, onClose }: ServiceModalProps) {
           </Section>
 
           <Section title="Calificación">
-            <Rating average={service.rating_avg} count={service.rating_count} size="md" />
+            <Reviews
+              average={service.rating_avg}
+              count={service.rating_count}
+              ownerName={service.owner_name}
+              slug={service.slug}
+            />
           </Section>
 
           <Section title="Quién lo ofrece">

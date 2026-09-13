@@ -287,15 +287,34 @@ export interface ModerationReview {
   decided_at: string;
 }
 
+/** Una calificación denunciada, que se mira de a una: el servicio sigue
+ * publicado y lo que hay para decidir es la fila. */
+export interface ServiceReview {
+  id: string;
+  service_id: string;
+  rating: number;
+  comment: string;
+  reply: string;
+  status: ReviewStatus;
+  edited: boolean;
+  created_at: string;
+  author_handle: string;
+  author_name: string;
+}
+
+export const REVIEW_STATUSES = ["visible", "hidden"] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
 export interface QueueItem {
   service: Service;
   review: ModerationReview | null;
   reports: number;
+  reported_reviews: ServiceReview[];
 }
 
 export interface ServiceQueue {
   queue: QueueItem[];
-  counts: { pending: number; reported: number };
+  counts: { pending: number; reported: number; reported_reviews: number };
 }
 
 export const DECISIONS = ["approved", "rejected", "suspended"] as const;
@@ -305,3 +324,10 @@ export const listServiceQueue = (): Promise<ServiceQueue> => send("/services");
 
 export const decideService = (id: string, decision: Decision): Promise<{ service: Service }> =>
   send(`/services/${id}/decision`, { method: "POST", body: JSON.stringify({ decision }) });
+
+/** Bajar la calificación o dejarla: en las dos la denuncia queda atendida. */
+export const decideReview = (
+  id: string,
+  status: ReviewStatus,
+): Promise<{ review: ServiceReview }> =>
+  send(`/services/reviews/${id}/decision`, { method: "POST", body: JSON.stringify({ status }) });
