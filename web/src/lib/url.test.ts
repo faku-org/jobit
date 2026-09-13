@@ -16,6 +16,14 @@ describe("readViewState", () => {
     expect(readViewState("?view=inventada").view).toBe("all");
   });
 
+  test("un enlace a un servicio abre la sección de servicios", () => {
+    expect(readViewState("?service=electricista").view).toBe("services");
+  });
+
+  test("la pestaña que el enlace nombra gana sobre el servicio que trae", () => {
+    expect(readViewState("?service=electricista&view=market").view).toBe("market");
+  });
+
   test("reads the filters under the names the API takes", () => {
     expect(readViewState("?category=salud&department=Canelones&remote=hybrid").filters).toEqual({
       ...EMPTY_FILTERS,

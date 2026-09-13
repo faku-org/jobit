@@ -551,8 +551,9 @@ export function Onboarding({
               <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
               <p className="text-sm leading-relaxed text-soft">
                 Lo que hagas acá <strong className="font-semibold">no sube a ninguna nube</strong>.
-                No hay cuenta ni contraseña: todo queda guardado en este navegador y las empresas no
-                ven nada de esto.
+                Buscar trabajo no pide cuenta ni contraseña: todo queda guardado en este navegador y
+                las empresas no ven nada de esto. Cuenta pide una sola cosa, publicar un servicio, y
+                es para poder volver a editarlo.
               </p>
             </div>
 

@@ -1,5 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
+import { accounts } from "./accounts.ts";
+import { catalog } from "./catalog.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
@@ -9,6 +11,8 @@ import { type Ranking, isEmptyRanking, isMix } from "./rank.ts";
 import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed } from "./feed.ts";
+import { publish } from "./publish.ts";
+import { ratings } from "./ratings.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 
@@ -42,6 +46,12 @@ const WRITE_LIMIT: Limit = { windowMs: HOUR, max: 20 };
  * diario, cada uno de a veinte filas como mucho.
  */
 const EVENTS_LIMIT: Limit = { windowMs: HOUR, max: 60 };
+/**
+ * Probar contraseñas es lo único que se puede atacar sin estar adentro, así
+ * que /api/auth lleva su propio presupuesto, el mismo que el login del panel:
+ * diez intentos cada quince minutos por dirección.
+ */
+const AUTH_LIMIT: Limit = { windowMs: 15 * MINUTE, max: 10 };
 
 /**
  * A failed read names a path on the box. That is nothing the browser can act
@@ -180,9 +190,11 @@ export const app = new Elysia()
     const [bucket, limit] =
       path === "/api/events"
         ? (["e", EVENTS_LIMIT] as const)
-        : request.method === "POST" && !path.startsWith("/api/admin")
-          ? (["w", WRITE_LIMIT] as const)
-          : (["r", READ_LIMIT] as const);
+        : path.startsWith("/api/auth")
+          ? (["a", AUTH_LIMIT] as const)
+          : request.method === "POST" && !path.startsWith("/api/admin")
+            ? (["w", WRITE_LIMIT] as const)
+            : (["r", READ_LIMIT] as const);
 
     const allowance = take(`${bucket}:${key}`, limit);
     if (allowance.ok) return;
@@ -196,6 +208,10 @@ export const app = new Elysia()
   })
   .get("/health", () => ({ status: "ok" }))
   .use(admin)
+  .use(accounts)
+  .use(publish)
+  .use(ratings)
+  .use(catalog)
   .get(
     "/api/jobs",
     async ({ query, status }) => {

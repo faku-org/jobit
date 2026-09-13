@@ -43,7 +43,7 @@ const HOUR_MS = 3_600_000;
 
 export const SESSION_COOKIE = "jobit_admin";
 
-const sha256 = (value: string): string =>
+export const sha256 = (value: string): string =>
   new Bun.CryptoHasher("sha256").update(value).digest("hex");
 
 /**
