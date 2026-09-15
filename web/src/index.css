@@ -370,3 +370,37 @@ span {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
+
+/* Lo único que se dibuja cuando la app queda adentro del iframe de otro. No
+   usa el layout del tablero porque no hay tablero: es un cartel y una salida. */
+.framed {
+  display: grid;
+  gap: 0.75rem;
+  place-content: center;
+  min-height: 100dvh;
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-ink);
+  background: var(--color-mist);
+}
+
+.framed h1 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.framed p {
+  color: var(--color-muted);
+  max-width: 34ch;
+  margin-inline: auto;
+}
+
+.framed a {
+  justify-self: center;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background: var(--color-brand);
+  color: var(--color-surface);
+  font-weight: 600;
+  text-decoration: none;
+}

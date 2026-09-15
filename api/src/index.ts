@@ -22,10 +22,26 @@ const PORT = Number(process.env.PORT ?? 3000);
  * Set HOST to 0.0.0.0 to serve it straight, knowingly.
  */
 const HOST = process.env.HOST ?? "127.0.0.1";
+/**
+ * El cors de Elysia manda `access-control-allow-credentials: true` siempre, y
+ * lo único que separa la cookie de sesión de cualquier página de internet es
+ * esta lista. Un `*` acá no abriría "la API pública": abriría las sesiones de
+ * quien esté con la pestaña abierta.
+ *
+ * Por eso se descarta en vez de aceptarse. Si hace falta una API pública de
+ * verdad, es #9 y va por otro lado, sin cookies.
+ */
 const CORS_ORIGINS = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
-  .filter(Boolean);
+  .filter(Boolean)
+  .filter((origin) => {
+    if (origin !== "*") return true;
+    console.error(
+      "[jobit] CORS_ORIGIN trae un *, y se ignora: con cookies de sesión sería dejar entrar a cualquier origen",
+    );
+    return false;
+  });
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
