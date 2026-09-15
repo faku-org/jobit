@@ -72,6 +72,130 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS admin_sessions_expiry ON admin_sessions (expires_at);
+
+/* --- Cuentas de personas ------------------------------------------------
+   Nada que ver con admin_sessions: un usuario no es un admin y las dos
+   sesiones no se cruzan. Se guarda lo mínimo para que alguien pueda volver a
+   entrar y editar lo suyo, y ni un campo más: no hay IP, no hay user agent, no
+   hay historial de inicios de sesión.
+
+   El email y el secreto TOTP viajan cifrados (secrets.ts), así que una copia
+   de la base no entrega ni una dirección de correo ni un segundo factor. */
+CREATE TABLE IF NOT EXISTS users (
+  id             TEXT PRIMARY KEY,
+  handle         TEXT NOT NULL UNIQUE,
+  display_name   TEXT NOT NULL,
+  password_hash  TEXT NOT NULL,
+  email_enc      TEXT NOT NULL DEFAULT '',
+  totp_secret_enc TEXT NOT NULL DEFAULT '',
+  totp_enabled   INTEGER NOT NULL DEFAULT 0,
+  status         TEXT NOT NULL DEFAULT 'active',
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL
+);
+
+/* Igual que admin_sessions: solo el sha256 del token.
+
+   "stage" separa la sesión a medio abrir de la abierta. Quien tiene 2FA pasa
+   por una fila 'totp' de cinco minutos que no sirve para nada más que para
+   mandar el código; recién ahí se convierte en 'open'. Así el segundo paso no
+   necesita otro token dando vueltas fuera de la cookie. */
+CREATE TABLE IF NOT EXISTS user_sessions (
+  token_hash  TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  stage       TEXT NOT NULL DEFAULT 'open',
+  created_at  TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  last_seen   TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS user_sessions_expiry ON user_sessions (expires_at);
+CREATE INDEX IF NOT EXISTS user_sessions_user ON user_sessions (user_id);
+
+/* La única salida para quien no dejó email. Se muestran una sola vez y se
+   guardan hasheados: son aleatorios de 50 bits, así que sha256 alcanza por la
+   misma razón que alcanza para el token de sesión. */
+CREATE TABLE IF NOT EXISTS user_recovery_codes (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code_hash  TEXT NOT NULL,
+  used_at    TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (user_id, code_hash)
+);
+
+/* --- Servicios ----------------------------------------------------------
+   Un servicio no es una oferta de empleo y no vive en "offers": el flujo de
+   empresa es aprobación manual y el de servicio es autoservicio.
+
+   "status" es draft, pending, published o suspended, y nada llega a published
+   sin pasar por moderación. */
+CREATE TABLE IF NOT EXISTS services (
+  id                TEXT PRIMARY KEY,
+  user_id           TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title             TEXT NOT NULL,
+  slug              TEXT NOT NULL UNIQUE,
+  summary           TEXT NOT NULL DEFAULT '',
+  description       TEXT NOT NULL DEFAULT '',
+  category          TEXT NOT NULL DEFAULT 'otros',
+  department        TEXT NOT NULL DEFAULT '',
+  city              TEXT NOT NULL DEFAULT '',
+  remote            INTEGER NOT NULL DEFAULT 0,
+  fixed_price       INTEGER NOT NULL DEFAULT 0,
+  work_style        TEXT NOT NULL DEFAULT '',
+  experience_years  INTEGER,
+  availability_note TEXT NOT NULL DEFAULT '',
+  response_time     TEXT NOT NULL DEFAULT '',
+  contact_kind      TEXT NOT NULL DEFAULT '',
+  contact_value     TEXT NOT NULL DEFAULT '',
+  status            TEXT NOT NULL DEFAULT 'draft',
+  rating_avg        REAL NOT NULL DEFAULT 0,
+  rating_count      INTEGER NOT NULL DEFAULT 0,
+  created_at        TEXT NOT NULL,
+  updated_at        TEXT NOT NULL,
+  published_at      TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS services_public ON services (status, published_at DESC);
+CREATE INDEX IF NOT EXISTS services_owner ON services (user_id);
+CREATE INDEX IF NOT EXISTS services_category ON services (status, category);
+
+/* El orden es la prioridad que le da quien publica, no un detalle de
+   presentación, así que "position" es dato y no adorno. */
+CREATE TABLE IF NOT EXISTS service_skills (
+  service_id  TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  skill       TEXT NOT NULL,
+  position    INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS service_skills_service ON service_skills (service_id, position);
+
+/* Los extras no son otra tabla: son filas con kind = 'extra'. Se muestran
+   distinto, pero son lo mismo.
+
+   "amount" y "currency" se guardan como la persona los puso y nunca se
+   convierten: un precio convertido es un precio que nadie publicó. */
+CREATE TABLE IF NOT EXISTS service_prices (
+  service_id  TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  kind        TEXT NOT NULL DEFAULT 'base',
+  label       TEXT NOT NULL DEFAULT '',
+  amount      INTEGER NOT NULL DEFAULT 0,
+  currency    TEXT NOT NULL DEFAULT 'UYU',
+  unit        TEXT NOT NULL DEFAULT 'proyecto',
+  notes       TEXT NOT NULL DEFAULT '',
+  position    INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS service_prices_service ON service_prices (service_id, position);
+
+/* El issue los llama "from" y "to"; en SQLite las dos son palabras reservadas
+   y obligarían a citar la columna en cada consulta. Son las mismas horas. */
+CREATE TABLE IF NOT EXISTS service_hours (
+  service_id  TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  weekday     INTEGER NOT NULL,
+  starts_at   TEXT NOT NULL,
+  ends_at     TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS service_hours_service ON service_hours (service_id, weekday);
 `;
 
 let handle: Database | null = null;

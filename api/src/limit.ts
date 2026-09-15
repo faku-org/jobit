@@ -68,13 +68,28 @@ export function resetLimits(): void {
 }
 
 /**
- * Who is asking. Behind nginx the socket address is always the proxy, so the
- * forwarded header is the only thing separating one visitor from another. That
- * header is trusted precisely because the service binds to localhost in
- * production: nobody reaches it without going through the proxy that sets it.
+ * Quién está preguntando.
+ *
+ * Detrás de nginx la dirección del socket es siempre el proxy, así que hace
+ * falta una cabecera. La que sirve es `x-real-ip`: nginx la escribe con
+ * `$remote_addr`, que es el peer de la conexión, y la pisa venga como venga
+ * de afuera.
+ *
+ * `x-forwarded-for` no se mira, y no es un olvido. nginx la arma con
+ * `$proxy_add_x_forwarded_for`, que AGREGA el peer a lo que el cliente haya
+ * mandado: la cabecera entera menos el último salto es texto del cliente.
+ * Leerla, con cualquier criterio, es dejar que cualquiera se invente una
+ * dirección nueva por petición y no tenga límite ninguno. Como `x-real-ip` ya
+ * dice lo mismo sin esa parte, la otra sobra.
+ *
+ * Si no hay `x-real-ip` es porque no hay proxy adelante, y entonces la
+ * dirección del socket es la verdad. Si tampoco hay, todo cae en un balde
+ * compartido: de más se limita, que es el lado correcto para equivocarse.
+ *
+ * Las cabeceras se creen porque el servicio escucha en localhost: nadie llega
+ * sin pasar por el proxy que las escribe. Si algún día HOST se pone en
+ * 0.0.0.0, esto deja de ser cierto y hay que revisarlo.
  */
 export function clientKey(request: Request, address: string | null): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return first || address || "unknown";
+  return request.headers.get("x-real-ip")?.trim() || address || "unknown";
 }

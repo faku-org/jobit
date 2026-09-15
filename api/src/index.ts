@@ -1,7 +1,10 @@
 import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
+import { account } from "./account.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
+import { publish } from "./publish.ts";
+import { accountsEnabled } from "./secrets.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
 import { buildMarketReport } from "./market.ts";
@@ -42,6 +45,47 @@ const WRITE_LIMIT: Limit = { windowMs: HOUR, max: 20 };
  * diario, cada uno de a veinte filas como mucho.
  */
 const EVENTS_LIMIT: Limit = { windowMs: HOUR, max: 60 };
+/**
+ * Probar contraseñas es lo único que se puede atacar sin estar adentro, así
+ * que /api/auth tiene el mismo presupuesto chico que ya tenía el login del
+ * panel: diez intentos cada quince minutos por dirección.
+ *
+ * Con el balde de escritura no alcanzaba: ese cuenta por hora, y alguien
+ * probando claves prefiere veinte por hora antes que diez cada cuarto de hora
+ * si lo que quiere es no quedar afuera del todo.
+ */
+const AUTH_LIMIT: Limit = { windowMs: 15 * MINUTE, max: 10 };
+/**
+ * Guardar un servicio es una escritura más, pero la hace alguien con sesión y
+ * mientras escribe: veinte por hora es el presupuesto de una fila de
+ * estadística que se manda una vez al día, no el de alguien editando un
+ * borrador.
+ */
+const PUBLISH_LIMIT: Limit = { windowMs: HOUR, max: 60 };
+
+/** Todo lo que cambia algo, no solo POST. Antes solo se contaba POST, así que
+ * un PATCH o un DELETE caían en el presupuesto de lectura, que es seis veces
+ * más grande y por minuto. */
+const MUTATIONS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/**
+ * Qué presupuesto le toca a esta petición. El panel queda con el de lectura:
+ * escribe seguido y ya se defiende solo, con la sesión y con su propio límite
+ * en el login.
+ */
+function bucketFor(path: string, method: string): readonly [string, Limit] {
+  if (path === "/api/events") return ["e", EVENTS_LIMIT] as const;
+  /** Cerrar sesión no es una credencial a probar y no gasta el presupuesto de
+   * quien está entrando. */
+  if (path.startsWith("/api/auth") && path !== "/api/auth/logout") {
+    return ["a", AUTH_LIMIT] as const;
+  }
+  if (!MUTATIONS.has(method) || path.startsWith("/api/admin")) return ["r", READ_LIMIT] as const;
+  if (path.startsWith("/api/services") || path.startsWith("/api/me")) {
+    return ["p", PUBLISH_LIMIT] as const;
+  }
+  return ["w", WRITE_LIMIT] as const;
+}
 
 /**
  * A failed read names a path on the box. That is nothing the browser can act
@@ -171,18 +215,12 @@ function readRanking(query: JobsQueryParams): Ranking | undefined {
 
 export const app = new Elysia()
   .use(cors({ origin: CORS_ORIGINS }))
-  /** Writing costs a line on disk, reading costs a scan of the board: the two
-   * get their own budget, and their own bucket per client. El panel queda con
-   * el presupuesto de lectura: escribe seguido y ya se defiende solo, con la
-   * sesión y con su propio límite en el login. */
+  /** Escribir cuesta una línea en disco, leer cuesta un barrido del tablero, y
+   * probar una clave no cuesta nada del lado de acá pero vale todo del otro:
+   * cada uno con su presupuesto y su balde por cliente. */
   .onBeforeHandle(({ request, server, path, set, status }) => {
     const key = clientKey(request, server?.requestIP(request)?.address ?? null);
-    const [bucket, limit] =
-      path === "/api/events"
-        ? (["e", EVENTS_LIMIT] as const)
-        : request.method === "POST" && !path.startsWith("/api/admin")
-          ? (["w", WRITE_LIMIT] as const)
-          : (["r", READ_LIMIT] as const);
+    const [bucket, limit] = bucketFor(path, request.method);
 
     const allowance = take(`${bucket}:${key}`, limit);
     if (allowance.ok) return;
@@ -196,6 +234,8 @@ export const app = new Elysia()
   })
   .get("/health", () => ({ status: "ok" }))
   .use(admin)
+  .use(account)
+  .use(publish)
   .get(
     "/api/jobs",
     async ({ query, status }) => {
@@ -300,5 +340,10 @@ if (import.meta.main) {
     adminEnabled()
       ? "admin: habilitado"
       : "admin: apagado (falta ADMIN_PASSWORD_HASH), /api/admin responde 404",
+  );
+  console.log(
+    accountsEnabled()
+      ? "cuentas: habilitadas"
+      : "cuentas: apagadas (falta ACCOUNT_KEY), /api/auth y /api/services responden 404",
   );
 }

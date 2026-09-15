@@ -55,19 +55,30 @@ describe("clientKey", () => {
     expect(clientKey(asRequest(), "10.0.0.9")).toBe("10.0.0.9");
   });
 
-  test("prefers what the proxy forwarded", () => {
-    expect(clientKey(asRequest({ "x-forwarded-for": "203.0.113.7" }), "127.0.0.1")).toBe(
-      "203.0.113.7",
-    );
+  test("se queda con lo que escribió el proxy", () => {
+    expect(clientKey(asRequest({ "x-real-ip": "203.0.113.7" }), "127.0.0.1")).toBe("203.0.113.7");
   });
 
-  test("reads the original client out of a chain of proxies", () => {
-    const request = asRequest({ "x-forwarded-for": "203.0.113.7, 70.41.3.18, 150.172.238.178" });
+  /* nginx arma x-forwarded-for con $proxy_add_x_forwarded_for: todo menos el
+     último salto es texto que mandó el cliente. Mirarla, con cualquier
+     criterio, le regala un balde nuevo por petición a cualquiera. */
+  test("x-forwarded-for no cuenta, venga como venga", () => {
+    const inventada = asRequest({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" });
+    const otra = asRequest({ "x-forwarded-for": "9.9.9.9" });
+    expect(clientKey(inventada, "127.0.0.1")).toBe("127.0.0.1");
+    expect(clientKey(inventada, "127.0.0.1")).toBe(clientKey(otra, "127.0.0.1"));
+  });
+
+  test("una x-forwarded-for inventada tampoco tapa la del proxy", () => {
+    const request = asRequest({
+      "x-real-ip": "203.0.113.7",
+      "x-forwarded-for": "1.2.3.4, 5.6.7.8",
+    });
     expect(clientKey(request, "127.0.0.1")).toBe("203.0.113.7");
   });
 
-  test("falls back rather than sharing one bucket with an empty header", () => {
-    expect(clientKey(asRequest({ "x-forwarded-for": "  " }), "10.0.0.9")).toBe("10.0.0.9");
+  test("una cabecera vacía no comparte un balde con nadie", () => {
+    expect(clientKey(asRequest({ "x-real-ip": "  " }), "10.0.0.9")).toBe("10.0.0.9");
   });
 
   test("has a last resort when there is no address at all", () => {

@@ -43,6 +43,18 @@ const HOUR_MS = 3_600_000;
 
 export const SESSION_COOKIE = "jobit_admin";
 
+/**
+ * El flag `secure` hace inservible una cookie sobre http://, que es como corre
+ * el desarrollo. La variable de escape lo saca, y vale para las dos sesiones,
+ * la del panel y la de las cuentas: tener una variable por cookie solo lleva a
+ * que alguien apague una y se olvide de la otra.
+ *
+ * ADMIN_INSECURE_COOKIES sigue funcionando porque ya estaba escrita en más de
+ * un .env que no vale la pena romper. En producción no va ninguna de las dos.
+ */
+export const secureCookies = (): boolean =>
+  process.env.INSECURE_COOKIES !== "true" && process.env.ADMIN_INSECURE_COOKIES !== "true";
+
 const sha256 = (value: string): string =>
   new Bun.CryptoHasher("sha256").update(value).digest("hex");
 

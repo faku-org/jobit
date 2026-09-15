@@ -4,6 +4,7 @@ import {
   adminEnabled,
   createSession,
   destroySession,
+  secureCookies,
   sessionValid,
   verifyPassword,
 } from "./auth.ts";
@@ -12,6 +13,8 @@ import { COMPANY_STATUSES } from "./companies.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
 import * as offers from "./offers.ts";
 import { OFFER_STATUSES } from "./offers.ts";
+import * as services from "./services.ts";
+import { SERVICE_STATUSES } from "./services.ts";
 import { loadUsage } from "./usage.ts";
 
 /**
@@ -19,8 +22,6 @@ import { loadUsage } from "./usage.ts";
  * tiene su propio presupuesto y es mucho más chico que el del resto.
  */
 const LOGIN_LIMIT: Limit = { windowMs: 15 * 60_000, max: 10 };
-
-const SECURE_COOKIES = process.env.ADMIN_INSECURE_COOKIES !== "true";
 
 const statusSchema = t.Union(COMPANY_STATUSES.map((value) => t.Literal(value)));
 
@@ -30,6 +31,7 @@ const tokenOf = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined;
 
 const offerStatusSchema = t.Union(OFFER_STATUSES.map((value) => t.Literal(value)));
+const serviceStatusSchema = t.Union(SERVICE_STATUSES.map((value) => t.Literal(value)));
 
 /** Los enums viajan como texto libre y offers.ts descarta lo que no reconoce:
  * un valor raro deja el campo vacío en vez de rechazar la oferta entera. */
@@ -88,7 +90,7 @@ export const admin = new Elysia({ prefix: "/api/admin" })
       cookie[SESSION_COOKIE]?.set({
         value: session.token,
         httpOnly: true,
-        secure: SECURE_COOKIES,
+        secure: secureCookies(),
         /** strict: ningún sitio ajeno puede disparar una acción del panel
          * llevando la cookie puesta, que es el vector de CSRF acá. */
         sameSite: "strict",
@@ -185,4 +187,29 @@ export const admin = new Elysia({ prefix: "/api/admin" })
   )
   .delete("/offers/:id", ({ params, status }) =>
     offers.remove(params.id) ? { status: "ok" } : status(404, { error: "esa oferta no existe" }),
+  )
+  /**
+   * La cola de moderación de servicios. Nada llega a published sin pasar por
+   * acá, y por defecto se mira lo que está esperando.
+   *
+   * El descarte semántico local que ordena la cola por score es #29: esto es
+   * la cola a secas, que es lo que hace falta para que publicar sirva de algo.
+   */
+  .get(
+    "/services",
+    ({ query }) => ({
+      services: services.listByStatus(query.status ?? "pending"),
+      counts: services.counts(),
+    }),
+    { query: t.Object({ status: t.Optional(serviceStatusSchema) }) },
+  )
+  /** Lo único que la moderación cambia es el estado. El contenido es de quien
+   * lo escribió: se aprueba o no se aprueba, no se corrige por atrás. */
+  .patch(
+    "/services/:id",
+    ({ params, body, status }) => {
+      const moderated = services.moderate(params.id, body.status);
+      return moderated.ok ? moderated.value : status(404, { error: moderated.error });
+    },
+    { body: t.Object({ status: serviceStatusSchema }) },
   );
