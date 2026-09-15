@@ -9,9 +9,13 @@ import type { Result } from "./types.ts";
  * usan cookies distintas con caminos distintos.
  *
  * Lo que se guarda es lo mínimo para que alguien pueda volver a entrar y
- * editar lo suyo. El email es opcional y solo sirve para recuperar la cuenta;
- * quien no lo deja se lleva códigos de respaldo y se queda sin reset, y eso
- * hay que decírselo en el alta con todas las letras, no en letra chica.
+ * editar lo suyo. No hay correo: guardarlo obligaba a que JobIt lo pudiera
+ * leer, y a los datos de una persona llegan esa persona y la empresa a la que
+ * le escribió, nadie más.
+ *
+ * La consecuencia hay que decirla con todas las letras en el alta, no en letra
+ * chica: los códigos de respaldo son la única forma de volver a entrar si se
+ * pierde la contraseña. No hay reset por correo porque no hay correo.
  */
 export const USER_STATUSES = ["active", "suspended"] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
@@ -21,7 +25,6 @@ export interface UserRow {
   handle: string;
   display_name: string;
   password_hash: string;
-  email_enc: string;
   totp_secret_enc: string;
   totp_enabled: number;
   status: UserStatus;
@@ -34,9 +37,6 @@ export interface PublicUser {
   id: string;
   handle: string;
   display_name: string;
-  /** Si tiene correo, no cuál: la recuperación por correo lo necesita saber,
-   * la pantalla de perfil también, y nadie más. */
-  has_email: boolean;
   totp_enabled: boolean;
   status: UserStatus;
   created_at: string;
@@ -46,7 +46,6 @@ const HANDLE = /^[a-z0-9](?:[a-z0-9_.-]{1,22}[a-z0-9])$/;
 const MIN_PASSWORD = 10;
 const MAX_PASSWORD = 200;
 const MAX_NAME = 60;
-const MAX_EMAIL = 200;
 
 const RECOVERY_CODES = 8;
 const RECOVERY_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -81,7 +80,6 @@ export const publicUser = (row: UserRow): PublicUser => ({
   id: row.id,
   handle: row.handle,
   display_name: row.display_name,
-  has_email: row.email_enc.length > 0,
   totp_enabled: row.totp_enabled === 1,
   status: row.status,
   created_at: row.created_at,
@@ -120,15 +118,6 @@ function cleanPassword(value: string): Result<string> {
   return { ok: true, value };
 }
 
-function cleanEmail(value: string | undefined): Result<string> {
-  const raw = (value ?? "").trim().slice(0, MAX_EMAIL);
-  if (!raw) return { ok: true, value: "" };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
-    return { ok: false, error: "ese correo no parece válido" };
-  }
-  return { ok: true, value: raw.toLowerCase() };
-}
-
 /** Sin I, L, O ni 0/1: se dictan por teléfono y se copian a mano. */
 function recoveryCode(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(10));
@@ -151,7 +140,6 @@ export interface RegisterInput {
   handle: string;
   display_name: string;
   password: string;
-  email?: string;
 }
 
 export interface Registration {
@@ -170,9 +158,6 @@ export async function register(
   const password = cleanPassword(input.password);
   if (!password.ok) return password;
 
-  const email = cleanEmail(input.email);
-  if (!email.ok) return email;
-
   const name = input.display_name.trim().slice(0, MAX_NAME);
   if (!name) return { ok: false, error: "hace falta un nombre visible" };
 
@@ -184,7 +169,6 @@ export async function register(
     handle: handle.value,
     display_name: name,
     password_hash: await Bun.password.hash(password.value),
-    email_enc: await seal(email.value),
     totp_secret_enc: "",
     totp_enabled: 0,
     status: "active",
@@ -194,15 +178,14 @@ export async function register(
 
   try {
     db().run(
-      `INSERT INTO users (id, handle, display_name, password_hash, email_enc,
+      `INSERT INTO users (id, handle, display_name, password_hash,
                           totp_secret_enc, totp_enabled, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         row.id,
         row.handle,
         row.display_name,
         row.password_hash,
-        row.email_enc,
         row.totp_secret_enc,
         row.totp_enabled,
         row.status,
@@ -334,8 +317,6 @@ export function destroyUserSessions(userId: string): void {
 
 export interface ProfileInput {
   display_name?: string;
-  /** Cadena vacía saca el correo guardado. */
-  email?: string;
 }
 
 export async function updateProfile(
@@ -352,26 +333,11 @@ export async function updateProfile(
       : input.display_name.trim().slice(0, MAX_NAME);
   if (!name) return { ok: false, error: "hace falta un nombre visible" };
 
-  let emailEnc = current.email_enc;
-  if (input.email !== undefined) {
-    const email = cleanEmail(input.email);
-    if (!email.ok) return email;
-    emailEnc = await seal(email.value);
-  }
-
   const stamp = now.toISOString();
-  db().run("UPDATE users SET display_name = ?, email_enc = ?, updated_at = ? WHERE id = ?", [
-    name,
-    emailEnc,
-    stamp,
-    userId,
-  ]);
+  db().run("UPDATE users SET display_name = ?, updated_at = ? WHERE id = ?", [name, stamp, userId]);
 
-  return { ok: true, value: publicUser({ ...current, display_name: name, email_enc: emailEnc }) };
+  return { ok: true, value: publicUser({ ...current, display_name: name }) };
 }
-
-/** El correo en claro. Lo lee la persona dueña y nadie más. */
-export const emailOf = (row: UserRow): Promise<string | null> => open(row.email_enc);
 
 export async function changePassword(
   userId: string,

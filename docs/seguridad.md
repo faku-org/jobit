@@ -114,10 +114,15 @@ Por orden de lo que más molesta.
    `POST /api/auth/login`. Es #34 y es la contradicción más grande que tiene
    hoy la Zero Data Policy escrita.
 
-2. **La clave de cifrado no puede estar en el mismo backup que la base.** Si
-   `data/jobit.db` y `data/account.key` viajan juntos a un respaldo, el cifrado
-   del correo y del segundo factor no protege de nada. Hay que separarlos, y
-   hay que decirlo en el runbook de despliegue.
+2. **El secreto TOTP lo puede leer JobIt, y no hay forma de que no.** Verificar
+   un código exige tener el secreto con el que se generó. Está cifrado en
+   reposo, pero con una clave nuestra. Es la única excepción que queda a la
+   regla de cero acceso, y la salida es WebAuthn: ver
+   [`cero-acceso.md`](cero-acceso.md).
+
+   De ahí sale la regla operativa: **`data/jobit.db` y `data/account.key` no
+   pueden viajar juntos a un respaldo.** Si van juntos, el cifrado no protege de
+   nada. Va en el runbook de despliegue.
 
 3. **`stats.jsonl` y `events.jsonl` crecen sin techo.** No hay rotación ni tope.
    El límite de peticiones lo hace lento, no imposible. Un `logrotate` o un tope
@@ -132,10 +137,12 @@ Por orden de lo que más molesta.
    tiene vuelta: sin eso no se puede elegir un nombre. El login no filtra nada,
    que es donde importa.
 
-6. **Sin correo no hay recuperación, y la recuperación por correo no existe.**
-   Quien pierda los códigos de respaldo pierde la cuenta. Es una decisión de
-   producto, está avisada en el alta con todas las letras, y es la que más
-   soporte va a generar.
+6. **No hay recuperación más que los códigos de respaldo.** No es que falte
+   implementar el reset por correo: no se guarda correo, a propósito, porque
+   sería un dato de una persona que JobIt puede leer. Quien pierda los códigos
+   pierde la cuenta, está avisado en el alta con todas las letras, y es lo que
+   más soporte va a generar. Con las postulaciones cifradas va a ser peor:
+   perderlos pasa a ser perder el contenido, no solo el acceso.
 
 7. **El panel tiene una sola contraseña y no tiene segundo factor.** La
    contramedida disponible hoy es la lista de direcciones que ya está comentada

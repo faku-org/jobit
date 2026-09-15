@@ -3,6 +3,13 @@
 Propuesta. No hay nada de esto implementado y no lo va a haber hasta que las
 decisiones del final estén tomadas, porque la mitad no son técnicas.
 
+> **Actualización.** La decisión de fondo ya está tomada: **B, y con cifrado de
+> punta a punta**. A los datos de una persona llegan esa persona y la empresa a
+> la que le escribió, y JobIt no. Cómo se implementa eso está en
+> [`cero-acceso.md`](cero-acceso.md), y cambia dos cosas de este documento: el
+> cribado no lo puede hacer el servidor, y el aviso no va por correo. Las dos
+> partes están corregidas abajo.
+
 Responde a tres pedidos que vienen juntos: conseguir ofertas de forma más
 automática que scrapeando, que las empresas publiquen acá directamente (#15), y
 que puedan recibir postulaciones, descartarlas contra sus requisitos, hacer
@@ -48,7 +55,7 @@ archivo. Es lo que piden las empresas y es lo que hace todo el mundo. También e
 tirar la Zero Data Policy entera y competir de frente con BuscoJobs en el
 terreno de BuscoJobs, sin su base y sin su plata.
 
-**Recomiendo B**, y el resto del documento asume B. Es lo único que deja decir
+**Recomiendo B**, y el resto del documento asume B. (Decidido: es B.) Es lo único que deja decir
 "lo mínimo para que esto funcione y ni un campo más" sin mentir, y sigue dándole
 a la empresa lo que de verdad usa para descartar, que no es leer 300 PDF: es
 saber quién cumple los requisitos.
@@ -163,6 +170,12 @@ pone arriba lo que cumple y abajo lo que no, y quien decide es una persona. Un
 descarte automático sobre un puntaje que nadie auditó es la forma más rápida de
 que el sistema discrimine sin que nadie pueda decir por qué.
 
+**El puntaje no lo calcula el servidor.** Con la postulación adentro de un sobre
+cerrado, la API no sabe qué dice. El cribado corre en el navegador de la
+empresa, después de abrir el sobre, o sobre una cabecera de ids de catálogo que
+viaja afuera y sin vínculo con ninguna cuenta. Cuál de las dos es la decisión 1
+de `cero-acceso.md`.
+
 La única excepción razonable es el excluyente declarado: si la oferta pide
 libreta de conducir y la persona contestó que no tiene, va a "no cumple", no a
 la papelera, y la empresa puede abrir esa lista igual.
@@ -195,19 +208,30 @@ el panel, no en la letra chica.
 
 ### Tablas, en borrador
 
+Corregido para el sobre cerrado. Lo que cambió contra el borrador anterior: no
+hay `user_id`, no hay `score`, y los hechos, las respuestas y el adjunto no son
+columnas legibles sino parte del sobre.
+
 ```
 offer_requirements(offer_id, kind, value, excluyente)
 offer_questions(offer_id, position, kind, prompt, options, required)
-applications(id, offer_id, user_id, status, score, created_at, expires_at)
-application_facts(application_id, kind, value)        -- ids de catálogo
-application_answers(application_id, question_id, value)
-application_files(application_id, path, expires_at)   -- solo si adjuntó
+
+applications(id, offer_id, sobre, llave_empresa, llave_persona,
+             status, created_at, expires_at)
+application_screening(application_id, kind, value)   -- solo si se elige B
+application_files(application_id, path, expires_at)  -- cifrado, si adjuntó
+
 interview_slots(id, offer_id, starts_at, minutes, mode, place)
 interviews(application_id, slot_id, code, status)
 ```
 
+`status` queda afuera del sobre a propósito: la empresa necesita poder filtrar
+"sin ver" de "vista" sin abrir nada, y ese estado no dice nada de la persona.
+
 `applications` cuelga de `offers`, que cuelga de `companies`. Borrar la empresa
-se lleva todo, como ya pasa hoy.
+se lleva todo, como ya pasa hoy. **Quién postuló no está en ninguna columna:**
+la lista de lo propio vive en el navegador de la persona, más una copia envuelta
+con su clave.
 
 ### Esfuerzo, grueso
 
@@ -222,17 +246,14 @@ se lleva todo, como ya pasa hoy.
 | Reescribir política y términos (#34)       | chico, y bloqueante         |
 | Avisos sin correo saliente                 | **sin resolver, ver abajo** |
 
-## Lo que no está resuelto
+## Cómo se entera la persona de que la citaron
 
-**Cómo se entera la persona de que la citaron.** No hay correo saliente
-configurado y el diseño de #27 evitó esa dependencia a propósito. Sin eso, la
-única vía es que la persona vuelva a entrar a mirar, y un proceso de selección
-así no funciona.
-
-Las salidas son: configurar SMTP y aceptar la dependencia; exigir correo para
-postular (no para tener cuenta); o mandar al canal que la persona eligió, que
-para WhatsApp implica una API de terceros y contarle a un tercero quién postuló
-a qué. **Ninguna es gratis y hay que elegir una antes de empezar.**
+Resuelto, y está en [`cero-acceso.md`](cero-acceso.md#avisos-sin-correo) con los
+números. Corto: correo propio desde el VPS no es viable en 2026, y no por falta
+de un certificado sino de reputación de IP. La combinación que queda es bandeja
+adentro de JobIt como fuente de verdad, Web Push como capa de aviso gratis, y
+Telegram opcional. Correo, ninguno, que además es lo que hace verdadera la
+frase "JobIt no guarda tu correo".
 
 ## Lo que no se hace
 
@@ -244,11 +265,12 @@ a qué. **Ninguna es gratis y hay que elegir una antes de empezar.**
 
 ## Lo que necesito que decidas
 
-1. **¿A, B o C?** Todo el resto cuelga de esto.
-2. Si es B: **¿el PDF adjunto existe o no?** Sin adjunto es más limpio y hay
-   empresas que no van a aceptarlo.
-3. **¿Cómo se avisa?** SMTP propio, correo obligatorio para postular, o que la
-   persona vuelva a mirar.
+1. ~~¿A, B o C?~~ **Decidido: B, con cifrado de punta a punta.** Lo que queda
+   abierto de ahí se mudó a `cero-acceso.md`.
+2. **¿El PDF adjunto existe o no?** Sin adjunto es más limpio y hay empresas que
+   no van a aceptarlo. Cifrado igual cuesta poco más que el resto del sobre.
+3. ~~¿Cómo se avisa?~~ **Propuesto: bandeja más Web Push, sin correo.** Falta tu
+   sí.
 4. **¿La empresa entra por su cuenta o la sigue aprobando vos a mano?**
    Autoservicio escala y trae basura; aprobación manual no escala pero es lo que
    hoy sostiene la promesa de que las empresas del tablero son reales.

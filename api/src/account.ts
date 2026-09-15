@@ -44,7 +44,6 @@ const registerBody = t.Object({
   handle: t.String({ maxLength: 40 }),
   display_name: t.String({ maxLength: 80 }),
   password: passwordSchema,
-  email: t.Optional(t.String({ maxLength: 200 })),
 });
 
 const loginBody = t.Object({
@@ -69,16 +68,15 @@ export const account = new Elysia({ prefix: "/api" })
       const session = users.startSession(created.value.user.id);
       cookie[USER_COOKIE]?.set({ value: session.token, ...cookieOptions(session.expiresAt) });
 
-      /** Los códigos salen una sola vez y en ningún lado más: si la persona no
-       * dejó correo, esto es literalmente lo único que la separa de perder la
-       * cuenta, y la pantalla del alta tiene que decirlo así. */
+      /** Los códigos salen una sola vez y en ningún lado más: son literalmente
+       * lo único que separa a la persona de perder la cuenta, y la pantalla
+       * del alta tiene que decirlo así y no en letra chica. */
       return status(201, {
         status: "ok",
         user: created.value.user,
         recovery_codes: created.value.recovery_codes,
-        warning: created.value.user.has_email
-          ? "Guardá los códigos de respaldo: son la salida si perdés el acceso."
-          : "Sin correo no hay forma de recuperar la cuenta. Guardá los códigos de respaldo ahora: no se vuelven a mostrar.",
+        warning:
+          "Guardá estos códigos ahora: no se vuelven a mostrar y son la única forma de volver a entrar si perdés la contraseña. JobIt no guarda tu correo, así que no hay reset que mandarte.",
       });
     },
     { body: registerBody },
@@ -120,12 +118,10 @@ export const account = new Elysia({ prefix: "/api" })
     { body: t.Object({ code: t.String({ maxLength: 10 }) }) },
   )
   /**
-   * Un código de respaldo cambia la contraseña y cierra todo lo abierto.
-   *
-   * La recuperación por correo no está: mandar un mail pide salida de correo
-   * configurada, que es justo la dependencia que el diseño evitó desde el día
-   * uno. Mientras no exista, el correo guardado no sirve para entrar, y eso es
-   * lo que hay que decir en el alta.
+   * Un código de respaldo cambia la contraseña y cierra todo lo abierto. Es la
+   * única recuperación que hay y la única que puede haber: recuperar por
+   * correo obliga a guardar una dirección que JobIt pueda leer, y a los datos
+   * de una persona llegan esa persona y la empresa a la que le escribió.
    */
   .post(
     "/auth/recover",
@@ -166,10 +162,7 @@ export const account = new Elysia({ prefix: "/api" })
       return updated.ok ? { user: updated.value } : status(422, { error: updated.error });
     },
     {
-      body: t.Object({
-        display_name: t.Optional(t.String({ maxLength: 80 })),
-        email: t.Optional(t.String({ maxLength: 200 })),
-      }),
+      body: t.Object({ display_name: t.Optional(t.String({ maxLength: 80 })) }),
     },
   )
   /** Borra de verdad: la cuenta, sus sesiones, sus códigos y sus servicios. */

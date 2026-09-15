@@ -79,14 +79,19 @@ CREATE INDEX IF NOT EXISTS admin_sessions_expiry ON admin_sessions (expires_at);
    entrar y editar lo suyo, y ni un campo más: no hay IP, no hay user agent, no
    hay historial de inicios de sesión.
 
-   El email y el secreto TOTP viajan cifrados (secrets.ts), así que una copia
-   de la base no entrega ni una dirección de correo ni un segundo factor. */
+   No hay correo. Se guardaba cifrado, pero con una clave que tiene JobIt: lo
+   habría podido leer, y la regla es que a los datos de una persona llegan esa
+   persona y la empresa a la que le escribió, nadie más. Guardarlo "por si
+   después sirve" es justo lo que la política dice que no se hace.
+
+   El secreto TOTP sí queda, cifrado, y es la excepción conocida: verificar un
+   código exige tener el secreto. La salida es WebAuthn, donde el servidor
+   guarda una clave pública y verifica una firma. Ver docs/cero-acceso.md. */
 CREATE TABLE IF NOT EXISTS users (
   id             TEXT PRIMARY KEY,
   handle         TEXT NOT NULL UNIQUE,
   display_name   TEXT NOT NULL,
   password_hash  TEXT NOT NULL,
-  email_enc      TEXT NOT NULL DEFAULT '',
   totp_secret_enc TEXT NOT NULL DEFAULT '',
   totp_enabled   INTEGER NOT NULL DEFAULT 0,
   status         TEXT NOT NULL DEFAULT 'active',

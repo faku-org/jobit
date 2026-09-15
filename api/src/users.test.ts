@@ -33,7 +33,6 @@ describe("alta", () => {
     if (!created.ok) return;
 
     expect(created.value.user.handle).toBe("faku");
-    expect(created.value.user.has_email).toBe(false);
     expect(created.value.recovery_codes).toHaveLength(8);
     expect(new Set(created.value.recovery_codes).size).toBe(8);
   });
@@ -59,22 +58,15 @@ describe("alta", () => {
     expect((await alta({ password: "corta" })).ok).toBe(false);
   });
 
-  test("el email es opcional y queda cifrado en la base", async () => {
-    const created = await alta({ email: "Faku@Example.com" });
-    expect(created.ok && created.value.user.has_email).toBe(true);
-
-    const row = db()
-      .query<{ email_enc: string }, []>("SELECT email_enc FROM users")
-      .get();
-    expect(row?.email_enc).not.toContain("faku");
-    expect(row?.email_enc).not.toContain("example.com");
-
-    const user = users.byHandle("faku");
-    expect(user && (await users.emailOf(user))).toBe("faku@example.com");
-  });
-
-  test("un email inventado no entra", async () => {
-    expect((await alta({ email: "esto no es un correo" })).ok).toBe(false);
+  /* No hay dónde guardar un correo: la tabla no tiene la columna. Si alguien
+     la vuelve a agregar, esto lo agarra. */
+  test("no hay correo en ningún lado", () => {
+    const columnas = db()
+      .query<{ name: string }, []>("SELECT name FROM pragma_table_info('users')")
+      .all()
+      .map((row) => row.name);
+    expect(columnas).not.toContain("email_enc");
+    expect(columnas.some((name) => name.includes("email"))).toBe(false);
   });
 
   test("la contraseña nunca queda en claro", async () => {
@@ -120,7 +112,9 @@ describe("sesiones", () => {
 
   test("el token en claro no queda guardado", () => {
     const session = users.startSession(id);
-    const row = db().query<{ token_hash: string }, []>("SELECT token_hash FROM user_sessions").get();
+    const row = db()
+      .query<{ token_hash: string }, []>("SELECT token_hash FROM user_sessions")
+      .get();
     expect(row?.token_hash).not.toBe(session.token);
     expect(row?.token_hash).toHaveLength(64);
   });
@@ -201,14 +195,6 @@ describe("perfil", () => {
     expect(updated.ok && updated.value.display_name).toBe("Faku");
   });
 
-  test("se puede agregar y sacar el correo", async () => {
-    const puesto = await users.updateProfile(id, { email: "faku@example.com" });
-    expect(puesto.ok && puesto.value.has_email).toBe(true);
-
-    const sacado = await users.updateProfile(id, { email: "" });
-    expect(sacado.ok && sacado.value.has_email).toBe(false);
-  });
-
   test("cambiar la contraseña cierra todo lo abierto", async () => {
     const session = users.startSession(id);
     const done = await users.changePassword(id, "una clave larga", "otra clave larga");
@@ -246,7 +232,9 @@ describe("segundo factor", () => {
 
   test("el secreto queda cifrado en la base", async () => {
     const setup = await users.startTotp(id);
-    const row = db().query<{ totp_secret_enc: string }, []>("SELECT totp_secret_enc FROM users").get();
+    const row = db()
+      .query<{ totp_secret_enc: string }, []>("SELECT totp_secret_enc FROM users")
+      .get();
     expect(setup.ok && row?.totp_secret_enc).not.toContain(setup.ok ? setup.value.secret : "");
   });
 
@@ -332,7 +320,9 @@ describe("borrado", () => {
     expect((await users.removeAccount(id, "una clave larga")).ok).toBe(true);
 
     expect(users.byId(id)).toBeNull();
-    expect(db().query<{ n: number }, []>("SELECT COUNT(*) AS n FROM user_sessions").get()?.n).toBe(0);
+    expect(db().query<{ n: number }, []>("SELECT COUNT(*) AS n FROM user_sessions").get()?.n).toBe(
+      0,
+    );
     expect(
       db().query<{ n: number }, []>("SELECT COUNT(*) AS n FROM user_recovery_codes").get()?.n,
     ).toBe(0);

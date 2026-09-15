@@ -78,7 +78,7 @@ describe("alta", () => {
     expect(body.user.handle).toBe("faku");
     expect(body.recovery_codes).toHaveLength(8);
     /** Sin correo no hay reset, y hay que decirlo con todas las letras. */
-    expect(body.warning).toContain("no hay forma de recuperar");
+    expect(body.warning).toContain("única forma de volver a entrar");
 
     const cookie = response.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("jobit_session=");
@@ -132,9 +132,10 @@ describe("segundo factor", () => {
   test("el login se queda en el primer paso hasta que llegue el código", async () => {
     const cookie = await registrado();
 
-    const setup = (await (
-      await call("/api/me/totp", withCookie(json({}), cookie))
-    ).json()) as { secret: string; otpauth: string };
+    const setup = (await (await call("/api/me/totp", withCookie(json({}), cookie))).json()) as {
+      secret: string;
+      otpauth: string;
+    };
     expect(setup.otpauth.startsWith("otpauth://totp/")).toBe(true);
 
     const code = (await totpCode(setup.secret)) ?? "";
@@ -162,9 +163,9 @@ describe("segundo factor", () => {
 
   test("un código que no coincide no abre nada", async () => {
     const cookie = await registrado();
-    const setup = (await (
-      await call("/api/me/totp", withCookie(json({}), cookie))
-    ).json()) as { secret: string };
+    const setup = (await (await call("/api/me/totp", withCookie(json({}), cookie))).json()) as {
+      secret: string;
+    };
     await call(
       "/api/me/totp/confirm",
       withCookie(json({ code: (await totpCode(setup.secret)) ?? "" }), cookie),
@@ -191,7 +192,7 @@ describe("perfil", () => {
       unknown
     >;
 
-    expect(body.user).toMatchObject({ handle: "faku", has_email: false });
+    expect(body.user).toMatchObject({ handle: "faku" });
     expect(JSON.stringify(body)).not.toContain("argon2");
     expect(body.services).toMatchObject({ draft: 0, published: 0 });
     expect(body.recovery_codes_left).toBe(8);
@@ -260,10 +261,7 @@ describe("servicios", () => {
 
   test("el servicio de otro contesta igual que uno que no existe", async () => {
     const mio = await registrado();
-    const created = await call(
-      "/api/services",
-      withCookie(json({ title: "Electricista" }), mio),
-    );
+    const created = await call("/api/services", withCookie(json({ title: "Electricista" }), mio));
     const service = (await created.json()) as { id: string };
 
     const ajeno = cookieOf(
@@ -290,11 +288,17 @@ describe("servicios", () => {
 describe("límite de intentos", () => {
   test("/api/auth aguanta diez y corta", async () => {
     for (let intento = 0; intento < 10; intento++) {
-      const response = await call("/api/auth/login", json({ handle: "nadie", password: "xxxxxxxxxx" }));
+      const response = await call(
+        "/api/auth/login",
+        json({ handle: "nadie", password: "xxxxxxxxxx" }),
+      );
       expect(response.status).toBe(401);
     }
 
-    const cortado = await call("/api/auth/login", json({ handle: "nadie", password: "xxxxxxxxxx" }));
+    const cortado = await call(
+      "/api/auth/login",
+      json({ handle: "nadie", password: "xxxxxxxxxx" }),
+    );
     expect(cortado.status).toBe(429);
     expect(cortado.headers.get("retry-after")).not.toBeNull();
   });
@@ -322,8 +326,8 @@ describe("límite de intentos", () => {
     for (let intento = 0; intento < 12; intento++) {
       await call("/api/auth/logout", json({}));
     }
-    expect((await call("/api/auth/login", json({ handle: "nadie", password: "xxxxxxxxxx" }))).status).toBe(
-      401,
-    );
+    expect(
+      (await call("/api/auth/login", json({ handle: "nadie", password: "xxxxxxxxxx" }))).status,
+    ).toBe(401);
   });
 });
