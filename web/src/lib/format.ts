@@ -1,36 +1,17 @@
-import type { ApplicationStatus, JobType, Level, Salary, WorkMode } from "./types.ts";
+import type { ApplicationStatus, Salary } from "./types.ts";
 
 const DAY_MS = 86_400_000;
 
-export const LEVEL_LABEL: Record<Level, string> = {
-  entry: "Junior",
-  mid: "Semi senior",
-  senior: "Senior",
-};
+/** Los nombres de los valores cerrados de una oferta salen del paquete
+ * compartido: la exportación del mercado los escribe desde la API y tienen que
+ * decir lo mismo que la pantalla. */
+export { JOB_TYPE_LABEL, LEVEL_LABEL, SOURCE_LABEL, WORK_MODE_LABEL } from "@jobit/worker/labels";
 
-export const WORK_MODE_LABEL: Record<WorkMode, string> = {
-  onsite: "Presencial",
-  remote: "Remoto",
-  hybrid: "Híbrido",
-};
-
-export const JOB_TYPE_LABEL: Record<JobType, string> = {
-  full_time: "Jornada completa",
-  part_time: "Medio horario",
-  internship: "Pasantía",
-};
-
+/** Este no: el seguimiento de una postulación solo existe en el navegador. */
 export const APPLICATION_STATUS_LABEL: Record<ApplicationStatus, string> = {
   applied: "Postulado",
   interview: "En proceso",
   closed: "Cerrada",
-};
-
-export const SOURCE_LABEL: Record<string, string> = {
-  jobit: "JobIt",
-  buscojobs: "BuscoJobs",
-  gallito: "Gallito",
-  uruguayconcursa: "Uruguay Concursa",
 };
 
 /** "hoy", "ayer", "hace 5 días", "hace 3 semanas". */

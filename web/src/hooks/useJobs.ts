@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useState, useSyncExternalStore } from "react";
 import {
   type JobsQueryOptions,
   MAX_PAGE,
@@ -7,6 +7,7 @@ import {
   isAbortError,
   jobsQueryKey,
 } from "../lib/api.ts";
+import { boardVersion, subscribeBoard } from "../lib/board.ts";
 import { isStale, readJobs, writeJobs } from "../lib/jobsCache.ts";
 import type { Job } from "../lib/types.ts";
 
@@ -31,6 +32,8 @@ interface Pending {
 interface State {
   key: string;
   options: JobsQueryOptions;
+  /** La tanda de ofertas que estas filas describen. */
+  version: string;
   jobs: Job[];
   total: number;
   pending: Pending | null;
@@ -44,13 +47,14 @@ interface State {
  * esqueleto; si quedó vieja se revalida atrás, pidiendo la misma profundidad
  * que tenía para no perder las páginas que se habían cargado.
  */
-function begin(key: string, options: JobsQueryOptions): State {
+function begin(key: string, options: JobsQueryOptions, version: string): State {
   const hit = readJobs(key);
 
   if (hit === undefined) {
     return {
       key,
       options,
+      version,
       jobs: [],
       total: 0,
       pending: { offset: 0, limit: PAGE_SIZE, append: false },
@@ -62,6 +66,7 @@ function begin(key: string, options: JobsQueryOptions): State {
   return {
     key,
     options,
+    version,
     jobs: hit.jobs,
     total: hit.total,
     pending: isStale(hit)
@@ -83,10 +88,14 @@ function begin(key: string, options: JobsQueryOptions): State {
  */
 export function useJobs(options: JobsQueryOptions, enabled = true): JobsState {
   const key = jobsQueryKey(options);
-  const [state, setState] = useState<State>(() => begin(key, options));
+  /** Cuando la API pasa a servir otra tanda, lo guardado ya se tiró y esto
+   * vuelve a arrancar la consulta que se esté mirando: es lo que hace que una
+   * oferta nueva aparezca sin recargar la página. */
+  const version = useSyncExternalStore(subscribeBoard, boardVersion);
+  const [state, setState] = useState<State>(() => begin(key, options, version));
 
-  if (state.key !== key) {
-    setState(begin(key, options));
+  if (state.key !== key || state.version !== version) {
+    setState(begin(key, options, version));
   }
 
   const { key: asked, options: sent, pending } = state;

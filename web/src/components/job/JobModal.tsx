@@ -1,5 +1,5 @@
 import { Bookmark, Building2, EyeOff, MapPin, Target, Undo2, X } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
   APPLICATION_STATUS_LABEL,
@@ -103,7 +103,7 @@ export function JobModal({
 
   return (
     <div className="fixed inset-0 z-60 flex items-end justify-center sm:items-center sm:p-6">
-      <motion.div
+      <m.div
         animate={{ opacity: closing ? 0 : 1 }}
         aria-hidden
         className="absolute inset-0 bg-[var(--scrim)] backdrop-blur-[2px]"
@@ -111,7 +111,7 @@ export function JobModal({
         onClick={close}
       />
 
-      <motion.div
+      <m.div
         animate={closing ? { opacity: 0, y: 24, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
         aria-labelledby="job-modal-title"
         aria-modal
@@ -153,7 +153,7 @@ export function JobModal({
 
           <div className="flex shrink-0 gap-1.5">
             <ShareMenu job={job} />
-            <motion.button
+            <m.button
               aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
               aria-pressed={isSaved}
               className={`${iconButtonClass} ${
@@ -164,8 +164,8 @@ export function JobModal({
               onClick={() => onToggleSaved(job.id)}
             >
               <Bookmark aria-hidden className={`size-4 ${isSaved ? "fill-current" : ""}`} />
-            </motion.button>
-            <motion.button
+            </m.button>
+            <m.button
               aria-label={isDismissed ? "Recuperar oferta" : "Descartar oferta"}
               className={iconButtonClass}
               type="button"
@@ -177,8 +177,8 @@ export function JobModal({
               ) : (
                 <EyeOff aria-hidden className="size-4" />
               )}
-            </motion.button>
-            <motion.button
+            </m.button>
+            <m.button
               aria-label="Cerrar"
               className={iconButtonClass}
               type="button"
@@ -186,7 +186,7 @@ export function JobModal({
               onClick={close}
             >
               <X aria-hidden className="size-4" />
-            </motion.button>
+            </m.button>
           </div>
         </header>
 
@@ -264,7 +264,7 @@ export function JobModal({
             onApplied={onApplied}
           />
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

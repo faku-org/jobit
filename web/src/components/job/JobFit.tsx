@@ -1,5 +1,5 @@
 import { Check, CircleHelp, Lightbulb, Minus } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { type CheckStatus, assessFit, educationGap, fitHeadline, hasFit } from "../../lib/fit.ts";
 import { fadeUpTransition, stagger } from "../../lib/motion.ts";
 import type { Profile } from "../../lib/profile.ts";
@@ -73,7 +73,7 @@ export function JobFit({ job, profile }: JobFitProps) {
               {fit.checks.map((check, index) => {
                 const Icon = STATUS_ICON[check.status];
                 return (
-                  <motion.li
+                  <m.li
                     key={check.id}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-start gap-2.5"
@@ -89,7 +89,7 @@ export function JobFit({ job, profile }: JobFitProps) {
                       {check.asks}
                       {check.yours ? <span className="text-muted"> · {check.yours}</span> : null}
                     </span>
-                  </motion.li>
+                  </m.li>
                 );
               })}
             </ul>
@@ -121,7 +121,7 @@ export function JobFit({ job, profile }: JobFitProps) {
             </p>
             <ul className="mt-2 space-y-1.5">
               {tips.map((tip, index) => (
-                <motion.li
+                <m.li
                   key={tip}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex gap-2.5 text-[13px] leading-relaxed text-soft"
@@ -130,7 +130,7 @@ export function JobFit({ job, profile }: JobFitProps) {
                 >
                   <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand" />
                   {tip}
-                </motion.li>
+                </m.li>
               ))}
             </ul>
           </div>

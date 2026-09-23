@@ -13,8 +13,8 @@ import {
   Target,
   Wallet,
 } from "lucide-react";
-import { motion } from "motion/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { m } from "motion/react";
+import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from "react";
 import { COURSES, DEGREES } from "../../lib/catalog.ts";
 import { fadeUpTransition, islandTransition, stagger } from "../../lib/motion.ts";
 import {
@@ -186,7 +186,7 @@ function StepBody({ children, step }: { children: ReactNode; step: string }) {
   return (
     <div className="relative">
       <div ref={view} className="max-h-[60svh] overflow-y-auto px-5 py-4 sm:max-h-[58svh]">
-        <motion.div
+        <m.div
           key={step}
           ref={content}
           animate={{ opacity: 1, x: 0 }}
@@ -194,11 +194,11 @@ function StepBody({ children, step }: { children: ReactNode; step: string }) {
           transition={fadeUpTransition}
         >
           {children}
-        </motion.div>
+        </m.div>
       </div>
 
       {more ? (
-        <motion.div
+        <m.div
           animate={{ opacity: 1 }}
           className="pointer-events-none absolute inset-x-0 bottom-0 flex h-16 items-end justify-center bg-gradient-to-t from-panel via-panel to-transparent pb-2"
           initial={{ opacity: 0 }}
@@ -207,7 +207,7 @@ function StepBody({ children, step }: { children: ReactNode; step: string }) {
             <ChevronDown aria-hidden className="size-3.5" />
             Seguí bajando, hay más
           </span>
-        </motion.div>
+        </m.div>
       ) : null}
     </div>
   );
@@ -241,18 +241,25 @@ export function Onboarding({
 
   const ready = categories.length > 0;
 
+  /**
+   * Lo que se entrega al final, leído en el momento de entregarlo. Si el efecto
+   * dependiera de esto, cada render del padre le rearmaba los dos relojes y la
+   * despedida podía no llegar nunca.
+   */
+  const finish = useEffectEvent(() => onFinish(draftProfile, draftPreferences));
+
   /** The handover is a beat, not a gate: it runs itself out and leaves. */
   useEffect(() => {
     if (phase !== "done") return;
 
     const farewell = setTimeout(() => setLeaving(true), HANDOVER_MS - FAREWELL_MS);
-    const handover = setTimeout(() => onFinish(draftProfile, draftPreferences), HANDOVER_MS);
+    const handover = setTimeout(finish, HANDOVER_MS);
 
     return () => {
       clearTimeout(farewell);
       clearTimeout(handover);
     };
-  }, [phase, draftProfile, draftPreferences, onFinish]);
+  }, [phase]);
 
   const lines = summary(draftProfile, draftPreferences, categories);
   /** Whether there is anything to say back. The summary is the honest test:
@@ -514,21 +521,21 @@ export function Onboarding({
   };
 
   return (
-    <motion.div
+    <m.div
       animate={{ opacity: leaving ? 0 : 1 }}
       className="fixed inset-0 z-[60] overflow-y-auto bg-mist"
       transition={{ duration: leaving ? FAREWELL_MS / 1000 : 0 }}
     >
       <div className="mx-auto flex min-h-svh max-w-lg items-center px-5 py-7 sm:py-10">
         {phase === "welcome" ? (
-          <motion.section
+          <m.section
             key="welcome"
             animate={{ opacity: 1, y: 0 }}
             className="w-full"
             initial={{ opacity: 0, y: 16 }}
             transition={fadeUpTransition}
           >
-            <motion.img
+            <m.img
               alt=""
               animate={{ scale: 1, opacity: 1 }}
               className="size-12 rounded-2xl shadow-[var(--shadow-match)] sm:size-14"
@@ -557,7 +564,7 @@ export function Onboarding({
             </div>
 
             <div className="mt-6 sm:mt-7">
-              <motion.button
+              <m.button
                 className="inline-flex items-center gap-2 rounded-2xl bg-panel px-5 py-3 text-sm font-semibold text-onpanel shadow-[var(--shadow-panel)] transition-opacity hover:opacity-90"
                 type="button"
                 whileTap={{ scale: 0.97 }}
@@ -565,11 +572,11 @@ export function Onboarding({
               >
                 Entendido, seguimos
                 <ArrowRight aria-hidden className="size-4" />
-              </motion.button>
+              </m.button>
             </div>
-          </motion.section>
+          </m.section>
         ) : phase === "setup" ? (
-          <motion.section
+          <m.section
             key="setup"
             animate={{ opacity: 1, y: 0 }}
             className="w-full"
@@ -586,7 +593,7 @@ export function Onboarding({
 
             <ul className="mt-5 space-y-2 sm:mt-6 sm:space-y-2.5">
               {PROMISES.map((promise, position) => (
-                <motion.li
+                <m.li
                   key={promise}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex gap-2.5 text-sm leading-relaxed text-soft"
@@ -595,7 +602,7 @@ export function Onboarding({
                 >
                   <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
                   {promise}
-                </motion.li>
+                </m.li>
               ))}
             </ul>
 
@@ -620,7 +627,7 @@ export function Onboarding({
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-2 sm:mt-7">
-              <motion.button
+              <m.button
                 className="inline-flex items-center gap-2 rounded-2xl bg-panel px-5 py-3 text-sm font-semibold text-onpanel shadow-[var(--shadow-panel)] transition-opacity hover:opacity-90"
                 type="button"
                 whileTap={{ scale: 0.97 }}
@@ -628,7 +635,7 @@ export function Onboarding({
               >
                 Prefiero contestar yo
                 <ArrowRight aria-hidden className="size-4" />
-              </motion.button>
+              </m.button>
               <button
                 className="rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
                 type="button"
@@ -637,23 +644,23 @@ export function Onboarding({
                 Ver las ofertas sin configurar
               </button>
             </div>
-          </motion.section>
+          </m.section>
         ) : phase === "done" ? (
-          <motion.section
+          <m.section
             key="done"
             animate={{ opacity: 1, y: 0 }}
             className="w-full text-center"
             initial={{ opacity: 0, y: 16 }}
             transition={fadeUpTransition}
           >
-            <motion.span
+            <m.span
               animate={{ scale: 1 }}
               className="mx-auto grid size-14 place-items-center rounded-full bg-brand text-white shadow-[var(--shadow-match)]"
               initial={{ scale: 0.7 }}
               transition={islandTransition}
             >
               <Check aria-hidden className="size-7" />
-            </motion.span>
+            </m.span>
 
             <h2 className="mt-5 text-xl font-semibold tracking-tight text-ink">
               {answered ? "Listo, tu lista está armada" : "Listo, vamos a las ofertas"}
@@ -663,9 +670,9 @@ export function Onboarding({
                 ? lines[0]
                 : "Vas a ver todas las ofertas, de la más nueva a la más vieja."}
             </p>
-          </motion.section>
+          </m.section>
         ) : step ? (
-          <motion.section
+          <m.section
             key="steps"
             animate={{ opacity: 1, y: 0 }}
             aria-labelledby="onboarding-title"
@@ -737,7 +744,7 @@ export function Onboarding({
                 Atrás
               </button>
 
-              <motion.button
+              <m.button
                 className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-sky px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-sky/85"
                 type="button"
                 whileTap={{ scale: 0.97 }}
@@ -749,11 +756,11 @@ export function Onboarding({
                 ) : (
                   <ArrowRight aria-hidden className="size-4" />
                 )}
-              </motion.button>
+              </m.button>
             </div>
-          </motion.section>
+          </m.section>
         ) : null}
       </div>
-    </motion.div>
+    </m.div>
   );
 }

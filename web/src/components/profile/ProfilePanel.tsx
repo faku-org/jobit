@@ -1,8 +1,8 @@
 import { ChevronDown, Monitor, Moon, ShieldCheck, Sun } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { AnimatePresence, m } from "motion/react";
+import { lazy, Suspense, useState } from "react";
 import { COURSES, DEGREES } from "../../lib/catalog.ts";
-import { fadeUpTransition } from "../../lib/motion.ts";
+import { fadeUpTransition, revealPresence } from "../../lib/motion.ts";
 import {
   EDUCATION_LABEL,
   EDUCATION_LEVELS,
@@ -14,7 +14,6 @@ import { type Usage, anonymousStats } from "../../lib/stats.ts";
 import { pendingEvents } from "../../lib/track.ts";
 import type { Facet, Preferences, Theme } from "../../lib/types.ts";
 import { Combobox } from "../ui/Combobox.tsx";
-import { CvImport } from "./CvImport.tsx";
 import { DangerZone } from "./DangerZone.tsx";
 import { ExperienceField } from "./ExperienceField.tsx";
 import { PanelChip, PanelGroup } from "./PanelControls.tsx";
@@ -36,6 +35,10 @@ interface ProfilePanelProps {
   onChangeTheme: (theme: Theme) => void;
   onEraseEverything: () => void;
 }
+
+const CvImport = lazy(() =>
+  import("./CvImport.tsx").then((module) => ({ default: module.CvImport })),
+);
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Claro", icon: Sun },
@@ -114,12 +117,14 @@ export function ProfilePanel({
       />
 
       <div className="border-t border-onpanel/10 pt-3">
-        <CvImport
-          categories={categories}
-          preferences={preferences}
-          profile={profile}
-          onApply={onImportCv}
-        />
+        <Suspense fallback={null}>
+          <CvImport
+            categories={categories}
+            preferences={preferences}
+            profile={profile}
+            onApply={onImportCv}
+          />
+        </Suspense>
       </div>
 
       <div className="border-t border-onpanel/10 pt-3">
@@ -170,15 +175,15 @@ export function ProfilePanel({
 
         <AnimatePresence initial={false}>
           {showPayload ? (
-            <motion.pre
-              animate={{ height: "auto", opacity: 1 }}
-              className="overflow-x-auto rounded-lg bg-onpanel-wash p-2.5 text-[10px] leading-relaxed text-onpanel/80"
-              exit={{ height: 0, opacity: 0 }}
-              initial={{ height: 0, opacity: 0 }}
+            <m.div
+              {...revealPresence}
+              className="grid overflow-hidden"
               transition={fadeUpTransition}
             >
-              {JSON.stringify({ resumen: payload, eventos: events }, null, 2)}
-            </motion.pre>
+              <pre className="min-h-0 overflow-x-auto rounded-lg bg-onpanel-wash p-2.5 text-[10px] leading-relaxed text-onpanel/80">
+                {JSON.stringify({ resumen: payload, eventos: events }, null, 2)}
+              </pre>
+            </m.div>
           ) : null}
         </AnimatePresence>
 

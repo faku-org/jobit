@@ -1,5 +1,5 @@
 import { Bookmark, Building2, EyeOff, MapPin, Target, Undo2 } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { fadeUpTransition } from "../../lib/motion.ts";
 import { formatLocation } from "../../lib/format.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
@@ -57,7 +57,7 @@ export function JobCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             {isMatch && !isDismissed ? (
-              <motion.span
+              <m.span
                 animate={{ opacity: 1, y: 0 }}
                 className={`${chipClass} mb-2 bg-panel text-onpanel`}
                 initial={{ opacity: 0, y: -4 }}
@@ -65,7 +65,7 @@ export function JobCard({
               >
                 <Target aria-hidden className="size-3.5" />
                 Para vos
-              </motion.span>
+              </m.span>
             ) : null}
             <h2 className="text-[17px] leading-snug font-medium tracking-tight text-ink">
               <button
@@ -80,7 +80,7 @@ export function JobCard({
 
           <div className="flex shrink-0 gap-1.5">
             <ShareMenu job={job} />
-            <motion.button
+            <m.button
               aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
               aria-pressed={isSaved}
               className={`${iconButtonClass} ${
@@ -91,8 +91,8 @@ export function JobCard({
               onClick={() => onToggleSaved(job.id)}
             >
               <Bookmark aria-hidden className={`size-4 ${isSaved ? "fill-current" : ""}`} />
-            </motion.button>
-            <motion.button
+            </m.button>
+            <m.button
               aria-label={isDismissed ? "Recuperar oferta" : "Descartar oferta"}
               className={iconButtonClass}
               type="button"
@@ -104,7 +104,7 @@ export function JobCard({
               ) : (
                 <EyeOff aria-hidden className="size-4" />
               )}
-            </motion.button>
+            </m.button>
           </div>
         </div>
 

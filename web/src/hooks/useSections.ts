@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type SectionId = "search" | "work" | "sources" | "advanced";
 
@@ -41,17 +41,22 @@ function read(): Record<SectionId, boolean> {
 export function useSections(): [Record<SectionId, boolean>, (id: SectionId) => void] {
   const [open, setOpen] = useState(read);
 
+  /**
+   * Guardar es efecto de lo que quedó abierto y no del click. React puede
+   * correr un updater más de una vez, así que escribir adentro escribía de más
+   * y sobre un estado que podía no ser el final.
+   */
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(open));
+    } catch {
+      /** A browser that refuses storage still gets the toggle, just not the
+       * memory of it. */
+    }
+  }, [open]);
+
   const toggle = useCallback((id: SectionId) => {
-    setOpen((current) => {
-      const next = { ...current, [id]: !current[id] };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        /** A browser that refuses storage still gets the toggle, just not the
-         * memory of it. */
-      }
-      return next;
-    });
+    setOpen((current) => ({ ...current, [id]: !current[id] }));
   }, []);
 
   return [open, toggle];

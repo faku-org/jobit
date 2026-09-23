@@ -1,0 +1,40 @@
+# JobIt
+
+> Buscador de ofertas de trabajo de Uruguay. Junta avisos de portales y llamados del Estado, se filtra por rubro, departamento y jornada, y marca los puestos que no piden experiencia previa. No hay cuenta: preferencias y seguimiento viven en el navegador.
+
+## Sitio
+
+- [Tablero de ofertas](https://jobs.wefaber.net/): filtros, guardadas y seguimiento
+- [Términos del servicio](https://jobs.wefaber.net/terminos)
+- [Política de privacidad](https://jobs.wefaber.net/privacidad)
+
+## API
+
+- [Ofertas en JSON](https://jobs.wefaber.net/api/jobs)
+- [Ofertas en texto](https://jobs.wefaber.net/api/jobs.txt): la misma lista, para leerla o grepearla
+- [Meta del tablero](https://jobs.wefaber.net/api/meta): conteo, fecha de scrape y facetas
+- [Informe de mercado](https://jobs.wefaber.net/api/market)
+- [Mercado en CSV](https://jobs.wefaber.net/api/market.csv)
+- [Mercado en XLSX](https://jobs.wefaber.net/api/market.xlsx)
+
+## CLI
+
+`curl` de la misma URL del tablero devuelve el listado en texto. Los filtros son los de la barra de direcciones (`q`, `category`, `department`, `view`, `job`).
+
+- https://jobs.wefaber.net/?q=cajero
+- https://jobs.wefaber.net/?view=state
+- https://jobs.wefaber.net/?view=market
+
+## Licencia
+
+Apache License 2.0. El código se puede usar y redistribuir mencionando JobIt como proyecto original (`NOTICE`). El nombre y el logo son de Faber.
+
+- [LICENSE](https://github.com/faku-org/jobit/blob/develop/LICENSE)
+- [NOTICE](https://github.com/faku-org/jobit/blob/develop/NOTICE)
+
+## Fuentes
+
+JobIt no republica avisos: enlaza al original.
+
+- [BuscoJobs Uruguay](https://www.buscojobs.com.uy/)
+- [Uruguay Concursa](https://www.uruguayconcursa.gub.uy/)

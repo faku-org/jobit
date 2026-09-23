@@ -83,9 +83,9 @@ describe("pickHighlights", () => {
   const rankingOf = (p: Preferences, who: Profile = profile()) => toRanking(p, who);
 
   test("without preferences nothing is marked", () => {
-    expect(pickHighlights(many(10), EMPTY_PREFERENCES, rankingOf(EMPTY_PREFERENCES), profile()).size).toBe(
-      0,
-    );
+    expect(
+      pickHighlights(many(10), EMPTY_PREFERENCES, rankingOf(EMPTY_PREFERENCES), profile()).size,
+    ).toBe(0);
   });
 
   test("broad marks every preference hit", () => {

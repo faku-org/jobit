@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { fetchJob, isAbortError } from "../lib/api.ts";
+import { isAbortError } from "../lib/api.ts";
+import { loadJob } from "../lib/jobsCache.ts";
 import { describeJob } from "../lib/meta.ts";
 import { setSharedJobId, sharedJobId } from "../lib/share.ts";
 import type { Job } from "../lib/types.ts";
@@ -18,7 +19,7 @@ export function useJobLink(openJob: Job | null, onOpen: (job: Job) => void): voi
     if (linked === null) return;
 
     const controller = new AbortController();
-    fetchJob(linked, controller.signal)
+    loadJob(linked, controller.signal)
       .then((job) => {
         onOpen(job);
         setResolving(false);

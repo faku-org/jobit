@@ -1,5 +1,5 @@
 import { ArrowUpRight, ClipboardList, Loader2, Maximize2, Trash2 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { APPLICATION_STATUS_LABEL, formatDay } from "../../lib/format.ts";
 import { fadeUpTransition, stagger } from "../../lib/motion.ts";
 import type { Application, ApplicationStatus } from "../../lib/types.ts";
@@ -100,7 +100,7 @@ export function Tracking({
           <div className="space-y-3">
             <AnimatePresence initial={false} mode="popLayout">
               {group.entries.map((entry, index) => (
-                <motion.article
+                <m.article
                   key={entry.id}
                   layout
                   animate={{ opacity: 1, y: 0 }}
@@ -184,7 +184,7 @@ export function Tracking({
                       onSetStatus={(status) => onSetStatus(entry.id, status)}
                     />
                   </div>
-                </motion.article>
+                </m.article>
               ))}
             </AnimatePresence>
           </div>

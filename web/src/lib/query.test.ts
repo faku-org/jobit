@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { jobsQueryKey } from "./api.ts";
 import { EMPTY_PROFILE } from "./profile.ts";
-import { type BoardContext, jobsQuery } from "./query.ts";
+import { type BoardContext, jobsQuery, keepListView } from "./query.ts";
 import { toRanking } from "./ranking.ts";
 import { EMPTY_FILTERS, EMPTY_PREFERENCES, STATE_SOURCE } from "./types.ts";
 
@@ -46,6 +47,8 @@ describe("jobsQuery", () => {
     expect(query.sources).toEqual([STATE_SOURCE]);
     expect(query.sort).toBe("closing");
     expect(query.ranking).toBeUndefined();
+    expect(jobsQueryKey(query)).toContain("source=uruguayconcursa");
+    expect(jobsQueryKey(query)).toContain("sort=closing");
   });
 
   test("guardadas es la lista de la persona, sin recortes ni puntaje", () => {
@@ -80,5 +83,14 @@ describe("jobsQuery", () => {
 
   test("dos vistas con lo mismo piden lo mismo, que es lo que comparte la caché", () => {
     expect(jobsQuery("all", context())).toEqual(jobsQuery("tracking", context()));
+  });
+});
+
+describe("keepListView", () => {
+  test("Mercado y seguimiento no pisan la lista que se estaba mirando", () => {
+    expect(keepListView("market", "state")).toBe("state");
+    expect(keepListView("tracking", "all")).toBe("all");
+    expect(keepListView("state", "all")).toBe("state");
+    expect(keepListView("saved", "all")).toBe("saved");
   });
 });

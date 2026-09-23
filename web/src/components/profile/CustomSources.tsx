@@ -1,6 +1,12 @@
 import { Check, Code2, Loader2, Plus, TriangleAlert, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
-import { type CustomFeed, type FeedResult, MAX_FEEDS, isFeedUrl, newFeedId } from "../../lib/feed.ts";
+import {
+  type CustomFeed,
+  type FeedResult,
+  MAX_FEEDS,
+  isFeedUrl,
+  newFeedId,
+} from "../../lib/feed.ts";
 
 interface CustomSourcesProps {
   feeds: CustomFeed[];

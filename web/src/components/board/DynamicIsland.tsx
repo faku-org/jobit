@@ -1,9 +1,9 @@
 import { SlidersHorizontal } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useState } from "react";
 import { useScrolledPast } from "../../hooks/useScrolledPast.ts";
 import type { CustomFeed, FeedResult } from "../../lib/feed.ts";
-import { islandTransition } from "../../lib/motion.ts";
+import { islandTransition, revealPresence } from "../../lib/motion.ts";
 import { type Profile, profileCount } from "../../lib/profile.ts";
 import type { Usage } from "../../lib/stats.ts";
 import {
@@ -16,7 +16,6 @@ import {
 } from "../../lib/types.ts";
 import { PreferencesPanel } from "../profile/Preferences.tsx";
 import { ProfilePanel } from "../profile/ProfilePanel.tsx";
-import LOGO from "../../../brand/JobIt.png";
 
 interface DynamicIslandProps {
   meta: Meta | null;
@@ -79,7 +78,7 @@ export function DynamicIsland({
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4 sm:top-4">
-      <motion.header
+      <m.header
         layout
         className={`pointer-events-auto w-full overflow-hidden rounded-[26px] bg-panel text-onpanel shadow-[var(--shadow-panel)] ring-1 ring-onpanel/10 backdrop-blur-xl ${
           compact ? "max-w-md" : "max-w-3xl"
@@ -88,21 +87,25 @@ export function DynamicIsland({
         animate={{ opacity: 1, y: 0 }}
         transition={islandTransition}
       >
-        <motion.div layout className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
-          <motion.span
+        <m.div layout className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+          <m.span
             layout
             className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-white"
           >
-            <picture>
-              <img src={LOGO} alt="JobIt" className="size-full rounded-full" />
-            </picture>
-          </motion.span>
+            <img
+              alt="JobIt"
+              className="size-full rounded-full"
+              height={32}
+              src="/icon-64.png"
+              width={32}
+            />
+          </m.span>
 
-          <motion.div layout className="min-w-0 flex-1">
+          <m.div layout className="min-w-0 flex-1">
             <h1 className="text-[15px] leading-tight font-semibold tracking-tight">JobIt</h1>
             <AnimatePresence initial={false} mode="popLayout">
               {compact ? null : (
-                <motion.p
+                <m.p
                   key="full"
                   animate={{ opacity: 1 }}
                   className="truncate text-xs text-onpanel/60"
@@ -110,12 +113,12 @@ export function DynamicIsland({
                   initial={{ opacity: 0 }}
                 >
                   Ofertas de trabajo en Uruguay
-                </motion.p>
+                </m.p>
               )}
             </AnimatePresence>
-          </motion.div>
+          </m.div>
 
-          <motion.button
+          <m.button
             layout
             aria-expanded={open}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -129,75 +132,75 @@ export function DynamicIsland({
             <SlidersHorizontal aria-hidden className="size-3.5" />
             <span className="hidden sm:inline">Preferencias</span>
             {count > 0 ? <span>({count})</span> : null}
-          </motion.button>
-        </motion.div>
+          </m.button>
+        </m.div>
 
         <AnimatePresence initial={false}>
           {open ? (
-            <motion.div
+            <m.div
               key="panel"
-              animate={{ height: "auto", opacity: 1 }}
-              className="max-h-[70svh] overflow-y-auto"
-              exit={{ height: 0, opacity: 0 }}
-              initial={{ height: 0, opacity: 0 }}
+              {...revealPresence}
+              className="grid overflow-hidden"
               transition={islandTransition}
             >
-              <div className="flex gap-1 px-4 pt-1 pb-2">
-                {(
-                  [
-                    ["search", "Búsqueda", count],
-                    ["profile", "Perfil", studies],
-                  ] as const
-                ).map(([value, label, badge]) => (
-                  <button
-                    key={value}
-                    aria-pressed={tab === value}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      tab === value
-                        ? "bg-onpanel/15 text-onpanel"
-                        : "text-onpanel/55 hover:text-onpanel"
-                    }`}
-                    type="button"
-                    onClick={() => setTab(value)}
-                  >
-                    {label}
-                    {badge > 0 ? <span className="ml-1 tabular-nums">({badge})</span> : null}
-                  </button>
-                ))}
-              </div>
+              <div className="min-h-0 max-h-[70svh] overflow-y-auto">
+                <div className="flex gap-1 px-4 pt-1 pb-2">
+                  {(
+                    [
+                      ["search", "Búsqueda", count],
+                      ["profile", "Perfil", studies],
+                    ] as const
+                  ).map(([value, label, badge]) => (
+                    <button
+                      key={value}
+                      aria-pressed={tab === value}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                        tab === value
+                          ? "bg-onpanel/15 text-onpanel"
+                          : "text-onpanel/55 hover:text-onpanel"
+                      }`}
+                      type="button"
+                      onClick={() => setTab(value)}
+                    >
+                      {label}
+                      {badge > 0 ? <span className="ml-1 tabular-nums">({badge})</span> : null}
+                    </button>
+                  ))}
+                </div>
 
-              {tab === "search" ? (
-                <PreferencesPanel
-                  categories={categories}
-                  departments={departments}
-                  meta={meta}
-                  feedResults={feedResults}
-                  feeds={feeds}
-                  feedsLoading={feedsLoading}
-                  preferences={preferences}
-                  sources={sources}
-                  onChange={onChangePreferences}
-                  onChangeFeeds={onChangeFeeds}
-                  onChangeSources={onChangeSources}
-                />
-              ) : (
-                <ProfilePanel
-                  categories={categories}
-                  counts={counts}
-                  preferences={preferences}
-                  profile={profile}
-                  theme={theme}
-                  usage={usage}
-                  onChange={onChangeProfile}
-                  onChangeTheme={onChangeTheme}
-                  onEraseEverything={onEraseEverything}
-                  onImportCv={onImportCv}
-                />
-              )}
-            </motion.div>
+                {tab === "search" ? (
+                  <PreferencesPanel
+                    categories={categories}
+                    departments={departments}
+                    meta={meta}
+                    feedResults={feedResults}
+                    feeds={feeds}
+                    feedsLoading={feedsLoading}
+                    preferences={preferences}
+                    sources={sources}
+                    onChange={onChangePreferences}
+                    onChangeFeeds={onChangeFeeds}
+                    onChangeSources={onChangeSources}
+                  />
+                ) : (
+                  <ProfilePanel
+                    categories={categories}
+                    counts={counts}
+                    preferences={preferences}
+                    profile={profile}
+                    theme={theme}
+                    usage={usage}
+                    onChange={onChangeProfile}
+                    onChangeTheme={onChangeTheme}
+                    onEraseEverything={onEraseEverything}
+                    onImportCv={onImportCv}
+                  />
+                )}
+              </div>
+            </m.div>
           ) : null}
         </AnimatePresence>
-      </motion.header>
+      </m.header>
     </div>
   );
 }

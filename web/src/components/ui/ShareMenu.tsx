@@ -1,9 +1,16 @@
 import { Check, Code2, Link2, MessageCircle, Share2, Upload } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useEffect, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable.ts";
 import { fadeUpTransition } from "../../lib/motion.ts";
-import { canShare, copyText, embedSnippet, jobLink, shareJob, whatsappLink } from "../../lib/share.ts";
+import {
+  canShare,
+  copyText,
+  embedSnippet,
+  jobLink,
+  shareJob,
+  whatsappLink,
+} from "../../lib/share.ts";
 import { iconButtonClass, menuItemClass, popoverClass } from "../../lib/styles.ts";
 import type { Job } from "../../lib/types.ts";
 
@@ -69,7 +76,7 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
 
   return (
     <span ref={container} className="relative inline-flex">
-      <motion.button
+      <m.button
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Compartir oferta"
@@ -79,11 +86,11 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
         onClick={() => setOpen((current) => !current)}
       >
         <Share2 aria-hidden className="size-4" />
-      </motion.button>
+      </m.button>
 
       <AnimatePresence>
         {open ? (
-          <motion.div
+          <m.div
             animate={{ opacity: 1, y: 0 }}
             className={`${popoverClass} top-full mt-1 w-56 ${align === "right" ? "right-0" : "left-0"}`}
             exit={{ opacity: 0, y: -4 }}
@@ -119,7 +126,7 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
 
             <AnimatePresence initial={false}>
               {note ? (
-                <motion.p
+                <m.p
                   animate={{ opacity: 1 }}
                   className={`flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium ${
                     failed ? "text-muted" : "text-brand"
@@ -130,10 +137,10 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
                 >
                   {failed ? null : <Check aria-hidden className="size-3.5" />}
                   {note}
-                </motion.p>
+                </m.p>
               ) : null}
             </AnimatePresence>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </span>

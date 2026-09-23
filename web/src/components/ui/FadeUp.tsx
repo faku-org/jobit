@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import type { ReactNode } from "react";
 import { fadeUpTransition } from "../../lib/motion.ts";
 
@@ -11,12 +11,12 @@ interface FadeUpProps {
 /** The one entrance animation used across the app: 12px up plus a fade. */
 export function FadeUp({ children, delay = 0 }: FadeUpProps) {
   return (
-    <motion.div
+    <m.div
       animate={{ opacity: 1, y: 0 }}
       initial={{ opacity: 0, y: 12 }}
       transition={{ ...fadeUpTransition, delay }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

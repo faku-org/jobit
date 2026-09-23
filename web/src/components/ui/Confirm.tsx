@@ -1,7 +1,7 @@
 import { TriangleAlert } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import type { ReactNode } from "react";
-import { fadeUpTransition } from "../../lib/motion.ts";
+import { fadeUpTransition, revealPresence } from "../../lib/motion.ts";
 
 interface ConfirmProps {
   open: boolean;
@@ -23,14 +23,8 @@ export function Confirm({ open, title, losing, action, tone, onCancel, onConfirm
   return (
     <AnimatePresence initial={false}>
       {open ? (
-        <motion.div
-          animate={{ height: "auto", opacity: 1 }}
-          className="overflow-hidden"
-          exit={{ height: 0, opacity: 0 }}
-          initial={{ height: 0, opacity: 0 }}
-          transition={fadeUpTransition}
-        >
-          <div className="mt-2 rounded-xl border border-onpanel/20 bg-onpanel-wash px-3 py-3">
+        <m.div {...revealPresence} className="grid overflow-hidden" transition={fadeUpTransition}>
+          <div className="mt-2 min-h-0 overflow-hidden rounded-xl border border-onpanel/20 bg-onpanel-wash px-3 py-3">
             <p className="flex gap-2 text-[11px] leading-relaxed font-medium text-onpanel">
               <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0 text-sky" />
               {title}
@@ -58,7 +52,7 @@ export function Confirm({ open, title, losing, action, tone, onCancel, onConfirm
               </button>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       ) : null}
     </AnimatePresence>
   );

@@ -1,5 +1,15 @@
-import { Banknote, Briefcase, Gauge, MapPin, Search, Sparkles, TrendingUp, X } from "lucide-react";
-import { motion } from "motion/react";
+import {
+  Banknote,
+  Briefcase,
+  Download,
+  Gauge,
+  MapPin,
+  Search,
+  Sparkles,
+  TrendingUp,
+  X,
+} from "lucide-react";
+import { m } from "motion/react";
 import { type ReactNode, useMemo, useState } from "react";
 import {
   JOB_TYPE_LABEL,
@@ -17,7 +27,7 @@ import {
   formatShare,
 } from "../../lib/market.ts";
 import { fadeUpTransition } from "../../lib/motion.ts";
-import { fieldClass } from "../../lib/styles.ts";
+import { chipClass, fieldClass } from "../../lib/styles.ts";
 import type { JobType, Level, WorkMode } from "../../lib/types.ts";
 import { Chart, type ChartKind, type ChartRow, ChartSwitch } from "./Chart.tsx";
 import { FadeUp } from "../ui/FadeUp.tsx";
@@ -44,6 +54,23 @@ const fold = (value: string): string =>
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase();
+
+/** A section that has been opened stays mounted: switching tabs would
+ * otherwise remount the charts and play the entrance again. */
+function Section({
+  id,
+  current,
+  seen,
+  children,
+}: {
+  id: SectionId;
+  current: SectionId;
+  seen: ReadonlySet<SectionId>;
+  children: ReactNode;
+}) {
+  if (!seen.has(id)) return null;
+  return <div hidden={id !== current}>{children}</div>;
+}
 
 function Panel({
   title,
@@ -94,7 +121,7 @@ function SalaryBand({ salary }: { salary: SalarySummary }) {
       </div>
 
       <div className="relative mt-3 h-2 rounded-full bg-mist">
-        <motion.div
+        <m.div
           animate={{ opacity: 1 }}
           className="absolute inset-y-0 rounded-full bg-sky"
           initial={{ opacity: 0 }}
@@ -116,6 +143,37 @@ function SalaryBand({ salary }: { salary: SalarySummary }) {
   );
 }
 
+const downloadClass = `${chipClass} border border-sky/60 text-muted transition-colors hover:border-brand hover:text-ink`;
+
+/**
+ * Los mismos números para llevarse. Son dos links y no un botón con fetch: la
+ * API ya manda el archivo con su nombre y el navegador ya sabe qué hacer con
+ * eso, así que no hay estado de descarga que mantener ni error que mostrar.
+ */
+function Downloads() {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2 px-1">
+      <span className="text-[11px] text-faint">Bajar estos datos</span>
+      {(["csv", "xlsx"] as const).map((format) => (
+        <a
+          key={format}
+          className={downloadClass}
+          download
+          href={`/api/market.${format}`}
+          title={
+            format === "csv"
+              ? "Todas las tablas en un archivo de texto"
+              : "Una planilla con una pestaña por tabla"
+          }
+        >
+          <Download aria-hidden className="size-3.5" />
+          {format.toUpperCase()}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 const labelled = <T extends string>(rows: Breakdown[], labels: Record<T, string>): ChartRow[] =>
   rows.map((row) => ({
     key: row.value,
@@ -130,6 +188,7 @@ const labelled = <T extends string>(rows: Breakdown[], labels: Record<T, string>
  */
 export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
   const [section, setSection] = useState<SectionId>("resumen");
+  const [seen, setSeen] = useState<ReadonlySet<SectionId>>(() => new Set(["resumen"]));
   const [query, setQuery] = useState("");
   const [kinds, setKinds] = useState<Record<SectionId, ChartKind>>({
     resumen: "bars",
@@ -139,8 +198,10 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
     modalidad: "donut",
   });
 
-  const kind = kinds[section];
-  const setKind = (next: ChartKind) => setKinds((current) => ({ ...current, [section]: next }));
+  const setKindOf =
+    (id: SectionId) =>
+    (next: ChartKind): void =>
+      setKinds((current) => ({ ...current, [id]: next }));
 
   const filter = (rows: ChartRow[]): ChartRow[] => {
     const needle = fold(query.trim());
@@ -242,11 +303,14 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
                 type="button"
                 onClick={() => {
                   setSection(entry.id);
+                  setSeen((current) =>
+                    current.has(entry.id) ? current : new Set(current).add(entry.id),
+                  );
                   setQuery("");
                 }}
               >
                 {active ? (
-                  <motion.span
+                  <m.span
                     className="absolute inset-0 rounded-xl bg-panel"
                     layoutId="market-tab"
                     transition={fadeUpTransition}
@@ -262,8 +326,11 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
         </div>
       </FadeUp>
 
+      <FadeUp delay={0.03}>
+        <Downloads />
+      </FadeUp>
+
       {searchable ? (
-        <FadeUp delay={0.04}>
           <div className="relative">
             <Search
               aria-hidden
@@ -290,11 +357,10 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
               </button>
             ) : null}
           </div>
-        </FadeUp>
       ) : null}
 
-      <FadeUp key={section} delay={0.06}>
-        {section === "resumen" ? (
+      <FadeUp delay={0.06}>
+        <Section current={section} id="resumen" seen={seen}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Figure label="ofertas publicadas" value={report.count.toLocaleString("es-UY")} />
@@ -311,12 +377,16 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
 
             <Panel
               aside={
-                <ChartSwitch kind={kind} options={["bars", "donut", "table"]} onChange={setKind} />
+                <ChartSwitch
+                  kind={kinds.resumen}
+                  options={["bars", "donut", "table"]}
+                  onChange={setKindOf("resumen")}
+                />
               }
               hint="Tocá un rubro para ver sus ofertas en la lista."
               title="Rubros que más contratan"
             >
-              <Chart kind={kind} rows={categoryRows} />
+              <Chart kind={kinds.resumen} rows={categoryRows} />
             </Panel>
 
             {entryRows.length > 0 ? (
@@ -333,25 +403,29 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
               </Panel>
             ) : null}
           </div>
-        ) : null}
+        </Section>
 
-        {section === "puestos" ? (
+        <Section current={section} id="puestos" seen={seen}>
           <Panel
             aside={
-              <ChartSwitch kind={kind} options={["bars", "donut", "table"]} onChange={setKind} />
+              <ChartSwitch
+                kind={kinds.puestos}
+                options={["bars", "donut", "table"]}
+                onChange={setKindOf("puestos")}
+              />
             }
             hint="Cada aviso se cuenta bajo el puesto que nombra. Donde hay un monto es la mediana de lo que paga, entre los avisos que lo publican."
             title="Puestos más solicitados"
           >
             <Chart
               empty="Ningún puesto coincide con ese filtro."
-              kind={kind}
-              rows={filter(roleRows).slice(0, kind === "donut" ? 10 : 30)}
+              kind={kinds.puestos}
+              rows={filter(roleRows).slice(0, kinds.puestos === "donut" ? 10 : 30)}
             />
           </Panel>
-        ) : null}
+        </Section>
 
-        {section === "sueldos" ? (
+        <Section current={section} id="sueldos" seen={seen}>
           <div className="space-y-4">
             {report.salary ? (
               <Panel
@@ -363,58 +437,78 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
             ) : null}
 
             <Panel
-              aside={<ChartSwitch kind={kind} options={["bars", "table"]} onChange={setKind} />}
+              aside={
+                <ChartSwitch
+                  kind={kinds.sueldos}
+                  options={["bars", "table"]}
+                  onChange={setKindOf("sueldos")}
+                />
+              }
               hint="Mediana mensual por puesto, contando solo los avisos que publican el sueldo."
               title="Cuánto paga cada puesto"
             >
               <Chart
                 additive={false}
                 empty="Ningún puesto con sueldo publicado coincide con ese filtro."
-                kind={kind === "donut" ? "bars" : kind}
+                kind={kinds.sueldos === "donut" ? "bars" : kinds.sueldos}
                 rows={filter(paidRoles).slice(0, 25)}
                 unit="Mediana"
               />
             </Panel>
           </div>
-        ) : null}
+        </Section>
 
-        {section === "zonas" ? (
+        <Section current={section} id="zonas" seen={seen}>
           <Panel
             aside={
-              <ChartSwitch kind={kind} options={["bars", "donut", "table"]} onChange={setKind} />
+              <ChartSwitch
+                kind={kinds.zonas}
+                options={["bars", "donut", "table"]}
+                onChange={setKindOf("zonas")}
+              />
             }
             hint="Cuántas ofertas hay por departamento, y la mediana de lo que pagan donde se publica."
             title="Dónde está el trabajo"
           >
             <Chart
               empty="Ningún departamento coincide con ese filtro."
-              kind={kind}
-              rows={filter(departmentRows).slice(0, kind === "donut" ? 8 : 25)}
+              kind={kinds.zonas}
+              rows={filter(departmentRows).slice(0, kinds.zonas === "donut" ? 8 : 25)}
             />
           </Panel>
-        ) : null}
+        </Section>
 
-        {section === "modalidad" ? (
+        <Section current={section} id="modalidad" seen={seen}>
           <div className="space-y-4">
             <Panel
               aside={
-                <ChartSwitch kind={kind} options={["donut", "bars", "table"]} onChange={setKind} />
+                <ChartSwitch
+                  kind={kinds.modalidad}
+                  options={["donut", "bars", "table"]}
+                  onChange={setKindOf("modalidad")}
+                />
               }
               title="Modalidad"
             >
-              <Chart kind={kind} rows={labelled<WorkMode>(report.modes, WORK_MODE_LABEL)} />
+              <Chart
+                kind={kinds.modalidad}
+                rows={labelled<WorkMode>(report.modes, WORK_MODE_LABEL)}
+              />
             </Panel>
             <Panel title="Jornada">
-              <Chart kind={kind} rows={labelled<JobType>(report.jobTypes, JOB_TYPE_LABEL)} />
+              <Chart
+                kind={kinds.modalidad}
+                rows={labelled<JobType>(report.jobTypes, JOB_TYPE_LABEL)}
+              />
             </Panel>
             <Panel
               hint="Solo una parte de los avisos declara el nivel del puesto."
               title="Nivel del puesto"
             >
-              <Chart kind={kind} rows={labelled<Level>(report.levels, LEVEL_LABEL)} />
+              <Chart kind={kinds.modalidad} rows={labelled<Level>(report.levels, LEVEL_LABEL)} />
             </Panel>
           </div>
-        ) : null}
+        </Section>
       </FadeUp>
 
       <p className="px-1 pb-2 text-center text-[11px] leading-relaxed text-faint">

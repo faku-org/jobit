@@ -1,5 +1,5 @@
 import { Bookmark, ChartColumn, ClipboardList, Landmark, LayoutList } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { islandTransition } from "../../lib/motion.ts";
 import type { View } from "../../lib/types.ts";
 
@@ -51,7 +51,7 @@ export function ViewTabs({ view, savedCount, trackedCount, onChange, onPrefetch 
             onPointerDown={() => onPrefetch(tab.value)}
           >
             {active ? (
-              <motion.span
+              <m.span
                 className="absolute inset-0 rounded-xl bg-panel"
                 layoutId="view-tab"
                 transition={islandTransition}

@@ -38,6 +38,17 @@ narrow.addEventListener("change", foldToc);
 
 let spy: IntersectionObserver | null = null;
 
+/** `querySelector(link.hash)` tira si el id no es un selector válido (`#123`).
+ * `getElementById` no: es el ancla, no un selector. */
+function sectionOf(hash: string): HTMLElement | null {
+  if (!hash.startsWith("#") || hash.length < 2) return null;
+  try {
+    return document.getElementById(decodeURIComponent(hash.slice(1)));
+  } catch {
+    return null;
+  }
+}
+
 /** Se rearma en cada cambio de documento: las secciones son otras y el
  * observer viejo apuntaría a nodos que ya no están en la página. */
 function trackSections(): void {
@@ -46,7 +57,7 @@ function trackSections(): void {
 
   const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-toc] a[href^='#']")];
   const sections = links.flatMap((link) => {
-    const section = document.querySelector<HTMLElement>(link.hash);
+    const section = sectionOf(link.hash);
     return section ? [{ link, section }] : [];
   });
 

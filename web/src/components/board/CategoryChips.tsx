@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import type { CategoryGroup } from "../../lib/types.ts";
 
 interface CategoryChipsProps {
@@ -23,7 +23,7 @@ export function CategoryChips({ groups, selected, onSelect }: CategoryChipsProps
   return (
     <div className="flex flex-wrap gap-1.5">
       {options.map((option) => (
-        <motion.button
+        <m.button
           key={option.value}
           aria-pressed={selected === option.value}
           className={`${chip} ${
@@ -37,7 +37,7 @@ export function CategoryChips({ groups, selected, onSelect }: CategoryChipsProps
         >
           {option.label}
           <span className="tabular-nums opacity-60">{option.count}</span>
-        </motion.button>
+        </m.button>
       ))}
     </div>
   );

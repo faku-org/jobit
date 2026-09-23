@@ -1,5 +1,5 @@
 import { Check, ChevronDown } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable.ts";
 import { fadeUpTransition } from "../../lib/motion.ts";
@@ -101,7 +101,7 @@ export function Select({ label, value, options, onChange }: SelectProps) {
 
       <AnimatePresence>
         {open ? (
-          <motion.ul
+          <m.ul
             ref={list}
             animate={{ opacity: 1, y: 0 }}
             aria-label={label}
@@ -130,7 +130,7 @@ export function Select({ label, value, options, onChange }: SelectProps) {
                 ) : null}
               </li>
             ))}
-          </motion.ul>
+          </m.ul>
         ) : null}
       </AnimatePresence>
     </div>

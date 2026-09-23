@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import type { ReactNode } from "react";
-import { fadeUpTransition } from "../../lib/motion.ts";
+import { fadeUpTransition, revealPresence } from "../../lib/motion.ts";
 
 interface PanelSectionProps {
   title: string;
@@ -45,15 +45,9 @@ export function PanelSection({ title, summary, open, onToggle, children }: Panel
 
       <AnimatePresence initial={false}>
         {open ? (
-          <motion.div
-            animate={{ height: "auto", opacity: 1 }}
-            className="overflow-hidden"
-            exit={{ height: 0, opacity: 0 }}
-            initial={{ height: 0, opacity: 0 }}
-            transition={fadeUpTransition}
-          >
-            <div className="space-y-5 px-1 pt-3 pb-1">{children}</div>
-          </motion.div>
+          <m.div {...revealPresence} className="grid overflow-hidden" transition={fadeUpTransition}>
+            <div className="min-h-0 space-y-5 overflow-hidden px-1 pt-3 pb-1">{children}</div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </div>

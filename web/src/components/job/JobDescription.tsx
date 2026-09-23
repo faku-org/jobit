@@ -7,7 +7,9 @@ import {
   parseDescription,
   renderSpans,
 } from "../../lib/description.ts";
+import { fold } from "../../lib/catalog.ts";
 import { findMarks, findPerks, findProfileMatches } from "../../lib/perks.ts";
+import { formatWeeklyHours, weeklyHours } from "../../lib/schedule.ts";
 import type { Profile } from "../../lib/profile.ts";
 import { AuraSpark } from "../ui/Aura.tsx";
 
@@ -22,14 +24,36 @@ const MARK_STYLE: Record<Mark["tone"], string> = {
   match: "rounded bg-sky/45 px-1 py-0.5 font-medium text-ink",
 };
 
+function spanIdentity(span: Span): string {
+  if (span.kind === "link") return `link:${span.href}:${span.text}`;
+  if (span.kind === "mark") return `mark:${span.tone}:${span.note}:${span.text}`;
+  return `${span.kind}:${span.text}`;
+}
+
+function blockIdentity(block: Block): string {
+  if (block.kind === "heading") return `heading:${block.text}`;
+  if (block.kind === "paragraph") return `paragraph:${block.text}`;
+  if (block.kind === "list") return `list:${block.items.join("\0")}`;
+  return `fields:${block.rows.map((row) => `${row.label}=${row.value}`).join("\0")}`;
+}
+
+/** Keys from content, disambiguated if the same run appears twice. */
+function keyed<T>(items: T[], identity: (item: T) => string): [T, string][] {
+  const seen = new Map<string, number>();
+  return items.map((item) => {
+    const base = identity(item);
+    const n = seen.get(base) ?? 0;
+    seen.set(base, n + 1);
+    return [item, n === 0 ? base : `${base}#${n}`];
+  });
+}
+
 function Spans({ text, marks }: { text: string; marks: Mark[] }) {
   const spans: Span[] = renderSpans(text, marks);
 
   return (
     <>
-      {spans.map((span, index) => {
-        const key = `${index}-${span.text}`;
-
+      {keyed(spans, spanIdentity).map(([span, key]) => {
         if (span.kind === "strong") {
           return (
             <strong key={key} className="font-semibold text-ink">
@@ -76,14 +100,20 @@ function BlockView({ block, profile }: { block: Block; profile: Profile }) {
   if (block.kind === "fields") {
     return (
       <dl className="mt-3 grid gap-x-3 gap-y-1.5 rounded-xl bg-mist px-3.5 py-3 sm:grid-cols-[auto_1fr]">
-        {block.rows.map((row) => (
-          <div key={row.label} className="contents">
-            <dt className="text-xs font-medium text-muted sm:text-right">{row.label}</dt>
-            <dd className="mb-1.5 text-sm text-ink/85 sm:mb-0">
-              <Spans marks={findMarks(row.value, profile)} text={row.value} />
-            </dd>
-          </div>
-        ))}
+        {block.rows.map((row) => {
+          const hours = fold(row.label) === "horario" ? weeklyHours(row.value) : null;
+          return (
+            <div key={row.label} className="contents">
+              <dt className="text-xs font-medium text-muted sm:text-right">{row.label}</dt>
+              <dd className="mb-1.5 text-sm text-ink/85 sm:mb-0">
+                <Spans marks={findMarks(row.value, profile)} text={row.value} />
+                {hours !== null ? (
+                  <span className="text-muted"> · {formatWeeklyHours(hours)}</span>
+                ) : null}
+              </dd>
+            </div>
+          );
+        })}
       </dl>
     );
   }
@@ -91,8 +121,8 @@ function BlockView({ block, profile }: { block: Block; profile: Profile }) {
   if (block.kind === "list") {
     return (
       <ul className="mt-2.5 space-y-1.5">
-        {block.items.map((item, index) => (
-          <li key={`${index}-${item.slice(0, 24)}`} className="flex gap-2.5">
+        {keyed(block.items, (item) => item).map(([item, key]) => (
+          <li key={key} className="flex gap-2.5">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
             <span className="text-[15px] leading-relaxed text-ink/80">
               <Spans marks={findMarks(item, profile)} text={item} />
@@ -153,8 +183,8 @@ export function JobDescription({ text, profile }: JobDescriptionProps) {
         </div>
       ) : null}
 
-      {blocks.map((block, index) => (
-        <BlockView key={`${index}-${block.kind}`} block={block} profile={profile} />
+      {keyed(blocks, blockIdentity).map(([block, key]) => (
+        <BlockView key={key} block={block} profile={profile} />
       ))}
     </div>
   );

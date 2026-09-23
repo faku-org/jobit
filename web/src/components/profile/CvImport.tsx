@@ -1,5 +1,5 @@
 import { Check, Plus, ShieldCheck, Upload, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import type { OrbState } from "thinking-orbs";
 import { holdBusy } from "../../hooks/useSettlingBusy.ts";
@@ -24,6 +24,17 @@ interface CvImportProps {
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const ACCEPT = ".pdf,.txt,.md,.markdown,text/plain,application/pdf";
+
+const isPdf = (file: File): boolean =>
+  file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+/**
+ * El lector de PDF se trae recién cuando hace falta, y se trae desde acá: un
+ * `import()` adentro del componente es sintaxis que el compilador de React no
+ * sabe leer, y le hacía perder la memoización de todo `CvImport`.
+ */
+const readFileText = async (file: File): Promise<string> =>
+  isPdf(file) ? (await import("../../lib/pdf.ts")).extractPdfText(file) : file.text();
 
 type Stage = "idle" | "uploading" | "analyzing" | "answered" | "review";
 
@@ -84,7 +95,7 @@ function ProgressBeat({ stage }: { stage: Exclude<Stage, "idle" | "review"> }) {
       <div className="flex items-center gap-2 px-3 py-2.5">
         <AuraSpark intro={false} state={beat.orb} tone="panel" />
         <AnimatePresence mode="wait">
-          <motion.p
+          <m.p
             key={stage}
             animate={{ opacity: 1, y: 0 }}
             className="text-xs font-medium text-onpanel"
@@ -93,7 +104,7 @@ function ProgressBeat({ stage }: { stage: Exclude<Stage, "idle" | "review"> }) {
             transition={fadeUpTransition}
           >
             {beat.label}
-          </motion.p>
+          </m.p>
         </AnimatePresence>
       </div>
     </Aura>
@@ -203,12 +214,7 @@ export function CvImport({
       return;
     }
 
-    void runReading(async () => {
-      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-        return (await import("../../lib/pdf.ts")).extractPdfText(file);
-      }
-      return file.text();
-    });
+    void runReading(() => readFileText(file));
   };
 
   const apply = () => {
@@ -392,7 +398,7 @@ export function CvImport({
 
       <AnimatePresence initial={false}>
         {stage === "review" ? (
-          <motion.div
+          <m.div
             ref={reviewRef}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -426,18 +432,18 @@ export function CvImport({
                 ) : null}
 
                 {groups.map((group, index) => (
-                  <motion.div
+                  <m.div
                     key={group.key}
                     animate={{ opacity: 1, y: 0 }}
                     initial={{ opacity: 0, y: 10 }}
                     transition={{ ...fadeUpTransition, delay: stagger(index, 0.07, 0.4) }}
                   >
                     {group.node}
-                  </motion.div>
+                  </m.div>
                 ))}
 
                 <div className="space-y-2 border-t border-onpanel/10 pt-3">
-                  <motion.button
+                  <m.button
                     className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-onpanel/20 px-3.5 py-2.5 text-xs font-semibold whitespace-nowrap text-ink shadow-[0_0_20px_color-mix(in_srgb,var(--color-brand)_45%,transparent)] transition-[box-shadow,background-color] hover:bg-green-300/30 hover:shadow-[0_0_28px_color-mix(in_srgb,var(--color-brand)_60%,transparent)] focus-visible:ring-4 focus-visible:ring-brand/30 focus-visible:outline-none disabled:opacity-40 disabled:shadow-none"
                     disabled={found === 0}
                     type="button"
@@ -446,7 +452,7 @@ export function CvImport({
                   >
                     <Plus aria-hidden className="size-3.5" />
                     Sumar a mi perfil
-                  </motion.button>
+                  </m.button>
                   <span className="inline-flex items-center justify-center gap-1 text-[10px] text-onpanel-faint">
                     <ShieldCheck aria-hidden className="size-3" />
                     El archivo no salió de tu navegador
@@ -454,7 +460,7 @@ export function CvImport({
                 </div>
               </div>
             </Aura>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </div>
