@@ -27,10 +27,21 @@ function authorized(header: string): boolean {
   if (!TOKEN) return true;
 
   const value = /^proxy-authorization:\s*(.+)$/im.exec(header)?.[1]?.trim() ?? "";
-  const bearer = `Bearer ${TOKEN}`;
-  const basic = `Basic ${Buffer.from(`:${TOKEN}`).toString("base64")}`;
-  const basicUser = `Basic ${Buffer.from(TOKEN).toString("base64")}`;
-  return value === bearer || value === basic || value === basicUser;
+  const [scheme, ...rest] = value.split(" ");
+  const credential = rest.join(" ").trim();
+  if (!scheme || !credential) return false;
+
+  if (scheme.toLowerCase() === "bearer") return credential === TOKEN;
+
+  if (scheme.toLowerCase() === "basic") {
+    // `usuario:clave` o solo `clave`: el usuario es indistinto, lo que importa
+    // es la clave, así que apuntar la URL con cualquier nombre sirve.
+    const decoded = Buffer.from(credential, "base64").toString("utf8");
+    const separator = decoded.indexOf(":");
+    return (separator === -1 ? decoded : decoded.slice(separator + 1)) === TOKEN;
+  }
+
+  return false;
 }
 
 function refuse(socket: Socket, status: string, extra = ""): void {
