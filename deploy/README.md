@@ -93,18 +93,47 @@ El archivo ya apunta a los certificados donde los deja certbot, así que si
 certbot reescribe el bloque conviene revisar que no haya duplicado el
 `ssl_certificate` ni pisado los headers.
 
+`location = /` distingue el navegador de curl: si el User-Agent es curl (o
+pide `text/plain`) nginx manda la query a `/api/cli` y el tablero sale en
+texto. Un cambio de esa lista hay que repetirlo en `web/vite.config.ts`.
+
 ## Las ofertas
 
 La API sirve lo que el worker haya dejado en `worker/output/jobs.json`, y ese
-archivo queda fuera del deploy a propósito. El scrapeo va por cron, con el
-usuario del servicio:
+archivo queda fuera del deploy a propósito. La API relee el archivo cuando le
+cambia el mtime, así que no hay que reiniciarla después de escribirlo.
+
+Ese archivo llega por dos caminos, y los dos conviven:
+
+**Desde afuera, que es el que trae BuscoJobs.** BuscoJobs contesta 403 a la IP
+del VPS, así que el scrapeo corre en una máquina común y sube el resultado a
+`POST /api/ingest/jobs`. Del lado del servidor la credencial es un token en un
+archivo, por la misma razón que el hash del panel:
+
+```bash
+sudo -u jobit /opt/bun/bun -e 'await Bun.write("/srv/jobit/data/ingest.token", crypto.randomUUID() + crypto.randomUUID())'
+sudo chmod 600 /srv/jobit/data/ingest.token
+```
+
+La unidad ya trae `Environment=INGEST_TOKEN_FILE=/srv/jobit/data/ingest.token`.
+Sin ese archivo la ruta contesta 404, igual que `/api/admin`. Ese mismo valor va
+en el `worker/.env` de la máquina que scrapea, junto con la URL; del otro lado
+el comando es `bun run scrape:push`.
+
+Dos cosas del servicio existen por esto: `ReadWritePaths` incluye
+`/srv/jobit/worker/output`, porque con `ProtectSystem=strict` la API no podría
+escribir ahí, y `MemoryMax` subió a 768M, que es el pico de descomprimir y
+parsear cinco megas de JSON. Y en nginx, `/api/ingest/jobs` tiene su propio
+`location` con `client_max_body_size 4m`: el bloque general corta en 16k.
+
+**Por cron en el servidor, que refresca Uruguay Concursa.** Sigue sirviendo:
+esa fuente no bloquea nada, y cuando BuscoJobs vuelve vacía el worker conserva
+lo que había dejado la última subida en vez de escribir cero
+(`worker/src/keep.ts`).
 
 ```
 15 */6 * * * cd /srv/jobit && PATH=/opt/bun:$PATH /opt/bun/bun run scrape
 ```
-
-La API relee el archivo cuando le cambia el mtime, así que no hay que
-reiniciarla después de scrapear.
 
 ## Comprobar
 

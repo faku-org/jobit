@@ -15,6 +15,7 @@ interface Merged {
   file: JobsFile;
   offersVersion: string;
   value: JobsFile;
+  byId: Map<string, Job>;
 }
 
 let cache: Merged | null = null;
@@ -90,8 +91,19 @@ export async function loadFeed(): Promise<Result<JobsFile>> {
     jobs,
   };
 
-  cache = { file: file.value, offersVersion, value };
+  cache = {
+    file: file.value,
+    offersVersion,
+    value,
+    byId: new Map(jobs.map((job) => [job.id, job])),
+  };
   return { ok: true, value };
+}
+
+/** Una oferta por id, sobre el tablero ya mezclado. */
+export function lookupJob(feed: JobsFile, id: string): Job | undefined {
+  if (cache?.value === feed) return cache.byId.get(id);
+  return feed.jobs.find((job) => job.id === id);
 }
 
 export function clearFeedCache(): void {

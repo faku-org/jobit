@@ -33,6 +33,13 @@ las nuevas):
 bun run scrape
 ```
 
+Si la API que tiene que quedarse con esas ofertas corre en otra máquina, el
+mismo comando y la subida van juntos (ver "Scrapeo desde afuera"):
+
+```bash
+bun run scrape:push
+```
+
 Levantar API y web juntos:
 
 ```bash
@@ -52,12 +59,18 @@ termina donde termina la de verdad.
 | Endpoint | Descripción |
 |---|---|
 | `GET /health` | Estado del servicio. |
-| `GET /api/jobs` | Ofertas filtradas y paginadas. |
-| `GET /api/jobs/:id` | Una oferta completa. |
+| `GET /api/jobs` | Ofertas filtradas y paginadas. Con `format=txt` o `Accept: text/plain` sale el mismo listado en texto. |
+| `GET /api/jobs.txt` | Ese listado ya en texto, para `curl` y para grep. Mismos parámetros. |
+| `GET /api/cli` | La URL del tablero en texto: entiende `view` y `job` además de los filtros. |
+| `GET /api/jobs/:id` | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción. |
 | `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
+| `GET /api/market` | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos. |
+| `GET /api/market.csv` | Ese mismo informe como CSV, todas las tablas bajo un encabezado. |
+| `GET /api/market.xlsx` | Ese mismo informe como planilla, una pestaña por tabla. |
 | `POST /api/stats` | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`. |
 | `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
 | `GET /api/admin/usage` | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión. |
+| `POST /api/ingest/jobs` | Recibe el `jobs.json` del worker corriendo en otra máquina. Pide token. |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -75,16 +88,46 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 | `sort` | `recent` (por defecto) o `closing`, que ordena por fecha de cierre. |
 | `ids` | Lista de ids separados por coma. |
 | `limit` / `offset` | Paginado. `limit` por defecto 50, máximo 200. |
+| `format` | `json` (por defecto) o `txt`. El texto es para leerlo o grepearlo desde la CLI. |
 
 `category`, `level`, `remote` y `job_type` aceptan varios valores separados por
 coma y la oferta matchea con cualquiera de ellos. Una oferta sin teletrabajo
 cuenta como `onsite`.
 
+Las dos descargas del mercado salen del mismo informe y no piden nada: no hay
+parámetros, no hay sesión, y el archivo se llama `jobit-mercado-AAAA-MM-DD` con
+la fecha del scrape. El CSV apila las tablas (`total`, `frescura`, `fuente`,
+`puesto`, `rubro`, `departamento`, `modalidad`, `jornada` y `nivel`) bajo un
+encabezado común, con la columna `tabla` diciendo cuál es cada fila; el XLSX
+pone una pestaña por tabla y saca de cada una las columnas que no usa.
+
+```bash
+curl -s http://localhost:3000/api/market.csv | head -3
+curl -s "http://localhost:3000/api/jobs.txt?q=cajero&limit=5"
+```
+
+## Desde la CLI
+
+Los filtros viajan en la URL de la web. `curl` de esa misma dirección
+devuelve el listado en texto, sin JavaScript:
+
+```bash
+curl -s "http://localhost:5173/?q=cajero"
+curl -s "http://localhost:5173/?view=state"
+curl -s "http://localhost:5173/?view=market"
+curl -s "http://localhost:5173/?job=<id>"
+```
+
+Guardadas y seguimiento viven en el navegador: desde la CLI no hay nada que
+devolver. El atajo estable, sin negociación de User-Agent, es `GET /api/cli`
+con los mismos parámetros.
+
 Variables de entorno: `PORT` (3000), `HOST` (127.0.0.1), `JOBS_FILE` (ruta al
 JSON del worker), `DB_FILE` (SQLite de empresas y ofertas propias),
 `STATS_FILE` y `EVENTS_FILE` (rutas de los `.jsonl`), `CORS_ORIGIN` (origen del
 dev server de Vite), `ADMIN_PASSWORD_HASH_FILE` (archivo con el hash del panel;
-sin él `/api/admin` responde 404).
+sin él `/api/admin` responde 404) e `INGEST_TOKEN_FILE` (archivo con el token de
+ingesta; sin él `/api/ingest` responde 404).
 
 ## Perfil y estadísticas
 
@@ -247,7 +290,7 @@ algo que la app edita.
 
 | Fuente | Estado |
 |---|---|
-| BuscoJobs Uruguay | Activa. Listados por rubro y detalle por oferta. |
+| BuscoJobs Uruguay | Activa, pero no desde el servidor: contesta 403 a la IP del VPS. Se scrapea desde afuera y se sube (ver abajo). |
 | Uruguay Concursa | Activa. Llamados del Estado abiertos y próximos, con fecha de cierre. |
 | Gallito | Pendiente. El sitio responde 403 detrás de Cloudflare y necesita un navegador headless. |
 
@@ -255,3 +298,56 @@ El worker consulta de a una petición por vez, con pausa entre pedidos, y cachea
 las descripciones en `worker/cache/` para no volver a pedirlas. Es una
 herramienta de uso personal: no republica las ofertas, siempre enlaza al aviso
 original.
+
+Si una fuente vuelve vacía, el worker conserva lo que esa misma fuente había
+dejado en la corrida anterior (`worker/src/keep.ts`) en vez de escribir cero.
+Un 403 no puede vaciar el tablero.
+
+## Scrapeo desde afuera
+
+BuscoJobs bloquea la IP del VPS. El scrapeo corre entonces en una máquina común
+y el resultado viaja por HTTP:
+
+```bash
+bun run scrape:push
+```
+
+Es `bun run scrape` seguido de `bun run push`, que sube `worker/output/jobs.json`
+a `POST /api/ingest/jobs`. La API lo valida, lo escribe al lado y renombra, y
+como relee por mtime queda servido sin reiniciar nada.
+
+La configuración de la máquina que scrapea va en **`worker/.env`**
+(`worker/.env.example` tiene las dos variables):
+
+```
+JOBIT_INGEST_URL=https://jobs.wefaber.net/api/ingest/jobs
+JOBIT_INGEST_TOKEN=<el mismo que INGEST_TOKEN_FILE en el servidor>
+```
+
+La credencial es un token propio y no la sesión del panel: quien scrapea es una
+máquina, y lo único que tiene que poder hacer es reemplazar el archivo de
+ofertas. Sin token configurado del lado de la API la ruta contesta 404, igual
+que `/api/admin`.
+
+Tres cosas que la ingesta no deja pasar, porque las tres borrarían el tablero
+por accidente: un archivo sin ofertas, un archivo que no tiene la forma de
+`jobs.json`, y un archivo más viejo que el que ya está publicado. El cuerpo
+viaja comprimido (cinco megas se van en poco más de uno) y también se acepta el
+JSON pelado, así que a mano es:
+
+```bash
+gzip -c worker/output/jobs.json | curl -sS -X POST --data-binary @- \
+  -H "authorization: Bearer $JOBIT_INGEST_TOKEN" \
+  -H "content-type: application/octet-stream" \
+  https://jobs.wefaber.net/api/ingest/jobs
+```
+
+El cron del servidor puede seguir corriendo: Uruguay Concursa no bloquea nada, y
+BuscoJobs queda conservado de la última subida.
+
+## Licencia
+
+Apache License 2.0. El código se puede usar, modificar y redistribuir; hay que
+conservar `LICENSE` y `NOTICE`, y mencionar JobIt como proyecto original
+(`https://github.com/faku-org/jobit`, `https://jobs.wefaber.net`). El nombre,
+el logo y la identidad visual son de Faber y no van con esa licencia.

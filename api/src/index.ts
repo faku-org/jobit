@@ -2,13 +2,18 @@ import { cors } from "@elysiajs/cors";
 import { Elysia, t } from "elysia";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
+import { ingest, ingestEnabled } from "./ingest.ts";
+import { marketCsv, marketSheets } from "./export.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
-import { buildMarketReport } from "./market.ts";
+import { type MarketReport, buildMarketReport } from "./market.ts";
+import { boardView, formatMarket, localViewMessage, withBoardView } from "./cli.ts";
+import { formatJob, formatJobs } from "./raw.ts";
+import { XLSX_MIME, toXlsx } from "./xlsx.ts";
 import { type Ranking, isEmptyRanking, isMix } from "./rank.ts";
 import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
-import { loadFeed } from "./feed.ts";
+import { loadFeed, lookupJob } from "./feed.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 
@@ -141,6 +146,11 @@ const jobsQuerySchema = t.Object({
   rank_mix: t.Optional(t.String()),
   limit: t.Optional(t.Numeric()),
   offset: t.Optional(t.Numeric()),
+  format: t.Optional(t.Union([t.Literal("json"), t.Literal("txt")])),
+  /** Del tablero, no de la consulta: los entiende `/api/cli`. */
+  view: t.Optional(t.String()),
+  job: t.Optional(t.String()),
+  embed: t.Optional(t.String()),
 });
 
 type JobsQueryParams = typeof jobsQuerySchema.static;
@@ -167,6 +177,81 @@ function readRanking(query: JobsQueryParams): Ranking | undefined {
   };
 
   return isEmptyRanking(ranking) ? undefined : ranking;
+}
+
+function jobsQueryFrom(query: JobsQueryParams): Result<JobsQuery> {
+  const levels = parseSet("level", query.level, LEVELS);
+  const workModes = parseSet("remote", query.remote, WORK_MODES);
+  const jobTypes = parseSet("job_type", query.job_type, JOB_TYPES);
+  const invalid = [levels, workModes, jobTypes].find((result) => !result.ok);
+  if (invalid && !invalid.ok) return invalid;
+
+  return {
+    ok: true,
+    value: {
+      ids: asSet(splitList(query.ids)),
+      q: query.q?.trim() || undefined,
+      levels: levels.ok ? levels.value : undefined,
+      workModes: workModes.ok ? workModes.value : undefined,
+      categories: asSet(splitList(query.category)),
+      sources: asSet(splitList(query.source)),
+      departments: asSet(splitList(query.department)),
+      hiddenCategories: asSet(splitList(query.hide_category)),
+      hiddenDepartments: asSet(splitList(query.hide_department)),
+      jobTypes: jobTypes.ok ? jobTypes.value : undefined,
+      salary: parseSalary(query.salary_min, query.salary_max, query.salary_unknown),
+      noExperience: query.no_experience || undefined,
+      days: query.days,
+      sort: query.sort,
+      ranking: query.sort === "match" ? readRanking(query) : undefined,
+      limit: clamp(Math.floor(query.limit ?? DEFAULT_LIMIT), 1, MAX_LIMIT),
+      offset: Math.max(Math.floor(query.offset ?? 0), 0),
+    },
+  };
+}
+
+/** Sin Accept, curl sigue recibiendo JSON. Texto solo si se pidió. */
+function wantsText(request: Request, format: string | undefined): boolean {
+  if (format === "txt") return true;
+  const accept = request.headers.get("accept") ?? "";
+  return accept.includes("text/plain") && !accept.includes("application/json");
+}
+
+const TEXT_TYPE = "text/plain; charset=utf-8";
+
+const asText = (body: string): Response =>
+  new Response(body, { headers: { "content-type": TEXT_TYPE } });
+
+/** El informe del mercado, o el motivo por el que no se pudo armar. Lo piden
+ * tres rutas: la que lo sirve como JSON y las dos que lo bajan como archivo. */
+async function marketReport(): Promise<Result<MarketReport>> {
+  const file = await loadFeed();
+  if (!file.ok) return { ok: false, error: unavailable(file.error) };
+  return { ok: true, value: buildMarketReport(file.value.jobs, file.value.scraped_at) };
+}
+
+/** El BOM que Excel necesita para leer un CSV como UTF-8; el resto de los
+ * lectores lo ignora. */
+const BOM = "\uFEFF";
+
+/**
+ * Un archivo con nombre, y el nombre lleva la fecha de scrape: dos descargas de
+ * distintos días quedan una al lado de la otra en la carpeta de descargas en
+ * vez de pisarse.
+ */
+function download(
+  body: string | Uint8Array,
+  extension: string,
+  type: string,
+  report: MarketReport,
+): Response {
+  const day = (report.scraped_at || new Date().toISOString()).slice(0, 10);
+  return new Response(body, {
+    headers: {
+      "content-type": type,
+      "content-disposition": `attachment; filename="jobit-mercado-${day}.${extension}"`,
+    },
+  });
 }
 
 export const app = new Elysia()
@@ -196,49 +281,78 @@ export const app = new Elysia()
   })
   .get("/health", () => ({ status: "ok" }))
   .use(admin)
+  .use(ingest)
   .get(
     "/api/jobs",
+    async ({ query, request, status }) => {
+      const file = await loadFeed();
+      if (!file.ok) return status(503, { error: unavailable(file.error) });
+
+      const params = jobsQueryFrom(query);
+      if (!params.ok) return status(422, { error: params.error });
+
+      const found = filterJobs(file.value.jobs, params.value);
+      return wantsText(request, query.format) ? asText(formatJobs(found)) : found;
+    },
+    { query: jobsQuerySchema },
+  )
+  .get(
+    "/api/jobs.txt",
     async ({ query, status }) => {
       const file = await loadFeed();
       if (!file.ok) return status(503, { error: unavailable(file.error) });
 
-      const levels = parseSet("level", query.level, LEVELS);
-      const workModes = parseSet("remote", query.remote, WORK_MODES);
-      const jobTypes = parseSet("job_type", query.job_type, JOB_TYPES);
-      const invalid = [levels, workModes, jobTypes].find((result) => !result.ok);
-      if (invalid && !invalid.ok) return status(422, { error: invalid.error });
+      const params = jobsQueryFrom(query);
+      if (!params.ok) return status(422, { error: params.error });
 
-      const params: JobsQuery = {
-        ids: asSet(splitList(query.ids)),
-        q: query.q?.trim() || undefined,
-        levels: levels.ok ? levels.value : undefined,
-        workModes: workModes.ok ? workModes.value : undefined,
-        categories: asSet(splitList(query.category)),
-        sources: asSet(splitList(query.source)),
-        departments: asSet(splitList(query.department)),
-        hiddenCategories: asSet(splitList(query.hide_category)),
-        hiddenDepartments: asSet(splitList(query.hide_department)),
-        jobTypes: jobTypes.ok ? jobTypes.value : undefined,
-        salary: parseSalary(query.salary_min, query.salary_max, query.salary_unknown),
-        noExperience: query.no_experience || undefined,
-        days: query.days,
-        sort: query.sort,
-        ranking: query.sort === "match" ? readRanking(query) : undefined,
-        limit: clamp(Math.floor(query.limit ?? DEFAULT_LIMIT), 1, MAX_LIMIT),
-        offset: Math.max(Math.floor(query.offset ?? 0), 0),
-      };
-
-      return filterJobs(file.value.jobs, params);
+      return asText(formatJobs(filterJobs(file.value.jobs, params.value)));
     },
     { query: jobsQuerySchema },
   )
-  .get("/api/jobs/:id", async ({ params, status }) => {
-    const file = await loadFeed();
-    if (!file.ok) return status(503, { error: unavailable(file.error) });
+  /**
+   * La URL del tablero, en texto. `view` y `job` son los de la barra de
+   * direcciones; el resto son los de `/api/jobs`. nginx y el dev server
+   * reescriben `/` acá cuando el cliente es curl.
+   */
+  .get(
+    "/api/cli",
+    async ({ query, status }) => {
+      const file = await loadFeed();
+      if (!file.ok) return status(503, { error: unavailable(file.error) });
 
-    const job = file.value.jobs.find((candidate) => candidate.id === params.id);
-    return job ?? status(404, { error: "oferta no encontrada" });
-  })
+      const id = query.job?.trim() || query.embed?.trim();
+      if (id) {
+        const found = lookupJob(file.value, id);
+        if (!found) return status(404, { error: "oferta no encontrada" });
+        return asText(`${formatJob(found, true)}\n`);
+      }
+
+      const view = boardView(query.view);
+      const local = localViewMessage(view);
+      if (local) return asText(local);
+
+      if (view === "market") {
+        return asText(formatMarket(buildMarketReport(file.value.jobs, file.value.scraped_at)));
+      }
+
+      const params = jobsQueryFrom(withBoardView(query, view));
+      if (!params.ok) return status(422, { error: params.error });
+      return asText(formatJobs(filterJobs(file.value.jobs, params.value)));
+    },
+    { query: jobsQuerySchema },
+  )
+  .get(
+    "/api/jobs/:id",
+    async ({ params, request, query, status }) => {
+      const file = await loadFeed();
+      if (!file.ok) return status(503, { error: unavailable(file.error) });
+
+      const job = lookupJob(file.value, params.id);
+      if (!job) return status(404, { error: "oferta no encontrada" });
+      return wantsText(request, query.format) ? asText(formatJob(job, true)) : job;
+    },
+    { query: t.Object({ format: t.Optional(t.Union([t.Literal("json"), t.Literal("txt")])) }) },
+  )
   .get("/api/meta", async ({ status }) => {
     const file = await loadFeed();
     if (!file.ok) return status(503, { error: unavailable(file.error) });
@@ -256,9 +370,20 @@ export const app = new Elysia()
   })
   /** The board as a whole, with nothing in it about the person asking. */
   .get("/api/market", async ({ status }) => {
-    const file = await loadFeed();
-    if (!file.ok) return status(503, { error: unavailable(file.error) });
-    return buildMarketReport(file.value.jobs, file.value.scraped_at);
+    const report = await marketReport();
+    return report.ok ? report.value : status(503, { error: report.error });
+  })
+  /** El mismo informe para bajar: CSV para procesarlo, XLSX para abrirlo. */
+  .get("/api/market.csv", async ({ status }) => {
+    const report = await marketReport();
+    if (!report.ok) return status(503, { error: report.error });
+    const body = `${BOM}${marketCsv(report.value)}`;
+    return download(body, "csv", "text/csv; charset=utf-8", report.value);
+  })
+  .get("/api/market.xlsx", async ({ status }) => {
+    const report = await marketReport();
+    if (!report.ok) return status(503, { error: report.error });
+    return download(toXlsx(marketSheets(report.value)), "xlsx", XLSX_MIME, report.value);
   })
   .post(
     "/api/stats",
@@ -300,5 +425,10 @@ if (import.meta.main) {
     adminEnabled()
       ? "admin: habilitado"
       : "admin: apagado (falta ADMIN_PASSWORD_HASH), /api/admin responde 404",
+  );
+  console.log(
+    ingestEnabled()
+      ? "ingesta: habilitada"
+      : "ingesta: apagada (falta INGEST_TOKEN), /api/ingest responde 404",
   );
 }

@@ -26,7 +26,12 @@ function isJob(value: unknown): value is Job {
   );
 }
 
-function parse(raw: unknown): Result<JobsFile> {
+/**
+ * Valida la forma de un archivo de ofertas y lo normaliza: ordenado por fecha
+ * y con los tres campos de cabecera siempre presentes. Lo usan tanto la
+ * lectura del disco como la ingesta, que recibe el mismo documento por HTTP.
+ */
+export function parseJobsFile(raw: unknown): Result<JobsFile> {
   if (typeof raw !== "object" || raw === null) {
     return { ok: false, error: "jobs file is not an object" };
   }
@@ -68,7 +73,7 @@ export async function loadJobs(): Promise<Result<JobsFile>> {
     return { ok: false, error: `jobs file is not valid JSON: ${String(cause)}` };
   }
 
-  const parsed = parse(raw);
+  const parsed = parseJobsFile(raw);
   if (parsed.ok) cache = { mtimeMs, data: parsed.value };
   return parsed;
 }

@@ -2,6 +2,7 @@
   "name": "jobit",
   "version": "0.0.0",
   "private": true,
+  "license": "Apache-2.0",
   "workspaces": [
     "api",
     "web",
@@ -16,7 +17,9 @@
     "typecheck": "bun run --cwd api typecheck && bun run --cwd web typecheck && bun run --cwd worker typecheck",
     "lint": "oxlint",
     "fmt": "oxfmt .",
-    "scrape": "bun run --cwd worker scrape"
+    "scrape": "bun run --cwd worker scrape",
+    "push": "bun run --cwd worker push",
+    "scrape:push": "bun run --cwd worker scrape && bun run --cwd worker push"
   },
   "devDependencies": {
     "oxfmt": "^0.63.0",

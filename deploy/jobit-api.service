@@ -36,8 +36,16 @@ Environment=DB_FILE=/srv/jobit/data/jobit.db
 #   chown jobit:jobit /srv/jobit/data/admin.hash && chmod 600 /srv/jobit/data/admin.hash
 Environment=ADMIN_PASSWORD_HASH_FILE=/srv/jobit/data/admin.hash
 
+# El token con el que el worker sube jobs.json desde afuera. Va a un archivo
+# por la misma razón que el hash, y sin él /api/ingest contesta 404.
+#   bun -e 'await Bun.write("/srv/jobit/data/ingest.token", crypto.randomUUID() + crypto.randomUUID())'
+#   chown jobit:jobit /srv/jobit/data/ingest.token && chmod 600 /srv/jobit/data/ingest.token
+Environment=INGEST_TOKEN_FILE=/srv/jobit/data/ingest.token
+
 # Aislamiento. ProtectSystem=strict deja todo el disco de solo lectura salvo
-# lo que se liste abajo, que es únicamente donde se escriben las estadísticas.
+# lo que se liste abajo: donde se escriben las estadísticas, y desde que la
+# ingesta existe, también donde vive jobs.json. El scrapeo corre afuera y sube
+# el archivo, así que ahora es la API la que lo escribe.
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
@@ -48,7 +56,7 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 ProtectClock=true
 ProtectHostname=true
-ReadWritePaths=/srv/jobit/data
+ReadWritePaths=/srv/jobit/data /srv/jobit/worker/output
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 RestrictNamespaces=true
 RestrictRealtime=true
@@ -64,7 +72,9 @@ SystemCallErrorNumber=EPERM
 MemoryDenyWriteExecute=false
 
 LimitNOFILE=8192
-MemoryMax=512M
+# 512M alcanzaba para servir. La ingesta descomprime cinco megas de JSON, los
+# parsea y los vuelve a serializar, y ese pico entra acá adentro.
+MemoryMax=768M
 
 [Install]
 WantedBy=multi-user.target
