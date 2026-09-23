@@ -7,8 +7,8 @@ import {
   canShare,
   copyText,
   embedSnippet,
-  jobLink,
   shareJob,
+  shareLink,
   whatsappLink,
 } from "../../lib/share.ts";
 import { iconButtonClass, menuItemClass, popoverClass } from "../../lib/styles.ts";
@@ -69,7 +69,7 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
 
   const share = () => {
     void shareJob(job).then((result) => {
-      if (result === "unsupported") copy(jobLink(job.id), "Enlace copiado");
+      if (result === "unsupported") copy(shareLink(job.id), "Enlace copiado");
       else setOpen(false);
     });
   };
@@ -104,7 +104,7 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
               </MenuItem>
             ) : null}
 
-            <MenuItem icon={Link2} onClick={() => copy(jobLink(job.id), "Enlace copiado")}>
+            <MenuItem icon={Link2} onClick={() => copy(shareLink(job.id), "Enlace copiado")}>
               Copiar enlace
             </MenuItem>
 

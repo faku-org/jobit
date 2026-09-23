@@ -169,7 +169,7 @@ export default function App() {
   const query = jobsQuery(listView, board);
   const sort = query.sort;
 
-  const { jobs, total, status, error, hasMore, loadMore } = useJobs(query, !showIntro);
+  const { jobs, total, status, error, hasMore, loadMore } = useJobs(query, true);
 
   /** Una lista de guardadas vacía no tiene nada que adelantar: sabemos sin
    * preguntar que vuelve vacía. */
@@ -320,25 +320,6 @@ export default function App() {
     setSavedCategory("");
     setReviewingDiscarded(false);
   };
-
-  if (showIntro) {
-    return (
-      <Suspense fallback={<div className="min-h-svh" />}>
-        <Onboarding
-          categories={meta?.categories ?? []}
-          departments={meta?.departments ?? []}
-          preferences={prefs.preferences}
-          profile={prefs.profile}
-          showWelcome={prefs.introSeenAt === "" || replayingIntro}
-          onFinish={(profile, preferences) => {
-            setReplayingIntro(false);
-            prefs.completeOnboarding(profile, preferences);
-          }}
-          onWelcomeSeen={prefs.markIntroSeen}
-        />
-      </Suspense>
-    );
-  }
 
   /* Deliberately not animated as a whole. A transform here would make this
      div the containing block for every fixed child, which put the job sheet
@@ -605,6 +586,26 @@ export default function App() {
             onClose={() => setOpenJob(null)}
             onToggleDismissed={prefs.toggleDismissed}
             onToggleSaved={prefs.toggleSaved}
+          />
+        </Suspense>
+      ) : null}
+
+      {/* La intro es una capa sobre la app, no una pantalla que la reemplace:
+          así el tablero se pide y se dibuja igual, y un buscador que entra con
+          el storage vacío ve ofertas y no solo "Bienvenido a JobIt". */}
+      {showIntro ? (
+        <Suspense fallback={null}>
+          <Onboarding
+            categories={meta?.categories ?? []}
+            departments={meta?.departments ?? []}
+            preferences={prefs.preferences}
+            profile={prefs.profile}
+            showWelcome={prefs.introSeenAt === "" || replayingIntro}
+            onFinish={(profile, preferences) => {
+              setReplayingIntro(false);
+              prefs.completeOnboarding(profile, preferences);
+            }}
+            onWelcomeSeen={prefs.markIntroSeen}
           />
         </Suspense>
       ) : null}

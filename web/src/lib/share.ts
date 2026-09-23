@@ -10,6 +10,13 @@ const base = (): string => {
 /** The link that reopens this offer inside the app. */
 export const jobLink = (id: string): string => `${base()}?job=${encodeURIComponent(id)}`;
 
+/**
+ * El enlace que se comparte: tiene su propia dirección con contenido, así que
+ * WhatsApp, LinkedIn y Slack lo previsualizan bien en vez de mostrar la portada.
+ */
+export const shareLink = (id: string): string =>
+  new URL(`empleo/${encodeURIComponent(id)}`, base()).toString();
+
 /** The link a host page loads inside an iframe: one offer, no app around it. */
 export const embedLink = (id: string): string => `${base()}?embed=${encodeURIComponent(id)}`;
 
@@ -20,7 +27,7 @@ export const shareText = (job: Job): string =>
   `${shareTitle(job)} · ${formatLocation(job.city, job.department)}`;
 
 export const whatsappLink = (job: Job): string =>
-  `https://wa.me/?text=${encodeURIComponent(`${shareText(job)}\n${jobLink(job.id)}`)}`;
+  `https://wa.me/?text=${encodeURIComponent(`${shareText(job)}\n${shareLink(job.id)}`)}`;
 
 const escapeAttribute = (value: string): string =>
   value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
@@ -38,7 +45,7 @@ export const canShare = (): boolean =>
 export async function shareJob(job: Job): Promise<ShareResult> {
   if (!canShare()) return "unsupported";
   try {
-    await navigator.share({ title: shareTitle(job), text: shareText(job), url: jobLink(job.id) });
+    await navigator.share({ title: shareTitle(job), text: shareText(job), url: shareLink(job.id) });
     return "shared";
   } catch {
     return "cancelled";

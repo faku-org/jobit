@@ -15,6 +15,7 @@ import { type Ranking, isEmptyRanking, isMix } from "./rank.ts";
 import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed, lookupJob } from "./feed.ts";
+import { site } from "./site.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 
@@ -289,6 +290,7 @@ export const app = new Elysia()
     set.headers["referrer-policy"] = "no-referrer";
   })
   .get("/health", () => ({ status: "ok" }))
+  .use(site)
   .use(admin)
   .use(account)
   .use(ingest)

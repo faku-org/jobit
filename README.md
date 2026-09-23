@@ -136,10 +136,11 @@ JSON del worker), `DB_FILE` (SQLite de empresas, ofertas propias y cuentas),
 `STATS_FILE` y `EVENTS_FILE` (rutas de los `.jsonl`), `CORS_ORIGIN` (origen del
 dev server de Vite), `ADMIN_PASSWORD_HASH_FILE` (archivo con el hash del panel;
 sin él `/api/admin` responde 404), `INGEST_TOKEN_FILE` (archivo con el token de
-ingesta; sin él `/api/ingest` responde 404) y `JOBIT_SECRET_KEY_FILE` (archivo
+ingesta; sin él `/api/ingest` responde 404), `JOBIT_SECRET_KEY_FILE` (archivo
 con la clave de 32 bytes que cifra el email y el secreto TOTP de las cuentas;
 sin ella, el alta sin email sigue andando pero el email y el 2FA quedan
-apagados).
+apagados) y `PUBLIC_ORIGIN` (origen que va en los canonical y og:url de las
+páginas server-rendered; por defecto el de producción).
 
 ## Perfil y estadísticas
 
@@ -237,14 +238,33 @@ etiquetas Open Graph y Twitter, el manifiesto y un JSON-LD con `WebSite` y
 
 Mientras la app corre, `web/src/lib/meta.ts` reescribe título y descripción con
 la oferta abierta: lo ven la pestaña, el historial y los buscadores que ejecutan
-JavaScript, no los scrapers de WhatsApp o LinkedIn, que leen la cáscara y paran
-ahí. Por eso un `?job=<id>` compartido siempre previsualiza como la portada. El
-canonical manda cualquier query string a la raíz, y el `?embed=` además se marca
-`noindex` en tiempo de ejecución.
+JavaScript. Pero eso no alcanza para los scrapers de WhatsApp o LinkedIn, que no
+ejecutan nada.
 
-No hay JSON-LD `JobPosting` a propósito: las ofertas se enlazan al aviso
-original y no se republican, y marcarlas acá como si vivieran en JobIt es lo que
-Google penaliza en los agregadores.
+Por eso el contenido que se busca con intención alta tiene su propia dirección,
+servida por la API y puesta delante de la app por nginx (`api/src/site.ts`):
+
+| Ruta | Qué muestra |
+|---|---|
+| `/empleo/<id>` | La ficha de una oferta, con su descripción y su JSON-LD. Es la URL que se comparte. |
+| `/mercado` | El informe del mercado. |
+| `/rubro/<slug>` | Las ofertas de un rubro. |
+| `/departamento/<nombre>` | Las ofertas de un departamento. |
+| `/puesto/<slug>` | Las ofertas de un puesto. |
+
+Son documentos HTML sueltos, sin React: el mismo patrón que `/terminos`. Un
+scraper los lee enteros, así que un enlace compartido ya no previsualiza como la
+portada. La app sigue siendo la experiencia: cada página enlaza a la vista
+filtrada correspondiente. Además, la intro del onboarding dejó de tapar el
+tablero: es una capa sobre la app montada, así que el listado se pide y se
+dibuja igual en la primera visita.
+
+El JSON-LD `JobPosting` sale solo en `/empleo/<id>` y solo cuando la oferta vive
+acá de verdad: `source` igual a `jobit` y sin enlace de postulación externo
+(`directApply`). Las scrapeadas no lo llevan y siguen enlazando al aviso
+original, porque marcarlas como propias es lo que Google penaliza en los
+agregadores. El canonical de cada página apunta a sí misma; el `?embed=` se marca
+`noindex` en tiempo de ejecución.
 
 ## Cuentas
 
