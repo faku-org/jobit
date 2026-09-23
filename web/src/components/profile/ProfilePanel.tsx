@@ -14,6 +14,7 @@ import { type Usage, anonymousStats } from "../../lib/stats.ts";
 import { pendingEvents } from "../../lib/track.ts";
 import type { Facet, Preferences, Theme } from "../../lib/types.ts";
 import { Combobox } from "../ui/Combobox.tsx";
+import { AccountSection } from "../account/AccountSection.tsx";
 import { DangerZone } from "./DangerZone.tsx";
 import { ExperienceField } from "./ExperienceField.tsx";
 import { PanelChip, PanelGroup } from "./PanelControls.tsx";
@@ -207,6 +208,12 @@ export function ProfilePanel({
             Términos del servicio
           </a>
         </p>
+      </div>
+
+      {/* La cuenta es lo único del panel que vive en el servidor, así que va
+          aparte y después del bloque que dice todo lo contrario. */}
+      <div className="border-t border-onpanel/10 pt-3">
+        <AccountSection />
       </div>
     </div>
   );

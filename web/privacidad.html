@@ -51,7 +51,7 @@
     <main class="legal">
       <div class="legal-head">
         <h1>Política de privacidad</h1>
-        <p>Última actualización: 5 de setiembre de 2026</p>
+        <p>Última actualización: 22 de setiembre de 2026</p>
       </div>
 
       <div class="legal-grid">
@@ -76,23 +76,24 @@
                 <path d="m6 9 6 6 6-6" />
               </svg>
               Secciones
-              <span>13</span>
+              <span>14</span>
             </summary>
 
             <nav aria-label="Secciones de la política" data-toc>
               <a href="#responsable"><span>01</span> Quién responde</a>
               <a href="#navegador"><span>02</span> Lo que queda en tu navegador</a>
-              <a href="#cv"><span>03</span> El CV</a>
-              <a href="#que-sale"><span>04</span> Lo único que sale</a>
-              <a href="#registros"><span>05</span> Registros del servidor</a>
-              <a href="#cookies"><span>06</span> Cookies</a>
-              <a href="#terceros"><span>07</span> Terceros</a>
-              <a href="#menores"><span>08</span> Menores</a>
-              <a href="#derechos"><span>09</span> Tus derechos</a>
-              <a href="#conservacion"><span>10</span> Cuánto se conserva</a>
-              <a href="#seguridad"><span>11</span> Seguridad</a>
-              <a href="#cambios"><span>12</span> Cambios</a>
-              <a href="#contacto"><span>13</span> Contacto</a>
+              <a href="#cuenta"><span>03</span> Tu cuenta, si creás una</a>
+              <a href="#cv"><span>04</span> El CV</a>
+              <a href="#que-sale"><span>05</span> Lo único que sale</a>
+              <a href="#registros"><span>06</span> Registros del servidor</a>
+              <a href="#cookies"><span>07</span> Cookies</a>
+              <a href="#terceros"><span>08</span> Terceros</a>
+              <a href="#menores"><span>09</span> Menores</a>
+              <a href="#derechos"><span>10</span> Tus derechos</a>
+              <a href="#conservacion"><span>11</span> Cuánto se conserva</a>
+              <a href="#seguridad"><span>12</span> Seguridad</a>
+              <a href="#cambios"><span>13</span> Cambios</a>
+              <a href="#contacto"><span>14</span> Contacto</a>
             </nav>
           </details>
         </aside>
@@ -100,9 +101,9 @@
         <div class="legal-doc">
           <div class="legal-lead">
             <p>
-              <strong>No hay cuenta, no hay contraseña y no hay ningún identificador tuyo.</strong>
-              Tu perfil, tus guardadas y tus postulaciones viven en tu navegador y no tienen copia
-              en ningún servidor.
+              <strong>Buscar trabajo no pide cuenta.</strong> Tu perfil, tus guardadas y tus
+              postulaciones viven en tu navegador y no tienen copia en ningún servidor. Solo si creás
+              una cuenta para publicar se guarda lo mínimo del punto 3.
             </p>
             <p>
               <strong>El CV se lee en tu máquina.</strong> El archivo no se sube a ningún lado ni
@@ -161,8 +162,42 @@
             </p>
           </section>
 
+          <section id="cuenta">
+            <h2>3. Tu cuenta, si creás una</h2>
+            <p>
+              Para publicar un servicio vas a necesitar una cuenta. Es lo único del sitio que se
+              guarda en el servidor, y se guarda lo mínimo para que puedas volver a entrar y editar
+              lo tuyo:
+            </p>
+            <ul>
+              <li>Tu <strong>handle</strong> y tu <strong>nombre visible</strong>.</li>
+              <li>
+                <strong>El hash de tu contraseña</strong> (argon2id). La contraseña en claro no se
+                guarda en ningún lado.
+              </li>
+              <li>
+                <strong>Un email, si lo cargás.</strong> Es opcional y solo sirve para recuperar la
+                cuenta; va <strong>cifrado en reposo</strong>. Quien no lo carga se lleva códigos de
+                respaldo y se queda sin recuperación por correo, y eso se avisa en el alta.
+              </li>
+              <li>
+                <strong>El secreto del segundo paso, si lo activás.</strong> También va cifrado. Los
+                códigos de respaldo se guardan hasheados y se muestran una sola vez.
+              </li>
+            </ul>
+            <p>
+              <strong>No se guarda</strong> tu dirección IP, tu user agent, la hora de tus acciones
+              ni un historial de inicios de sesión. De la sesión abierta solo queda el sha256 del
+              token, así que una copia de la base no alcanza para hacerse pasar por vos.
+            </p>
+            <p>
+              <strong>Borrar la cuenta la borra de verdad:</strong> tu usuario, tus sesiones, tus
+              códigos y todo lo que hayas publicado. No hay baja lógica ni copia de respaldo.
+            </p>
+          </section>
+
           <section id="cv">
-            <h2>3. El CV</h2>
+            <h2>4. El CV</h2>
             <p>
               Cuando importás un CV en PDF, txt o markdown (hasta 8 MB), el archivo
               <strong>se lee en tu navegador</strong>. No se sube a nuestro servidor, no se guarda y
@@ -178,7 +213,7 @@
           </section>
 
           <section id="que-sale">
-            <h2>4. Lo único que sale del navegador</h2>
+            <h2>5. Lo único que sale del navegador</h2>
             <p>
               Hay un interruptor en Perfil,
               <strong>"Compartir estadísticas anónimas de uso"</strong>, que viene prendido y se
@@ -233,12 +268,12 @@
           </section>
 
           <section id="registros">
-            <h2>5. Los registros del servidor</h2>
+            <h2>6. Los registros del servidor</h2>
             <p>
               Como cualquier sitio web, el servidor anota las peticiones que recibe: dirección IP,
               fecha, la dirección pedida, el código de respuesta y el user agent. Sirve para
               diagnosticar fallas y frenar abusos, se rota y se borra solo a las pocas semanas, y no
-              se cruza con lo del punto 4 ni se usa para armar un perfil de nadie.
+              se cruza con lo del punto 5 ni se usa para armar un perfil de nadie.
             </p>
             <p>
               Un detalle honesto: cuando buscás, el término viaja en la dirección de la consulta a
@@ -253,21 +288,22 @@
           </section>
 
           <section id="cookies">
-            <h2>6. Cookies</h2>
+            <h2>7. Cookies</h2>
             <p>
-              La app pública <strong>no usa ninguna cookie</strong>. No hay analítica de terceros,
-              ni píxeles, ni scripts, ni fuentes tipográficas cargadas desde afuera. Por eso tampoco
-              vas a ver un cartel pidiéndote que aceptes cookies.
+              La app pública <strong>no usa cookies para rastrear</strong>. No hay analítica de
+              terceros, ni píxeles, ni scripts, ni fuentes tipográficas cargadas desde afuera. Por
+              eso tampoco vas a ver un cartel pidiéndote que aceptes cookies.
             </p>
             <p>
-              La única cookie del sistema es la sesión del panel de administración: solo la recibe
-              quien administra, es HttpOnly, SameSite=Strict, alcanza únicamente a
-              <code>/api/admin</code> y vence a las 12 horas.
+              Hay dos cookies, las dos de sesión y las dos HttpOnly: la del panel de administración
+              (SameSite=Strict, alcanza solo a <code>/api/admin</code> y vence a las 12 horas) y la
+              de tu cuenta, si entrás (SameSite=Lax, alcanza a <code>/api</code> y vence a los 30
+              días, renovándose con el uso). Ninguna sirve para seguirte por otros sitios.
             </p>
           </section>
 
           <section id="terceros">
-            <h2>7. Terceros</h2>
+            <h2>8. Terceros</h2>
             <ul>
               <li>
                 <strong>Cuando salís a una oferta</strong> (BuscoJobs, Uruguay Concursa, la web de
@@ -293,25 +329,27 @@
           </section>
 
           <section id="menores">
-            <h2>8. Menores</h2>
+            <h2>9. Menores</h2>
             <p>
               JobIt está pensado para quien busca su primer empleo, así que lo usan personas
-              jóvenes. No pedimos nombre, documento, teléfono, correo ni ningún dato que identifique
-              a nadie, y por lo tanto tampoco los pedimos a un menor. Nada de lo que sale del
+              jóvenes. <strong>Buscar trabajo no pide ningún dato personal:</strong> ni nombre, ni
+              documento, ni teléfono, ni correo. Crear una cuenta para publicar pide un handle, un
+              nombre visible y una contraseña, y el email es opcional. Nada de lo que sale del
               navegador permite saber quién es ni qué edad tiene quien está buscando.
             </p>
           </section>
 
           <section id="derechos">
-            <h2>9. Tus derechos</h2>
+            <h2>10. Tus derechos</h2>
             <p>
               La ley 18.331 te da derecho a acceder a tus datos, rectificarlos, actualizarlos,
               incluirlos y suprimirlos. Acá eso se traduce de una forma bastante directa:
             </p>
             <ul>
               <li>
-                <strong>Acceso:</strong> todo lo tuyo está en tu navegador y lo ves en el panel de
-                perfil, incluido el JSON exacto de lo que se comparte.
+                <strong>Acceso:</strong> lo que vive en tu navegador lo ves en el panel de perfil,
+                incluido el JSON exacto de lo que se comparte. Lo de tu cuenta lo ves desde la misma
+                cuenta.
               </li>
               <li>
                 <strong>Rectificación:</strong> editás el perfil y las preferencias cuando quieras,
@@ -319,7 +357,8 @@
               </li>
               <li>
                 <strong>Supresión:</strong> el botón "Borrar todos mis datos de este navegador"
-                borra todo de una, sin pedirnos permiso ni esperar respuesta.
+                borra lo local de una. Y desde tu cuenta, <strong>"Borrar mi cuenta"</strong> la
+                elimina del servidor por completo, en el acto.
               </li>
             </ul>
             <p>
@@ -338,9 +377,13 @@
           </section>
 
           <section id="conservacion">
-            <h2>10. Cuánto se conserva cada cosa</h2>
+            <h2>11. Cuánto se conserva cada cosa</h2>
             <ul>
               <li><strong>Lo de tu navegador:</strong> hasta que vos lo borres.</li>
+              <li>
+                <strong>Lo de tu cuenta:</strong> hasta que borres la cuenta. Ahí se va todo, sin
+                copia de respaldo.
+              </li>
               <li>
                 <strong>Las filas anónimas de uso:</strong> se conservan mientras sirvan para
                 entender qué se busca y mejorar el catálogo. Al no tener identificador, no son datos
@@ -354,18 +397,18 @@
           </section>
 
           <section id="seguridad">
-            <h2>11. Seguridad</h2>
+            <h2>12. Seguridad</h2>
             <p>
               El sitio se sirve solo por HTTPS, con HSTS y una política de contenidos que impide
-              cargar scripts de afuera. El panel de administración no tiene tabla de usuarios ni
-              contraseñas en texto plano: guarda un hash argon2id de la clave y, de la sesión
-              abierta, solo el sha256 del token, así que una copia del archivo no alcanza para
-              hacerse pasar por nadie.
+              cargar scripts de afuera. Ni el panel ni las cuentas guardan contraseñas en texto
+              plano: las dos guardan un hash argon2id y, de cada sesión abierta, solo el sha256 del
+              token, así que una copia de la base no alcanza para hacerse pasar por nadie. El email
+              y el secreto del segundo paso van cifrados en reposo.
             </p>
           </section>
 
           <section id="cambios">
-            <h2>12. Cambios</h2>
+            <h2>13. Cambios</h2>
             <p>
               Si esta política cambia, la versión nueva queda publicada acá con su fecha arriba. Los
               cambios que afecten qué sale del navegador se avisan además dentro de la app.
@@ -373,7 +416,7 @@
           </section>
 
           <section id="contacto">
-            <h2>13. Contacto</h2>
+            <h2>14. Contacto</h2>
             <p>
               <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>. Escribinos también si
               encontrás algo en el sitio que no coincida con lo que dice este documento.

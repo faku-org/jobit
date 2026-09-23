@@ -6,7 +6,9 @@ encontrar el primer empleo: filtros por rubro, departamento y jornada, marca de
 
 Además guarda preferencias (modalidad presencial, remota o híbrida, nivel,
 jornada y rubros): las ofertas que coinciden quedan destacadas y se pueden
-mostrar solas con "Solo similares". Todo vive en el navegador, sin cuenta.
+mostrar solas con "Solo similares". Todo vive en el navegador: buscar trabajo no
+pide cuenta. Publicar servicios va a pedir una, y esa cuenta es lo único que se
+guarda en el servidor.
 
 Suma los llamados del Estado (Uruguay Concursa) en su propia pestaña, ordenados
 por fecha de cierre, y un perfil con lo que estudió la persona para marcar qué
@@ -71,6 +73,13 @@ termina donde termina la de verdad.
 | `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
 | `GET /api/admin/usage` | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión. |
 | `POST /api/ingest/jobs` | Recibe el `jobs.json` del worker corriendo en otra máquina. Pide token. |
+| `POST /api/auth/register` | Crea la cuenta y devuelve, una sola vez, los códigos de respaldo. |
+| `POST /api/auth/login` | Entra; si la cuenta tiene 2FA, pide el segundo paso en vez de abrir sesión. |
+| `POST /api/auth/totp` | El segundo paso: cierra el ingreso con el código de seis dígitos. |
+| `POST /api/auth/recover` | Entra con un código de respaldo. |
+| `POST /api/auth/logout` | Cierra la sesión y borra la cookie. |
+| `GET` / `PATCH` / `DELETE /api/me` | Quién soy, editar la cuenta y borrarla de verdad. |
+| `POST` / `DELETE /api/me/totp` | Activar y desactivar el segundo paso. |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -123,11 +132,14 @@ devolver. El atajo estable, sin negociación de User-Agent, es `GET /api/cli`
 con los mismos parámetros.
 
 Variables de entorno: `PORT` (3000), `HOST` (127.0.0.1), `JOBS_FILE` (ruta al
-JSON del worker), `DB_FILE` (SQLite de empresas y ofertas propias),
+JSON del worker), `DB_FILE` (SQLite de empresas, ofertas propias y cuentas),
 `STATS_FILE` y `EVENTS_FILE` (rutas de los `.jsonl`), `CORS_ORIGIN` (origen del
 dev server de Vite), `ADMIN_PASSWORD_HASH_FILE` (archivo con el hash del panel;
-sin él `/api/admin` responde 404) e `INGEST_TOKEN_FILE` (archivo con el token de
-ingesta; sin él `/api/ingest` responde 404).
+sin él `/api/admin` responde 404), `INGEST_TOKEN_FILE` (archivo con el token de
+ingesta; sin él `/api/ingest` responde 404) y `JOBIT_SECRET_KEY_FILE` (archivo
+con la clave de 32 bytes que cifra el email y el secreto TOTP de las cuentas;
+sin ella, el alta sin email sigue andando pero el email y el 2FA quedan
+apagados).
 
 ## Perfil y estadísticas
 
@@ -234,6 +246,31 @@ No hay JSON-LD `JobPosting` a propósito: las ofertas se enlazan al aviso
 original y no se republican, y marcarlas acá como si vivieran en JobIt es lo que
 Google penaliza en los agregadores.
 
+## Cuentas
+
+Para publicar servicios va a hacer falta una cuenta; buscar trabajo no. Es lo
+único del sistema que se guarda en el servidor, y se guarda lo mínimo: handle,
+nombre visible y hash de contraseña (argon2id). El email es opcional y solo
+sirve para recuperar la cuenta, el segundo paso por TOTP es opcional, y los dos
+van cifrados en reposo con una clave que vive en `JOBIT_SECRET_KEY_FILE`.
+
+El login es por `handle`, no por email, justamente para que el email pueda
+faltar. Quien no lo carga se lleva códigos de respaldo y se queda sin reset: los
+códigos se muestran una sola vez y en la base queda su sha256. Nada de IP, user
+agent, historial de inicios ni "último acceso desde"; las filas se estampan con
+el día y nunca con la hora, igual que las estadísticas.
+
+La sesión es una cookie `jobit_session` (`HttpOnly`, `SameSite=Lax`, alcance
+`/api`, 30 días con renovación) y en la base solo queda el sha256 del token. Es
+otra sesión que la del panel: una cookie de usuario no abre `/api/admin` y una
+del panel no abre `/api/me`. Probar contraseñas está limitado a diez intentos
+cada quince minutos por dirección. `DELETE /api/me` borra de verdad: usuario,
+sesiones, códigos y, cuando existan, los servicios publicados.
+
+Better Auth quedó descartado a propósito: exige email para todo usuario, guarda
+el token de sesión sin hashear y no cifra el secreto TOTP, las tres cosas que la
+Zero Data Policy evita.
+
 ## Panel de administración
 
 En `/admin`, con su propio bundle: quien entra a buscar trabajo no se baja el
@@ -250,10 +287,10 @@ sin identificador y con el día y nunca la hora, así que sigue sin haber nada p
 persona. Las búsquedas sin resultados son el único corte que dice qué se busca y
 el tablero no tiene.
 
-La credencial es un hash argon2id. No hay tabla de usuarios ni clave en texto
-plano en ningún lado, y sin hash configurado el panel queda apagado entero:
-`/api/admin` contesta 404, así que un despliegue sin configurar se queda sin
-admin en vez de con un admin abierto.
+La credencial es un hash argon2id. El panel no tiene tabla de usuarios propia ni
+clave en texto plano en ningún lado, y sin hash configurado el panel queda
+apagado entero: `/api/admin` contesta 404, así que un despliegue sin configurar
+se queda sin admin en vez de con un admin abierto.
 
 La configuración de la API va en **`api/.env`**, no en la raíz: la API arranca
 con `bun run --cwd api start`, así que Bun carga el `.env` de ese directorio y
