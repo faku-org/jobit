@@ -292,6 +292,8 @@ export function marketPageHtml(report: MarketReport): string {
 <table><tbody>${rows(report.categories.map((category) => ({ label: category.label, count: category.count })))}</tbody></table>
 <h2>Departamentos</h2>
 <table><tbody>${rows(report.departments.map((entry) => ({ label: entry.value, count: entry.count })))}</tbody></table>
+<h2>Habilidades más pedidas</h2>
+<table><tbody>${rows(report.skills.map((skill) => ({ label: skill.label, count: skill.count })))}</tbody></table>
 <p class="muted">Actualizado el ${dateLabel(report.scraped_at)}.</p>`;
 
   return layout(

@@ -106,9 +106,17 @@ cuenta como `onsite`.
 Las dos descargas del mercado salen del mismo informe y no piden nada: no hay
 parámetros, no hay sesión, y el archivo se llama `jobit-mercado-AAAA-MM-DD` con
 la fecha del scrape. El CSV apila las tablas (`total`, `frescura`, `fuente`,
-`puesto`, `rubro`, `departamento`, `modalidad`, `jornada` y `nivel`) bajo un
-encabezado común, con la columna `tabla` diciendo cuál es cada fila; el XLSX
-pone una pestaña por tabla y saca de cada una las columnas que no usa.
+`puesto`, `rubro`, `departamento`, `habilidad`, `modalidad`, `jornada` y
+`nivel`) bajo un encabezado común, con la columna `tabla` diciendo cuál es cada
+fila; el XLSX pone una pestaña por tabla y saca de cada una las columnas que no
+usa.
+
+El corte de `habilidad` cuenta las que más se nombran en títulos, descripciones
+y requisitos, contra un catálogo controlado (`worker/src/skills.ts`, el mismo
+patrón que `roles.ts`): "Excel avanzado" y "Excel intermedio" cuentan igual, y
+una habilidad mencionada en menos de cinco avisos no entra, porque una es
+anécdota. Cada habilidad lleva la mediana de lo que pagan los avisos que la
+piden.
 
 ```bash
 curl -s http://localhost:3000/api/market.csv | head -3

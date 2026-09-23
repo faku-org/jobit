@@ -1,4 +1,5 @@
 import { type Role, roleOf } from "@jobit/worker/roles";
+import { skillsOf } from "@jobit/worker/skills";
 import type { Job, JobType, Level, WorkMode } from "./types.ts";
 
 const DAY_MS = 86_400_000;
@@ -53,6 +54,13 @@ export interface Breakdown {
   count: number;
 }
 
+export interface SkillStat {
+  slug: string;
+  label: string;
+  count: number;
+  salary: SalarySummary | null;
+}
+
 /**
  * What the whole board looks like right now, with no reference to any person:
  * this is the one screen in the app that is about the market and not about you.
@@ -71,6 +79,7 @@ export interface MarketReport {
   roles: RoleStat[];
   categories: CategoryStat[];
   departments: DepartmentStat[];
+  skills: SkillStat[];
   levels: Breakdown[];
   modes: Breakdown[];
   jobTypes: Breakdown[];
@@ -194,6 +203,36 @@ function departmentStats(jobs: Job[]): DepartmentStat[] {
     .sort((a, b) => b.count - a.count);
 }
 
+/** Una habilidad mencionada en una sola oferta es anécdota, no demanda. */
+const MIN_SKILL_OFFERS = 5;
+
+/**
+ * Las habilidades que más se piden. Se mira título, descripción y requisitos:
+ * una empresa puede nombrar "Excel" en cualquiera de los tres, y todas cuentan.
+ */
+function skillStats(jobs: Job[]): SkillStat[] {
+  const groups = new Map<string, { label: string; jobs: Job[] }>();
+
+  for (const job of jobs) {
+    const text = `${job.title} ${job.description} ${job.requirements ?? ""}`;
+    for (const skill of skillsOf(text)) {
+      const entry = groups.get(skill.slug);
+      if (entry) entry.jobs.push(job);
+      else groups.set(skill.slug, { label: skill.label, jobs: [job] });
+    }
+  }
+
+  return [...groups.entries()]
+    .map(([slug, entry]) => ({
+      slug,
+      label: entry.label,
+      count: entry.jobs.length,
+      salary: salaryOf(entry.jobs),
+    }))
+    .filter((entry) => entry.count >= MIN_SKILL_OFFERS)
+    .sort((a, b) => b.count - a.count);
+}
+
 /**
  * Where somebody with no experience actually has a chance: rubros ranked by
  * the share of their offers that ask for none, not by how many they publish.
@@ -238,6 +277,7 @@ export function buildMarketReport(
     roles: roleStats(jobs),
     categories,
     departments: departmentStats(jobs),
+    skills: skillStats(jobs),
     levels: tally<Level>(jobs, (job) => job.level),
     modes: tally<WorkMode>(jobs, (job) => job.remote ?? "onsite"),
     jobTypes: tally<JobType>(jobs, (job) => job.job_type),

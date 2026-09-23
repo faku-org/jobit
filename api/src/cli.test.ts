@@ -76,6 +76,7 @@ describe("formatMarket", () => {
     ],
     categories: [{ value: "ventas", label: "Ventas y comercial", count: 800, noExperience: 200, salary }],
     departments: [{ value: "Montevideo", count: 700, salary }],
+    skills: [],
     levels: [],
     modes: [],
     jobTypes: [],

@@ -145,6 +145,15 @@ export function marketTables(report: MarketReport): MarketTable[] {
         salary: department.salary,
       })),
     },
+    {
+      name: "habilidad",
+      rows: report.skills.map((skill) => ({
+        clave: skill.slug,
+        etiqueta: skill.label,
+        ofertas: skill.count,
+        salary: skill.salary,
+      })),
+    },
     { name: "modalidad", rows: breakdown(report.modes, WORK_MODE_LABEL) },
     { name: "jornada", rows: breakdown(report.jobTypes, JOB_TYPE_LABEL) },
     { name: "nivel", rows: breakdown(report.levels, LEVEL_LABEL) },

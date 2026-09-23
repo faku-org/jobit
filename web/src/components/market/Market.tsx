@@ -7,6 +7,7 @@ import {
   Search,
   Sparkles,
   TrendingUp,
+  Wrench,
   X,
 } from "lucide-react";
 import { m } from "motion/react";
@@ -39,11 +40,12 @@ interface MarketProps {
   onSearch: (term: string) => void;
 }
 
-type SectionId = "resumen" | "puestos" | "sueldos" | "zonas" | "modalidad";
+type SectionId = "resumen" | "puestos" | "habilidades" | "sueldos" | "zonas" | "modalidad";
 
 const SECTIONS: { id: SectionId; label: string; icon: typeof Briefcase }[] = [
   { id: "resumen", label: "Resumen", icon: Gauge },
   { id: "puestos", label: "Puestos", icon: Briefcase },
+  { id: "habilidades", label: "Habilidades", icon: Wrench },
   { id: "sueldos", label: "Sueldos", icon: Banknote },
   { id: "zonas", label: "Zonas", icon: MapPin },
   { id: "modalidad", label: "Cómo se trabaja", icon: TrendingUp },
@@ -193,6 +195,7 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
   const [kinds, setKinds] = useState<Record<SectionId, ChartKind>>({
     resumen: "bars",
     puestos: "bars",
+    habilidades: "bars",
     sueldos: "bars",
     zonas: "bars",
     modalidad: "donut",
@@ -220,6 +223,20 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
         onClick: () => onSearch(role.label.split(" / ")[0] ?? role.label),
       })),
     [report.roles, onSearch],
+  );
+
+  const skillRows = useMemo<ChartRow[]>(
+    () =>
+      report.skills.map((skill) => ({
+        key: skill.slug,
+        label: skill.label,
+        value: skill.count,
+        note: skill.salary
+          ? `${skill.count} · ${formatPesos(skill.salary.median)}`
+          : String(skill.count),
+        onClick: () => onSearch(skill.label),
+      })),
+    [report.skills, onSearch],
   );
 
   const categoryRows = useMemo<ChartRow[]>(
@@ -281,7 +298,11 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
     [report.entryFriendly, onExploreCategory],
   );
 
-  const searchable = section === "puestos" || section === "zonas" || section === "sueldos";
+  const searchable =
+    section === "puestos" ||
+    section === "habilidades" ||
+    section === "zonas" ||
+    section === "sueldos";
 
   return (
     <div className="space-y-4">
@@ -421,6 +442,26 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
               empty="Ningún puesto coincide con ese filtro."
               kind={kinds.puestos}
               rows={filter(roleRows).slice(0, kinds.puestos === "donut" ? 10 : 30)}
+            />
+          </Panel>
+        </Section>
+
+        <Section current={section} id="habilidades" seen={seen}>
+          <Panel
+            aside={
+              <ChartSwitch
+                kind={kinds.habilidades}
+                options={["bars", "donut", "table"]}
+                onChange={setKindOf("habilidades")}
+              />
+            }
+            hint="Las habilidades que más se nombran en títulos y descripciones, contadas contra un catálogo para que 'Excel avanzado' y 'Excel intermedio' cuenten igual. Donde hay un monto es la mediana de lo que pagan los avisos que la piden."
+            title="Habilidades más pedidas"
+          >
+            <Chart
+              empty="Ninguna habilidad coincide con ese filtro."
+              kind={kinds.habilidades}
+              rows={filter(skillRows).slice(0, kinds.habilidades === "donut" ? 10 : 30)}
             />
           </Panel>
         </Section>
