@@ -16,10 +16,11 @@ jobs:
       # y el cache de detalles viven ahí, fuera del rsync. El cron lo hace
       # como `jobit`; el runner no puede escribir ese jobs.json (EACCES).
       #
-      # Desde acá solo se refresca Uruguay Concursa: BuscoJobs contesta 403 a
-      # la IP del VPS. Lo suyo entra por POST /api/ingest/jobs, desde una
-      # máquina que no esté bloqueada, con `bun run scrape:push`. Mientras
-      # tanto keep.ts conserva lo de la última subida en vez de borrarlo.
+      # La agenda normal es deploy/jobit-scrape.timer, cada seis horas; esto es
+      # el disparo manual. El scrapeo corre acá y sale por el egress de la PC
+      # (JOBIT_SCRAPE_PROXY en worker/.env), porque BuscoJobs contesta 403 a la
+      # IP del VPS. Si el egress no está, keep.ts conserva lo último suyo en
+      # vez de escribir cero.
       - name: Scrape into /srv/jobit
         working-directory: /srv/jobit
         run: sudo -u jobit env PATH=/opt/bun:$PATH /opt/bun/bun run scrape

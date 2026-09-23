@@ -3,6 +3,26 @@
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
+/**
+ * Salida por proxy.
+ *
+ * El VPS tiene IP de datacenter y BuscoJobs le contesta 403, así que el scrapeo
+ * que corre ahí sale por el egress de una máquina con IP limpia
+ * (`worker/src/egress.ts`, corriendo en la PC). Si no hay proxy, va directo: en
+ * desarrollo y en la propia máquina de casa no hace falta.
+ *
+ * El valor es una URL `http://[usuario:clave@]host:puerto`: Bun la acepta tal
+ * cual, así que un proxy residencial pago es cambiar esta variable y nada más.
+ */
+const PROXY = (process.env.JOBIT_SCRAPE_PROXY ?? "").trim();
+
+/** Bun extiende RequestInit con `proxy`; el tipo base no lo conoce. */
+const proxyOption = (): { proxy?: string } => (PROXY ? { proxy: PROXY } : {});
+
+/** Para el log, sin la credencial si el proxy la lleva en la URL. */
+export const proxyDescription = (): string =>
+  PROXY ? `proxy ${PROXY.replace(/\/\/[^@/]*@/, "//***@")}` : "directo";
+
 interface RequestOptions {
   retries?: number;
   timeoutMs?: number;
@@ -43,6 +63,7 @@ async function request(
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(timeoutMs),
+        ...proxyOption(),
       });
 
       if (response.status === 404) return null;

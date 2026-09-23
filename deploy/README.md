@@ -103,11 +103,67 @@ La API sirve lo que el worker haya dejado en `worker/output/jobs.json`, y ese
 archivo queda fuera del deploy a propósito. La API relee el archivo cuando le
 cambia el mtime, así que no hay que reiniciarla después de escribirlo.
 
-Ese archivo llega por dos caminos, y los dos conviven:
+### Desde dónde sale el scrapeo
 
-**Desde afuera, que es el que trae BuscoJobs.** BuscoJobs contesta 403 a la IP
-del VPS, así que el scrapeo corre en una máquina común y sube el resultado a
-`POST /api/ingest/jobs`. Del lado del servidor la credencial es un token en un
+BuscoJobs contesta 403 a la IP del VPS (es IP de datacenter). Su sitio es
+Next.js detrás de Istio y el scrapeo pega a `/_next/data/*.json`, que es JSON
+plano: desde una IP limpia entra sin navegador. Así que **el scrapeo corre en el
+VPS y sale a internet por la PC**, que presta su IP con un proxy mínimo
+(`worker/src/egress.ts`, solo CONNECT).
+
+Dos piezas:
+
+**En la PC**, el egress:
+
+```bash
+EGRESS_HOST=<ip-del-tailnet-de-la-pc> EGRESS_PORT=8787 EGRESS_TOKEN=<clave> \
+  bun run egress
+```
+
+Se ata al tailnet para que el VPS lo alcance sin abrir nada a internet, y
+conviene dejarlo arrancando solo (una tarea programada de Windows, o el servicio
+que uses). Si la PC se apaga no se rompe nada: la corrida siguiente igual
+refresca Uruguay Concursa y BuscoJobs conserva lo último que trajo
+(`worker/src/keep.ts`).
+
+**En el VPS**, la salida apunta al egress. Va en `worker/.env`, que es el que
+Bun carga cuando el service corre con `WorkingDirectory=/srv/jobit/worker`:
+
+```
+JOBIT_SCRAPE_PROXY=http://:<clave>@<ip-del-tailnet-de-la-pc>:8787
+JOBIT_HEARTBEAT_URL=https://hc-ping.com/...
+```
+
+`JOBIT_HEARTBEAT_URL` se pinguea **solo cuando BuscoJobs vino fresco**: es el
+canario de que el egress sigue vivo. Si la señal deja de llegar, el monitor
+avisa. Si algún día se contrata un proxy residencial pago, `JOBIT_SCRAPE_PROXY`
+pasa a apuntar ahí y la PC deja de hacer falta: es cambiar una variable.
+
+### La agenda
+
+`deploy/jobit-scrape.timer` corre `jobit-scrape.service` cada seis horas
+(00:15, 06:15, 12:15 y 18:15) y recupera la corrida si el VPS estuvo apagado.
+systemd no solapa dos corridas del mismo unit, así que no hace falta un lock.
+
+```bash
+sudo cp deploy/jobit-scrape.service deploy/jobit-scrape.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now jobit-scrape.timer
+systemctl list-timers jobit-scrape.timer
+journalctl -u jobit-scrape.service -n 50
+```
+
+Con cron sería la misma corrida, con el `cd` a `worker/` para que Bun cargue
+`worker/.env`:
+
+```
+15 */6 * * * cd /srv/jobit/worker && PATH=/opt/bun:$PATH /opt/bun/bun run src/index.ts
+```
+
+### La ingesta sigue existiendo
+
+`POST /api/ingest/jobs` queda para corridas sueltas desde otra máquina
+(`bun run scrape:push`). Del lado del servidor la credencial es un token en un
 archivo, por la misma razón que el hash del panel:
 
 ```bash
@@ -120,20 +176,11 @@ Sin ese archivo la ruta contesta 404, igual que `/api/admin`. Ese mismo valor va
 en el `worker/.env` de la máquina que scrapea, junto con la URL; del otro lado
 el comando es `bun run scrape:push`.
 
-Dos cosas del servicio existen por esto: `ReadWritePaths` incluye
+Dos cosas del servicio de la API existen por esto: `ReadWritePaths` incluye
 `/srv/jobit/worker/output`, porque con `ProtectSystem=strict` la API no podría
 escribir ahí, y `MemoryMax` subió a 768M, que es el pico de descomprimir y
 parsear cinco megas de JSON. Y en nginx, `/api/ingest/jobs` tiene su propio
 `location` con `client_max_body_size 4m`: el bloque general corta en 16k.
-
-**Por cron en el servidor, que refresca Uruguay Concursa.** Sigue sirviendo:
-esa fuente no bloquea nada, y cuando BuscoJobs vuelve vacía el worker conserva
-lo que había dejado la última subida en vez de escribir cero
-(`worker/src/keep.ts`).
-
-```
-15 */6 * * * cd /srv/jobit && PATH=/opt/bun:$PATH /opt/bun/bun run scrape
-```
 
 ## Comprobar
 

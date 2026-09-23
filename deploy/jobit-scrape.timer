@@ -1,0 +1,16 @@
+[Unit]
+Description=JobIt scrape cada 6 horas
+Documentation=https://github.com/faku-org/jobit
+
+[Timer]
+# 00:15, 06:15, 12:15 y 18:15, hora del servidor.
+OnCalendar=*-*-* 00,06,12,18:15:00
+# Si el VPS estuvo apagado o la corrida se atrasó, la recupera al volver en vez
+# de esperar la próxima ventana.
+Persistent=true
+# Un poco de dispersión para no pegarle a la fuente siempre al mismo segundo.
+RandomizedDelaySec=120
+Unit=jobit-scrape.service
+
+[Install]
+WantedBy=timers.target

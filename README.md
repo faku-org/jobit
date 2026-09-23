@@ -36,7 +36,8 @@ bun run scrape
 ```
 
 Si la API que tiene que quedarse con esas ofertas corre en otra máquina, el
-mismo comando y la subida van juntos (ver "Scrapeo desde afuera"):
+mismo comando y la subida van juntos (ver "Scrapeo, agenda y salida por
+proxy"):
 
 ```bash
 bun run scrape:push
@@ -355,7 +356,7 @@ algo que la app edita.
 
 | Fuente | Estado |
 |---|---|
-| BuscoJobs Uruguay | Activa, pero no desde el servidor: contesta 403 a la IP del VPS. Se scrapea desde afuera y se sube (ver abajo). |
+| BuscoJobs Uruguay | Activa. El worker sale por el egress de la PC para que no le conteste 403 (ver abajo). |
 | Uruguay Concursa | Activa. Llamados del Estado abiertos y próximos, con fecha de cierre. |
 | Gallito | Pendiente. El sitio responde 403 detrás de Cloudflare y necesita un navegador headless. |
 
@@ -368,21 +369,41 @@ Si una fuente vuelve vacía, el worker conserva lo que esa misma fuente había
 dejado en la corrida anterior (`worker/src/keep.ts`) en vez de escribir cero.
 Un 403 no puede vaciar el tablero.
 
-## Scrapeo desde afuera
+## Scrapeo, agenda y salida por proxy
 
-BuscoJobs bloquea la IP del VPS. El scrapeo corre entonces en una máquina común
-y el resultado viaja por HTTP:
+El scrapeo corre en el VPS cada seis horas (`deploy/jobit-scrape.timer`). Pero
+BuscoJobs le contesta 403 a la IP del VPS, que es de datacenter, así que el
+worker sale a internet por el egress de la PC: una máquina con IP limpia presta
+su salida con `bun run egress` (`worker/src/egress.ts`, un proxy CONNECT mínimo,
+sin dependencias).
+
+En la PC:
 
 ```bash
-bun run scrape:push
+EGRESS_HOST=<ip-del-tailnet> EGRESS_PORT=8787 EGRESS_TOKEN=<clave> bun run egress
 ```
 
-Es `bun run scrape` seguido de `bun run push`, que sube `worker/output/jobs.json`
-a `POST /api/ingest/jobs`. La API lo valida, lo escribe al lado y renombra, y
-como relee por mtime queda servido sin reiniciar nada.
+En el VPS, en `worker/.env` (que es el que Bun carga cuando corre el service):
+
+```
+JOBIT_SCRAPE_PROXY=http://:<clave>@<ip-del-tailnet>:8787
+JOBIT_HEARTBEAT_URL=https://hc-ping.com/...
+```
+
+`JOBIT_HEARTBEAT_URL` se pinguea **solo cuando BuscoJobs vino fresco**: es el
+canario de que el egress sigue vivo, y si la señal deja de llegar un monitor
+avisa. Si algún día se contrata un proxy residencial pago, `JOBIT_SCRAPE_PROXY`
+apunta ahí y la PC deja de hacer falta: es cambiar una variable.
+
+### Cargar las ofertas a mano
+
+Si preferís no depender de la agenda, `bun run scrape:push` hace el scrapeo y lo
+sube por HTTP. Es `bun run scrape` seguido de `bun run push`, que manda
+`worker/output/jobs.json` a `POST /api/ingest/jobs`. La API lo valida, lo escribe
+al lado y renombra, y como relee por mtime queda servido sin reiniciar nada.
 
 La configuración de la máquina que scrapea va en **`worker/.env`**
-(`worker/.env.example` tiene las dos variables):
+(`worker/.env.example` tiene todas las variables):
 
 ```
 JOBIT_INGEST_URL=https://jobs.wefaber.net/api/ingest/jobs
@@ -406,9 +427,6 @@ gzip -c worker/output/jobs.json | curl -sS -X POST --data-binary @- \
   -H "content-type: application/octet-stream" \
   https://jobs.wefaber.net/api/ingest/jobs
 ```
-
-El cron del servidor puede seguir corriendo: Uruguay Concursa no bloquea nada, y
-BuscoJobs queda conservado de la última subida.
 
 ## Licencia
 

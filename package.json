@@ -19,6 +19,7 @@
     "fmt": "oxfmt .",
     "scrape": "bun run --cwd worker scrape",
     "push": "bun run --cwd worker push",
+    "egress": "bun run --cwd worker egress",
     "scrape:push": "bun run --cwd worker scrape && bun run --cwd worker push"
   },
   "devDependencies": {
