@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { loadFeed, lookupJob } from "./feed.ts";
 import { buildMarketReport } from "./market.ts";
 import {
+  type SitemapEntry,
   categoryPageHtml,
   departmentPageHtml,
   htmlResponse,
@@ -12,7 +13,10 @@ import {
   marketPageHtml,
   notFoundPage,
   rolePageHtml,
+  servicePageHtml,
+  sitemapXml,
 } from "./pages.ts";
+import * as services from "./services.ts";
 
 /**
  * Las direcciones con contenido para un buscador, servidas por la API y puestas
@@ -59,4 +63,37 @@ export const site = new Elysia()
     return jobs.length > 0
       ? htmlResponse(rolePageHtml(params.slug, jobs))
       : htmlResponse(notFoundPage(), 404);
+  })
+  /**
+   * La ficha de un servicio. El servicio vive acá, así que su página lleva
+   * `Service` y `ProfilePage` en JSON-LD: marcar lo propio es lo que Google
+   * premia, al revés que las ofertas, que son de terceros.
+   */
+  .get("/servicios/:slug", ({ params }) => {
+    const service = services.bySlug(params.slug);
+    return service && service.status === "published"
+      ? htmlResponse(servicePageHtml(service))
+      : htmlResponse(notFoundPage(), 404);
+  })
+  /**
+   * El sitemap se arma con lo que hay hoy: las direcciones fijas y una entrada
+   * por servicio publicado. Es lo que el estático no podía hacer.
+   */
+  .get("/sitemap.xml", () => {
+    const entries: SitemapEntry[] = [
+      { path: "/", changefreq: "daily", priority: 1 },
+      { path: "/mercado", changefreq: "daily", priority: 0.8 },
+      { path: "/terminos", changefreq: "yearly", priority: 0.2 },
+      { path: "/privacidad", changefreq: "yearly", priority: 0.2 },
+      ...services.list({ status: "published" }).map((service) => ({
+        path: `/servicios/${encodeURIComponent(service.slug)}`,
+        lastmod: service.published_at || service.updated_at,
+        changefreq: "weekly" as const,
+        priority: 0.6,
+      })),
+    ];
+
+    return new Response(sitemapXml(entries), {
+      headers: { "content-type": "application/xml; charset=utf-8" },
+    });
   });

@@ -237,9 +237,11 @@ nada de lo guardado en el navegador de quien la ve.
 ## Indexado y previsualizaciones
 
 El dominio de producción es `https://jobs.wefaber.net`. Está escrito a mano en
-cuatro lugares, así que un cambio de dominio los toca a los cuatro:
-`web/index.html` (canonical, `og:url`, `og:image`), `web/public/robots.txt` y
-`web/public/sitemap.xml`.
+tres lugares, así que un cambio de dominio los toca a los tres:
+`web/index.html` (canonical, `og:url`, `og:image`) y `web/public/robots.txt`.
+El sitemap ya no es un archivo: lo arma la API (`/sitemap.xml`) con las
+direcciones fijas y una entrada por servicio publicado, así que nunca queda
+viejo.
 
 La cáscara que se sirve trae el título, la descripción, el canonical, las
 etiquetas Open Graph y Twitter, el manifiesto y un JSON-LD con `WebSite` y
@@ -261,6 +263,8 @@ servida por la API y puesta delante de la app por nginx (`api/src/site.ts`):
 | `/rubro/<slug>` | Las ofertas de un rubro. |
 | `/departamento/<nombre>` | Las ofertas de un departamento. |
 | `/puesto/<slug>` | Las ofertas de un puesto. |
+| `/servicios/<slug>` | La ficha de un servicio publicado, con `Service` y `ProfilePage` en JSON-LD. |
+| `/sitemap.xml` | El sitemap, armado al vuelo con las fichas publicadas. |
 
 Son documentos HTML sueltos, sin React: el mismo patrón que `/terminos`. Un
 scraper los lee enteros, así que un enlace compartido ya no previsualiza como la
@@ -275,6 +279,11 @@ acá de verdad: `source` igual a `jobit` y sin enlace de postulación externo
 original, porque marcarlas como propias es lo que Google penaliza en los
 agregadores. El canonical de cada página apunta a sí misma; el `?embed=` se marca
 `noindex` en tiempo de ejecución.
+
+La ficha de un **servicio** es el caso contrario: el servicio vive acá, así que
+`/servicios/<slug>` sí lleva marcado, `Service` y `ProfilePage`, con quien lo
+ofrece como `Person`. El `AggregateRating` entra solo con dos votos o más: con
+cero o con uno solo es justamente lo que se penaliza.
 
 ## Cuentas
 

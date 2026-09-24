@@ -3,7 +3,10 @@ import { Elysia, t } from "elysia";
 import { account } from "./account.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
+import { catalog } from "./catalog.ts";
 import { ingest, ingestEnabled } from "./ingest.ts";
+import { publish } from "./publish.ts";
+import { ratings } from "./ratings.ts";
 import { marketCsv, marketSheets } from "./export.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
@@ -293,6 +296,9 @@ export const app = new Elysia()
   .use(site)
   .use(admin)
   .use(account)
+  .use(publish)
+  .use(ratings)
+  .use(catalog)
   .use(ingest)
   .get(
     "/api/jobs",

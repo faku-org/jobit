@@ -8,8 +8,11 @@ import {
   jobsByCategory,
   marketPageHtml,
   notFoundPage,
+  serviceJsonLd,
+  servicePageHtml,
 } from "./pages.ts";
 import type { JobsFile } from "./types.ts";
+import type { Service } from "./services.ts";
 import { buildMarketReport } from "./market.ts";
 
 process.env.PUBLIC_ORIGIN = "https://jobs.test";
@@ -41,6 +44,72 @@ const job = (overrides: Partial<Job> = {}): Job => ({
   apply_url: "",
   duplicates: [],
   ...overrides,
+});
+
+const service = (overrides: Partial<Service> = {}): Service => ({
+  id: "svc-1",
+  user_id: "user-1",
+  title: "Electricista a domicilio",
+  slug: "electricista-a-domicilio",
+  summary: "Tableros, tomas y luces",
+  description: "Instalaciones en casas y locales.",
+  category: "oficios",
+  department: "Canelones",
+  city: "Las Piedras",
+  remote: "onsite",
+  fixed_price: false,
+  work_style: "individual",
+  experience_years: 8,
+  availability_note: "",
+  response_time: "48-horas",
+  status: "published",
+  rating_avg: 0,
+  rating_count: 0,
+  created_at: "2026-08-01",
+  updated_at: "2026-09-01",
+  published_at: "2026-08-02",
+  skills: ["Tableros", "Domótica"],
+  prices: [{ kind: "base", label: "Hora", amount: 1200, currency: "UYU", unit: "hora", notes: "" }],
+  hours: [],
+  owner_handle: "juana",
+  owner_name: "Juana Pérez",
+  ...overrides,
+});
+
+describe("serviceJsonLd", () => {
+  test("marca el servicio y el perfil de quien está atrás", () => {
+    const blocks = serviceJsonLd(service());
+    const marked = blocks[0]!;
+    const profile = blocks[1]!;
+    expect(marked["@type"]).toBe("Service");
+    expect(profile["@type"]).toBe("ProfilePage");
+    expect(marked.provider).toMatchObject({ name: "Juana Pérez", alternateName: "juana" });
+    expect(marked.offers).toMatchObject({ price: 1200, priceCurrency: "UYU" });
+  });
+
+  test("no marca AggregateRating con cero ni con un voto", () => {
+    expect(serviceJsonLd(service({ rating_count: 0 }))[0]!.aggregateRating).toBeUndefined();
+    expect(
+      serviceJsonLd(service({ rating_count: 1, rating_avg: 5 }))[0]!.aggregateRating,
+    ).toBeUndefined();
+  });
+
+  test("con dos votos reales sí", () => {
+    expect(
+      serviceJsonLd(service({ rating_count: 2, rating_avg: 4.5 }))[0]!.aggregateRating,
+    ).toMatchObject({ ratingValue: 4.5, ratingCount: 2 });
+  });
+});
+
+describe("servicePageHtml", () => {
+  test("trae el contenido, el canonical y dice que no hay notas", () => {
+    const html = servicePageHtml(service());
+    expect(html).toContain("<h1>Electricista a domicilio</h1>");
+    expect(html).toContain(
+      'rel="canonical" href="https://jobs.test/servicios/electricista-a-domicilio"',
+    );
+    expect(html).toContain("Todavía sin calificaciones");
+  });
 });
 
 describe("escapeHtml", () => {

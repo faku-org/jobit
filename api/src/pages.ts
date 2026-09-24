@@ -2,6 +2,7 @@ import { CATEGORIES, categoryLabel } from "@jobit/worker/categories";
 import { ROLES, roleOf } from "@jobit/worker/roles";
 import { type MarketReport, buildMarketReport } from "./market.ts";
 import { loadFeed, lookupJob } from "./feed.ts";
+import type { Service } from "./services.ts";
 import type { Job, JobsFile } from "./types.ts";
 
 /**
@@ -61,15 +62,22 @@ export interface PageMeta {
   title: string;
   description: string;
   path: string;
-  jsonLd?: Record<string, unknown> | null;
+  /** Uno o varios bloques JSON-LD: una ficha puede marcar el servicio y, con
+   * el mismo proveedor, quién está atrás. */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
 }
 
 export function layout(meta: PageMeta, body: string): string {
   const origin = publicOrigin();
   const url = `${origin}${meta.path}`;
-  const jsonLd = meta.jsonLd
-    ? `<script type="application/ld+json">${JSON.stringify(meta.jsonLd)}</script>`
-    : "";
+  const blocks = meta.jsonLd
+    ? Array.isArray(meta.jsonLd)
+      ? meta.jsonLd
+      : [meta.jsonLd]
+    : [];
+  const jsonLd = blocks
+    .map((block) => `<script type="application/ld+json">${JSON.stringify(block)}</script>`)
+    .join("");
 
   return `<!doctype html>
 <html lang="es-UY">
@@ -247,6 +255,206 @@ ${job.requirements ? `<h2>Requisitos</h2>${paragraphs(job.requirements)}` : ""}
 <p class="muted">JobIt reúne avisos de portales uruguayos y llamados del Estado, y siempre enlaza al aviso original.</p>`;
 
   return layout(meta, body);
+}
+
+/* --- Servicios ------------------------------------------------------------- */
+
+const PRICE_UNIT_TEXT: Record<string, string> = {
+  hora: "por hora",
+  jornada: "por jornada",
+  semana: "por semana",
+  mes: "por mes",
+  proyecto: "por proyecto",
+  unidad: "por unidad",
+};
+
+const MODE_LABEL: Record<string, string> = {
+  onsite: "Presencial",
+  remote: "Remoto",
+  hybrid: "Híbrido",
+};
+
+const WEEKDAY_LABEL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+const serviceKind = (service: Service): string =>
+  [categoryLabel(service.category), MODE_LABEL[service.remote] ?? "", service.department]
+    .filter(Boolean)
+    .join(" · ");
+
+export const serviceLocation = (service: Service): string =>
+  [service.city, service.department].filter(Boolean).join(", ") || "Uruguay";
+
+const formatAmount = (amount: number): string => new Intl.NumberFormat("es-UY").format(amount);
+
+const priceText = (price: Service["prices"][number]): string => {
+  const unit = price.unit ? ` ${PRICE_UNIT_TEXT[price.unit] ?? `por ${price.unit}`}` : "";
+  return `${formatAmount(price.amount)} ${price.currency}${unit}`;
+};
+
+/**
+ * El `Service` vive acá, así que marcarlo es legítimo —al contrario de las
+ * ofertas, que son de terceros—. `AggregateRating` solo entra con votos de
+ * verdad: marcarlo con cero, o con uno solo, es lo que Google castiga.
+ */
+export function serviceJsonLd(service: Service): Record<string, unknown>[] {
+  const origin = publicOrigin();
+  const url = `${origin}/servicios/${encodeURIComponent(service.slug)}`;
+  const provider: Record<string, unknown> = {
+    "@type": "Person",
+    name: service.owner_name,
+    alternateName: service.owner_handle,
+    url,
+  };
+
+  const base = service.prices.filter((price) => price.kind === "base");
+  const listed = base.length > 0 ? base : service.prices;
+  const offers = listed.map((price) => ({
+    "@type": "Offer",
+    price: price.amount,
+    priceCurrency: price.currency,
+    ...(price.label ? { name: price.label } : {}),
+  }));
+
+  const where = [service.city, service.department].filter(Boolean).join(", ");
+  const marked: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: service.title,
+    description: service.description || service.summary || service.title,
+    url,
+    serviceType: categoryLabel(service.category),
+    provider,
+    ...(where ? { areaServed: { "@type": "Place", name: where } } : {}),
+    ...(offers.length > 0 ? { offers: offers.length === 1 ? offers[0] : offers } : {}),
+  };
+
+  if (service.rating_count >= 2) {
+    marked.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: service.rating_avg,
+      ratingCount: service.rating_count,
+      bestRating: 5,
+      worstRating: 1,
+    };
+  }
+
+  const profile: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url,
+    dateCreated: service.created_at.slice(0, 10),
+    dateModified: (service.published_at || service.updated_at).slice(0, 10),
+    mainEntity: provider,
+  };
+
+  return [marked, profile];
+}
+
+export function servicePageHtml(service: Service): string {
+  const origin = publicOrigin();
+  const where = serviceLocation(service);
+  const kind = serviceKind(service);
+  const base = service.prices.filter((price) => price.kind === "base");
+  const extras = service.prices.filter((price) => price.kind === "extra");
+  const rating =
+    service.rating_count > 0
+      ? `${service.rating_avg.toFixed(1)} de 5 · ${service.rating_count} ${
+          service.rating_count === 1 ? "calificación" : "calificaciones"
+        }`
+      : "Todavía sin calificaciones";
+  const description = (service.description || service.summary || service.title)
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 155);
+
+  const meta: PageMeta = {
+    title: `${service.title} · ${service.owner_name} · JobIt`,
+    description: `${service.title} en ${where}. ${description}`.slice(0, 300),
+    path: `/servicios/${encodeURIComponent(service.slug)}`,
+    jsonLd: serviceJsonLd(service),
+  };
+
+  const priceRows = (prices: Service["prices"]): string =>
+    prices
+      .map(
+        (price) =>
+          `<tr><td>${escapeHtml(price.label || "Precio")}${
+            price.notes ? `<br/><span class="muted">${escapeHtml(price.notes)}</span>` : ""
+          }</td><td>${escapeHtml(priceText(price))}</td></tr>`,
+      )
+      .join("");
+
+  const hours = service.hours
+    .slice()
+    .sort((a, b) => a.weekday - b.weekday || a.from.localeCompare(b.from))
+    .map(
+      (hour) =>
+        `<tr><td>${escapeHtml(WEEKDAY_LABEL[hour.weekday] ?? "")}</td><td>${escapeHtml(
+          `${hour.from} a ${hour.to}`,
+        )}</td></tr>`,
+    )
+    .join("");
+
+  const body = `
+<article>
+<h1>${escapeHtml(service.title)}</h1>
+<p class="muted">${escapeHtml(service.owner_name)} · ${escapeHtml(where)}</p>
+<div class="chips">${[kind, rating].filter(Boolean).map((label) => `<span class="chip">${escapeHtml(label)}</span>`).join("")}</div>
+${service.summary ? `<p>${escapeHtml(service.summary)}</p>` : ""}
+<a class="cta" href="${escapeHtml(origin)}/?service=${encodeURIComponent(service.slug)}">Ver en JobIt</a>
+${
+  base.length > 0
+    ? `<h2>Precios</h2><table><tbody>${priceRows(base)}</tbody></table>${
+        service.fixed_price
+          ? ""
+          : `<p class="muted">Los precios son de referencia: se terminan de acordar con la persona.</p>`
+      }`
+    : ""
+}
+${extras.length > 0 ? `<h2>Extras</h2><table><tbody>${priceRows(extras)}</tbody></table>` : ""}
+${
+  service.skills.length > 0
+    ? `<h2>Habilidades</h2><div class="chips">${service.skills
+        .map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`)
+        .join("")}</div>`
+    : ""
+}
+<h2>Qué hace</h2>
+${service.description ? paragraphs(service.description) : `<p>${escapeHtml(service.summary || service.title)}</p>`}
+${hours ? `<h2>Horarios</h2><table><tbody>${hours}</tbody></table>` : ""}
+${
+  service.availability_note
+    ? `<p class="muted">${escapeHtml(service.availability_note)}</p>`
+    : ""
+}
+</article>
+<p class="muted">JobIt no guarda datos de contacto de quien publica: el contacto se arregla adentro.</p>`;
+
+  return layout(meta, body);
+}
+
+export interface SitemapEntry {
+  path: string;
+  /** El día, no el momento. */
+  lastmod?: string;
+  changefreq?: "daily" | "weekly" | "monthly" | "yearly";
+  priority?: number;
+}
+
+export function sitemapXml(entries: SitemapEntry[]): string {
+  const origin = publicOrigin();
+  const urls = entries
+    .map((entry) => {
+      const lastmod = entry.lastmod
+        ? `<lastmod>${escapeHtml(entry.lastmod.slice(0, 10))}</lastmod>`
+        : "";
+      const changefreq = entry.changefreq ? `<changefreq>${entry.changefreq}</changefreq>` : "";
+      const priority = entry.priority !== undefined ? `<priority>${entry.priority}</priority>` : "";
+      return `<url><loc>${escapeHtml(`${origin}${entry.path}`)}</loc>${lastmod}${changefreq}${priority}</url>`;
+    })
+    .join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
 }
 
 export function listPageHtml(options: {
