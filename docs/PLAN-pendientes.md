@@ -129,6 +129,105 @@ export interface ContentSource {
 
 ---
 
+## Integración con LearnIt (transversal, no es un issue de esta lista)
+
+JobIt se va a conectar de forma directa con **LearnIt** (plataforma de
+aprendizaje, `faku-org/learnit`). Es una integración cohesiva que abarca mucho y
+que cambia el diseño de arriba, así que se deja planificada aparte.
+
+### Qué es LearnIt hoy (leído de su código)
+
+- Astro + Elysia + MongoDB, con auth por **Google OAuth** (sesión de usuario).
+- Modela **paths por materia** (taxonomía materias→hoja), módulos y temas,
+  **ejercicios generados**, respuestas con corrección semántica, progreso,
+  racha, vocabulario y **stats por tema** (`total`/`correct`): los "errores
+  comunes" salen de ahí.
+- Rutas que importan: `/api/path/current`, `/api/paths`, `/api/progress`,
+  `/api/stats/topic/complete`, `/api/exercises/*`, `/api/taxonomy/*`,
+  `/api/auth/me`.
+- Hoy **no** tiene catálogo público ni auth de servicio: solo la sesión Google.
+  Eso es lo primero que hay que agregar del lado de LearnIt.
+
+### Las dos direcciones
+
+- **LearnIt → JobIt (contenido).** Los cursos por área del issue 5 dejan de ser
+  cursos raspados de terceros: son de LearnIt, con su marca y su enlace. Es
+  contenido propio, así que `sponsored: false` y prima la atribución.
+- **JobIt → LearnIt (verificación / monetización).** Una empresa con plan pago
+  adjunta una prueba de LearnIt a su oferta; la persona la hace y el resultado es
+  verificable. El reclutador ve si la persona puede aplicar y, con permiso, su
+  path de aprendizaje y sus temas flojos.
+
+### Decisión de arquitectura: el mismo patrón que el MCP
+
+HTTP + URL por entorno + token de servicio. **Nunca base compartida**: JobIt y
+LearnIt son productos distintos (Bun/Elysia + SQLite vs Bun/Elysia + MongoDB) y
+acoplarlos por la base los ata para siempre. Un cliente `learnit` chico, con
+contrato versionado, es lo que deja crecer los dos por separado.
+
+### Contrato mínimo que hay que pedirle a LearnIt
+
+| Ruta propuesta | Para qué | Auth |
+|---|---|---|
+| `GET /api/catalog` | Materias/taxonomía y metadata de path. | Pública, read-only |
+| `POST /api/service/assessments` | Crear una prueba para un tema/nivel de una oferta. | Token de servicio |
+| `GET /api/service/assessments/:id` | Resultado: aprobado/no, puntaje, temas fallados agregados. | Token de servicio |
+| `GET /api/service/credentials/:token` | Credencial firmada y verificable que la persona comparte. | Pública |
+| `POST /api/service/link` | Vincular la cuenta de JobIt con la de LearnIt (código de un solo uso). | Sesión + código |
+
+### Privacidad: el punto que hay que decidir antes de escribir código
+
+JobIt hoy no guarda nada por persona (Zero Data Policy); mostrar el path de
+alguien a un reclutador lo cambia de raíz. Reglas mínimas:
+
+- **Consentimiento explícito, por postulación y revocable.** Nada se comparte por
+  defecto ni "por haber usado LearnIt".
+- El reclutador ve **solo lo que la persona eligió compartir**, para esa
+  postulación, con vencimiento.
+- JobIt guarda el **consentimiento y una credencial/foto**, no un caño vivo hacia
+  LearnIt.
+- Los "errores comunes" son lo más sensible: se comparten agregados y opt-in,
+  nunca crudos por defecto.
+
+### Fases
+
+0. **Costura (ya está).** El sistema de contenido acepta fuentes externas por el
+   adapter `json`. Cuando entre LearnIt se suman `provider` y `external_id` a
+   `ContentItem` para distinguir lo propio de lo traído.
+1. **Catálogo.** LearnIt expone `GET /api/catalog`; JobIt lo consume como fuente
+   `learnit` del sistema de contenido (issue 5). Sin PII.
+2. **Identidad y consentimiento.** Cuenta vinculada o credencial portátil;
+   definir exactamente qué se comparte y cómo se revoca.
+3. **Evaluación por oferta.** Prueba adjunta por la empresa + resultado
+   verificable. Se apoya en el panel de empresa (#15) y la capa de pagos (#33).
+4. **Recruiter ve path y errores comunes**, solo con consentimiento vigente.
+
+### Preguntas abiertas (de producto, para Faku)
+
+1. **Identidad:** ¿cuenta compartida entre JobIt y LearnIt, link OAuth explícito,
+   o credencial portátil que la persona genera y pega?
+2. **Consentimiento:** ¿qué ve el reclutador, por cuánto tiempo, y la persona
+   puede revocarlo después de postularse?
+3. **Contrato:** ¿LearnIt ya puede exponer catálogo y resultados, o hay que
+   construirlo? ¿Token de servicio o solo sesión de usuario?
+4. **La prueba:** ¿la define la empresa por oferta o es una evaluación estándar
+   de LearnIt? ¿Qué pasa con quien no la hace?
+5. **Marca:** los cursos de LearnIt, ¿se muestran como contenido de JobIt o con
+   marca LearnIt?
+
+### Impacto en lo ya planeado
+
+- **Issue 5** pasa a usar LearnIt como primera fuente de "cursos"; la ingesta de
+  terceros queda para documentación y práctica.
+- **Issue 3** puede generar sus preguntas/ejercicios por materia en LearnIt y
+  consumirlos igual que el resto del contenido.
+- **Issue 7** suma una señal propia: "temas que el mercado pide y la gente
+  falla", cruzando LearnIt con el tablero de ofertas.
+- **Épico nuevo** (fuera de los 5): evaluación + panel de empresa + planes. Es la
+  monetización y es más grande que cualquiera de estos issues.
+
+---
+
 ## Issue 4 — Ejercicios de práctica al confirmar una postulación
 
 **Rama:** `feat/ejercicios`. **Depende de:** sistema de contenido (versión mínima,
@@ -283,9 +382,12 @@ plataformas pueden pagar por aparecer, con `rel="sponsored"` desde el día uno.
   `documentacion`, `podcast`, `video`).
 - Sección **Recursos** en la web (pestaña propia, como Servicios/Mercado) y
   páginas SEO `/recursos/<rubro>`.
-- Ingesta desde URLs base (W3Schools, MDN, GeeksforGeeks, LeetCode, canales
-  locales) mediante adapters; el registro de fuentes declara rubro, licencia y
-  si es pago.
+- **LearnIt es la primera fuente de cursos.** Los cursos por rubro salen del
+  catálogo de LearnIt (ver "Integración con LearnIt"), con su marca y su enlace;
+  son contenido propio, no raspado, así que no llevan `sponsored`.
+- Ingesta de documentación y práctica desde URLs base (W3Schools, MDN,
+  GeeksforGeeks, LeetCode, canales locales) mediante adapters; el registro de
+  fuentes declara rubro, licencia y si es pago.
 - **Monetización:** `sponsored` marca el enlace; se agrega moderación para
   marcar/quitar el patrocinio desde el panel (reutiliza el patrón de
   `api/src/moderation.ts`). Nunca se mezcla un pago con el orden sin decirlo:
@@ -293,7 +395,8 @@ plataformas pueden pagar por aparecer, con `rel="sponsored"` desde el día uno.
 
 ### Tareas
 
-- [ ] Fuentes y seed de recursos por rubro (adapters).
+- [ ] Fuentes y seed de recursos por rubro (adapters), con LearnIt como fuente
+      de cursos.
 - [ ] `api/src/pages.ts` — `resourcesPageHtml`; ruta + sitemap.
 - [ ] `web/src/components/resources/` — sección con filtros por rubro y subtipo;
       `rel="sponsored"` cuando corresponde.
@@ -369,11 +472,17 @@ ya hay en Mercado; lo nuevo es el contexto externo y la proyección.
                  │  └── independientes/dueños de la pieza mínima
     pieza de contenido
         ├── 3 (FAQ por rubro)
-        ├── 5 (recursos)
+        ├── 5 (recursos) ···· LearnIt (catálogo de cursos)
         └── 7 (analista)  ← además: histórico de mercado
+
+    Integración con LearnIt (transversal)
+        ├── fase 1: catálogo → issue 5
+        ├── fase 2: identidad + consentimiento
+        └── fases 3-4: evaluación + panel de empresa (#15, #33) ← monetización
 ```
 
 1 y 4 se ejecutan en paralelo (ramas distintas, sin archivos en común salvo el
 `README.md`, que conviene tocar en el `CHANGELOG` de cada PR para no chocar).
 3, 5 y 7 se ejecutan después, cuando la pieza de contenido ya esté en `develop`,
-cada uno extendiendo `sources.ts` y `seed.ts` sin tocar el núcleo.
+cada uno extendiendo `sources.ts` y `seed.ts` sin tocar el núcleo. LearnIt entra
+a partir del issue 5 y crece por fuera de esta lista.
