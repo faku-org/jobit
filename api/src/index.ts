@@ -15,6 +15,7 @@ import { type Ranking, isEmptyRanking, isMix } from "./rank.ts";
 import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed, lookupJob } from "./feed.ts";
+import { employerFacets, employerProfile } from "./employers.ts";
 import { site } from "./site.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
@@ -133,6 +134,7 @@ const jobsQuerySchema = t.Object({
   category: t.Optional(t.String()),
   source: t.Optional(t.String()),
   department: t.Optional(t.String()),
+  company: t.Optional(t.String()),
   job_type: t.Optional(t.String()),
   hide_category: t.Optional(t.String()),
   hide_department: t.Optional(t.String()),
@@ -204,6 +206,7 @@ function jobsQueryFrom(query: JobsQueryParams): Result<JobsQuery> {
       categories: asSet(splitList(query.category)),
       sources: asSet(splitList(query.source)),
       departments: asSet(splitList(query.department)),
+      employers: asSet(splitList(query.company)),
       hiddenCategories: asSet(splitList(query.hide_category)),
       hiddenDepartments: asSet(splitList(query.hide_department)),
       jobTypes: jobTypes.ok ? jobTypes.value : undefined,
@@ -379,6 +382,38 @@ export const app = new Elysia()
       departments: departmentFacets(jobs),
       no_experience_count: jobs.filter((job) => job.no_experience).length,
     };
+  })
+  /**
+   * Las empresas del tablero, para el filtro. Con `rubro` devuelve solo las
+   * que publicaron en ese rubro; sin él, las primeras de todo el tablero.
+   */
+  .get(
+    "/api/empresas",
+    async ({ query, status }) => {
+      const feed = await loadFeed();
+      if (!feed.ok) return status(503, { error: unavailable(feed.error) });
+
+      const employers = employerFacets(
+        feed.value.jobs,
+        query.rubro?.trim() || undefined,
+        clamp(Math.floor(query.limit ?? 100), 1, 300),
+      );
+      return { employers };
+    },
+    {
+      query: t.Object({
+        rubro: t.Optional(t.String()),
+        limit: t.Optional(t.Numeric()),
+      }),
+    },
+  )
+  /** La ficha de una empresa: su foto y sus últimas ofertas. */
+  .get("/api/empresas/:slug", async ({ params, status }) => {
+    const feed = await loadFeed();
+    if (!feed.ok) return status(503, { error: unavailable(feed.error) });
+
+    const profile = employerProfile(feed.value.jobs, params.slug);
+    return profile ?? status(404, { error: "empresa no encontrada" });
   })
   /** The board as a whole, with nothing in it about the person asking. */
   .get("/api/market", async ({ status }) => {

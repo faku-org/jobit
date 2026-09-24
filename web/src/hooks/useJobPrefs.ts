@@ -35,6 +35,8 @@ interface Stored {
   sources: string[];
   /** Extra feeds somebody pointed the app at; read in the browser only. */
   feeds: CustomFeed[];
+  /** Empresas donde trabajó la persona, por slug; para "De mi experiencia". */
+  companies: string[];
   theme: Theme;
   profile: Profile;
   /** When the anonymous summary was last sent, so it goes at most once a day. */
@@ -52,6 +54,7 @@ const EMPTY: Stored = {
   applications: [],
   sources: [],
   feeds: [],
+  companies: [],
   theme: "system",
   profile: EMPTY_PROFILE,
   statsSentAt: "",
@@ -218,6 +221,7 @@ function parseStored(parsed: Record<string, unknown>): Stored {
     applications: readApplications(parsed.applications),
     sources: strings(parsed.sources),
     feeds: readFeeds(parsed.feeds),
+    companies: unique(parsed.companies),
     theme: oneOf(parsed.theme, THEMES, "system"),
     profile: withMigratedExperience(readProfile(parsed.profile), parsed.preferences),
     statsSentAt: text(parsed.statsSentAt),
@@ -247,6 +251,7 @@ export function readSynced(value: unknown): SyncedState {
     applications: stored.applications,
     sources: stored.sources,
     feeds: stored.feeds,
+    companies: stored.companies,
     profile: stored.profile,
   };
 }
@@ -262,6 +267,8 @@ export interface JobPrefs {
   appliedIds: Set<string>;
   sources: string[];
   feeds: CustomFeed[];
+  /** Empresas donde trabajó la persona, por slug. */
+  companies: string[];
   theme: Theme;
   profile: Profile;
   statsSentAt: string;
@@ -275,6 +282,7 @@ export interface JobPrefs {
   setPreferences: (preferences: Preferences) => void;
   setSources: (sources: string[]) => void;
   setFeeds: (feeds: CustomFeed[]) => void;
+  setCompanies: (companies: string[]) => void;
   setTheme: (theme: Theme) => void;
   setProfile: (profile: Profile) => void;
   /** Saves what the onboarding collected in one write, so the list is not
@@ -316,6 +324,7 @@ export function useJobPrefs(): JobPrefs {
       applications: stored.applications,
       sources: stored.sources,
       feeds: stored.feeds,
+      companies: stored.companies,
       profile: stored.profile,
     }),
     [
@@ -325,6 +334,7 @@ export function useJobPrefs(): JobPrefs {
       stored.applications,
       stored.sources,
       stored.feeds,
+      stored.companies,
       stored.profile,
     ],
   );
@@ -372,6 +382,10 @@ export function useJobPrefs(): JobPrefs {
 
   const setFeeds = useCallback((feeds: CustomFeed[]) => {
     setStored((current) => ({ ...current, feeds: feeds.slice(0, MAX_FEEDS) }));
+  }, []);
+
+  const setCompanies = useCallback((companies: string[]) => {
+    setStored((current) => ({ ...current, companies }));
   }, []);
 
   const setTheme = useCallback((theme: Theme) => {
@@ -443,6 +457,7 @@ export function useJobPrefs(): JobPrefs {
     appliedIds: new Set(stored.applications.map((entry) => entry.id)),
     sources: stored.sources,
     feeds: stored.feeds,
+    companies: stored.companies,
     theme: stored.theme,
     profile: stored.profile,
     statsSentAt: stored.statsSentAt,
@@ -455,6 +470,7 @@ export function useJobPrefs(): JobPrefs {
     setPreferences,
     setSources,
     setFeeds,
+    setCompanies,
     setTheme,
     setProfile,
     completeOnboarding,
