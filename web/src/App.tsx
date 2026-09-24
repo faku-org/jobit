@@ -5,6 +5,7 @@ import { CategoryChips } from "./components/board/CategoryChips.tsx";
 import { DynamicIsland } from "./components/board/DynamicIsland.tsx";
 import { FadeUp } from "./components/ui/FadeUp.tsx";
 import { FilterBar } from "./components/board/FilterBar.tsx";
+import { RubroPrep } from "./components/board/RubroPrep.tsx";
 import { JobCard } from "./components/job/JobCard.tsx";
 import { JobList } from "./components/job/JobList.tsx";
 import { PracticeDialog } from "./components/job/PracticeDialog.tsx";
@@ -473,6 +474,20 @@ export default function App() {
                   selected={savedCategory}
                   onSelect={setSavedCategory}
                 />
+              </div>
+            ) : null}
+
+            {filters.category && meta ? (
+              <div className="mt-3">
+                <FadeUp>
+                  <RubroPrep
+                    category={filters.category}
+                    label={
+                      meta.categories.find((entry) => entry.value === filters.category)?.label ??
+                      filters.category
+                    }
+                  />
+                </FadeUp>
               </div>
             ) : null}
 
