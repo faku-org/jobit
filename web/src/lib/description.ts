@@ -11,7 +11,9 @@ export type Block =
   | { kind: "heading"; text: string }
   | { kind: "fields"; rows: { label: string; value: string }[] }
   | { kind: "list"; items: string[] }
-  | { kind: "paragraph"; text: string };
+  | { kind: "paragraph"; text: string }
+  /** Teléfono, e-mail y links sueltos, juntados en una sección propia. */
+  | { kind: "contact"; rows: { label: string; value: string }[] };
 
 const BULLET = /^\s*[-–—•*·▪●]\s+(.*)$/;
 const NUMBERED = /^\s*\d+[.)]\s+(.*)$/;
@@ -62,6 +64,80 @@ const isUpperCase = (line: string): boolean =>
   line === line.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(line);
 
 /**
+ * Siglas que se quedan en mayúsculas al bajarle el tono a una línea gritada.
+ * Sin esto, "TÍTULO DE UTU" termina en "título de utu".
+ */
+const ACRONYMS = new Set([
+  "UTU",
+  "UDELAR",
+  "ANEP",
+  "DGI",
+  "BPS",
+  "MTSS",
+  "INEFOP",
+  "MIDES",
+  "ASSE",
+  "MSP",
+  "INAU",
+  "BHU",
+  "ANV",
+  "OSE",
+  "UTE",
+  "ANTEL",
+  "CENUR",
+  "AEBU",
+  "FONASA",
+  "IVA",
+  "IRPF",
+  "SUNCA",
+  "CASMU",
+  "CNT",
+  "PIT",
+  "UY",
+  "ARCE",
+  "ANII",
+  "CUTI",
+  "CIU",
+]);
+
+/**
+ * Las fuentes escriben requisitos y avisos enteros en mayúsculas. Mostrarlos
+ * tal cual es gritar; esto los devuelve a una oración, dejando intactos los
+ * números, e-mails, enlaces, identificadores y las siglas.
+ */
+export function softenCaps(text: string): string {
+  if (!isUpperCase(text)) return text;
+
+  let capitalized = false;
+  return text
+    .split(" ")
+    .map((token) => {
+      if (token === "") return token;
+      const bare = token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+      if (ACRONYMS.has(bare)) return token;
+      /** Números, fechas, links, e-mails e identificadores se dejan igual. */
+      if (/[\d@/.]/.test(bare)) return token;
+
+      const lower = token.toLowerCase();
+      if (!capitalized && /\p{L}/u.test(lower)) {
+        capitalized = true;
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      }
+      return lower;
+    })
+    .join(" ");
+}
+
+/** Etiquetas que anuncian un dato de contacto. */
+const CONTACT_LABEL =
+  /(tel[eé]fonos?|celular(es)?|whatsapp|\btel\b|e-?mail|correo|mail|contacto|consultas?|sitio web|p[aá]gina web|\bweb\b|\burl\b)/i;
+
+/** Una línea que es solo un e-mail o un link. */
+const BARE_CONTACT = /^(?:https?:\/\/\S+|www\.\S+|[\w.+-]+@[\w-]+\.[\w.]+)$/;
+
+const contactLabel = (value: string): string => (/@/.test(value) ? "Email" : "Web");
+
+/**
  * A line is a heading when it announces what follows rather than saying it:
  * short, no sentence punctuation, and either shouted, ending in a colon, or
  * asking the question the next paragraph answers.
@@ -88,13 +164,24 @@ export function parseDescription(text: string): Block[] {
   let paragraph: string[] = [];
   let items: string[] = [];
   let rows: { label: string; value: string }[] = [];
+  const contactRows: { label: string; value: string }[] = [];
+  /**
+   * Un link o un e-mail sueltos son contacto solo si el aviso da algún dato
+   * con etiqueta (teléfono, consultas). Si no, un link suelto es parte del
+   * texto y no una sección de contacto.
+   */
+  const hasContactSignal =
+    /(tel[eé]fonos?|celular|whatsapp|contacto|consultas?)\s*:/i.test(text) ||
+    /[\w.+-]+@[\w-]+\.[\w.]+/.test(text);
 
   const flushParagraph = () => {
-    if (paragraph.length > 0) blocks.push({ kind: "paragraph", text: paragraph.join(" ") });
+    if (paragraph.length > 0) {
+      blocks.push({ kind: "paragraph", text: softenCaps(paragraph.join(" ")) });
+    }
     paragraph = [];
   };
   const flushList = () => {
-    if (items.length > 0) blocks.push({ kind: "list", items });
+    if (items.length > 0) blocks.push({ kind: "list", items: items.map(softenCaps) });
     items = [];
   };
   const flushFields = () => {
@@ -132,9 +219,26 @@ export function parseDescription(text: string): Block[] {
     /** "https://…" fits the label-colon-value shape and is not a field. */
     const field = /^\w+:\/\//.test(line) ? null : FIELD.exec(line);
     if (field?.[1] && field[2]) {
+      const label = field[1].trim();
+      const value = field[2].trim();
+      if (CONTACT_LABEL.test(label)) {
+        flushParagraph();
+        flushList();
+        flushFields();
+        contactRows.push({ label, value });
+        continue;
+      }
       flushParagraph();
       flushList();
-      rows.push({ label: field[1].trim(), value: field[2].trim() });
+      rows.push({ label, value });
+      continue;
+    }
+
+    if (hasContactSignal && BARE_CONTACT.test(line)) {
+      flushParagraph();
+      flushList();
+      flushFields();
+      contactRows.push({ label: contactLabel(line), value: line });
       continue;
     }
 
@@ -144,6 +248,8 @@ export function parseDescription(text: string): Block[] {
   }
 
   flushAll();
+  /** El contacto va al final, junto, aunque en el texto esté salpicado. */
+  if (contactRows.length > 0) blocks.push({ kind: "contact", rows: contactRows });
   return clusterSectionItems(blocks);
 }
 

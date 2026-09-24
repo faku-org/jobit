@@ -6,7 +6,8 @@
   "workspaces": [
     "api",
     "web",
-    "worker"
+    "worker",
+    "mcp"
   ],
   "type": "module",
   "scripts": {
@@ -14,12 +15,13 @@
     "dev:api": "bun run --cwd api dev",
     "dev:web": "bun run --cwd web dev",
     "build": "bun run --cwd web build",
-    "typecheck": "bun run --cwd api typecheck && bun run --cwd web typecheck && bun run --cwd worker typecheck",
+    "typecheck": "bun run --cwd api typecheck && bun run --cwd web typecheck && bun run --cwd worker typecheck && bun run --cwd mcp typecheck",
     "lint": "oxlint",
     "fmt": "oxfmt .",
     "scrape": "bun run --cwd worker scrape",
     "push": "bun run --cwd worker push",
     "egress": "bun run --cwd worker egress",
+    "mcp": "bun run --cwd mcp start",
     "scrape:push": "bun run --cwd worker scrape && bun run --cwd worker push"
   },
   "devDependencies": {
