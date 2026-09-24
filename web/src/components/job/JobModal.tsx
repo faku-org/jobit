@@ -116,7 +116,7 @@ export function JobModal({
         animate={closing ? { opacity: 0, y: 24, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
         aria-labelledby="job-modal-title"
         aria-modal
-        className="relative flex max-h-[92svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] sm:max-h-[85svh] sm:rounded-3xl"
+        className="relative flex h-[100svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] sm:h-auto sm:max-h-[85svh] sm:rounded-3xl"
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         role="dialog"
         transition={islandTransition}
@@ -124,7 +124,10 @@ export function JobModal({
           if (closing) onClose();
         }}
       >
-        <header className="flex items-start gap-3 border-b border-sky/40 px-5 py-4">
+        {/* En el teléfono el título va a lo ancho y las acciones bajan a su
+            propia fila: es lo que evita que el nombre de la empresa se parta
+            en dos y que la cabecera se sienta apretada. */}
+        <header className="flex flex-col gap-3 border-b border-sky/40 px-4 py-4 sm:flex-row sm:items-start sm:px-5">
           <div className="min-w-0 flex-1">
             {isMatch ? (
               <span className={`${chipClass} mb-2 bg-panel text-onpanel`}>
@@ -152,7 +155,7 @@ export function JobModal({
             </div>
           </div>
 
-          <div className="flex shrink-0 gap-1.5">
+          <div className="flex shrink-0 items-center justify-end gap-1.5">
             <ShareMenu target={jobShare(job)} />
             <m.button
               aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
@@ -191,7 +194,7 @@ export function JobModal({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">
           <JobChips actions={chipActions} job={job} />
 
           <JobFit job={job} profile={tagActions.profile} />
@@ -251,7 +254,7 @@ export function JobModal({
           </p>
         </div>
 
-        <div className="border-t border-sky/40 bg-surface px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+        <div className="border-t border-sky/40 bg-surface px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-5 sm:pb-4">
           <ApplyFooter
             isApplied={isApplied}
             job={job}

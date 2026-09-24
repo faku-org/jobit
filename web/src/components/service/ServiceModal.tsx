@@ -155,7 +155,7 @@ export function ServiceModal({ service, onClose }: ServiceModalProps) {
         animate={closing ? { opacity: 0, y: 24, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
         aria-labelledby="service-modal-title"
         aria-modal
-        className="relative flex max-h-[92svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] sm:max-h-[85svh] sm:rounded-3xl"
+        className="relative flex h-[100svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] sm:h-auto sm:max-h-[85svh] sm:rounded-3xl"
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         role="dialog"
         transition={islandTransition}
@@ -163,7 +163,9 @@ export function ServiceModal({ service, onClose }: ServiceModalProps) {
           if (closing) onClose();
         }}
       >
-        <header className="flex items-start gap-3 border-b border-sky/40 px-5 py-4">
+        {/* Igual que la ficha de una oferta: en el teléfono el título va a lo
+            ancho y las acciones bajan a su propia fila. */}
+        <header className="flex flex-col gap-3 border-b border-sky/40 px-4 py-4 sm:flex-row sm:items-start sm:px-5">
           <div className="min-w-0 flex-1">
             <h2
               className="text-[19px] leading-snug font-semibold tracking-tight text-ink"
@@ -183,7 +185,7 @@ export function ServiceModal({ service, onClose }: ServiceModalProps) {
             </div>
           </div>
 
-          <div className="flex shrink-0 gap-1.5">
+          <div className="flex shrink-0 items-center justify-end gap-1.5">
             <ShareMenu target={serviceShare(service)} />
             <m.button
               aria-label="Cerrar"
@@ -197,7 +199,7 @@ export function ServiceModal({ service, onClose }: ServiceModalProps) {
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className={`${chipClass} bg-sky/40 text-ink`}>
               <Laptop aria-hidden className="size-3.5" />
@@ -323,7 +325,7 @@ export function ServiceModal({ service, onClose }: ServiceModalProps) {
           </Section>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-sky/40 bg-surface px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+        <div className="flex items-center justify-between gap-3 border-t border-sky/40 bg-surface px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-5 sm:pb-4">
           <ReportMenu service={service} />
           <p className="text-xs text-muted">
             Publicado el {formatServiceDay(service.published_at || service.created_at)}
