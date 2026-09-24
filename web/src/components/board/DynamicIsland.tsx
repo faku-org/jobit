@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AccountSync } from "../../hooks/useAccountSync.ts";
 import { useScrolledPast } from "../../hooks/useScrolledPast.ts";
 import type { CustomFeed, FeedResult } from "../../lib/feed.ts";
-import { islandTransition, revealPresence } from "../../lib/motion.ts";
+import { islandTransition } from "../../lib/motion.ts";
 import { type Profile, profileCount } from "../../lib/profile.ts";
 import type { SessionUser } from "../../lib/session.ts";
 import type { Usage } from "../../lib/stats.ts";
@@ -85,8 +85,12 @@ export function DynamicIsland({
   const [tab, setTab] = useState<Tab>("search");
   const condensed = useScrolledPast(24);
 
-  /** El panel mide siempre lo mismo mientras está abierto, así que cambiar de
-   * pestaña no redimensiona la isla. El scroll arranca arriba en cada pestaña. */
+  /**
+   * El panel arranca arriba en cada pestaña. Mide lo que mide su contenido,
+   * hasta el 70% de la pantalla: una pestaña corta no deja un hueco vacío, y
+   * una larga scrollea adentro. El header tiene `layout`, así que el cambio de
+   * alto entre pestañas se anima solo.
+   */
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 });
@@ -159,11 +163,16 @@ export function DynamicIsland({
           {open ? (
             <m.div
               key="panel"
-              {...revealPresence}
+              initial={{ gridTemplateRows: "0fr", opacity: 0 }}
+              animate={{ gridTemplateRows: "1fr", opacity: 1 }}
+              /* Sin opacidad en la salida: el panel se pliega, no se desvanece
+                 primero y después se encoge, que es lo que se sentía en dos
+                 pasos. La entrada sí aparece. */
+              exit={{ gridTemplateRows: "0fr" }}
               className="grid overflow-hidden"
               transition={islandTransition}
             >
-              <div className="h-[70svh] min-h-0 overflow-y-auto" ref={scroller}>
+              <div className="max-h-[70svh] min-h-0 overflow-y-auto" ref={scroller}>
                 <div className="sticky top-0 z-10 flex gap-1 bg-panel px-4 pt-1 pb-2">
                   {(
                     [
