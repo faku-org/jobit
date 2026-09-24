@@ -1,0 +1,22 @@
+{
+  "name": "@jobit/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "bin": {
+    "jobit-mcp": "./src/index.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0"
+  }
+}
