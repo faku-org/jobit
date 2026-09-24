@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+﻿import { Loader2 } from "lucide-react";
 import { m } from "motion/react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { CategoryChips } from "./components/board/CategoryChips.tsx";
@@ -8,6 +8,7 @@ import { FilterBar } from "./components/board/FilterBar.tsx";
 import { RubroPrep } from "./components/board/RubroPrep.tsx";
 import { JobCard } from "./components/job/JobCard.tsx";
 import { JobList } from "./components/job/JobList.tsx";
+import { PracticeDialog } from "./components/job/PracticeDialog.tsx";
 import { EmptyState, ErrorState, JobListSkeleton } from "./components/board/States.tsx";
 import type { TagActions } from "./components/job/JobChips.tsx";
 import { ViewTabs } from "./components/board/ViewTabs.tsx";
@@ -72,9 +73,9 @@ const Tracking = lazy(loadTracking);
  */
 const VIEW_HINT: Record<View, string> = {
   all: "",
-  state: "Llamados públicos de Uruguay Concursa, ordenados por el que cierra primero.",
-  saved: "Las que marcaste para pensar. Cuando te postulás pasan solas a Seguimiento.",
-  tracking: "Las que ya mandaste, con el estado de cada una. Tocá una para ver la oferta.",
+  state: "Llamados pÃºblicos de Uruguay Concursa, ordenados por el que cierra primero.",
+  saved: "Las que marcaste para pensar. Cuando te postulÃ¡s pasan solas a Seguimiento.",
+  tracking: "Las que ya mandaste, con el estado de cada una. TocÃ¡ una para ver la oferta.",
   market: "",
 };
 
@@ -100,9 +101,15 @@ export default function App() {
    * snapshot; it may be gone, and then the row says so instead. */
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [goneIds, setGoneIds] = useState<Set<string>>(new Set());
+  /** La oferta que se acaba de seguir, para abrir el modal de prÃ¡ctica. */
+  const [practiceJob, setPracticeJob] = useState<{
+    title: string;
+    category: string;
+    label: string;
+  } | null>(null);
 
   const prefs = useJobPrefs();
-  /** Quién está adentro y qué eligió sincronizar. Va acá, arriba de la isla,
+  /** QuiÃ©n estÃ¡ adentro y quÃ© eligiÃ³ sincronizar. Va acÃ¡, arriba de la isla,
    * porque el sync toca las mismas preferencias que el resto del panel. */
   const session = useSession();
   const accountSync = useAccountSync(prefs, session.user, session.ready);
@@ -153,8 +160,8 @@ export default function App() {
    */
   const ranking = toRanking(prefs.preferences, prefs.profile);
   /**
-   * Todo lo que decide qué ofertas pide una lista. Sale de acá y no de cada
-   * vista porque la misma cuenta la necesitan dos: la que se está mirando y la
+   * Todo lo que decide quÃ© ofertas pide una lista. Sale de acÃ¡ y no de cada
+   * vista porque la misma cuenta la necesitan dos: la que se estÃ¡ mirando y la
    * que se va a tocar, que se trae de fondo con esta misma consulta.
    */
   const board: BoardContext = {
@@ -168,8 +175,8 @@ export default function App() {
     reviewing,
   };
 
-  /** Mercado y seguimiento no tienen lista: se queda la última para no abortar
-   * el pedido ni vaciar lo que ya estaba en caché. */
+  /** Mercado y seguimiento no tienen lista: se queda la Ãºltima para no abortar
+   * el pedido ni vaciar lo que ya estaba en cachÃ©. */
   const listViewRef = useRef<View>("all");
   const listView = keepListView(view, listViewRef.current);
   listViewRef.current = listView;
@@ -178,12 +185,12 @@ export default function App() {
 
   const { jobs, total, status, error, hasMore, loadMore } = useJobs(query, true);
 
-  /** Una lista de guardadas vacía no tiene nada que adelantar: sabemos sin
-   * preguntar que vuelve vacía. */
+  /** Una lista de guardadas vacÃ­a no tiene nada que adelantar: sabemos sin
+   * preguntar que vuelve vacÃ­a. */
   const worthPrefetching = (candidate: View): boolean =>
     candidate !== listView && (candidate !== "saved" || savedIds.length > 0);
 
-  /** Las otras listas, traídas en el rato libre que deja la primera. */
+  /** Las otras listas, traÃ­das en el rato libre que deja la primera. */
   const asleep = BOARD_VIEWS.filter(worthPrefetching).map((candidate) =>
     jobsQueryKey(jobsQuery(candidate, board)),
   );
@@ -197,8 +204,8 @@ export default function App() {
     prefetchJobs(stateKey);
   }, [showIntro, stateKey]);
 
-  /** Al apuntar una pestaña, antes del clic: lo que tarda en bajar el dedo
-   * suele alcanzar para que la lista ya esté cuando se suelta. */
+  /** Al apuntar una pestaÃ±a, antes del clic: lo que tarda en bajar el dedo
+   * suele alcanzar para que la lista ya estÃ© cuando se suelta. */
   const trackedKey = prefs.applications.map((entry) => entry.id).join(",");
 
   const prefetchView = (next: View) => {
@@ -212,14 +219,14 @@ export default function App() {
   };
 
   /** La ficha es 20 KB: si se pide al abrir, el clic espera el JS. Se trae
-   * apenas hay app, no cuando ya se tocó una tarjeta. */
+   * apenas hay app, no cuando ya se tocÃ³ una tarjeta. */
   useEffect(() => {
     if (showIntro) return;
     void loadJobModal();
   }, [showIntro]);
 
-  /** Las filas de seguimiento y las ofertas detrás. En esa pestaña no corre
-   * useJobs, así que no se espera a que el tablero esté listo. */
+  /** Las filas de seguimiento y las ofertas detrÃ¡s. En esa pestaÃ±a no corre
+   * useJobs, asÃ­ que no se espera a que el tablero estÃ© listo. */
   useEffect(() => {
     if (showIntro) return;
     const warm = (): void => {
@@ -304,6 +311,15 @@ export default function App() {
   useStats(prefs.profile, usage, prefs.statsSentAt, prefs.markStatsSent);
   useTracking(prefs.profile.shareStats);
   useSearchTracking(filters, total, status === "ready");
+
+  /** Confirmar una postulaciÃ³n la suma al seguimiento y, si estÃ¡ pedido, abre
+   * el modal para practicar. */
+  const handleApplied = (job: Job) => {
+    prefs.addApplication(job);
+    if (prefs.practiceAlways) {
+      setPracticeJob({ title: job.title, category: job.category, label: job.category_label });
+    }
+  };
 
   const openTracked = (application: Application) => {
     const cached = readJob(application.id);
@@ -393,6 +409,13 @@ export default function App() {
                   goneIds={goneIds}
                   openingId={openingId}
                   onOpen={openTracked}
+                  onPractice={(entry) =>
+                    setPracticeJob({
+                      title: entry.title,
+                      category: entry.category,
+                      label: entry.categoryLabel,
+                    })
+                  }
                   onRemove={prefs.removeApplication}
                   onSetStatus={prefs.setApplicationStatus}
                 />
@@ -402,7 +425,7 @@ export default function App() {
         ) : isMarketView ? (
           <div className="mt-6">
             {market.status === "error" ? (
-              <ErrorState message="No se pudieron cargar las estadísticas del mercado." />
+              <ErrorState message="No se pudieron cargar las estadÃ­sticas del mercado." />
             ) : market.report ? (
               <Suspense fallback={<JobListSkeleton />}>
                 <Market
@@ -477,10 +500,10 @@ export default function App() {
                   transition={fadeUpTransition}
                 >
                   {pluralOffers(total)}
-                  {visible.length < total ? ` · mostrando ${visible.length}` : ""}
-                  {discardedHere > 0 ? ` · ${discardedHere} descartadas` : ""}
-                  {sort === "match" ? " · ordenadas para vos" : ""}
-                  {sort === "closing" ? " · las que cierran primero" : ""}
+                  {visible.length < total ? ` Â· mostrando ${visible.length}` : ""}
+                  {discardedHere > 0 ? ` Â· ${discardedHere} descartadas` : ""}
+                  {sort === "match" ? " Â· ordenadas para vos" : ""}
+                  {sort === "closing" ? " Â· las que cierran primero" : ""}
                 </m.span>
               ) : null}
             </div>
@@ -490,9 +513,9 @@ export default function App() {
                 <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-sky/60 bg-mist px-3.5 py-2.5">
                   <p className="text-xs leading-relaxed text-soft">
                     {prefs.dismissed.size === 1
-                      ? "Estás viendo la oferta que descartaste."
-                      : `Estás viendo las ${prefs.dismissed.size} ofertas que descartaste.`}{" "}
-                    Tocá el ícono de deshacer en cualquiera para devolverla a la lista.
+                      ? "EstÃ¡s viendo la oferta que descartaste."
+                      : `EstÃ¡s viendo las ${prefs.dismissed.size} ofertas que descartaste.`}{" "}
+                    TocÃ¡ el Ã­cono de deshacer en cualquiera para devolverla a la lista.
                   </p>
                   <button
                     className="ml-auto shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
@@ -524,7 +547,7 @@ export default function App() {
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
                         tagActions={tagActions}
-                        onApplied={prefs.addApplication}
+                        onApplied={handleApplied}
                         onOpen={setOpenJob}
                         onToggleDismissed={prefs.toggleDismissed}
                         onToggleSaved={prefs.toggleSaved}
@@ -563,7 +586,7 @@ export default function App() {
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
                         tagActions={tagActions}
-                        onApplied={prefs.addApplication}
+                        onApplied={handleApplied}
                         onOpen={setOpenJob}
                         onToggleDismissed={prefs.toggleDismissed}
                         onToggleSaved={prefs.toggleSaved}
@@ -583,7 +606,7 @@ export default function App() {
                         {status === "loadingMore" ? (
                           <Loader2 aria-hidden className="size-4 animate-spin" />
                         ) : null}
-                        Ver más ofertas
+                        Ver mÃ¡s ofertas
                       </m.button>
                     </div>
                   ) : null}
@@ -605,7 +628,7 @@ export default function App() {
             isSaved={prefs.saved.has(openJob.id)}
             job={openJob}
             tagActions={tagActions}
-            onApplied={prefs.addApplication}
+            onApplied={handleApplied}
             onClose={() => setOpenJob(null)}
             onToggleDismissed={prefs.toggleDismissed}
             onToggleSaved={prefs.toggleSaved}
@@ -613,9 +636,20 @@ export default function App() {
         </Suspense>
       ) : null}
 
+      {practiceJob ? (
+        <PracticeDialog
+          title={practiceJob.title}
+          category={practiceJob.category}
+          label={practiceJob.label}
+          practiceAlways={prefs.practiceAlways}
+          onPracticeAlwaysChange={prefs.setPracticeAlways}
+          onClose={() => setPracticeJob(null)}
+        />
+      ) : null}
+
       {/* La intro es una capa sobre la app, no una pantalla que la reemplace:
-          así el tablero se pide y se dibuja igual, y un buscador que entra con
-          el storage vacío ve ofertas y no solo "Bienvenido a JobIt". */}
+          asÃ­ el tablero se pide y se dibuja igual, y un buscador que entra con
+          el storage vacÃ­o ve ofertas y no solo "Bienvenido a JobIt". */}
       {showIntro ? (
         <Suspense fallback={null}>
           <Onboarding

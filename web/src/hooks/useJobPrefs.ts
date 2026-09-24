@@ -43,6 +43,9 @@ interface Stored {
    * Borrar todos mis datos takes it with everything else, which is what it
    * promises: después de borrar, la bienvenida vuelve a aparecer. */
   introSeenAt: string;
+  /** Si al confirmar una postulación se abre el modal para practicar. Es de
+   * este navegador, como el tema: no viaja por la cuenta. */
+  practiceAlways: boolean;
 }
 
 const EMPTY: Stored = {
@@ -56,6 +59,7 @@ const EMPTY: Stored = {
   profile: EMPTY_PROFILE,
   statsSentAt: "",
   introSeenAt: "",
+  practiceAlways: true,
 };
 
 /** Titles and courses are picked from a list, so the cap is a sanity bound. */
@@ -222,6 +226,7 @@ function parseStored(parsed: Record<string, unknown>): Stored {
     profile: withMigratedExperience(readProfile(parsed.profile), parsed.preferences),
     statsSentAt: text(parsed.statsSentAt),
     introSeenAt: text(parsed.introSeenAt),
+    practiceAlways: parsed.practiceAlways !== false,
   };
 }
 
@@ -266,6 +271,8 @@ export interface JobPrefs {
   profile: Profile;
   statsSentAt: string;
   introSeenAt: string;
+  /** Si al confirmar una postulación se abre el modal para practicar. */
+  practiceAlways: boolean;
   /** Lo que viaja por la cuenta y cómo reemplazarlo al bajar cambios. */
   synced: SyncedState;
   applySynced: (state: SyncedState) => void;
@@ -277,6 +284,7 @@ export interface JobPrefs {
   setFeeds: (feeds: CustomFeed[]) => void;
   setTheme: (theme: Theme) => void;
   setProfile: (profile: Profile) => void;
+  setPracticeAlways: (value: boolean) => void;
   /** Saves what the onboarding collected in one write, so the list is not
    * refetched once per step of it. */
   completeOnboarding: (profile: Profile, preferences: Preferences) => void;
@@ -382,6 +390,10 @@ export function useJobPrefs(): JobPrefs {
     setStored((current) => ({ ...current, profile }));
   }, []);
 
+  const setPracticeAlways = useCallback((practiceAlways: boolean) => {
+    setStored((current) => ({ ...current, practiceAlways }));
+  }, []);
+
   const completeOnboarding = useCallback((profile: Profile, preferences: Preferences) => {
     setStored((current) => ({
       ...current,
@@ -447,6 +459,7 @@ export function useJobPrefs(): JobPrefs {
     profile: stored.profile,
     statsSentAt: stored.statsSentAt,
     introSeenAt: stored.introSeenAt,
+    practiceAlways: stored.practiceAlways,
     synced,
     applySynced,
     toggleSaved,
@@ -457,6 +470,7 @@ export function useJobPrefs(): JobPrefs {
     setFeeds,
     setTheme,
     setProfile,
+    setPracticeAlways,
     completeOnboarding,
     eraseEverything,
     markStatsSent,

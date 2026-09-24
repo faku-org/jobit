@@ -1,4 +1,11 @@
-import { ArrowUpRight, ClipboardList, Loader2, Maximize2, Trash2 } from "lucide-react";
+import {
+  ArrowUpRight,
+  ClipboardList,
+  GraduationCap,
+  Loader2,
+  Maximize2,
+  Trash2,
+} from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { APPLICATION_STATUS_LABEL, formatDay } from "../../lib/format.ts";
 import { fadeUpTransition, stagger } from "../../lib/motion.ts";
@@ -11,6 +18,8 @@ interface TrackingProps {
   /** Offers that are no longer published, so the row stops offering to open. */
   goneIds: Set<string>;
   onOpen: (application: Application) => void;
+  /** Abre el contenido de práctica del rubro de esa postulación. */
+  onPractice: (application: Application) => void;
   onSetStatus: (id: string, status: ApplicationStatus) => void;
   onRemove: (id: string) => void;
 }
@@ -58,6 +67,7 @@ export function Tracking({
   openingId,
   goneIds,
   onOpen,
+  onPractice,
   onSetStatus,
   onRemove,
 }: TrackingProps) {
@@ -167,6 +177,14 @@ export function Tracking({
                           <ArrowUpRight aria-hidden className="size-4" />
                         </a>
                       ) : null}
+                      <button
+                        aria-label="Practicar para la entrevista"
+                        className="inline-flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-mist hover:text-ink"
+                        type="button"
+                        onClick={() => onPractice(entry)}
+                      >
+                        <GraduationCap aria-hidden className="size-4" />
+                      </button>
                       <button
                         aria-label="Quitar del seguimiento"
                         className="inline-flex size-8 items-center justify-center rounded-lg text-faint transition-colors hover:bg-mist hover:text-ink"

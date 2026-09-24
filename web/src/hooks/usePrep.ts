@@ -10,11 +10,13 @@ import { fetchContent } from "../lib/content.ts";
  * `enabled` es lo que lo ata al momento: en la ficha solo se pide cuando la
  * oferta ya está en seguimiento, no al abrir cualquier oferta.
  *
- * Los dos conjuntos de tipos son constantes porque son la clave de la caché:
- * pasar un array nuevo cada render la vaciaría sola.
+ * Los conjuntos de tipos son constantes porque son la clave de la caché: pasar
+ * un array nuevo cada render la vaciaría sola.
  */
 export const PRACTICE_KINDS: ContentKind[] = ["faq", "exercise"];
 export const INTERVIEW_KINDS: ContentKind[] = ["faq", "topic"];
+/** Todo lo de preparación: preguntas, habilidades y ejercicios. */
+export const ALL_PREP_KINDS: ContentKind[] = ["faq", "topic", "exercise"];
 
 const LIMIT = 12;
 const FRESH_MS = 30 * 60_000;
