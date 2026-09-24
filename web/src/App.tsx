@@ -7,6 +7,7 @@ import { FadeUp } from "./components/ui/FadeUp.tsx";
 import { FilterBar } from "./components/board/FilterBar.tsx";
 import { JobCard } from "./components/job/JobCard.tsx";
 import { JobList } from "./components/job/JobList.tsx";
+import { EmployerModal } from "./components/employer/EmployerModal.tsx";
 import { EmptyState, ErrorState, JobListSkeleton } from "./components/board/States.tsx";
 import type { TagActions } from "./components/job/JobChips.tsx";
 import { ViewTabs } from "./components/board/ViewTabs.tsx";
@@ -18,12 +19,14 @@ import { useMeta } from "./hooks/useMeta.ts";
 import { useSession } from "./hooks/useSession.ts";
 import { useViewLink } from "./hooks/useViewLink.ts";
 import { useCustomFeeds } from "./hooks/useCustomFeeds.ts";
+import { useEmployers } from "./hooks/useEmployers.ts";
 import { prefetchMarket, useMarket } from "./hooks/useMarket.ts";
 import { onIdle, usePrefetchViews } from "./hooks/usePrefetch.ts";
 import { useStats } from "./hooks/useStats.ts";
 import { useSearchTracking, useTracking } from "./hooks/useTracking.ts";
 import { useTheme } from "./hooks/useTheme.ts";
 import { isAbortError, jobsQueryKey } from "./lib/api.ts";
+import { employerSlug } from "./lib/employers.ts";
 import { loadJob, prefetchJobIds, prefetchJobs, readJob } from "./lib/jobsCache.ts";
 import { BOARD_VIEWS, type BoardContext, jobsQuery, keepListView } from "./lib/query.ts";
 import { fadeUpTransition } from "./lib/motion.ts";
@@ -95,6 +98,8 @@ export default function App() {
   /** The saved view filters by rubro on the client, over its own chips. */
   const [savedCategory, setSavedCategory] = useState("");
   const [openJob, setOpenJob] = useState<Job | null>(null);
+  /** La empresa cuyo stand está abierto, si hay alguna. */
+  const [openEmployer, setOpenEmployer] = useState<{ slug: string; label: string } | null>(null);
   /** Opening a tracked application means fetching the offer behind its
    * snapshot; it may be gone, and then the row says so instead. */
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -106,6 +111,7 @@ export default function App() {
   const session = useSession();
   const accountSync = useAccountSync(prefs, session.user, session.ready);
   const meta = useMeta();
+  const employers = useEmployers(filters.category);
   /**
    * Read from storage on the first render, so a first visit paints the intro
    * and never the list underneath it. Until it is done the app is not mounted
@@ -163,6 +169,7 @@ export default function App() {
     savedIds,
     discardedIds,
     sources: prefs.sources,
+    myCompanies: prefs.companies,
     similarOnly,
     reviewing,
   };
@@ -304,6 +311,11 @@ export default function App() {
   useTracking(prefs.profile.shareStats);
   useSearchTracking(filters, total, status === "ready");
 
+  /** Abre el stand de la empresa de una oferta, si tiene una. */
+  const openEmployerFor = (job: Job) => {
+    if (job.company) setOpenEmployer({ slug: employerSlug(job.company), label: job.company });
+  };
+
   const openTracked = (application: Application) => {
     const cached = readJob(application.id);
     if (cached) {
@@ -423,24 +435,26 @@ export default function App() {
         ) : (
           <>
             <div className="mt-3">
-                <FilterBar
-                  categories={meta?.categories ?? []}
-                  departments={meta?.departments ?? []}
-                  canReviewDiscarded={canReviewDiscarded}
-                  discardedCount={prefs.dismissed.size}
-                  filters={filters}
-                  hasPreferences={hasPreferences}
-                  isDirty={isDirty}
-                  matchCount={similarOnly ? total : matches.size}
-                  noExperienceCount={meta?.no_experience_count ?? 0}
-                  onlySimilar={similarOnly}
-                  reviewingDiscarded={reviewing}
-                  showCategory={!isSavedView}
-                  onChange={setFilters}
-                  onReset={reset}
-                  onToggleReviewDiscarded={() => setReviewingDiscarded((current) => !current)}
-                  onToggleSimilar={() => setOnlySimilar((current) => !current)}
-                />
+              <FilterBar
+                categories={meta?.categories ?? []}
+                departments={meta?.departments ?? []}
+                employers={employers}
+                myCompaniesCount={prefs.companies.length}
+                canReviewDiscarded={canReviewDiscarded}
+                discardedCount={prefs.dismissed.size}
+                filters={filters}
+                hasPreferences={hasPreferences}
+                isDirty={isDirty}
+                matchCount={similarOnly ? total : matches.size}
+                noExperienceCount={meta?.no_experience_count ?? 0}
+                onlySimilar={similarOnly}
+                reviewingDiscarded={reviewing}
+                showCategory={!isSavedView}
+                onChange={setFilters}
+                onReset={reset}
+                onToggleReviewDiscarded={() => setReviewingDiscarded((current) => !current)}
+                onToggleSimilar={() => setOnlySimilar((current) => !current)}
+              />
             </div>
 
             {isSavedView && savedGroups.length > 1 ? (
@@ -511,6 +525,7 @@ export default function App() {
                         tagActions={tagActions}
                         onApplied={prefs.addApplication}
                         onOpen={setOpenJob}
+                        onOpenEmployer={() => openEmployerFor(job)}
                         onToggleDismissed={prefs.toggleDismissed}
                         onToggleSaved={prefs.toggleSaved}
                       />
@@ -550,6 +565,7 @@ export default function App() {
                         tagActions={tagActions}
                         onApplied={prefs.addApplication}
                         onOpen={setOpenJob}
+                        onOpenEmployer={() => openEmployerFor(job)}
                         onToggleDismissed={prefs.toggleDismissed}
                         onToggleSaved={prefs.toggleSaved}
                       />
@@ -592,10 +608,33 @@ export default function App() {
             tagActions={tagActions}
             onApplied={prefs.addApplication}
             onClose={() => setOpenJob(null)}
+            onOpenEmployer={() => openEmployerFor(openJob)}
             onToggleDismissed={prefs.toggleDismissed}
             onToggleSaved={prefs.toggleSaved}
           />
         </Suspense>
+      ) : null}
+
+      {openEmployer ? (
+        <EmployerModal
+          slug={openEmployer.slug}
+          label={openEmployer.label}
+          worked={prefs.companies.includes(openEmployer.slug)}
+          onToggleWorked={() => {
+            const { slug } = openEmployer;
+            prefs.setCompanies(
+              prefs.companies.includes(slug)
+                ? prefs.companies.filter((entry) => entry !== slug)
+                : [...prefs.companies, slug],
+            );
+          }}
+          onFilter={() => {
+            setFilters({ ...EMPTY_FILTERS, company: openEmployer.slug });
+            setOpenEmployer(null);
+            setOpenJob(null);
+          }}
+          onClose={() => setOpenEmployer(null)}
+        />
       ) : null}
 
       {/* La intro es una capa sobre la app, no una pantalla que la reemplace:

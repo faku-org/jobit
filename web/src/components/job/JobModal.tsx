@@ -29,6 +29,8 @@ interface JobModalProps {
   onToggleDismissed: (id: string) => void;
   onApplied: (job: Job) => void;
   onClose: () => void;
+  /** Abre el stand de la empresa de esta oferta. */
+  onOpenEmployer?: () => void;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -72,6 +74,7 @@ export function JobModal({
   onToggleDismissed,
   onApplied,
   onClose,
+  onOpenEmployer,
 }: JobModalProps) {
   const related = relatedApplications(job, applications);
   /** The sheet plays its own exit and then asks to be unmounted. */
@@ -139,10 +142,14 @@ export function JobModal({
             </h2>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-soft">
               {job.company ? (
-                <span className="inline-flex items-center gap-1.5">
+                <button
+                  className="inline-flex items-center gap-1.5 transition-colors hover:text-ink"
+                  type="button"
+                  onClick={onOpenEmployer}
+                >
                   <Building2 aria-hidden className="size-3.5 shrink-0 text-brand" />
                   {job.company}
-                </span>
+                </button>
               ) : null}
               <span className="inline-flex items-center gap-1.5">
                 <MapPin aria-hidden className="size-3.5 shrink-0 text-brand" />

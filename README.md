@@ -67,6 +67,8 @@ termina donde termina la de verdad.
 | `GET /api/cli` | La URL del tablero en texto: entiende `view` y `job` además de los filtros. |
 | `GET /api/jobs/:id` | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción. |
 | `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
+| `GET /api/empresas` | Las empresas del tablero (con `rubro`, solo las de ese rubro), para el selector. |
+| `GET /api/empresas/:slug` | La ficha de una empresa: conteo, sueldo medio, puestos, zonas y últimas ofertas. |
 | `GET /api/market` | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos. |
 | `GET /api/market.csv` | Ese mismo informe como CSV, todas las tablas bajo un encabezado. |
 | `GET /api/market.xlsx` | Ese mismo informe como planilla, una pestaña por tabla. |
@@ -90,6 +92,7 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 | `q` | Texto libre sobre título, empresa, ubicación, rubro y descripción. |
 | `category` | Slug de rubro (`ventas`, `oficios`, `salud`, ...). |
 | `department` | Departamento tal cual lo publica la fuente. |
+| `company` | Slug de empresa (o varios separados por coma); sale de `/api/empresas`. |
 | `level` | `entry`, `mid`, `senior`. |
 | `remote` | `onsite`, `remote`, `hybrid`. |
 | `job_type` | `full_time`, `part_time`, `internship`. |
@@ -151,6 +154,22 @@ con la clave de 32 bytes que cifra el email y el secreto TOTP de las cuentas;
 sin ella, el alta sin email sigue andando pero el email y el 2FA quedan
 apagados) y `PUBLIC_ORIGIN` (origen que va en los canonical y og:url de las
 páginas server-rendered; por defecto el de producción).
+
+## Empresas
+
+Las empresas no son una tabla: son una vista sobre las ofertas que junta el
+worker. El nombre viene sucio (mayúsculas, espacios dobles), así que se agrupa
+sin acentos ni mayúsculas y se le da un slug estable.
+
+Elegido un rubro, el selector de **Empresa** ofrece solo las que publicaron ahí
+(`GET /api/empresas?rubro=…`). El nombre de la empresa en una tarjeta abre su
+**stand** (`GET /api/empresas/<slug>`): cuánto publica, sueldo medio, puestos más
+pedidos, zonas y modalidad. Es lo que JobIt ve en sus ofertas; no hay dato de
+empleados ni de la empresa por fuera del tablero.
+
+En el perfil se pueden marcar **empresas donde trabajé**; con el interruptor "De
+mi experiencia" el tablero se recorta a esas empresas. Esas empresas viven en el
+navegador y viajan por el sync de la cuenta, cifradas.
 
 ## Perfil y estadísticas
 

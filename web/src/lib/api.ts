@@ -33,6 +33,9 @@ export interface JobsQueryOptions {
   salary?: SalaryPreference;
   /** Job boards to read from; empty or absent means all of them. */
   sources?: string[];
+  /** Empresas donde trabajó la persona: recorta a sus ofertas. Gana sobre
+   * `filters.company` cuando está. */
+  myCompanies?: string[];
   sort?: Sort;
   /** Read only by the "match" sort: what to put first. */
   ranking?: Ranking;
@@ -102,6 +105,14 @@ function buildQuery(request: JobsRequest): string {
   else if (ids) params.set("ids", ids.join(","));
 
   if (sources && sources.length > 0) params.set("source", sources.join(","));
+
+  /** "De mi experiencia" pisa la empresa elegida a mano. */
+  if (request.myCompanies && request.myCompanies.length > 0) {
+    params.set("company", request.myCompanies.join(","));
+  } else if (filters.company) {
+    params.set("company", filters.company);
+  }
+
   if (request.hiddenCategories?.length) {
     params.set("hide_category", request.hiddenCategories.join(","));
   }

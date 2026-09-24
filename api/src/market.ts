@@ -1,4 +1,4 @@
-import { type Role, roleOf } from "@jobit/worker/roles";
+﻿import { type Role, roleOf } from "@jobit/worker/roles";
 import { skillsOf } from "@jobit/worker/skills";
 import type { Job, JobType, Level, WorkMode } from "./types.ts";
 
@@ -88,7 +88,7 @@ export interface MarketReport {
 }
 
 /** The monthly figure an offer publishes, once it is believable. */
-function monthlyPay(job: Job): number | null {
+export function monthlyPayOf(job: Job): number | null {
   if (!job.salary) return null;
   /** Ranges are read at their floor: it is the number the person is promised. */
   const value = job.salary.min ?? job.salary.max;
@@ -142,7 +142,7 @@ function groupBy<K>(jobs: Job[], key: (job: Job) => K | null): Map<K, Job[]> {
 function salaryOf(jobs: Job[]): SalarySummary | null {
   const values: number[] = [];
   for (const job of jobs) {
-    const pay = monthlyPay(job);
+    const pay = monthlyPayOf(job);
     if (pay !== null) values.push(pay);
   }
   return summarize(values);
@@ -203,11 +203,11 @@ function departmentStats(jobs: Job[]): DepartmentStat[] {
     .sort((a, b) => b.count - a.count);
 }
 
-/** Una habilidad mencionada en una sola oferta es anécdota, no demanda. */
+/** Una habilidad mencionada en una sola oferta es anÃ©cdota, no demanda. */
 const MIN_SKILL_OFFERS = 5;
 
 /**
- * Las habilidades que más se piden. Se mira título, descripción y requisitos:
+ * Las habilidades que mÃ¡s se piden. Se mira tÃ­tulo, descripciÃ³n y requisitos:
  * una empresa puede nombrar "Excel" en cualquiera de los tres, y todas cuentan.
  */
 function skillStats(jobs: Job[]): SkillStat[] {
@@ -271,7 +271,7 @@ export function buildMarketReport(
     fresh7: jobs.filter((job) => isNewerThan(job, 7, now)).length,
     fresh30: jobs.filter((job) => isNewerThan(job, 30, now)).length,
     noExperience: countNoExperience(jobs),
-    withSalary: jobs.filter((job) => monthlyPay(job) !== null).length,
+    withSalary: jobs.filter((job) => monthlyPayOf(job) !== null).length,
     salary: salaryOf(jobs),
     sources: tally(jobs, (job) => job.source || null),
     roles: roleStats(jobs),

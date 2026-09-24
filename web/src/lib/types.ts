@@ -1,3 +1,5 @@
+import { employerSlug } from "./employers.ts";
+
 export type Level = "entry" | "mid" | "senior";
 export type Remote = "remote" | "hybrid";
 export type JobType = "full_time" | "part_time" | "internship";
@@ -135,33 +137,41 @@ export interface Filters {
   q: string;
   category: string;
   department: string;
+  /** Slug de una empresa; vacío es "todas". */
+  company: string;
   level: Level | "";
   mode: WorkMode | "";
   jobType: JobType | "";
   noExperience: boolean;
   days: number | null;
+  /** Filtra a las empresas donde trabajó la persona (viven en el perfil). */
+  myCompanies: boolean;
 }
 
 export const EMPTY_FILTERS: Filters = {
   q: "",
   category: "",
   department: "",
+  company: "",
   level: "",
   mode: "",
   jobType: "",
   noExperience: false,
   days: null,
+  myCompanies: false,
 };
 
 export const hasActiveFilters = (filters: Filters): boolean =>
   filters.q !== "" ||
   filters.category !== "" ||
   filters.department !== "" ||
+  filters.company !== "" ||
   filters.level !== "" ||
   filters.mode !== "" ||
   filters.jobType !== "" ||
   filters.noExperience ||
-  filters.days !== null;
+  filters.days !== null ||
+  filters.myCompanies;
 
 /** A monthly pay range in pesos; null on an end means it is not bounded. */
 export interface SalaryPreference {
@@ -409,6 +419,7 @@ export const withDepartmentStances = (
 export function matchesFilters(job: Job, filters: Filters): boolean {
   if (filters.category && job.category !== filters.category) return false;
   if (filters.department && job.department !== filters.department) return false;
+  if (filters.company && employerSlug(job.company ?? "") !== filters.company) return false;
   if (filters.level && job.level !== filters.level) return false;
   if (filters.mode && workMode(job) !== filters.mode) return false;
   if (filters.jobType && job.job_type !== filters.jobType) return false;
