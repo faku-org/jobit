@@ -13,10 +13,16 @@ const API_TARGET = process.env.API_URL ?? "http://127.0.0.1:3000";
 /** Las rutas con contenido indexable las sirve la API (ver api/src/site.ts),
  * así que en desarrollo también van para allá. En producción las pone nginx. */
 const PROXY = Object.fromEntries(
-  ["/api", "/empleo", "/mercado", "/rubro", "/departamento", "/puesto"].map((route) => [
-    route,
-    { target: API_TARGET, changeOrigin: true },
-  ]),
+  [
+    "/api",
+    "/empleo",
+    "/mercado",
+    "/rubro",
+    "/departamento",
+    "/puesto",
+    "/servicios",
+    "/sitemap.xml",
+  ].map((route) => [route, { target: API_TARGET, changeOrigin: true }]),
 );
 
 const LEGAL = new Set(["/terminos", "/privacidad"]);
