@@ -178,14 +178,6 @@ export function Tracking({
                         </a>
                       ) : null}
                       <button
-                        aria-label="Practicar para la entrevista"
-                        className="inline-flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-mist hover:text-ink"
-                        type="button"
-                        onClick={() => onPractice(entry)}
-                      >
-                        <GraduationCap aria-hidden className="size-4" />
-                      </button>
-                      <button
                         aria-label="Quitar del seguimiento"
                         className="inline-flex size-8 items-center justify-center rounded-lg text-faint transition-colors hover:bg-mist hover:text-ink"
                         type="button"
@@ -196,11 +188,19 @@ export function Tracking({
                     </div>
                   </div>
 
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                     <StatusPicker
                       status={entry.status}
                       onSetStatus={(status) => onSetStatus(entry.id, status)}
                     />
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-full bg-mist px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-sky/40 hover:text-ink"
+                      type="button"
+                      onClick={() => onPractice(entry)}
+                    >
+                      <GraduationCap aria-hidden className="size-3.5" />
+                      Practicar
+                    </button>
                   </div>
                 </m.article>
               ))}
