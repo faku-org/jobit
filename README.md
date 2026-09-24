@@ -18,7 +18,7 @@ ofertas piden más nivel del que tiene.
 
 | Carpeta | Qué hace |
 |---|---|
-| `worker/` | Scrapers de portales uruguayos. Escribe `worker/output/jobs.json`. |
+| `worker/` | Scrapers de portales uruguayos y del contenido curado. Escribe `worker/output/`. |
 | `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
 | `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español y panel en `/admin`. |
 
@@ -70,6 +70,7 @@ termina donde termina la de verdad.
 | `GET /api/market` | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos. |
 | `GET /api/market.csv` | Ese mismo informe como CSV, todas las tablas bajo un encabezado. |
 | `GET /api/market.xlsx` | Ese mismo informe como planilla, una pestaña por tabla. |
+| `GET /api/content` | El contenido curado por rubro y puesto (FAQ, ejercicios, recursos). |
 | `POST /api/stats` | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`. |
 | `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
 | `GET /api/admin/usage` | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión. |
@@ -125,6 +126,33 @@ curl -s http://localhost:3000/api/market.csv | head -3
 curl -s "http://localhost:3000/api/jobs.txt?q=cajero&limit=5"
 ```
 
+## Contenido
+
+Aparte de las ofertas, JobIt muestra contenido curado por rubro y puesto:
+preguntas frecuentes de entrevista, ejercicios de práctica y recursos. No se
+calcula: se trae y se mantiene.
+
+- El **seed** vive versionado en `worker/src/content/seed.ts` y es lo que hace
+  que la función ande desde el primer día y sin red.
+- La **ingesta** (`worker/src/content/sources.ts` + `adapters.ts`) suma lo que
+  hay en las fuentes base (documentación, práctica) y escribe
+  `worker/output/content.json`. La API mezcla ese archivo con el seed, así que
+  una corrida fallida nunca vacía una sección: conserva lo que esa fuente había
+  dejado.
+
+```bash
+bun run content          # regenera worker/output/content.json
+curl -s "http://localhost:3000/api/content?category=tecnologia&kind=faq,exercise"
+```
+
+El momento que lo activa es confirmar una postulación: cuando la persona dice
+que sí, la ficha de la oferta muestra, ahí mismo, los ejercicios y las preguntas
+de su rubro. Un rubro sin contenido no dibuja nada.
+
+Cada ítem lleva su fuente y, si es un enlace pago, `sponsored: true`: la web lo
+enlaza con `rel="sponsored"` desde el primer día, porque marcar un enlace pago
+tarde es justo lo que Google penaliza.
+
 ## Desde la CLI
 
 Los filtros viajan en la URL de la web. `curl` de esa misma dirección
@@ -142,7 +170,8 @@ devolver. El atajo estable, sin negociación de User-Agent, es `GET /api/cli`
 con los mismos parámetros.
 
 Variables de entorno: `PORT` (3000), `HOST` (127.0.0.1), `JOBS_FILE` (ruta al
-JSON del worker), `DB_FILE` (SQLite de empresas, ofertas propias y cuentas),
+JSON del worker), `CONTENT_FILE` (ruta al `content.json` del worker), `DB_FILE`
+(SQLite de empresas, ofertas propias y cuentas),
 `STATS_FILE` y `EVENTS_FILE` (rutas de los `.jsonl`), `CORS_ORIGIN` (origen del
 dev server de Vite), `ADMIN_PASSWORD_HASH_FILE` (archivo con el hash del panel;
 sin él `/api/admin` responde 404), `INGEST_TOKEN_FILE` (archivo con el token de
