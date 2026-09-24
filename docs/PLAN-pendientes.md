@@ -202,18 +202,23 @@ alguien a un reclutador lo cambia de raíz. Reglas mínimas:
    verificable. Se apoya en el panel de empresa (#15) y la capa de pagos (#33).
 4. **Recruiter ve path y errores comunes**, solo con consentimiento vigente.
 
-### Preguntas abiertas (de producto, para Faku)
+### Decisiones tomadas
 
-1. **Identidad:** ¿cuenta compartida entre JobIt y LearnIt, link OAuth explícito,
-   o credencial portátil que la persona genera y pega?
-2. **Consentimiento:** ¿qué ve el reclutador, por cuánto tiempo, y la persona
-   puede revocarlo después de postularse?
-3. **Contrato:** ¿LearnIt ya puede exponer catálogo y resultados, o hay que
-   construirlo? ¿Token de servicio o solo sesión de usuario?
-4. **La prueba:** ¿la define la empresa por oferta o es una evaluación estándar
-   de LearnIt? ¿Qué pasa con quien no la hace?
-5. **Marca:** los cursos de LearnIt, ¿se muestran como contenido de JobIt o con
-   marca LearnIt?
+1. **Identidad:** link OAuth explícito. La persona vincula su cuenta de LearnIt
+   una vez (LearnIt ya tiene Google OAuth) y cada postulación pide permiso
+   aparte. Cuenta compartida queda descartada: acoplaría los dos backends.
+2. **Consentimiento:** por postulación, con vencimiento y revocable. El
+   reclutador ve solo lo que se compartió para esa postulación, y la persona
+   puede cortarlo después.
+3. **Lado LearnIt:** se documenta el contrato acá y lo implementa el repo de
+   LearnIt. JobIt consume, no construye el otro lado.
+
+### Preguntas todavía abiertas
+
+- **La prueba:** ¿la define la empresa por oferta o es una evaluación estándar
+  de LearnIt? ¿Qué pasa con quien no la hace?
+- **Marca:** los cursos de LearnIt, ¿se muestran como contenido de JobIt o con
+  marca LearnIt?
 
 ### Impacto en lo ya planeado
 
