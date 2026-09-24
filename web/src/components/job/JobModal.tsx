@@ -10,10 +10,12 @@ import {
 import { islandTransition } from "../../lib/motion.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
 import { type Application, type Job, type Tag, relatedApplications } from "../../lib/types.ts";
+import { usePrep } from "../../hooks/usePrep.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
 import { JobChips, type TagActions } from "./JobChips.tsx";
 import { JobDescription } from "./JobDescription.tsx";
 import { JobFit } from "./JobFit.tsx";
+import { PrepTips } from "./PrepTips.tsx";
 import { ShareMenu } from "../ui/ShareMenu.tsx";
 
 interface JobModalProps {
@@ -74,6 +76,9 @@ export function JobModal({
   onClose,
 }: JobModalProps) {
   const related = relatedApplications(job, applications);
+  /** Se pide recién cuando la oferta está en seguimiento: confirmar una
+   * postulación es el momento en que prepararse tiene fecha. */
+  const prep = usePrep(job.category, isApplied);
   /** The sheet plays its own exit and then asks to be unmounted. */
   const [closing, setClosing] = useState(false);
   const close = useCallback(() => setClosing(true), []);
@@ -209,6 +214,12 @@ export function JobModal({
           {job.requirements ? (
             <Section title="Requisitos">
               <JobDescription profile={tagActions.profile} text={job.requirements} />
+            </Section>
+          ) : null}
+
+          {isApplied && prep.items.length > 0 ? (
+            <Section title="Para prepararte">
+              <PrepTips items={prep.items} />
             </Section>
           ) : null}
 
