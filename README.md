@@ -290,6 +290,7 @@ servida por la API y puesta delante de la app por nginx (`api/src/site.ts`):
 | `/rubro/<slug>` | Las ofertas de un rubro. |
 | `/departamento/<nombre>` | Las ofertas de un departamento. |
 | `/puesto/<slug>` | Las ofertas de un puesto. |
+| `/entrevista/<rubro>` | La guía de entrevista de un rubro: preguntas frecuentes, habilidades y sus ofertas, con `FAQPage`. |
 
 Son documentos HTML sueltos, sin React: el mismo patrón que `/terminos`. Un
 scraper los lee enteros, así que un enlace compartido ya no previsualiza como la
@@ -304,6 +305,11 @@ acá de verdad: `source` igual a `jobit` y sin enlace de postulación externo
 original, porque marcarlas como propias es lo que Google penaliza en los
 agregadores. El canonical de cada página apunta a sí misma; el `?embed=` se marca
 `noindex` en tiempo de ejecución.
+
+Las guías de entrevista (`/entrevista/<rubro>`, una por rubro) llevan `FAQPage`
+solo con las preguntas: una lista vacía no se marca. Adentro de la app, filtrar
+por un rubro despliega la misma guía como "Prepará tu entrevista", con el mismo
+contenido curado que sirve la API.
 
 ## Cuentas
 

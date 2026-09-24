@@ -338,4 +338,314 @@ export const SEED_ITEMS: ContentItem[] = [
       "promete.",
     tags: ["habilidades blandas"],
   }),
+
+  /* ---------- Habilidades y temas, por rubro ---------- */
+  seed({
+    kind: "topic",
+    category: "ventas",
+    title: "Resiliencia y seguimiento",
+    body:
+      "Vender es un trabajo de seguimiento: la mayoría de los «no» son tiempos, no rechazos. " +
+      "Lo que se evalúa es si la persona insiste sin incomodar.",
+    tags: ["habilidades blandas"],
+  }),
+  seed({
+    kind: "topic",
+    category: "atencion-cliente",
+    title: "Empatía y calma",
+    body:
+      "Atender bien es sostener la calma cuando la otra persona no la tiene. Escuchar primero " +
+      "y resolver después se nota en el tono.",
+    tags: ["habilidades blandas"],
+  }),
+  seed({
+    kind: "topic",
+    category: "administracion",
+    title: "Orden y confidencialidad",
+    body:
+      "Administración es la memoria de la empresa: plazos, registros y discreción. Lo que se " +
+      "maneja es información que no es de uno.",
+    tags: ["habilidades blandas"],
+  }),
+  seed({
+    kind: "topic",
+    category: "produccion",
+    title: "Seguridad y método",
+    body:
+      "En planta se trabaja con protocolo: el atajo que ahorra minutos es el que causa el " +
+      "accidente. Seguir el procedimiento es parte del oficio.",
+    tags: ["habilidades blandas"],
+  }),
+  seed({
+    kind: "topic",
+    category: "contabilidad-finanzas",
+    title: "Detalle y ética",
+    body:
+      "Un número mal cerrado se arrastra y contamina todo lo demás. La ética profesional —no " +
+      "firmar algo que no se revisó— es parte del oficio.",
+    tags: ["habilidades blandas"],
+  }),
+  seed({
+    kind: "topic",
+    category: "logistica",
+    title: "Puntualidad y previsión",
+    body:
+      "La logística se mide en entregas cumplidas y en cómo se avisa un retraso. Anticipar el " +
+      "problema vale más que justificarlo después.",
+    tags: ["habilidades blandas"],
+  }),
+
+  /* ---------- Análisis e investigación ---------- */
+  faq(
+    "datos-analisis",
+    "¿Qué diferencia hay entre un promedio y una mediana?",
+    "El promedio se mueve con los valores extremos; la mediana deja la mitad de los datos de " +
+      "cada lado. Poder decir cuál conviene según el caso muestra criterio, no memoria.",
+    ["estadistica"],
+  ),
+  faq(
+    "datos-analisis",
+    "¿Cómo contás una historia con datos?",
+    "Primero la pregunta, después el dato que la responde y al final la decisión que habilita. " +
+      "Un gráfico sin pregunta es decoración.",
+    ["comunicacion"],
+  ),
+  faq(
+    "datos-analisis",
+    "¿Qué revisás antes de confiar en un dataset?",
+    "De dónde salió, cuántos valores faltan y cómo se midió. La mitad de los errores de un " +
+      "análisis son de origen, no de cálculo.",
+    ["calidad de datos"],
+  ),
+  seed({
+    kind: "topic",
+    category: "datos-analisis",
+    title: "Datos y responsabilidad",
+    body:
+      "Correlación no es causalidad, y un dato con nombre propio es una persona. El análisis " +
+      "se presenta agregado y sin exponer a nadie.",
+    tags: ["habilidades blandas"],
+  }),
+
+  /* ---------- Marketing ---------- */
+  faq(
+    "marketing",
+    "¿Cómo medís si una campaña funcionó?",
+    "Contra un objetivo definido antes de arrancar: ventas, consultas o alcance. Sin línea " +
+      "base, cualquier resultado se puede maquillar.",
+    ["metricas"],
+  ),
+  faq(
+    "marketing",
+    "¿Qué diferencia hay entre alcance y conversión?",
+    "El alcance dice cuánta gente vio; la conversión, cuánta hizo lo que querías. Un número " +
+      "grande de alcance no paga las cuentas.",
+    ["metricas"],
+  ),
+  faq(
+    "marketing",
+    "¿Cómo cambiás el mensaje sin cambiar el producto?",
+    "Entendiendo a quién le hablás y qué problema le resolvés. El mismo producto se cuenta " +
+      "distinto para públicos distintos.",
+    ["contenido"],
+  ),
+  seed({
+    kind: "topic",
+    category: "marketing",
+    title: "Contenido y comunidad",
+    body:
+      "Responder comentarios y sostener una voz clara vale más que publicar todos los días sin " +
+      "rumbo.",
+    tags: ["habilidades blandas"],
+  }),
+
+  /* ---------- Recursos humanos ---------- */
+  faq(
+    "rrhh",
+    "¿Cómo evaluás a alguien sin discriminar?",
+    "Con criterios del puesto definidos antes y las mismas preguntas para todos. Lo que no se " +
+      "mide contra el aviso termina siendo una impresión personal.",
+    ["seleccion"],
+  ),
+  faq(
+    "rrhh",
+    "¿Qué hacés ante un conflicto entre dos personas del equipo?",
+    "Escuchar a cada uno por separado, separar el hecho de la interpretación y acordar un " +
+      "próximo paso concreto. Tomar partido de entrada cierra la puerta.",
+    ["conflictos"],
+  ),
+  faq(
+    "rrhh",
+    "¿Cómo cuidás los datos de los postulantes?",
+    "Se usan solo para el proceso, se guardan donde corresponde y se borran cuando ya no hacen " +
+      "falta. Es información sensible de gente que no trabaja ahí.",
+    ["privacidad"],
+  ),
+  seed({
+    kind: "topic",
+    category: "rrhh",
+    title: "Trato y confidencialidad",
+    body:
+      "Recursos humanos maneja lo más sensible de una empresa: sueldos, bajas y problemas " +
+      "personales. La discreción es la base del puesto.",
+    tags: ["habilidades blandas"],
+  }),
+
+  /* ---------- Educación ---------- */
+  faq(
+    "educacion",
+    "¿Cómo explicás algo a alguien que no entiende?",
+    "Con un ejemplo concreto antes que con la definición, y chequeando con una pregunta si se " +
+      "entendió. Repetir más fuerte no enseña.",
+    ["docencia"],
+  ),
+  faq(
+    "educacion",
+    "¿Cómo manejás un grupo con niveles muy distintos?",
+    "Con tareas por nivel y el que ya sabe ayudando al que no. Enseñar a un compañero también " +
+      "es una forma de aprender.",
+    ["docencia"],
+  ),
+  faq(
+    "educacion",
+    "¿Qué hacés si un estudiante no quiere estar ahí?",
+    "Buscar la causa antes de insistir con la misma estrategia; muchas veces el problema está " +
+      "fuera del aula, no en el contenido.",
+    ["docencia"],
+  ),
+  seed({
+    kind: "topic",
+    category: "educacion",
+    title: "Paciencia y escucha",
+    body: "Enseñar es sostener el proceso del otro, no lucirse. El ritmo lo marca quien aprende.",
+    tags: ["habilidades blandas"],
+  }),
+
+  /* ---------- Salud ---------- */
+  faq(
+    "salud",
+    "¿Cómo le das una noticia difícil a un paciente?",
+    "Con claridad, sin tecnicismos, dejando lugar a preguntas y sin apurar el momento. La forma " +
+      "importa tanto como el dato.",
+    ["trato"],
+  ),
+  faq(
+    "salud",
+    "¿Cómo manejás la confidencialidad?",
+    "Lo que se ve en el trabajo no sale del ámbito clínico, ni en un comentario ni en redes. " +
+      "No hay excepciones por costumbre.",
+    ["privacidad"],
+  ),
+  faq(
+    "salud",
+    "¿Qué hacés ante un error propio?",
+    "Informarlo enseguida, priorizar al paciente y registrar qué pasó para que no se repita. " +
+      "Ocultarlo es siempre peor.",
+    ["responsabilidad"],
+  ),
+  seed({
+    kind: "topic",
+    category: "salud",
+    title: "Cuidado y responsabilidad",
+    body:
+      "Es el rubro donde el error tiene costo humano: protocolo, registro y aviso a tiempo " +
+      "valen más que la rapidez.",
+    tags: ["habilidades blandas"],
+  }),
+
+  /* ---------- Oficios ---------- */
+  faq(
+    "oficios",
+    "¿Cómo leés un plano o una orden de trabajo?",
+    "Primero la medida general y después el detalle. Ante la duda se pregunta antes de cortar, " +
+      "no después.",
+    ["lectura de planos"],
+  ),
+  faq(
+    "oficios",
+    "¿Qué hacés con las normas de seguridad en obra?",
+    "Se usan siempre, aunque el trabajo sea corto: el accidente pasa en el minuto en que se " +
+      "salteó el protocolo.",
+    ["seguridad"],
+  ),
+  faq(
+    "oficios",
+    "¿Cómo mantenés tus herramientas?",
+    "Cada herramienta tiene su lugar y su revisión. Una falla en el equipo es un riesgo para " +
+      "uno y para los demás.",
+    ["herramientas"],
+  ),
+  seed({
+    kind: "topic",
+    category: "oficios",
+    title: "Seguridad y prolijidad",
+    body:
+      "En oficios se evalúa la seguridad, el orden del puesto y el cuidado de la herramienta, " +
+      "tanto como la técnica.",
+    tags: ["habilidades blandas"],
+  }),
+
+  /* ---------- Ingeniería ---------- */
+  faq(
+    "ingenieria",
+    "¿Cómo convertís un requisito en una solución?",
+    "Entendiendo la restricción real —costo, plazo, norma— y proponiendo la opción más simple " +
+      "que la cumpla. La solución complicada es fácil; la simple es el trabajo.",
+    ["diseno"],
+  ),
+  faq(
+    "ingenieria",
+    "¿Qué hacés cuando un cálculo no cierra?",
+    "Se revisan los supuestos antes que las cuentas: casi siempre el error está en lo que se " +
+      "dio por sentado.",
+    ["calculo"],
+  ),
+  faq(
+    "ingenieria",
+    "¿Cómo trabajás con otros equipos?",
+    "Con documentación clara y revisiones previas. Una decisión no documentada es una decisión " +
+      "que se pierde.",
+    ["documentacion"],
+  ),
+  seed({
+    kind: "topic",
+    category: "ingenieria",
+    title: "Criterio y documentación",
+    body:
+      "La ingeniería se juzga por decisiones defendibles y trazables, no por la elegancia del " +
+      "cálculo.",
+    tags: ["habilidades blandas"],
+  }),
+
+  /* ---------- Diseño ---------- */
+  faq(
+    "diseno",
+    "¿Cómo defendés una decisión de diseño?",
+    "Con el problema del usuario y la restricción, no con el gusto. «Me gusta» no es un " +
+      "argumento; «esto le hace más fácil la tarea» sí.",
+    ["criterio"],
+  ),
+  faq(
+    "diseno",
+    "¿Cómo tomás el feedback?",
+    "Separando lo que es un problema real de lo que es una preferencia. Se pregunta el porqué " +
+      "antes de cambiar algo.",
+    ["feedback"],
+  ),
+  faq(
+    "diseno",
+    "¿Qué hacés cuando no hay tiempo para todo?",
+    "Se prioriza lo que la persona necesita para completar la tarea y se deja lo accesorio para " +
+      "después. Entregar lo esencial vale más que lo perfecto a medias.",
+    ["prioridades"],
+  ),
+  seed({
+    kind: "topic",
+    category: "diseno",
+    title: "Usuario y criterio",
+    body:
+      "Diseñar es resolver, no decorar: cada decisión se sostiene en un problema concreto de " +
+      "quien usa.",
+    tags: ["habilidades blandas"],
+  }),
 ];

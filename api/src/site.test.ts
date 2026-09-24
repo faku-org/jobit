@@ -61,7 +61,8 @@ beforeEach(() => {
   resetLimits();
 });
 
-const call = (path: string): Promise<Response> => app.handle(new Request(`http://localhost${path}`));
+const call = (path: string): Promise<Response> =>
+  app.handle(new Request(`http://localhost${path}`));
 
 describe("páginas indexables", () => {
   test("la ficha de una oferta sale en HTML con su canonical", async () => {
@@ -95,5 +96,19 @@ describe("páginas indexables", () => {
     const response = await call("/departamento/Montevideo");
     expect(response.status).toBe(200);
     expect(await response.text()).toContain("Ofertas de trabajo en Montevideo");
+  });
+
+  test("la guía de entrevista de un rubro sale con su FAQPage", async () => {
+    const response = await call("/entrevista/tecnologia");
+    expect(response.status).toBe(200);
+
+    const html = await response.text();
+    expect(html).toContain("Preguntas de entrevista de Tecnología");
+    expect(html).toContain('"@type":"FAQPage"');
+    expect(html).toContain('rel="canonical" href="https://jobs.test/entrevista/tecnologia"');
+  });
+
+  test("un rubro que no existe da 404 en la guía de entrevista", async () => {
+    expect((await call("/entrevista/no-existe")).status).toBe(404);
   });
 });

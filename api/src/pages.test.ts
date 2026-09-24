@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import type { ContentItem } from "@jobit/worker/content/types";
 import type { Job } from "./types.ts";
 import {
   escapeHtml,
+  faqPageLd,
+  interviewPageHtml,
   isNativeOffer,
   jobPageHtml,
   jobPostingLd,
@@ -110,7 +113,12 @@ describe("jobPageHtml", () => {
 
 describe("marketPageHtml", () => {
   test("resume el tablero", () => {
-    const file: JobsFile = { scraped_at: "2026-09-01", sources: ["jobit"], count: 1, jobs: [job()] };
+    const file: JobsFile = {
+      scraped_at: "2026-09-01",
+      sources: ["jobit"],
+      count: 1,
+      jobs: [job()],
+    };
     const html = marketPageHtml(buildMarketReport(file.jobs, file.scraped_at));
     expect(html).toContain("<h1>El mercado laboral uruguayo, ahora</h1>");
     expect(html).toContain("Ventas y comercial");
@@ -134,5 +142,68 @@ describe("notFoundPage", () => {
     const html = notFoundPage();
     expect(html).toContain("No encontramos eso");
     expect(html).toContain("https://jobs.test/");
+  });
+});
+
+const content = (overrides: Partial<ContentItem> = {}): ContentItem => ({
+  id: "c1",
+  kind: "faq",
+  title: "¿Qué es una API?",
+  body: "Una forma de que dos programas se hablen.",
+  url: null,
+  source: "jobit",
+  source_label: "JobIt",
+  license: null,
+  sponsored: false,
+  categories: ["tecnologia"],
+  roles: [],
+  level: null,
+  tags: [],
+  fetched_at: "2026-09-01",
+  ...overrides,
+});
+
+describe("faqPageLd", () => {
+  test("arma un FAQPage solo con las preguntas", () => {
+    const ld = faqPageLd([
+      content(),
+      content({ id: "c2", kind: "topic", title: "Trabajo en equipo" }),
+    ]);
+    expect(ld?.["@type"]).toBe("FAQPage");
+    const entities = ld?.mainEntity as { name: string; acceptedAnswer: { text: string } }[];
+    expect(entities).toHaveLength(1);
+    expect(entities[0]?.name).toBe("¿Qué es una API?");
+    expect(entities[0]?.acceptedAnswer.text).toContain("dos programas");
+  });
+
+  test("sin preguntas no marca nada", () => {
+    expect(faqPageLd([content({ kind: "topic" })])).toBeNull();
+  });
+});
+
+describe("interviewPageHtml", () => {
+  test("trae preguntas, temas, FAQPage y enlace a la app", () => {
+    const html = interviewPageHtml(
+      "tecnologia",
+      [job({ category: "tecnologia" })],
+      [
+        content(),
+        content({ id: "c2", kind: "topic", title: "Trabajo en equipo", body: "Importa." }),
+      ],
+    );
+
+    expect(html).toContain("Preguntas de entrevista de Tecnología en Uruguay");
+    expect(html).toContain("¿Qué es una API?");
+    expect(html).toContain("Trabajo en equipo");
+    expect(html).toContain('"@type":"FAQPage"');
+    expect(html).toContain('rel="canonical" href="https://jobs.test/entrevista/tecnologia"');
+    expect(html).toContain("https://jobs.test/?category=tecnologia");
+    expect(html).toContain("Vendedor de mostrador");
+  });
+
+  test("sin ofertas igual sale, sin la sección de avisos", () => {
+    const html = interviewPageHtml("tecnologia", [], [content()]);
+    expect(html).toContain("Preguntas de entrevista de Tecnología");
+    expect(html).not.toContain("Ofertas de Tecnología");
   });
 });

@@ -5,6 +5,7 @@ import { CategoryChips } from "./components/board/CategoryChips.tsx";
 import { DynamicIsland } from "./components/board/DynamicIsland.tsx";
 import { FadeUp } from "./components/ui/FadeUp.tsx";
 import { FilterBar } from "./components/board/FilterBar.tsx";
+import { RubroPrep } from "./components/board/RubroPrep.tsx";
 import { JobCard } from "./components/job/JobCard.tsx";
 import { JobList } from "./components/job/JobList.tsx";
 import { EmptyState, ErrorState, JobListSkeleton } from "./components/board/States.tsx";
@@ -423,24 +424,24 @@ export default function App() {
         ) : (
           <>
             <div className="mt-3">
-                <FilterBar
-                  categories={meta?.categories ?? []}
-                  departments={meta?.departments ?? []}
-                  canReviewDiscarded={canReviewDiscarded}
-                  discardedCount={prefs.dismissed.size}
-                  filters={filters}
-                  hasPreferences={hasPreferences}
-                  isDirty={isDirty}
-                  matchCount={similarOnly ? total : matches.size}
-                  noExperienceCount={meta?.no_experience_count ?? 0}
-                  onlySimilar={similarOnly}
-                  reviewingDiscarded={reviewing}
-                  showCategory={!isSavedView}
-                  onChange={setFilters}
-                  onReset={reset}
-                  onToggleReviewDiscarded={() => setReviewingDiscarded((current) => !current)}
-                  onToggleSimilar={() => setOnlySimilar((current) => !current)}
-                />
+              <FilterBar
+                categories={meta?.categories ?? []}
+                departments={meta?.departments ?? []}
+                canReviewDiscarded={canReviewDiscarded}
+                discardedCount={prefs.dismissed.size}
+                filters={filters}
+                hasPreferences={hasPreferences}
+                isDirty={isDirty}
+                matchCount={similarOnly ? total : matches.size}
+                noExperienceCount={meta?.no_experience_count ?? 0}
+                onlySimilar={similarOnly}
+                reviewingDiscarded={reviewing}
+                showCategory={!isSavedView}
+                onChange={setFilters}
+                onReset={reset}
+                onToggleReviewDiscarded={() => setReviewingDiscarded((current) => !current)}
+                onToggleSimilar={() => setOnlySimilar((current) => !current)}
+              />
             </div>
 
             {isSavedView && savedGroups.length > 1 ? (
@@ -450,6 +451,20 @@ export default function App() {
                   selected={savedCategory}
                   onSelect={setSavedCategory}
                 />
+              </div>
+            ) : null}
+
+            {filters.category && meta ? (
+              <div className="mt-3">
+                <FadeUp>
+                  <RubroPrep
+                    category={filters.category}
+                    label={
+                      meta.categories.find((entry) => entry.value === filters.category)?.label ??
+                      filters.category
+                    }
+                  />
+                </FadeUp>
               </div>
             ) : null}
 

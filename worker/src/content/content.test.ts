@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { CATEGORIES } from "../categories.ts";
 import { collect, plainText } from "./adapters.ts";
 import { SEED_ITEMS } from "./seed.ts";
 import { contentId, isContentItem, type ContentSource } from "./types.ts";
@@ -132,5 +133,19 @@ describe("seed", () => {
     const tech = SEED_ITEMS.filter((item) => item.categories.includes("tecnologia"));
     expect(tech.some((item) => item.kind === "faq")).toBe(true);
     expect(tech.some((item) => item.kind === "exercise")).toBe(true);
+  });
+
+  test("cada rubro del catálogo tiene preguntas y temas", () => {
+    const withoutFaq = CATEGORIES.filter(
+      ({ slug }) =>
+        !SEED_ITEMS.some((item) => item.kind === "faq" && item.categories.includes(slug)),
+    ).map((category) => category.slug);
+    const withoutTopic = CATEGORIES.filter(
+      ({ slug }) =>
+        !SEED_ITEMS.some((item) => item.kind === "topic" && item.categories.includes(slug)),
+    ).map((category) => category.slug);
+
+    expect(withoutFaq).toEqual([]);
+    expect(withoutTopic).toEqual([]);
   });
 });
