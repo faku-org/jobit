@@ -156,10 +156,17 @@ páginas server-rendered; por defecto el de producción).
 ## Desde un agente (MCP)
 
 `mcp/` es un servidor MCP que expone la búsqueda para que un agente encuentre
-ofertas contra su propia memoria y de forma automatizada. Es un proceso aparte
-que habla MCP por stdio y llama a la API por HTTP, así que no importa el código
-de la API y se apunta a producción o a un self-host con `JOBIT_API_URL` (por
-defecto `https://jobs.wefaber.net`).
+ofertas contra su propia memoria y de forma automatizada. Está **hosteado** en
+`https://jobs.wefaber.net/mcp` (Streamable HTTP, sin sesión), así que en un
+cliente se agrega con la URL y listo:
+
+```json
+{ "mcpServers": { "jobit": { "url": "https://jobs.wefaber.net/mcp" } } }
+```
+
+También corre por stdio para quien lo prefiera local: es un proceso aparte que
+llama a la API por HTTP con `JOBIT_API_URL` (por defecto
+`https://jobs.wefaber.net`).
 
 | Herramienta | Qué hace |
 |---|---|
@@ -169,11 +176,12 @@ defecto `https://jobs.wefaber.net`).
 | `list_filters` | `GET /api/meta`: rubros, departamentos y fuentes. |
 
 ```bash
-bun run --cwd mcp start
+bun run --cwd mcp start        # local, por stdio
+bun run --cwd mcp start:http   # el que corre hosteado
 ```
 
-En un cliente MCP se declara como cualquier otro servidor; el detalle y el JSON
-de configuración están en `mcp/README.md`.
+Detrás de nginx (`location = /mcp`) corre como `jobit-mcp.service` en el puerto
+3300. El detalle y los JSON de configuración están en `mcp/README.md`.
 
 ## Perfil y estadísticas
 

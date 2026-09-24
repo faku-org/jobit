@@ -9,6 +9,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
+    "start:http": "bun run src/http.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
