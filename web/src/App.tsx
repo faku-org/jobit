@@ -10,10 +10,12 @@ import { JobList } from "./components/job/JobList.tsx";
 import { EmptyState, ErrorState, JobListSkeleton } from "./components/board/States.tsx";
 import type { TagActions } from "./components/job/JobChips.tsx";
 import { ViewTabs } from "./components/board/ViewTabs.tsx";
+import { useAccountSync } from "./hooks/useAccountSync.ts";
 import { useJobPrefs } from "./hooks/useJobPrefs.ts";
 import { useJobLink } from "./hooks/useJobLink.ts";
 import { useJobs } from "./hooks/useJobs.ts";
 import { useMeta } from "./hooks/useMeta.ts";
+import { useSession } from "./hooks/useSession.ts";
 import { useViewLink } from "./hooks/useViewLink.ts";
 import { useCustomFeeds } from "./hooks/useCustomFeeds.ts";
 import { prefetchMarket, useMarket } from "./hooks/useMarket.ts";
@@ -99,6 +101,10 @@ export default function App() {
   const [goneIds, setGoneIds] = useState<Set<string>>(new Set());
 
   const prefs = useJobPrefs();
+  /** Quién está adentro y qué eligió sincronizar. Va acá, arriba de la isla,
+   * porque el sync toca las mismas preferencias que el resto del panel. */
+  const session = useSession();
+  const accountSync = useAccountSync(prefs, session.user, session.ready);
   const meta = useMeta();
   /**
    * Read from storage on the first render, so a first visit paints the intro
@@ -343,7 +349,9 @@ export default function App() {
         meta={meta}
         preferences={prefs.preferences}
         profile={prefs.profile}
+        session={session}
         sources={prefs.sources}
+        sync={accountSync}
         theme={prefs.theme}
         usage={usage}
         onChangePreferences={prefs.setPreferences}

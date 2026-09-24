@@ -33,9 +33,12 @@ function keyText(): string {
 }
 
 /** Acepta base64 o base64url, que es como la deja cualquiera de las dos formas
- * de generarla, y exige los 32 bytes exactos de AES-256. */
+ * de generarla, y también hex: 64 caracteres hexadecimales son los mismos 32
+ * bytes de AES-256 y es como la escribe media docena de generadores. */
 function decodeKey(text: string): Uint8Array | null {
   if (!text) return null;
+  if (/^[0-9a-fA-F]{64}$/.test(text)) return new Uint8Array(Buffer.from(text, "hex"));
+
   const normalised = text.replace(/-/g, "+").replace(/_/g, "/");
   const bytes = Buffer.from(normalised, "base64");
   return bytes.length === KEY_BYTES ? new Uint8Array(bytes) : null;

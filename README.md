@@ -81,6 +81,7 @@ termina donde termina la de verdad.
 | `POST /api/auth/logout` | Cierra la sesión y borra la cookie. |
 | `GET` / `PATCH` / `DELETE /api/me` | Quién soy, editar la cuenta y borrarla de verdad. |
 | `POST` / `DELETE /api/me/totp` | Activar y desactivar el segundo paso. |
+| `GET` / `PUT` / `DELETE /api/me/sync` | Bajar, guardar o borrar lo que la cuenta sincroniza entre navegadores. |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -288,6 +289,19 @@ faltar. Quien no lo carga se lleva códigos de respaldo y se queda sin reset: lo
 códigos se muestran una sola vez y en la base queda su sha256. Nada de IP, user
 agent, historial de inicios ni "último acceso desde"; las filas se estampan con
 el día y nunca con la hora, igual que las estadísticas.
+
+En la interfaz todo esto vive en la pestaña **Cuenta** del panel de
+preferencias: el estado de la sesión, lo que se guarda del lado del servidor y
+los botones de cada trámite. Crear la cuenta, entrar, recuperar el acceso,
+cambiar la contraseña, el email o el segundo paso y borrar la cuenta abren el
+mismo modal, cada uno con su pantalla.
+
+El **sync entre navegadores** es opcional y viene apagado. Prendido, el servidor
+guarda en `user_sync` un JSON que no interpreta —perfil, preferencias, guardadas,
+postulaciones y fuentes propias— cifrado en reposo con la misma clave que el
+email y el TOTP. Al entrar desde otro navegador se baja, se mezcla con lo local y
+se vuelve a subir; lo que se acumula se une y lo que se elige de a uno lo gana el
+navegador que estás usando. Apagarlo borra la fila.
 
 La sesión es una cookie `jobit_session` (`HttpOnly`, `SameSite=Lax`, alcance
 `/api`, 30 días con renovación) y en la base solo queda el sha256 del token. Es

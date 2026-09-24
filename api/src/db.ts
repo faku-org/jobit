@@ -111,6 +111,15 @@ CREATE TABLE IF NOT EXISTS user_recovery_codes (
   used_at   TEXT NOT NULL DEFAULT '',
   PRIMARY KEY (user_id, code_hash)
 );
+
+/* Lo que alguien eligió llevar de un navegador a otro. Es un JSON opaco para el
+   servidor y va cifrado en reposo, igual que el email: sin clave configurada el
+   sync queda apagado. Se borra solo cuando se borra la cuenta. */
+CREATE TABLE IF NOT EXISTS user_sync (
+  user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  payload_enc TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
 `;
 
 let handle: Database | null = null;

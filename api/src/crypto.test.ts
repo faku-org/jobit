@@ -67,6 +67,24 @@ describe("encrypt y decrypt", () => {
     resetSecretKey();
     expect(await encryptionEnabled()).toBe(false);
   });
+
+  test("una clave en hex de 64 caracteres es la misma clave de 32 bytes", async () => {
+    const hex = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex");
+    process.env.JOBIT_SECRET_KEY = hex;
+    resetSecretKey();
+
+    expect(await encryptionEnabled()).toBe(true);
+    const result = await encrypt("hola");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect((await decrypt(result.value)).ok).toBe(true);
+  });
+
+  test("un hex corto no alcanza", async () => {
+    process.env.JOBIT_SECRET_KEY = "abcd";
+    resetSecretKey();
+    expect(await encryptionEnabled()).toBe(false);
+  });
 });
 
 describe("firma", () => {

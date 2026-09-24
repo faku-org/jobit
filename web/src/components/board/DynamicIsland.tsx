@@ -1,10 +1,12 @@
 import { SlidersHorizontal } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { AccountSync } from "../../hooks/useAccountSync.ts";
 import { useScrolledPast } from "../../hooks/useScrolledPast.ts";
 import type { CustomFeed, FeedResult } from "../../lib/feed.ts";
 import { islandTransition, revealPresence } from "../../lib/motion.ts";
 import { type Profile, profileCount } from "../../lib/profile.ts";
+import type { SessionUser } from "../../lib/session.ts";
 import type { Usage } from "../../lib/stats.ts";
 import {
   type Facet,
@@ -14,6 +16,7 @@ import {
   hiddenCount,
   preferenceCount,
 } from "../../lib/types.ts";
+import { AccountSection } from "../account/AccountSection.tsx";
 import { PreferencesPanel } from "../profile/Preferences.tsx";
 import { ProfilePanel } from "../profile/ProfilePanel.tsx";
 
@@ -31,6 +34,14 @@ interface DynamicIslandProps {
   usage: Usage;
   /** What the danger zone would erase, passed through to the profile sheet. */
   counts: { saved: number; applications: number; dismissed: number };
+  /** La sesión y el sync se resuelven arriba, en App, así la cuenta y los datos
+   * miran el mismo estado. */
+  session: {
+    user: SessionUser | null;
+    ready: boolean;
+    setUser: (user: SessionUser | null) => void;
+  };
+  sync: AccountSync;
   onChangePreferences: (preferences: Preferences) => void;
   onChangeSources: (sources: string[]) => void;
   onChangeFeeds: (feeds: CustomFeed[]) => void;
@@ -40,7 +51,7 @@ interface DynamicIslandProps {
   onImportCv: (profile: Profile, preferences: Preferences) => void;
 }
 
-type Tab = "search" | "profile";
+type Tab = "search" | "profile" | "account";
 
 /**
  * A floating header, detached from the top of the page: wide at rest, shrunk
@@ -60,6 +71,8 @@ export function DynamicIsland({
   profile,
   usage,
   counts,
+  session,
+  sync,
   onChangePreferences,
   onChangeSources,
   onChangeFeeds,
@@ -71,6 +84,13 @@ export function DynamicIsland({
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("search");
   const condensed = useScrolledPast(24);
+
+  /** El panel mide siempre lo mismo mientras está abierto, así que cambiar de
+   * pestaña no redimensiona la isla. El scroll arranca arriba en cada pestaña. */
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: 0 });
+  }, [tab]);
 
   const count = preferenceCount(preferences) + hiddenCount(preferences);
   const studies = profileCount(profile);
@@ -143,12 +163,13 @@ export function DynamicIsland({
               className="grid overflow-hidden"
               transition={islandTransition}
             >
-              <div className="min-h-0 max-h-[70svh] overflow-y-auto">
-                <div className="flex gap-1 px-4 pt-1 pb-2">
+              <div className="h-[70svh] min-h-0 overflow-y-auto" ref={scroller}>
+                <div className="sticky top-0 z-10 flex gap-1 bg-panel px-4 pt-1 pb-2">
                   {(
                     [
                       ["search", "Búsqueda", count],
                       ["profile", "Perfil", studies],
+                      ["account", "Cuenta", 0],
                     ] as const
                   ).map(([value, label, badge]) => (
                     <button
@@ -182,7 +203,7 @@ export function DynamicIsland({
                     onChangeFeeds={onChangeFeeds}
                     onChangeSources={onChangeSources}
                   />
-                ) : (
+                ) : tab === "profile" ? (
                   <ProfilePanel
                     categories={categories}
                     counts={counts}
@@ -194,6 +215,13 @@ export function DynamicIsland({
                     onChangeTheme={onChangeTheme}
                     onEraseEverything={onEraseEverything}
                     onImportCv={onImportCv}
+                  />
+                ) : (
+                  <AccountSection
+                    ready={session.ready}
+                    sync={sync}
+                    user={session.user}
+                    onUser={session.setUser}
                   />
                 )}
               </div>

@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import { encryptionEnabled, sign, verifySignature } from "./crypto.ts";
+import * as sync from "./sync.ts";
 import { generateSecret, otpauthUrl, verifyTotp } from "./totp.ts";
 import * as users from "./users.ts";
 
@@ -88,6 +89,7 @@ const patchMeBody = t.Object({
   current_password: t.Optional(t.String({ maxLength: 200 })),
   new_password: t.Optional(t.String({ minLength: 8, maxLength: 200 })),
 });
+const syncBody = t.Object({ payload: t.Any() });
 
 export const account = new Elysia({ prefix: "/api" })
   .post(
@@ -282,4 +284,49 @@ export const account = new Elysia({ prefix: "/api" })
       return { status: "ok", totp_enabled: false };
     },
     { body: passwordBody },
-  );
+  )
+  /**
+   * Lo que la persona eligió llevar entre navegadores. El servidor guarda un
+   * JSON opaco y cifrado: no lo lee, no lo cuenta y no lo cruza con nada.
+   */
+  .get("/me/sync", async ({ cookie, status }) => {
+    const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+    if (!user) return status(401, { error: "sesión vencida" });
+
+    const found = await sync.pull(user.id);
+    if (!found.ok) return status(503, { error: found.error });
+    if (!found.value) return { enabled: false, payload: null, updated_at: "" };
+
+    try {
+      return {
+        enabled: true,
+        payload: JSON.parse(found.value.payload) as unknown,
+        updated_at: found.value.updatedAt,
+      };
+    } catch {
+      /** Un guardado que ya no se puede leer no bloquea la cuenta: se pisa con
+       * el próximo envío. */
+      return { enabled: true, payload: null, updated_at: found.value.updatedAt };
+    }
+  })
+  .put(
+    "/me/sync",
+    async ({ body, cookie, status }) => {
+      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+      if (!user) return status(401, { error: "sesión vencida" });
+      if (!(await encryptionEnabled())) {
+        return status(503, { error: "la sincronización no está disponible en este servidor" });
+      }
+
+      const saved = await sync.push(user.id, JSON.stringify(body.payload ?? null));
+      if (!saved.ok) return status(422, { error: saved.error });
+      return { status: "ok", updated_at: saved.value };
+    },
+    { body: syncBody },
+  )
+  .delete("/me/sync", ({ cookie, status }) => {
+    const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+    if (!user) return status(401, { error: "sesión vencida" });
+    sync.clear(user.id);
+    return { status: "ok" };
+  });

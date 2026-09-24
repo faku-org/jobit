@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { isCourseId, isDegreeId } from "../lib/catalog.ts";
 import { type CustomFeed, MAX_FEEDS, isFeedUrl } from "../lib/feed.ts";
 import {
@@ -7,6 +7,7 @@ import {
   type EducationLevel,
   type Profile,
 } from "../lib/profile.ts";
+import type { SyncedState } from "../lib/sync.ts";
 import {
   type Application,
   type ApplicationStatus,
@@ -206,26 +207,48 @@ function readApplications(value: unknown): Application[] {
   });
 }
 
+/** Vuelve a leer un objeto crudo como estado guardado. Lo usa el arranque y el
+ * sync: lo que llega de la cuenta se trata como no confiable y se recorta con
+ * las mismas reglas que el almacenamiento local. */
+function parseStored(parsed: Record<string, unknown>): Stored {
+  return {
+    saved: strings(parsed.saved),
+    dismissed: strings(parsed.dismissed),
+    preferences: readPreferences(parsed.preferences),
+    applications: readApplications(parsed.applications),
+    sources: strings(parsed.sources),
+    feeds: readFeeds(parsed.feeds),
+    theme: oneOf(parsed.theme, THEMES, "system"),
+    profile: withMigratedExperience(readProfile(parsed.profile), parsed.preferences),
+    statsSentAt: text(parsed.statsSentAt),
+    introSeenAt: text(parsed.introSeenAt),
+  };
+}
+
 function read(): Stored {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    return {
-      saved: strings(parsed.saved),
-      dismissed: strings(parsed.dismissed),
-      preferences: readPreferences(parsed.preferences),
-      applications: readApplications(parsed.applications),
-      sources: strings(parsed.sources),
-      feeds: readFeeds(parsed.feeds),
-      theme: oneOf(parsed.theme, THEMES, "system"),
-      profile: withMigratedExperience(readProfile(parsed.profile), parsed.preferences),
-      statsSentAt: text(parsed.statsSentAt),
-      introSeenAt: text(parsed.introSeenAt),
-    };
+    return parseStored(JSON.parse(raw) as Record<string, unknown>);
   } catch {
     return EMPTY;
   }
+}
+
+/** El estado que viaja por la cuenta, saneado. Solo lo que el sync toca. */
+export function readSynced(value: unknown): SyncedState {
+  const parsed =
+    typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+  const stored = parseStored(parsed);
+  return {
+    saved: stored.saved,
+    dismissed: stored.dismissed,
+    preferences: stored.preferences,
+    applications: stored.applications,
+    sources: stored.sources,
+    feeds: stored.feeds,
+    profile: stored.profile,
+  };
 }
 
 const toggle = (list: string[], id: string): string[] =>
@@ -243,6 +266,9 @@ export interface JobPrefs {
   profile: Profile;
   statsSentAt: string;
   introSeenAt: string;
+  /** Lo que viaja por la cuenta y cómo reemplazarlo al bajar cambios. */
+  synced: SyncedState;
+  applySynced: (state: SyncedState) => void;
   toggleSaved: (id: string) => void;
   toggleDismissed: (id: string) => void;
   clearDismissed: () => void;
@@ -277,6 +303,37 @@ export function useJobPrefs(): JobPrefs {
     if (stored === EMPTY) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   }, [stored]);
+
+  /**
+   * La parte que viaja por la cuenta, con identidad estable: cambia solo cuando
+   * cambia algo sincronizable, así el envío no se dispara en cada render.
+   */
+  const synced = useMemo<SyncedState>(
+    () => ({
+      saved: stored.saved,
+      dismissed: stored.dismissed,
+      preferences: stored.preferences,
+      applications: stored.applications,
+      sources: stored.sources,
+      feeds: stored.feeds,
+      profile: stored.profile,
+    }),
+    [
+      stored.saved,
+      stored.dismissed,
+      stored.preferences,
+      stored.applications,
+      stored.sources,
+      stored.feeds,
+      stored.profile,
+    ],
+  );
+
+  /** Reemplaza lo sincronizable sin tocar lo que es de este navegador: el tema,
+   * la marca de la intro y la fecha del último resumen anónimo. */
+  const applySynced = useCallback((state: SyncedState) => {
+    setStored((current) => ({ ...current, ...state }));
+  }, []);
 
   /**
    * Saving and discarding are opposite answers to the same question, so an
@@ -390,6 +447,8 @@ export function useJobPrefs(): JobPrefs {
     profile: stored.profile,
     statsSentAt: stored.statsSentAt,
     introSeenAt: stored.introSeenAt,
+    synced,
+    applySynced,
     toggleSaved,
     toggleDismissed,
     clearDismissed,
