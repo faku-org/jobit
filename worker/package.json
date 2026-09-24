@@ -15,6 +15,7 @@
   },
   "exports": {
     "./categories": "./src/categories.ts",
+    "./departments": "./src/departments.ts",
     "./labels": "./src/labels.ts",
     "./roles": "./src/roles.ts",
     "./skills": "./src/skills.ts"

@@ -2,6 +2,7 @@ import { Bookmark, Building2, EyeOff, MapPin, Target, Undo2 } from "lucide-react
 import { m } from "motion/react";
 import { fadeUpTransition } from "../../lib/motion.ts";
 import { formatLocation } from "../../lib/format.ts";
+import { jobShare } from "../../lib/share.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
 import type { Job } from "../../lib/types.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
@@ -79,7 +80,7 @@ export function JobCard({
           </div>
 
           <div className="flex shrink-0 gap-1.5">
-            <ShareMenu job={job} />
+            <ShareMenu target={jobShare(job)} />
             <m.button
               aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
               aria-pressed={isSaved}

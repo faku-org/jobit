@@ -8,6 +8,7 @@ import {
   formatLocation,
 } from "../../lib/format.ts";
 import { islandTransition } from "../../lib/motion.ts";
+import { jobShare } from "../../lib/share.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
 import { type Application, type Job, type Tag, relatedApplications } from "../../lib/types.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
@@ -152,7 +153,7 @@ export function JobModal({
           </div>
 
           <div className="flex shrink-0 gap-1.5">
-            <ShareMenu job={job} />
+            <ShareMenu target={jobShare(job)} />
             <m.button
               aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
               aria-pressed={isSaved}

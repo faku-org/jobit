@@ -123,7 +123,7 @@ export function relatedApplications(job: Job, applications: Application[]): Rela
 }
 
 /** The lists the main area can show. */
-export type View = "all" | "saved" | "tracking" | "state" | "market";
+export type View = "all" | "saved" | "tracking" | "state" | "services" | "market";
 
 /** How the feed is ordered: newest, best fit, or nearest deadline. */
 export type Sort = "recent" | "match" | "closing";
