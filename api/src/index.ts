@@ -135,6 +135,8 @@ const jobsQuerySchema = t.Object({
   source: t.Optional(t.String()),
   department: t.Optional(t.String()),
   company: t.Optional(t.String()),
+  title: t.Optional(t.String()),
+  place: t.Optional(t.String()),
   job_type: t.Optional(t.String()),
   hide_category: t.Optional(t.String()),
   hide_department: t.Optional(t.String()),
@@ -207,6 +209,8 @@ function jobsQueryFrom(query: JobsQueryParams): Result<JobsQuery> {
       sources: asSet(splitList(query.source)),
       departments: asSet(splitList(query.department)),
       employers: asSet(splitList(query.company)),
+      title: query.title?.trim() || undefined,
+      place: query.place?.trim() || undefined,
       hiddenCategories: asSet(splitList(query.hide_category)),
       hiddenDepartments: asSet(splitList(query.hide_department)),
       jobTypes: jobTypes.ok ? jobTypes.value : undefined,
@@ -397,12 +401,14 @@ export const app = new Elysia()
         feed.value.jobs,
         query.rubro?.trim() || undefined,
         clamp(Math.floor(query.limit ?? 100), 1, 300),
+        query.q?.trim() ?? "",
       );
       return { employers };
     },
     {
       query: t.Object({
         rubro: t.Optional(t.String()),
+        q: t.Optional(t.String()),
         limit: t.Optional(t.Numeric()),
       }),
     },

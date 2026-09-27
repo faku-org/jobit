@@ -93,6 +93,8 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 | `category` | Slug de rubro (`ventas`, `oficios`, `salud`, ...). |
 | `department` | Departamento tal cual lo publica la fuente. |
 | `company` | Slug de empresa (o varios separados por coma); sale de `/api/empresas`. |
+| `title` | Solo el título del puesto (atajo `puesto:`). |
+| `place` | Ciudad o departamento (atajo `ubicacion:`). |
 | `level` | `entry`, `mid`, `senior`. |
 | `remote` | `onsite`, `remote`, `hybrid`. |
 | `job_type` | `full_time`, `part_time`, `internship`. |
@@ -154,6 +156,29 @@ con la clave de 32 bytes que cifra el email y el secreto TOTP de las cuentas;
 sin ella, el alta sin email sigue andando pero el email y el 2FA quedan
 apagados) y `PUBLIC_ORIGIN` (origen que va en los canonical y og:url de las
 páginas server-rendered; por defecto el de producción).
+
+## Búsqueda con atajos
+
+Además de los filtros manuales, el buscador entiende atajos para quien los
+conoce. Se combinan con el texto libre y entre sí; si un atajo y un filtro
+manual dicen algo de la misma dimensión, gana el atajo. Los atajos que se
+reconocen se muestran como chips debajo del buscador y se pueden quitar.
+
+| Atajo | Qué filtra |
+|---|---|
+| `@empresa` | La empresa (una o varias); el `@` despliega las que coinciden. |
+| `puesto:soporte` | Solo el título. |
+| `ubicacion:montevideo` | Ciudad o departamento. |
+| `rubro:tecnologia` | El rubro. |
+| `nivel:junior` | `junior`, `semi` o `senior`. |
+| `modalidad:remoto` | `presencial`, `remoto` o `híbrido`. |
+| `jornada:completa` | `completa`, `medio` o `pasantía`. |
+| `sueldo:30000` | Desde ese sueldo. |
+| `sin-experiencia` | Que no pidan experiencia. |
+| `dias:7` | Publicadas en los últimos N días. |
+
+El **?** del buscador muestra la tabla. La URL guarda el texto tal cual, así el
+enlace reproduce la búsqueda.
 
 ## Empresas
 
