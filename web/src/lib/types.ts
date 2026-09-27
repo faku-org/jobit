@@ -1,5 +1,20 @@
 import { employerSlug } from "./employers.ts";
 
+/** Sin acentos ni mayúsculas, para comparar texto. */
+const foldText = (value: string): string =>
+  value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+const textIncludes = (haystack: string, needle: string): boolean => {
+  const folded = foldText(haystack);
+  return foldText(needle)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((term) => folded.includes(term));
+};
+
 export type Level = "entry" | "mid" | "senior";
 export type Remote = "remote" | "hybrid";
 export type JobType = "full_time" | "part_time" | "internship";
@@ -137,8 +152,14 @@ export interface Filters {
   q: string;
   category: string;
   department: string;
-  /** Slug de una empresa; vacío es "todas". */
+  /** Slug de una empresa; vacío es "todas". Puede traer varias con comas. */
   company: string;
+  /** Solo el título (atajo `puesto:`). */
+  title: string;
+  /** Ciudad o departamento (atajo `ubicacion:`). */
+  place: string;
+  /** Sueldo mínimo mensual (atajo `sueldo:`). */
+  salaryMin: number | null;
   level: Level | "";
   mode: WorkMode | "";
   jobType: JobType | "";
@@ -153,6 +174,9 @@ export const EMPTY_FILTERS: Filters = {
   category: "",
   department: "",
   company: "",
+  title: "",
+  place: "",
+  salaryMin: null,
   level: "",
   mode: "",
   jobType: "",
@@ -166,6 +190,9 @@ export const hasActiveFilters = (filters: Filters): boolean =>
   filters.category !== "" ||
   filters.department !== "" ||
   filters.company !== "" ||
+  filters.title !== "" ||
+  filters.place !== "" ||
+  filters.salaryMin !== null ||
   filters.level !== "" ||
   filters.mode !== "" ||
   filters.jobType !== "" ||
@@ -420,6 +447,17 @@ export function matchesFilters(job: Job, filters: Filters): boolean {
   if (filters.category && job.category !== filters.category) return false;
   if (filters.department && job.department !== filters.department) return false;
   if (filters.company && employerSlug(job.company ?? "") !== filters.company) return false;
+  if (filters.title && !textIncludes(job.title, filters.title)) return false;
+  if (
+    filters.place &&
+    !textIncludes([job.city ?? "", job.department ?? ""].join(" "), filters.place)
+  ) {
+    return false;
+  }
+  if (filters.salaryMin !== null) {
+    const low = job.salary?.min ?? job.salary?.max ?? null;
+    if (low === null || low < filters.salaryMin) return false;
+  }
   if (filters.level && job.level !== filters.level) return false;
   if (filters.mode && workMode(job) !== filters.mode) return false;
   if (filters.jobType && job.job_type !== filters.jobType) return false;

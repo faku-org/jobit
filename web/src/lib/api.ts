@@ -113,6 +113,9 @@ function buildQuery(request: JobsRequest): string {
     params.set("company", filters.company);
   }
 
+  if (filters.title) params.set("title", filters.title);
+  if (filters.place) params.set("place", filters.place);
+
   if (request.hiddenCategories?.length) {
     params.set("hide_category", request.hiddenCategories.join(","));
   }
@@ -125,6 +128,9 @@ function buildQuery(request: JobsRequest): string {
     if (salary.max !== null) params.set("salary_max", String(salary.max));
     if (!salary.includeUnknown) params.set("salary_unknown", "false");
   }
+
+  /** El atajo `sueldo:` pisa la preferencia guardada. */
+  if (filters.salaryMin !== null) params.set("salary_min", String(filters.salaryMin));
 
   if (sort) params.set("sort", sort);
   if (sort === "match" && ranking && !isEmptyRanking(ranking)) appendRanking(params, ranking);

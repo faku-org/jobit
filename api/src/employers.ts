@@ -64,13 +64,16 @@ export interface EmployerFacet {
   count: number;
 }
 
-/** Las empresas de un rubro (o de todo el tablero), para el selector. */
+/** Las empresas de un rubro (o de todo el tablero), para el selector y el
+ * buscador. Con `query`, filtra por nombre y pone primero las que empiezan. */
 export function employerFacets(
   jobs: Job[],
   category: string | undefined,
   limit = 100,
+  query = "",
 ): EmployerFacet[] {
   const scoped = category ? jobs.filter((job) => job.category === category) : jobs;
+  const needle = query ? employerKey(query) : "";
 
   return groupEmployers(scoped)
     .map((entry) => ({
@@ -78,7 +81,13 @@ export function employerFacets(
       label: displayName(entry.names),
       count: entry.jobs.length,
     }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .filter((facet) => needle === "" || employerKey(facet.label).includes(needle))
+    .sort((a, b) =>
+      needle === ""
+        ? b.count - a.count || a.label.localeCompare(b.label)
+        : Number(employerKey(b.label).startsWith(needle)) -
+            Number(employerKey(a.label).startsWith(needle)) || b.count - a.count,
+    )
     .slice(0, limit);
 }
 
