@@ -22,7 +22,7 @@ export interface ViewState {
   filters: Filters;
 }
 
-const VIEWS: View[] = ["all", "saved", "tracking", "state", "market"];
+const VIEWS: View[] = ["all", "saved", "tracking", "state", "market", "news"];
 const LEVELS: Level[] = ["entry", "mid", "senior"];
 const MODES: WorkMode[] = ["onsite", "remote", "hybrid"];
 const JOB_TYPES: JobType[] = ["full_time", "part_time", "internship"];

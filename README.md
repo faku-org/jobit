@@ -358,6 +358,32 @@ Better Auth quedó descartado a propósito: exige email para todo usuario, guard
 el token de sesión sin hashear y no cifra el secreto TOTP, las tres cosas que la
 Zero Data Policy evita.
 
+## Ayuda y novedades
+
+Dos cosas para no perderse. La **ayuda** es un botón **?** en la barra de
+arriba, siempre visible: qué hace JobIt, cómo se busca, la tabla de atajos del
+buscador (la misma del `?` que tiene el campo) y qué se guarda y dónde —el
+navegador, y la cuenta solo si se prende la sincronización—. Es la referencia
+corta; el tutorial paso a paso no está todavía a propósito, hasta que el resto
+deje de moverse.
+
+La pestaña **Novedades** junta cuatro bloques, todos calculados en el navegador
+sobre datos que ya existen, sin contenido redactado ni pedidos por persona:
+
+- **Para vos**: ofertas recientes que cumplen las preferencias, cada una con el
+  motivo (el rubro, la zona, la modalidad, el nivel).
+- **Para arrancar**: pasantías y ofertas que no piden experiencia, para quien
+  recién empieza.
+- **Cierres próximos**: lo que la persona sigue —guardadas y postulaciones— con
+  fecha de cierre cerca.
+- **Del mercado**: la foto del informe público, con un aviso explícito de que
+  todavía no hay serie histórica y, por lo tanto, ninguna tendencia inventada.
+
+La lista reciente sale de la misma consulta del tablero (`sort=match`, últimos
+30 días), así que se cachea igual que las demás vistas: abrir la pestaña no
+vuelve a pedir lo que ya estaba. Sin informe de mercado, ese último bloque no se
+dibuja, y un rubro sin ofertas que encajen no deja una caja vacía.
+
 ## Panel de administración
 
 En `/admin`, con su propio bundle: quien entra a buscar trabajo no se baja el
