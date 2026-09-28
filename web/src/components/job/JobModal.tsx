@@ -8,6 +8,8 @@ import {
   formatLocation,
 } from "../../lib/format.ts";
 import { islandTransition } from "../../lib/motion.ts";
+import { offerView } from "../../lib/events.ts";
+import { track } from "../../lib/track.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
 import { type Application, type Job, type Tag, relatedApplications } from "../../lib/types.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
@@ -100,6 +102,13 @@ export function JobModal({
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [close]);
+
+  /** Abrir la ficha de una oferta publicada acá cuenta como una vista para su
+   * empresa; las scrapeadas no tienen a nadie del otro lado. */
+  useEffect(() => {
+    const own = offerView(job);
+    if (own) track(own);
+  }, [job]);
 
   return (
     <div className="fixed inset-0 z-60 flex items-end justify-center sm:items-center sm:p-6">
