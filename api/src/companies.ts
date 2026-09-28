@@ -132,6 +132,34 @@ export function byId(id: string): Company | null {
   return db().query<Company, [string]>("SELECT * FROM companies WHERE id = ?").get(id) ?? null;
 }
 
+export function bySlug(slug: string): Company | null {
+  const normalised = slug.trim().toLowerCase();
+  return (
+    db().query<Company, [string]>("SELECT * FROM companies WHERE slug = ?").get(normalised) ?? null
+  );
+}
+
+export function byEmail(email: string): Company | null {
+  const normalised = email.trim().toLowerCase();
+  if (!normalised) return null;
+  return (
+    db()
+      .query<Company, [string]>("SELECT * FROM companies WHERE email = ? LIMIT 1")
+      .get(normalised) ?? null
+  );
+}
+
+/**
+ * Cómo entra una empresa: con el correo o con el slug de su URL. Los dos son
+ * únicos; el correo se guarda en minúsculas y el slug ya lo está.
+ */
+export function byEmailOrSlug(identifier: string): Company | null {
+  const value = identifier.trim().toLowerCase();
+  if (!value) return null;
+
+  return byEmail(value) ?? bySlug(value);
+}
+
 export function counts(): Record<CompanyStatus, number> {
   const rows = db()
     .query<{ status: CompanyStatus; n: number }, []>(

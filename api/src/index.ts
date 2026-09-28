@@ -3,6 +3,7 @@ import { Elysia, t } from "elysia";
 import { account } from "./account.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
+import { empresas } from "./empresas.ts";
 import { ingest, ingestEnabled } from "./ingest.ts";
 import { marketCsv, marketSheets } from "./export.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
@@ -270,12 +271,15 @@ export const app = new Elysia()
    * sesión y con su propio límite en el login. */
   .onBeforeHandle(({ request, server, path, set, status }) => {
     const key = clientKey(request, server?.requestIP(request)?.address ?? null);
+    const isAuth = path.startsWith("/api/auth/") || path.startsWith("/api/empresas/auth/");
     const [bucket, limit] =
       path === "/api/events"
         ? (["e", EVENTS_LIMIT] as const)
-        : path.startsWith("/api/auth/")
+        : isAuth
           ? (["a", AUTH_LIMIT] as const)
-          : request.method === "POST" && !path.startsWith("/api/admin")
+          : request.method === "POST" &&
+              !path.startsWith("/api/admin") &&
+              !path.startsWith("/api/empresas")
             ? (["w", WRITE_LIMIT] as const)
             : (["r", READ_LIMIT] as const);
 
@@ -293,6 +297,7 @@ export const app = new Elysia()
   .use(site)
   .use(admin)
   .use(account)
+  .use(empresas)
   .use(ingest)
   .get(
     "/api/jobs",
