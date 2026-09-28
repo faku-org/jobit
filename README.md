@@ -398,6 +398,19 @@ envío de estadísticas, no suben, y son entonces una muestra de quien lo tiene
 prendido. El panel muestra publicadas, vistas y postulaciones, y los puestos
 más vistos y más postulados en una ventana de 7, 30 o 90 días.
 
+### Probar en local
+
+```bash
+bun install
+cp api/.env.example api/.env   # descomentá ADMIN_PASSWORD_HASH_FILE y ADMIN_INSECURE_COOKIES
+bun -e 'await Bun.write("data/admin.hash", await Bun.password.hash(prompt("clave: ")))'
+bun run dev
+```
+
+El dev server resuelve `/empresas` y `/admin` igual que producción, así que se
+prueba el recorrido entero: se crea la empresa en `/empresas`, se aprueba en
+`/admin` (que sin nginx de por medio no filtra por IP) y recién ahí publica.
+
 El **admin solo se alcanza desde la VPN interna (Tailscale)**: nginx deja
 `/admin` y `/api/admin` a `100.64.0.0/10` (y `fd7a:115c:a1e0::/48` en IPv6), con
 la clave como segunda cerradura. `/empresas` es público porque es autoservicio.
