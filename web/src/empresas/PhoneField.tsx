@@ -25,12 +25,14 @@ export function PhoneField({
   onIso,
   onNational,
   error,
+  id,
 }: {
   iso: string;
   national: string;
   onIso: (iso: string) => void;
   onNational: (national: string) => void;
   error?: string;
+  id?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -164,15 +166,22 @@ export function PhoneField({
         </div>
 
         <input
+          aria-describedby={error && id ? `${id}-error` : undefined}
+          aria-invalid={error ? true : undefined}
           autoComplete="tel-national"
           className="w-full rounded-xl border border-sky/70 bg-mist px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
+          id={id}
           inputMode="tel"
           placeholder="99 123 456"
           value={national}
           onChange={(event) => onNational(event.target.value)}
         />
       </div>
-      {error ? <p className="mt-1 text-[11px] text-red-600">{error}</p> : null}
+      {error ? (
+        <p className="mt-1 text-[11px] text-red-600" id={id ? `${id}-error` : undefined}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

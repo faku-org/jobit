@@ -97,6 +97,10 @@ Ver `web/src/empresas/settings/Settings.tsx`.
 - Los campos llevan `label` asociado por `htmlFor`/`id`; `aria-invalid` cuando
   hay error.
 - El texto de ayuda explica el **porqué**, no repite el nombre del campo.
+- Los formularios largos —como el alta de empresa— se parten en **secciones
+  numeradas** visibles en una navegación horizontal. Se completa una por vez y
+  **se valida al avanzar**: la primera sección con error se muestra con el foco
+  puesto y no se pasa de ahí. En mobile vale igual, de a un paso.
 
 ### Listas y estados
 

@@ -1,4 +1,4 @@
-import { Building2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Loader2 } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import {
   type Company,
@@ -41,6 +41,47 @@ type Step =
   | "recover"
   | "recover-sent";
 
+/** El alta se divide en secciones: se completa de a una y cada una valida lo suyo. */
+type RegisterSectionId = "empresa" | "contacto" | "seguridad";
+
+type RegisterField = "name" | "website" | "email" | "phone" | "recovery" | "password" | "repeat";
+
+const REGISTER_SECTIONS: { id: RegisterSectionId; label: string; hint: string }[] = [
+  {
+    id: "empresa",
+    label: "Empresa",
+    hint: "Cómo se llama tu empresa y dónde encontrarla.",
+  },
+  {
+    id: "contacto",
+    label: "Contacto",
+    hint: "Por dónde te escribimos para avisarte cuando aprobemos el alta.",
+  },
+  {
+    id: "seguridad",
+    label: "Seguridad",
+    hint: "La contraseña con la que vas a entrar al panel.",
+  },
+];
+
+/** Qué campos valida cada sección, en el orden en que se muestran. */
+const SECTION_FIELDS: Record<RegisterSectionId, RegisterField[]> = {
+  empresa: ["name", "website"],
+  contacto: ["email", "phone", "recovery"],
+  seguridad: ["password", "repeat"],
+};
+
+/** El id del control en el DOM, para poder llevar el foco al primer error. */
+const FIELD_DOM_ID: Record<RegisterField, string> = {
+  name: "name",
+  website: "website",
+  email: "email",
+  phone: "phone-national",
+  recovery: "recovery-email",
+  password: "password",
+  repeat: "repeat",
+};
+
 export function Login({ onEntered, notice }: { onEntered: (company: Company) => void; notice?: string }) {
   const [step, setStep] = useState<Step>("login");
   const [error, setError] = useState("");
@@ -60,6 +101,14 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
   const [code, setCode] = useState("");
+
+  /** El paso visible del alta. */
+  const [registerIndex, setRegisterIndex] = useState(0);
+  /** Campo al que hay que llevar el foco tras validar una sección. */
+  const [focusField, setFocusField] = useState<RegisterField | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  /** Última sección que se mostró, para recién ahí mover el foco. */
+  const lastRegisterIndex = useRef(-1);
 
   const [setup, setSetup] = useState<TotpSetup | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -99,6 +148,19 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
       .finally(() => setSending(false));
   };
 
+  /** Al cambiar de sección el foco va al campo con error o al título del paso. */
+  useEffect(() => {
+    if (step !== "register") return;
+    const changed = lastRegisterIndex.current !== registerIndex;
+    lastRegisterIndex.current = registerIndex;
+    if (focusField) {
+      document.getElementById(FIELD_DOM_ID[focusField])?.focus();
+      setFocusField(null);
+      return;
+    }
+    if (changed) panelRef.current?.focus();
+  }, [step, registerIndex, focusField]);
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (sending) return;
@@ -108,19 +170,8 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
       return;
     }
     if (step === "register") {
-      run(async () =>
-        challenge(
-          await register({
-            name: name.trim(),
-            email: email.trim(),
-            phone: composePhone(phoneIso, phoneNational) || undefined,
-            phone_country: phoneIso,
-            website: website.trim() || undefined,
-            password,
-            recovery_email: recoveryEmail.trim() || undefined,
-          }),
-        ),
-      );
+      if (registerIndex < REGISTER_SECTIONS.length - 1) advanceRegister();
+      else submitRegister();
       return;
     }
     if (step === "setup") {
@@ -174,27 +225,107 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
         ? "El número solo lleva dígitos y separadores."
         : "",
     password: passwordOk(password) ? "" : "La contraseña no cumple los mínimos.",
-    repeat: repeat !== "" && repeat !== password ? "Las contraseñas no coinciden." : "",
+    repeat: repeat !== password ? "Las contraseñas no coinciden." : "",
   };
 
-  const registerReady = Object.values(errors).every((value) => value === "");
+  /** El primer error de una sección, en el orden en que se muestra. */
+  const firstErrorOf = (
+    id: RegisterSectionId,
+  ): { field: RegisterField; message: string } | null => {
+    for (const field of SECTION_FIELDS[id]) {
+      const message = errors[field];
+      if (message) return { field, message };
+    }
+    return null;
+  };
+
+  const sectionDone = (id: RegisterSectionId) => firstErrorOf(id) === null;
+
+  /** Muestra el error del campo y lo enfoca: la validación corta en el primero. */
+  const reveal = (field: RegisterField) => {
+    setTouched((current) => ({ ...current, [field]: true }));
+    setFocusField(field);
+  };
+
+  const goToSection = (index: number) => {
+    setRegisterIndex(index);
+    setError("");
+  };
+
+  /** Avanza un paso validando la sección actual. Si falla, no avanza. */
+  const advanceRegister = () => {
+    const current = REGISTER_SECTIONS[registerIndex];
+    if (!current) return;
+    const problem = firstErrorOf(current.id);
+    if (problem) {
+      reveal(problem.field);
+      return;
+    }
+    goToSection(registerIndex + 1);
+  };
+
+  /** Ir a un paso: hacia atrás siempre; hacia adelante valida las previas. */
+  const goToRegisterStep = (index: number) => {
+    if (index <= registerIndex) {
+      goToSection(index);
+      return;
+    }
+    for (let i = registerIndex; i < index; i += 1) {
+      const section = REGISTER_SECTIONS[i];
+      if (!section) continue;
+      const problem = firstErrorOf(section.id);
+      if (problem) {
+        if (i !== registerIndex) goToSection(i);
+        reveal(problem.field);
+        return;
+      }
+    }
+    goToSection(index);
+  };
+
+  /** Última sección: valida todo y salta a la primera que falle. */
+  const submitRegister = () => {
+    for (let i = 0; i < REGISTER_SECTIONS.length; i += 1) {
+      const section = REGISTER_SECTIONS[i];
+      if (!section) continue;
+      const problem = firstErrorOf(section.id);
+      if (problem) {
+        if (i !== registerIndex) goToSection(i);
+        reveal(problem.field);
+        return;
+      }
+    }
+    run(async () =>
+      challenge(
+        await register({
+          name: name.trim(),
+          email: email.trim(),
+          phone: composePhone(phoneIso, phoneNational) || undefined,
+          phone_country: phoneIso,
+          website: website.trim() || undefined,
+          password,
+          recovery_email: recoveryEmail.trim() || undefined,
+        }),
+      ),
+    );
+  };
 
   const ready =
     step === "login"
       ? identifier.trim() !== "" && password !== ""
-      : step === "register"
-        ? registerReady
-        : step === "setup"
-          ? setup !== null && code !== ""
-          : step === "totp"
-            ? code !== ""
-            : step === "recover"
-              ? recoverIdentifier.trim() !== "" && recoverCode !== ""
-              : true;
+      : step === "setup"
+        ? setup !== null && code !== ""
+        : step === "totp"
+          ? code !== ""
+          : step === "recover"
+            ? recoverIdentifier.trim() !== "" && recoverCode !== ""
+            : true;
+
+  const registerSection = REGISTER_SECTIONS[registerIndex] ?? REGISTER_SECTIONS[0]!;
 
   return (
     <div className="grid min-h-svh place-items-center px-5 py-10">
-      <div className="w-full max-w-sm">
+      <div className={`w-full ${step === "register" ? "max-w-sm sm:max-w-2xl" : "max-w-sm"}`}>
         {notice ? (
           <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs leading-relaxed text-emerald-800">
             {notice}
@@ -253,60 +384,135 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
 
           {step === "register" ? (
             <>
-              <Field
-                autoFocus
-                error={touched.name ? errors.name : ""}
-                id="name"
-                label="Nombre de la empresa"
-                value={name}
-                onBlur={() => touch("name")}
-                onChange={setName}
-              />
-              <Field
-                error={touched.email ? errors.email : ""}
-                id="email"
-                label="Correo de contacto"
-                type="email"
-                value={email}
-                onBlur={() => touch("email")}
-                onChange={setEmail}
-              />
-              <span className="mt-4 block text-xs font-medium text-soft">Teléfono (opcional)</span>
-              <PhoneField
-                error={touched.phone ? errors.phone : ""}
-                iso={phoneIso}
-                national={phoneNational}
-                onIso={setPhoneIso}
-                onNational={(value) => {
-                  setPhoneNational(value);
-                  touch("phone");
-                }}
-              />
-              <Field
-                error={touched.website ? errors.website : ""}
-                id="website"
-                label="Sitio web (opcional)"
-                placeholder="https://…"
-                value={website}
-                onBlur={() => touch("website")}
-                onChange={setWebsite}
-              />
-              <Field
-                error={touched.recovery ? errors.recovery : ""}
-                hint="Alterno al de contacto. Te mandamos un enlace para confirmarlo."
-                id="recovery-email"
-                label="Correo de recuperación (opcional)"
-                type="email"
-                value={recoveryEmail}
-                onBlur={() => touch("recovery")}
-                onChange={setRecoveryEmail}
-              />
-              <PasswordFields
-                password={password}
-                repeat={repeat}
-                onPassword={setPassword}
-                onRepeat={setRepeat}
-              />
+              <nav aria-label="Pasos del alta" className="mt-5">
+                <ol className="flex items-stretch gap-1 rounded-xl bg-mist p-1">
+                  {REGISTER_SECTIONS.map((item, index) => {
+                    const active = index === registerIndex;
+                    const done = !active && sectionDone(item.id);
+                    return (
+                      <li className="min-w-0 flex-1" key={item.id}>
+                        <button
+                          aria-current={active ? "step" : undefined}
+                          className={`flex w-full items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
+                            active ? "bg-panel text-onpanel" : "text-soft hover:text-ink"
+                          }`}
+                          type="button"
+                          onClick={() => goToRegisterStep(index)}
+                        >
+                          <span
+                            aria-hidden
+                            className={`grid size-4 shrink-0 place-items-center rounded-full text-[10px] ${
+                              done
+                                ? "bg-emerald-100 text-emerald-700"
+                                : active
+                                  ? "bg-onpanel/20 text-onpanel"
+                                  : "bg-sky/40 text-ink"
+                            }`}
+                          >
+                            {done ? <Check className="size-3" /> : index + 1}
+                          </span>
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </nav>
+
+              <p aria-live="polite" className="sr-only">
+                Paso {registerIndex + 1} de {REGISTER_SECTIONS.length}: {registerSection.label}
+              </p>
+
+              <div
+                aria-labelledby={`register-${registerSection.id}`}
+                className="mt-5 focus:outline-none"
+                ref={panelRef}
+                role="group"
+                tabIndex={-1}
+              >
+                <h2
+                  className="text-sm font-semibold tracking-tight text-ink"
+                  id={`register-${registerSection.id}`}
+                >
+                  {registerSection.label}
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-muted">{registerSection.hint}</p>
+
+                {registerSection.id === "empresa" ? (
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <Field
+                      className=""
+                      error={touched.name ? errors.name : ""}
+                      id="name"
+                      label="Nombre de la empresa"
+                      value={name}
+                      onBlur={() => touch("name")}
+                      onChange={setName}
+                    />
+                    <Field
+                      className=""
+                      error={touched.website ? errors.website : ""}
+                      id="website"
+                      label="Sitio web (opcional)"
+                      placeholder="https://…"
+                      value={website}
+                      onBlur={() => touch("website")}
+                      onChange={setWebsite}
+                    />
+                  </div>
+                ) : null}
+
+                {registerSection.id === "contacto" ? (
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <Field
+                      className=""
+                      error={touched.email ? errors.email : ""}
+                      id="email"
+                      label="Correo de contacto"
+                      type="email"
+                      value={email}
+                      onBlur={() => touch("email")}
+                      onChange={setEmail}
+                    />
+                    <Field
+                      className=""
+                      error={touched.recovery ? errors.recovery : ""}
+                      hint="Alterno al de contacto. Te mandamos un enlace para confirmarlo."
+                      id="recovery-email"
+                      label="Correo de recuperación (opcional)"
+                      type="email"
+                      value={recoveryEmail}
+                      onBlur={() => touch("recovery")}
+                      onChange={setRecoveryEmail}
+                    />
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-medium text-soft">Teléfono (opcional)</p>
+                      <PhoneField
+                        error={touched.phone ? errors.phone : ""}
+                        id="phone-national"
+                        iso={phoneIso}
+                        national={phoneNational}
+                        onIso={setPhoneIso}
+                        onNational={(value) => {
+                          setPhoneNational(value);
+                          touch("phone");
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                {registerSection.id === "seguridad" ? (
+                  <PasswordFields
+                    password={password}
+                    repeat={repeat}
+                    passwordError={touched.password ? errors.password : ""}
+                    repeatError={touched.repeat ? errors.repeat : ""}
+                    onPassword={setPassword}
+                    onRepeat={setRepeat}
+                  />
+                ) : null}
+              </div>
             </>
           ) : null}
 
@@ -421,7 +627,40 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
 
           {error ? <p className="mt-3 text-xs leading-relaxed text-red-600">{error}</p> : null}
 
-          {step !== "codes" && step !== "recover-sent" ? (
+          {step === "register" ? (
+            <div className="mt-5 flex items-center gap-2">
+              {registerIndex > 0 ? (
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-sky/70 px-3.5 py-2.5 text-sm font-medium text-ink hover:bg-mist disabled:opacity-60"
+                  disabled={sending}
+                  type="button"
+                  onClick={() => goToSection(registerIndex - 1)}
+                >
+                  <ArrowLeft aria-hidden className="size-4" />
+                  Atrás
+                </button>
+              ) : null}
+              {registerIndex < REGISTER_SECTIONS.length - 1 ? (
+                <button
+                  className="ml-auto inline-flex items-center gap-2 rounded-xl bg-panel px-4 py-2.5 text-sm font-medium text-onpanel transition-opacity hover:opacity-90 disabled:opacity-60"
+                  disabled={sending}
+                  type="submit"
+                >
+                  Siguiente
+                  <ArrowRight aria-hidden className="size-4" />
+                </button>
+              ) : (
+                <button
+                  className="ml-auto inline-flex items-center justify-center gap-2 rounded-xl bg-panel px-4 py-2.5 text-sm font-medium text-onpanel transition-opacity hover:opacity-90 disabled:opacity-60"
+                  disabled={sending}
+                  type="submit"
+                >
+                  {sending ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
+                  Crear la cuenta
+                </button>
+              )}
+            </div>
+          ) : step !== "codes" && step !== "recover-sent" ? (
             <button
               className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-panel px-4 py-2.5 text-sm font-medium text-onpanel transition-opacity hover:opacity-90 disabled:opacity-60"
               disabled={sending || !ready}
@@ -437,6 +676,7 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
               className="mt-3 w-full text-center text-xs text-muted hover:text-ink"
               type="button"
               onClick={() => {
+                if (step === "login") setRegisterIndex(0);
                 setStep(step === "login" ? "register" : "login");
                 setError("");
               }}
@@ -494,6 +734,7 @@ function Field({
   error,
   onBlur,
   autoFocus,
+  className = "mt-4",
 }: {
   id: string;
   label: string;
@@ -505,13 +746,16 @@ function Field({
   error?: string;
   onBlur?: () => void;
   autoFocus?: boolean;
+  className?: string;
 }) {
+  const messageId = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
-    <>
-      <label className="mt-4 block text-xs font-medium text-soft" htmlFor={id}>
+    <div className={className}>
+      <label className="block text-xs font-medium text-soft" htmlFor={id}>
         {label}
       </label>
       <input
+        aria-describedby={messageId}
         aria-invalid={error ? true : undefined}
         autoFocus={autoFocus}
         className={field}
@@ -523,11 +767,15 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
       />
       {error ? (
-        <p className="mt-1 text-[11px] leading-relaxed text-red-600">{error}</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-red-600" id={messageId}>
+          {error}
+        </p>
       ) : hint ? (
-        <p className="mt-1 text-[11px] leading-relaxed text-faint">{hint}</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-faint" id={messageId}>
+          {hint}
+        </p>
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -536,19 +784,28 @@ function PasswordFields({
   repeat,
   onPassword,
   onRepeat,
+  passwordError,
+  repeatError,
 }: {
   password: string;
   repeat: string;
   onPassword: (value: string) => void;
   onRepeat: (value: string) => void;
+  passwordError?: string;
+  repeatError?: string;
 }) {
   const rules = passwordRules(password);
+  /** Sin `repeatError` (reset), se avisa apenas las contraseñas ya no coinciden. */
+  const shownRepeatError =
+    repeatError ?? (repeat !== "" && repeat !== password ? "Las contraseñas no coinciden." : "");
   return (
     <>
       <label className="mt-4 block text-xs font-medium text-soft" htmlFor="password">
         Contraseña
       </label>
       <input
+        aria-describedby="password-rules"
+        aria-invalid={passwordError ? true : undefined}
         autoComplete="new-password"
         className={field}
         id="password"
@@ -556,7 +813,7 @@ function PasswordFields({
         value={password}
         onChange={(event) => onPassword(event.target.value)}
       />
-      <ul className="mt-2 space-y-1">
+      <ul className="mt-2 space-y-1" id="password-rules">
         {rules.map((rule) => (
           <li
             key={rule.label}
@@ -572,6 +829,8 @@ function PasswordFields({
         Repetí la contraseña
       </label>
       <input
+        aria-describedby={shownRepeatError ? "repeat-error" : undefined}
+        aria-invalid={shownRepeatError ? true : undefined}
         autoComplete="new-password"
         className={field}
         id="repeat"
@@ -579,8 +838,10 @@ function PasswordFields({
         value={repeat}
         onChange={(event) => onRepeat(event.target.value)}
       />
-      {repeat !== "" && repeat !== password ? (
-        <p className="mt-1 text-[11px] text-red-600">Las contraseñas no coinciden.</p>
+      {shownRepeatError ? (
+        <p className="mt-1 text-[11px] text-red-600" id="repeat-error">
+          {shownRepeatError}
+        </p>
       ) : null}
       <p className="mt-1 text-[11px] text-faint">Mínimo {MIN_PASSWORD} caracteres.</p>
     </>
