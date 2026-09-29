@@ -20,7 +20,7 @@ ofertas piden más nivel del que tiene.
 |---|---|
 | `worker/` | Scrapers de portales uruguayos. Escribe `worker/output/jobs.json`. |
 | `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
-| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español y panel en `/admin`. |
+| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español, panel de empresa en `/empresas` y panel de administración en `/admin`. |
 
 ## Uso
 
@@ -82,6 +82,14 @@ termina donde termina la de verdad.
 | `GET` / `PATCH` / `DELETE /api/me` | Quién soy, editar la cuenta y borrarla de verdad. |
 | `POST` / `DELETE /api/me/totp` | Activar y desactivar el segundo paso. |
 | `GET` / `PUT` / `DELETE /api/me/sync` | Bajar, guardar o borrar lo que la cuenta sincroniza entre navegadores. |
+| `POST /api/empresas/auth/register` | Alta autogestionada de una empresa. Nace pendiente y con la sesión puesta. |
+| `POST /api/empresas/auth/login` | Entra con el correo o con el slug. |
+| `POST /api/empresas/auth/logout` | Cierra la sesión de la empresa. |
+| `GET /api/empresas/session` | Qué empresa está detrás de la sesión. |
+| `PATCH /api/empresas/me` | Editar los datos de la empresa y la contraseña. |
+| `GET /api/empresas/offers` | Las publicaciones propias, con su estado. |
+| `POST` / `PATCH` / `DELETE /api/empresas/offers[/:id]` | CRUD de sus publicaciones, acotado a la empresa de la sesión. |
+| `GET /api/empresas/metrics` | Vistas y postulaciones por publicación, agregadas por día. |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -365,6 +373,51 @@ quince minutos por dirección.
 Las empresas viven en SQLite (`data/jobit.db`, `DB_FILE` para moverlo), aparte
 del JSON del scraper, que se reescribe entero en cada corrida y no es lugar para
 algo que la app edita.
+
+## Panel de empresa
+
+En `/empresas`, con su propio bundle: quien busca trabajo no se baja el código
+de administrar una empresa. La empresa entra con su cuenta (correo o slug más
+contraseña), ve cómo rinden sus publicaciones y administra lo suyo. El alta es
+autogestionada y **nace pendiente**: el admin la aprueba desde `/admin` y recién
+ahí puede publicar. `offers.ts` ya saca al tablero solo lo publicado de una
+empresa aprobada, así que una cuenta sin aprobar no filtra nada.
+
+La cuenta vive en su propia tabla (`company_accounts`, con `company_sessions`
+para las sesiones) y es otra cookie: `jobit_company`, `HttpOnly`,
+`SameSite=Strict`, alcance `/api/empresas` y 30 días con renovación. No se cruza
+con la del panel ni con la de quien publica un servicio, y en la base solo queda
+el sha256 del token. Todo lo de la API está acotado a la empresa de la sesión:
+una oferta ajena responde 404 igual que una que no existe.
+
+**Las métricas no saben de nadie.** `offer_daily` suma por oferta y por día
+(vistas y postulaciones): dice cuántas veces, nunca quién. Suben por el mismo
+canal anónimo de `/api/events` (`offer_view`, `offer_apply`, que llevan solo el
+id público de la oferta) y solo para las publicadas acá; si la persona apagó el
+envío de estadísticas, no suben, y son entonces una muestra de quien lo tiene
+prendido. El panel muestra publicadas, vistas y postulaciones, y los puestos
+más vistos y más postulados en una ventana de 7, 30 o 90 días.
+
+### Probar en local
+
+```bash
+bun install
+cp api/.env.example api/.env   # descomentá ADMIN_PASSWORD_HASH_FILE y ADMIN_INSECURE_COOKIES
+bun -e 'await Bun.write("data/admin.hash", await Bun.password.hash(prompt("clave: ")))'
+bun run dev
+```
+
+El dev server resuelve `/empresas` y `/admin` igual que producción, así que se
+prueba el recorrido entero: se crea la empresa en `/empresas`, se aprueba en
+`/admin` (que sin nginx de por medio no filtra por IP) y recién ahí publica.
+
+El **admin solo se alcanza desde la VPN interna (Tailscale)**: nginx deja
+`/admin` y `/api/admin` a `100.64.0.0/10` (y `fd7a:115c:a1e0::/48` en IPv6), con
+la clave como segunda cerradura. `/empresas` es público porque es autoservicio.
+
+Queda para la próxima tanda el material complementario por publicación, los
+extras (path de LearnIt, llaves de acceso, conectores de calendario) y el feed
+de la empresa; el modelo y el panel ya están armados para colgar eso.
 
 ## Fuentes
 

@@ -26,7 +26,22 @@ export interface ApplyEvent {
   category: string;
 }
 
-export type UsageEvent = SearchEvent | ApplyEvent;
+/**
+ * Lo que alimenta las métricas de una empresa que publica acá. Lleva solo el
+ * id de la oferta, que es público, y viaja por el mismo canal anónimo: no hay
+ * usuario ni nada que lo ligue a quien lo mandó.
+ */
+export interface OfferViewEvent {
+  kind: "offer_view";
+  id: string;
+}
+
+export interface OfferApplyEvent {
+  kind: "offer_apply";
+  id: string;
+}
+
+export type UsageEvent = SearchEvent | ApplyEvent | OfferViewEvent | OfferApplyEvent;
 
 /** Los nombres de los filtros puestos, sin sus valores: sirve para saber cuáles
  * se usan, no qué buscó nadie en particular. */
@@ -59,3 +74,13 @@ export const applyEvent = (job: Job): ApplyEvent => ({
   source: job.source,
   category: job.category,
 });
+
+/**
+ * Solo las ofertas publicadas en JobIt tienen una empresa del otro lado
+ * mirando estas cuentas; las scrapeadas no, así que no mandan nada.
+ */
+export const offerView = (job: Job): OfferViewEvent | null =>
+  job.source === "jobit" ? { kind: "offer_view", id: job.id } : null;
+
+export const offerApply = (job: Job): OfferApplyEvent | null =>
+  job.source === "jobit" ? { kind: "offer_apply", id: job.id } : null;
