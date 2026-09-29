@@ -10,6 +10,7 @@ const { closeDb } = await import("./db.ts");
 const { resetSecretKey } = await import("./crypto.ts");
 const { resetLimits } = await import("./limit.ts");
 const companies = await import("./companies.ts");
+const accounts = await import("./company-accounts.ts");
 const emails = await import("./company-emails.ts");
 const members = await import("./company-members.ts");
 const users = await import("./users.ts");
@@ -88,7 +89,7 @@ async function loginCompany(
   if (body.status === "totp_required") {
     const challenge = cookieNamed(response, "jobit_company_2fa");
     const company = companies.byEmailOrSlug(identifier)!;
-    const secret = await (await import("./company-accounts.ts")).totpSecret(company.id);
+    const secret = await accounts.totpSecret(company.id);
     const code = secret ? await totp(secret) : "";
     const done = await call("/api/empresas/auth/totp", withCookie(json({ code }), challenge));
     return { response: done, cookie: cookieNamed(done, "jobit_company") };
@@ -239,6 +240,111 @@ describe("perfil de la empresa", () => {
       withCookie(json({ socials: { x: "javascript:alert(1)" } }, "PATCH"), cookie),
     );
     expect(updated.status).toBe(422);
+  });
+});
+
+describe("privacidad, redes y dominio", () => {
+  test("un usuario suelto en una red se guarda como URL", async () => {
+    const { cookie } = await registerCompany("Acme", "rrhh@acme.com");
+    const updated = await call(
+      "/api/empresas/me",
+      withCookie(
+        json({ socials: { instagram: "@acme", whatsapp: "+598 99 123 456" } }, "PATCH"),
+        cookie,
+      ),
+    );
+    const body = (await updated.json()) as { company: { socials: Record<string, string> } };
+    expect(body.company.socials.instagram).toBe("https://www.instagram.com/acme");
+    expect(body.company.socials.whatsapp).toBe("https://wa.me/59899123456");
+  });
+
+  test("guarda la privacidad del perfil", async () => {
+    const { cookie } = await registerCompany("Acme", "rrhh@acme.com");
+    const updated = await call(
+      "/api/empresas/me",
+      withCookie(json({ privacy: { phone: false, email: false } }, "PATCH"), cookie),
+    );
+    const body = (await updated.json()) as { company: { privacy: Record<string, boolean> } };
+    expect(body.company.privacy).toEqual({
+      phone: false,
+      email: false,
+      website: true,
+      members: true,
+    });
+  });
+
+  test("cargar el sitio devuelve el TXT a registrar", async () => {
+    const { cookie } = await registerCompany("Acme", "rrhh@acme.com");
+    const updated = await call(
+      "/api/empresas/me",
+      withCookie(json({ website: "https://acme.com" }, "PATCH"), cookie),
+    );
+    const body = (await updated.json()) as {
+      company: { website_verification: { record_name: string; record_value: string; verified: boolean } };
+    };
+    expect(body.company.website_verification.record_name).toBe("_jobit.acme.com");
+    expect(body.company.website_verification.record_value).toContain("jobit-verify=");
+    expect(body.company.website_verification.verified).toBe(false);
+  });
+});
+
+describe("cambio de contraseña", () => {
+  test("pide el segundo paso y un código por correo", async () => {
+    const { cookie, id } = await registerCompany("Acme", "rrhh@acme.com");
+    const secret = await accounts.totpSecret(id);
+    const totpCode = secret ? await totp(secret) : "";
+
+    const bare = await call(
+      "/api/empresas/me",
+      withCookie(
+        json({ current_password: "una-clave-larga", new_password: "otra-clave-larga" }, "PATCH"),
+        cookie,
+      ),
+    );
+    expect(bare.status).toBe(401);
+
+    const noEmail = await call(
+      "/api/empresas/me",
+      withCookie(
+        json(
+          {
+            current_password: "una-clave-larga",
+            new_password: "otra-clave-larga",
+            totp_code: totpCode,
+          },
+          "PATCH",
+        ),
+        cookie,
+      ),
+    );
+    expect(noEmail.status).toBe(401);
+
+    const emailCode = accounts.startPasswordCode(id);
+    const changed = await call(
+      "/api/empresas/me",
+      withCookie(
+        json(
+          {
+            current_password: "una-clave-larga",
+            new_password: "otra-clave-larga",
+            totp_code: totpCode,
+            email_code: emailCode,
+          },
+          "PATCH",
+        ),
+        cookie,
+      ),
+    );
+    expect(changed.status).toBe(200);
+
+    const again = await loginCompany("rrhh@acme.com", "otra-clave-larga");
+    expect(again.response.status).toBe(200);
+  });
+
+  test("sin correo verificado no se puede pedir el código", async () => {
+    const { cookie } = await registerCompany("Acme", "rrhh@acme.com");
+    const response = await call("/api/empresas/me/password/email", withCookie(json({}), cookie));
+    expect(response.status).toBe(422);
   });
 });
 

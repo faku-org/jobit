@@ -26,9 +26,14 @@ CREATE TABLE IF NOT EXISTS companies (
   email       TEXT NOT NULL DEFAULT '',
   website     TEXT NOT NULL DEFAULT '',
   phone       TEXT NOT NULL DEFAULT '',
+  phone_country TEXT NOT NULL DEFAULT '',
   logo        TEXT NOT NULL DEFAULT '',
   banner      TEXT NOT NULL DEFAULT '',
   socials     TEXT NOT NULL DEFAULT '{}',
+  privacy     TEXT NOT NULL DEFAULT '{}',
+  website_token      TEXT NOT NULL DEFAULT '',
+  website_verified   INTEGER NOT NULL DEFAULT 0,
+  website_checked_at TEXT NOT NULL DEFAULT '',
   status      TEXT NOT NULL DEFAULT 'pending',
   notes       TEXT NOT NULL DEFAULT '',
   created_at  TEXT NOT NULL,
@@ -150,6 +155,15 @@ CREATE TABLE IF NOT EXISTS company_resets (
   created_at TEXT NOT NULL
 );
 
+/* El código de seis dígitos que confirma un cambio de contraseña, además del
+   segundo paso. Va hasheado y vence rápido. */
+CREATE TABLE IF NOT EXISTS company_password_codes (
+  company_id TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  code_hash  TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 /* Los correos de la empresa —facturación, contacto y soporte—, cada uno con su
    verificación. kind es uno de los tipos y la fila se pisa al cambiarlo: una
    empresa tiene uno de cada. El token se guarda hasheado y se manda una sola
@@ -235,9 +249,14 @@ function migrate(database: Database): void {
 
   const profileColumns: [string, string][] = [
     ["phone", "TEXT NOT NULL DEFAULT ''"],
+    ["phone_country", "TEXT NOT NULL DEFAULT ''"],
     ["logo", "TEXT NOT NULL DEFAULT ''"],
     ["banner", "TEXT NOT NULL DEFAULT ''"],
     ["socials", "TEXT NOT NULL DEFAULT '{}'"],
+    ["privacy", "TEXT NOT NULL DEFAULT '{}'"],
+    ["website_token", "TEXT NOT NULL DEFAULT ''"],
+    ["website_verified", "INTEGER NOT NULL DEFAULT 0"],
+    ["website_checked_at", "TEXT NOT NULL DEFAULT ''"],
   ];
   for (const [name, definition] of profileColumns) add("companies", name, definition);
 

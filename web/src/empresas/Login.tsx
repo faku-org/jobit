@@ -13,11 +13,24 @@ import {
   startTotpSetup,
   submitTotp,
 } from "./api.ts";
+import { DEFAULT_COUNTRY_ISO, composePhone } from "../lib/countries.ts";
 import { MIN_PASSWORD, passwordOk, passwordRules } from "../lib/password.ts";
+import { PhoneField } from "./PhoneField.tsx";
 import { TotpQr } from "./TotpQr.tsx";
 
 const field =
   "mt-1.5 w-full rounded-xl border border-sky/70 bg-mist px-3 py-2.5 text-sm text-ink outline-none focus:border-brand";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const isHttpUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
 
 type Step =
   | "login"
@@ -36,9 +49,13 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
   const [identifier, setIdentifier] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneIso, setPhoneIso] = useState(DEFAULT_COUNTRY_ISO);
+  const [phoneNational, setPhoneNational] = useState("");
   const [website, setWebsite] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
+  /** Los errores se muestran una vez que el campo se tocó, no antes. */
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const touch = (field: string) => setTouched((current) => ({ ...current, [field]: true }));
 
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
@@ -96,7 +113,8 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
           await register({
             name: name.trim(),
             email: email.trim(),
-            phone: phone.trim() || undefined,
+            phone: composePhone(phoneIso, phoneNational) || undefined,
+            phone_country: phoneIso,
             website: website.trim() || undefined,
             password,
             recovery_email: recoveryEmail.trim() || undefined,
@@ -140,11 +158,26 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
       setStep("recover-sent");
     });
 
-  const registerReady =
-    name.trim() !== "" &&
-    email.trim() !== "" &&
-    passwordOk(password) &&
-    repeat === password;
+  const errors = {
+    name: name.trim().length < 2 ? "Poné el nombre de la empresa." : "",
+    email: !EMAIL_RE.test(email.trim()) ? "El correo no parece válido." : "",
+    website:
+      website.trim() !== "" && !isHttpUrl(website.trim())
+        ? "Tiene que ser una dirección completa, con https://."
+        : "",
+    recovery:
+      recoveryEmail.trim() !== "" && !EMAIL_RE.test(recoveryEmail.trim())
+        ? "El correo no parece válido."
+        : "",
+    phone:
+      phoneNational.trim() !== "" && !/^[\d\s()+-]+$/.test(phoneNational)
+        ? "El número solo lleva dígitos y separadores."
+        : "",
+    password: passwordOk(password) ? "" : "La contraseña no cumple los mínimos.",
+    repeat: repeat !== "" && repeat !== password ? "Las contraseñas no coinciden." : "",
+  };
+
+  const registerReady = Object.values(errors).every((value) => value === "");
 
   const ready =
     step === "login"
@@ -220,34 +253,53 @@ export function Login({ onEntered, notice }: { onEntered: (company: Company) => 
 
           {step === "register" ? (
             <>
-              <Field id="name" label="Nombre de la empresa" value={name} onChange={setName} autoFocus />
               <Field
+                autoFocus
+                error={touched.name ? errors.name : ""}
+                id="name"
+                label="Nombre de la empresa"
+                value={name}
+                onBlur={() => touch("name")}
+                onChange={setName}
+              />
+              <Field
+                error={touched.email ? errors.email : ""}
                 id="email"
                 label="Correo de contacto"
                 type="email"
                 value={email}
+                onBlur={() => touch("email")}
                 onChange={setEmail}
               />
-              <Field
-                id="phone"
-                label="Teléfono (opcional)"
-                value={phone}
-                onChange={setPhone}
+              <span className="mt-4 block text-xs font-medium text-soft">Teléfono (opcional)</span>
+              <PhoneField
+                error={touched.phone ? errors.phone : ""}
+                iso={phoneIso}
+                national={phoneNational}
+                onIso={setPhoneIso}
+                onNational={(value) => {
+                  setPhoneNational(value);
+                  touch("phone");
+                }}
               />
               <Field
+                error={touched.website ? errors.website : ""}
                 id="website"
                 label="Sitio web (opcional)"
                 placeholder="https://…"
                 value={website}
+                onBlur={() => touch("website")}
                 onChange={setWebsite}
               />
               <Field
+                error={touched.recovery ? errors.recovery : ""}
+                hint="Alterno al de contacto. Te mandamos un enlace para confirmarlo."
                 id="recovery-email"
                 label="Correo de recuperación (opcional)"
                 type="email"
                 value={recoveryEmail}
+                onBlur={() => touch("recovery")}
                 onChange={setRecoveryEmail}
-                hint="Alterno al de contacto. Te mandamos un enlace para confirmarlo."
               />
               <PasswordFields
                 password={password}
@@ -439,6 +491,8 @@ function Field({
   type = "text",
   placeholder,
   hint,
+  error,
+  onBlur,
   autoFocus,
 }: {
   id: string;
@@ -448,6 +502,8 @@ function Field({
   type?: string;
   placeholder?: string;
   hint?: string;
+  error?: string;
+  onBlur?: () => void;
   autoFocus?: boolean;
 }) {
   return (
@@ -456,15 +512,21 @@ function Field({
         {label}
       </label>
       <input
+        aria-invalid={error ? true : undefined}
         autoFocus={autoFocus}
         className={field}
         id={id}
         placeholder={placeholder}
         type={type}
         value={value}
+        onBlur={onBlur}
         onChange={(event) => onChange(event.target.value)}
       />
-      {hint ? <p className="mt-1 text-[11px] leading-relaxed text-faint">{hint}</p> : null}
+      {error ? (
+        <p className="mt-1 text-[11px] leading-relaxed text-red-600">{error}</p>
+      ) : hint ? (
+        <p className="mt-1 text-[11px] leading-relaxed text-faint">{hint}</p>
+      ) : null}
     </>
   );
 }

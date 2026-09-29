@@ -139,3 +139,78 @@ describe("counts y remove", () => {
     expect(remove(created.value.id)).toBe(false);
   });
 });
+
+describe("redes sociales", () => {
+  test("un usuario suelto se arma con la base de cada red", () => {
+    const result = create({ name: "Acme", socials: { instagram: "acme", linkedin: "acme" } });
+    expect(result.ok && result.value.socials.instagram).toBe("https://www.instagram.com/acme");
+    expect(result.ok && result.value.socials.linkedin).toBe("https://www.linkedin.com/company/acme");
+  });
+
+  test("el arroba de adelante no molesta", () => {
+    const result = create({ name: "Acme", socials: { x: "@acme" } });
+    expect(result.ok && result.value.socials.x).toBe("https://x.com/acme");
+  });
+
+  test("acepta una URL tal cual, con o sin esquema", () => {
+    const withScheme = create({
+      name: "Acme",
+      socials: { facebook: "https://www.facebook.com/acme" },
+    });
+    const withoutScheme = create({ name: "Beta", socials: { facebook: "facebook.com/acme" } });
+    expect(withScheme.ok && withScheme.value.socials.facebook).toBe(
+      "https://www.facebook.com/acme",
+    );
+    expect(withoutScheme.ok && withoutScheme.value.socials.facebook).toBe(
+      "https://facebook.com/acme",
+    );
+  });
+
+  test("una ruta de LinkedIn se respeta como vino", () => {
+    const result = create({ name: "Acme", socials: { linkedin: "in/alguien" } });
+    expect(result.ok && result.value.socials.linkedin).toBe("https://www.linkedin.com/in/alguien");
+  });
+
+  test("WhatsApp arma wa.me con los dígitos", () => {
+    const result = create({ name: "Acme", socials: { whatsapp: "+598 99 123 456" } });
+    expect(result.ok && result.value.socials.whatsapp).toBe("https://wa.me/59899123456");
+  });
+
+  test("rechaza un esquema que no sea http(s)", () => {
+    const result = create({ name: "Acme", socials: { x: "javascript:alert(1)" } });
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("país, privacidad y dominio", () => {
+  test("guarda el país del teléfono y la privacidad por defecto", () => {
+    const result = create({ name: "Acme", phone: "+598 99 123 456", phone_country: "UY" });
+    expect(result.ok && result.value.phone_country).toBe("UY");
+    expect(result.ok && result.value.privacy).toEqual({
+      phone: true,
+      email: true,
+      website: true,
+      members: true,
+    });
+  });
+
+  test("un país que no son dos letras no entra", () => {
+    expect(create({ name: "Acme", phone_country: "Uruguay" }).ok).toBe(false);
+  });
+
+  test("cargar el sitio pide un token nuevo y lo deja sin verificar", () => {
+    const result = create({ name: "Acme", website: "https://acme.com" });
+    expect(result.ok && result.value.website_token).not.toBe("");
+    expect(result.ok && result.value.website_verified).toBe(false);
+  });
+
+  test("cambiar el dominio invalida la verificación", () => {
+    const created = create({ name: "Acme", website: "https://acme.com" });
+    if (!created.ok) throw new Error("no se creó");
+    const firstToken = created.value.website_token;
+
+    const updated = update(created.value.id, { website: "https://otro.com" });
+    expect(updated.ok && updated.value.website_token).not.toBe(firstToken);
+    expect(updated.ok && updated.value.website_verified).toBe(false);
+  });
+});

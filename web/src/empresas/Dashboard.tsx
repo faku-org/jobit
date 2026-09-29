@@ -1,9 +1,9 @@
 import { LogOut } from "lucide-react";
 import { useCallback, useState } from "react";
 import { type Company, COMPANY_STATUS_LABEL, Unauthorized, logout } from "./api.ts";
-import { Account } from "./Account.tsx";
 import { Metrics } from "./Metrics.tsx";
 import { Offers } from "./Offers.tsx";
+import { Settings } from "./settings/Settings.tsx";
 
 const TABS = [
   { id: "metrics", label: "Resumen" },
@@ -102,7 +102,7 @@ export function Dashboard({
         ) : tab === "offers" ? (
           <Offers company={company} onFail={handle} />
         ) : (
-          <Account company={company} onFail={handle} onUpdated={setCompany} />
+          <Settings company={company} onFail={handle} onUpdated={setCompany} />
         )}
       </main>
     </div>

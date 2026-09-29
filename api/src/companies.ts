@@ -1,5 +1,6 @@
 import { db } from "./db.ts";
 import type { Result } from "./types.ts";
+import { mintToken as mintWebsiteToken } from "./website.ts";
 
 export const COMPANY_STATUSES = ["pending", "approved", "suspended"] as const;
 export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
@@ -18,6 +19,28 @@ export const SOCIAL_NETWORKS = [
 export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
 export type Socials = Partial<Record<SocialNetwork, string>>;
 
+/** La base de cada red, para armar el enlace cuando lo que se cargó es un
+ * usuario y no una URL. */
+const SOCIAL_BASE: Record<SocialNetwork, string> = {
+  linkedin: "https://www.linkedin.com",
+  instagram: "https://www.instagram.com",
+  facebook: "https://www.facebook.com",
+  x: "https://x.com",
+  youtube: "https://www.youtube.com",
+  tiktok: "https://www.tiktok.com",
+  whatsapp: "https://wa.me",
+};
+
+export interface Privacy {
+  phone: boolean;
+  email: boolean;
+  website: boolean;
+  members: boolean;
+}
+
+const PRIVACY_KEYS = ["phone", "email", "website", "members"] as const;
+export const DEFAULT_PRIVACY: Privacy = { phone: true, email: true, website: true, members: true };
+
 export interface Company {
   id: string;
   name: string;
@@ -25,19 +48,28 @@ export interface Company {
   email: string;
   website: string;
   phone: string;
+  phone_country: string;
   /** URL pública del archivo, no la ruta en disco. Vacío es que no hay. */
   logo: string;
   banner: string;
   socials: Socials;
+  privacy: Privacy;
+  /** El token del TXT que confirma el dominio; no es secreto. */
+  website_token: string;
+  website_verified: boolean;
+  website_checked_at: string;
   status: CompanyStatus;
   notes: string;
   created_at: string;
   updated_at: string;
 }
 
-/** En la base las redes son un JSON; en el dominio, un objeto. */
-interface CompanyRow extends Omit<Company, "socials"> {
+/** En la base las redes, la privacidad y el estado del sitio son columnas
+ * simples; en el dominio, objetos y booleanos. */
+interface CompanyRow extends Omit<Company, "socials" | "privacy" | "website_verified"> {
   socials: string;
+  privacy: string;
+  website_verified: number;
 }
 
 export interface CompanyInput {
@@ -45,7 +77,9 @@ export interface CompanyInput {
   email?: string;
   website?: string;
   phone?: string;
+  phone_country?: string;
   socials?: Socials;
+  privacy?: Partial<Privacy>;
   status?: CompanyStatus;
   notes?: string;
 }
@@ -133,23 +167,54 @@ function cleanPhone(value: string | undefined): Result<string> {
   return { ok: true, value: raw };
 }
 
-/** Cada red es una URL http(s). Una que no lo sea se descarta sin romper el resto. */
+function cleanCountry(value: string | undefined): Result<string> {
+  const raw = (value ?? "").trim().toUpperCase();
+  if (!raw) return { ok: true, value: "" };
+  if (!/^[A-Z]{2}$/.test(raw)) {
+    return { ok: false, error: "el país va con su código de dos letras" };
+  }
+  return { ok: true, value: raw };
+}
+
+/**
+ * Una red se carga como usuario o como URL, y da igual cuál: si parece una
+ * dirección se guarda tal cual y si parece un usuario se arma con la base de
+ * esa red. Así nadie tiene que adivinar cuál de las dos formas se espera.
+ */
+function cleanSocial(network: SocialNetwork, value: string): Result<string> {
+  const raw = value.trim();
+  if (!raw) return { ok: true, value: "" };
+
+  if (/^https?:\/\//i.test(raw)) return cleanUrl(raw);
+  /** Un dominio sin esquema: "acme.com", "acme.com/pagina" o con puerto. */
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?(\/.*)?$/i.test(raw)) return cleanUrl(`https://${raw}`);
+  /** Algo con dos puntos y sin ser http(s) es un esquema raro (javascript:,
+   * mailto:), no un usuario. */
+  if (raw.includes(":")) {
+    return { ok: false, error: "ese enlace no parece un usuario ni una dirección http(s)" };
+  }
+
+  if (network === "whatsapp") {
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) return { ok: false, error: "el WhatsApp necesita un número" };
+    return { ok: true, value: `${SOCIAL_BASE.whatsapp}/${digits}` };
+  }
+
+  const user = raw.replace(/^@+/, "").replace(/^\/+|\/+$/g, "");
+  if (!user) return { ok: true, value: "" };
+  /** En LinkedIn, un usuario suelto es la página de empresa; una ruta
+   * ("in/alguien") se respeta como vino. */
+  const base =
+    network === "linkedin" && !user.includes("/") ? `${SOCIAL_BASE.linkedin}/company` : SOCIAL_BASE[network];
+  return cleanUrl(`${base}/${user}`);
+}
+
 function cleanSocials(value: Socials | undefined): Result<string> {
   const out: Socials = {};
   for (const network of SOCIAL_NETWORKS) {
-    const raw = (value?.[network] ?? "").trim().slice(0, MAX_URL);
-    if (!raw) continue;
-
-    let url: URL;
-    try {
-      url = new URL(raw);
-    } catch {
-      return { ok: false, error: `el enlace de ${network} tiene que ser una dirección completa` };
-    }
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return { ok: false, error: `el enlace de ${network} tiene que ser http:// o https://` };
-    }
-    out[network] = url.toString();
+    const normalised = cleanSocial(network, value?.[network] ?? "");
+    if (!normalised.ok) return { ok: false, error: normalised.error };
+    if (normalised.value) out[network] = normalised.value;
   }
   return { ok: true, value: JSON.stringify(out) };
 }
@@ -169,7 +234,37 @@ function parseSocials(raw: string): Socials {
   }
 }
 
-const hydrate = (row: CompanyRow): Company => ({ ...row, socials: parseSocials(row.socials) });
+function cleanPrivacy(value: Partial<Privacy> | undefined): Result<string> {
+  const out = { ...DEFAULT_PRIVACY };
+  for (const key of PRIVACY_KEYS) {
+    const flag = value?.[key];
+    if (typeof flag === "boolean") out[key] = flag;
+  }
+  return { ok: true, value: JSON.stringify(out) };
+}
+
+function parsePrivacy(raw: string): Privacy {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    const out = { ...DEFAULT_PRIVACY };
+    if (parsed && typeof parsed === "object") {
+      for (const key of PRIVACY_KEYS) {
+        const flag = (parsed as Record<string, unknown>)[key];
+        if (typeof flag === "boolean") out[key] = flag;
+      }
+    }
+    return out;
+  } catch {
+    return { ...DEFAULT_PRIVACY };
+  }
+}
+
+const hydrate = (row: CompanyRow): Company => ({
+  ...row,
+  socials: parseSocials(row.socials),
+  privacy: parsePrivacy(row.privacy),
+  website_verified: row.website_verified === 1,
+});
 
 const isStatus = (value: unknown): value is CompanyStatus =>
   (COMPANY_STATUSES as readonly unknown[]).includes(value);
@@ -259,10 +354,15 @@ export function create(input: CompanyInput, now: Date = new Date()): Result<Comp
   if (!website.ok) return website;
   const phone = cleanPhone(input.phone);
   if (!phone.ok) return phone;
+  const country = cleanCountry(input.phone_country);
+  if (!country.ok) return country;
   const socials = cleanSocials(input.socials);
   if (!socials.ok) return socials;
+  const privacy = cleanPrivacy(input.privacy);
+  if (!privacy.ok) return privacy;
 
   const stamp = now.toISOString();
+  const token = website.value ? mintWebsiteToken() : "";
   const company: Company = {
     id: crypto.randomUUID(),
     name,
@@ -270,36 +370,52 @@ export function create(input: CompanyInput, now: Date = new Date()): Result<Comp
     email: email.value,
     website: website.value,
     phone: phone.value,
+    phone_country: country.value,
     logo: "",
     banner: "",
     socials: input.socials ?? {},
+    privacy: parsePrivacy(privacy.value),
+    website_token: token,
+    website_verified: false,
+    website_checked_at: "",
     status: isStatus(input.status) ? input.status : "pending",
     notes: trim(input.notes, MAX_NOTES),
     created_at: stamp,
     updated_at: stamp,
   };
 
+  const row: CompanyRow = {
+    ...company,
+    socials: socials.value,
+    privacy: privacy.value,
+    website_verified: 0,
+  };
+
   db().run(
     `INSERT INTO companies
-       (id, name, slug, email, website, phone, logo, banner, socials, status, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, '', '', ?, ?, ?, ?, ?)`,
+       (id, name, slug, email, website, phone, phone_country, logo, banner, socials, privacy,
+        website_token, website_verified, website_checked_at, status, notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, '', '', ?, ?, ?, ?, '', ?, ?, ?, ?)`,
     [
-      company.id,
-      company.name,
-      company.slug,
-      company.email,
-      company.website,
-      company.phone,
-      socials.value,
-      company.status,
-      company.notes,
-      company.created_at,
-      company.updated_at,
+      row.id,
+      row.name,
+      row.slug,
+      row.email,
+      row.website,
+      row.phone,
+      row.phone_country,
+      row.socials,
+      row.privacy,
+      row.website_token,
+      row.website_verified,
+      row.status,
+      row.notes,
+      row.created_at,
+      row.updated_at,
     ],
   );
 
-  const stored: CompanyRow = { ...company, socials: socials.value };
-  return { ok: true, value: hydrate(stored) };
+  return { ok: true, value: hydrate(row) };
 }
 
 export function update(
@@ -326,16 +442,29 @@ export function update(
   const phone =
     input.phone === undefined ? { ok: true as const, value: current.phone } : cleanPhone(input.phone);
   if (!phone.ok) return phone;
+  const country =
+    input.phone_country === undefined
+      ? { ok: true as const, value: current.phone_country }
+      : cleanCountry(input.phone_country);
+  if (!country.ok) return country;
   const socials =
     input.socials === undefined
       ? { ok: true as const, value: JSON.stringify(current.socials) }
       : cleanSocials(input.socials);
   if (!socials.ok) return socials;
+  const privacy =
+    input.privacy === undefined
+      ? { ok: true as const, value: JSON.stringify(current.privacy) }
+      : cleanPrivacy(input.privacy);
+  if (!privacy.ok) return privacy;
 
   if (input.status !== undefined && !isStatus(input.status)) {
     return { ok: false, error: "ese estado no existe" };
   }
 
+  /** Cambiar el dominio invalida la verificación: el TXT viejo no dice nada del
+   * dominio nuevo, así que se pide uno nuevo. */
+  const websiteChanged = website.value !== current.website;
   const next: Company = {
     ...current,
     name,
@@ -344,7 +473,13 @@ export function update(
     email: email.value,
     website: website.value,
     phone: phone.value,
+    phone_country: country.value,
     socials: input.socials === undefined ? current.socials : (JSON.parse(socials.value) as Socials),
+    privacy:
+      input.privacy === undefined ? current.privacy : (JSON.parse(privacy.value) as Privacy),
+    website_token: websiteChanged ? (website.value ? mintWebsiteToken() : "") : current.website_token,
+    website_verified: websiteChanged ? false : current.website_verified,
+    website_checked_at: websiteChanged ? "" : current.website_checked_at,
     status: input.status ?? current.status,
     notes: input.notes === undefined ? current.notes : trim(input.notes, MAX_NOTES),
     updated_at: now.toISOString(),
@@ -352,8 +487,9 @@ export function update(
 
   db().run(
     `UPDATE companies
-        SET name = ?, slug = ?, email = ?, website = ?, phone = ?, socials = ?,
-            status = ?, notes = ?, updated_at = ?
+        SET name = ?, slug = ?, email = ?, website = ?, phone = ?, phone_country = ?,
+            socials = ?, privacy = ?, website_token = ?, website_verified = ?,
+            website_checked_at = ?, status = ?, notes = ?, updated_at = ?
       WHERE id = ?`,
     [
       next.name,
@@ -361,7 +497,12 @@ export function update(
       next.email,
       next.website,
       next.phone,
+      next.phone_country,
       socials.value,
+      privacy.value,
+      next.website_token,
+      next.website_verified ? 1 : 0,
+      next.website_checked_at,
       next.status,
       next.notes,
       next.updated_at,
@@ -370,6 +511,24 @@ export function update(
   );
 
   return { ok: true, value: next };
+}
+
+/** El resultado de consultar el TXT: verificado o no, y cuándo se miró. */
+export function setWebsiteVerification(
+  id: string,
+  verified: boolean,
+  now: Date = new Date(),
+): Result<Company> {
+  const current = byId(id);
+  if (!current) return { ok: false, error: "esa empresa no existe" };
+
+  db().run("UPDATE companies SET website_verified = ?, website_checked_at = ?, updated_at = ? WHERE id = ?", [
+    verified ? 1 : 0,
+    now.toISOString(),
+    now.toISOString(),
+    id,
+  ]);
+  return { ok: true, value: byId(id) ?? current };
 }
 
 /** La ruta del archivo la fija el servidor después de guardarlo, nunca el cliente. */

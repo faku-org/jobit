@@ -59,6 +59,28 @@ export interface CompanyMember {
   created_at: string;
 }
 
+export interface Privacy {
+  phone: boolean;
+  email: boolean;
+  website: boolean;
+  members: boolean;
+}
+
+export const PRIVACY_LABEL: Record<keyof Privacy, { label: string; hint: string }> = {
+  phone: { label: "Teléfono", hint: "El número de contacto." },
+  email: { label: "Correo de contacto", hint: "El correo público de la empresa." },
+  website: { label: "Sitio web", hint: "Solo si el dominio está verificado." },
+  members: { label: "Miembros", hint: "Quiénes de JobIt forman parte de la empresa." },
+};
+
+export interface WebsiteVerification {
+  host: string;
+  record_name: string;
+  record_value: string;
+  verified: boolean;
+  checked_at: string;
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -66,9 +88,12 @@ export interface Company {
   email: string;
   website: string;
   phone: string;
+  phone_country: string;
   logo: string;
   banner: string;
   socials: Partial<Record<SocialNetwork, string>>;
+  privacy: Privacy;
+  website_verification: WebsiteVerification | null;
   status: CompanyStatus;
   created_at: string;
   updated_at: string;
@@ -207,6 +232,7 @@ export const register = (input: {
   email: string;
   website?: string;
   phone?: string;
+  phone_country?: string;
   password: string;
   recovery_email?: string;
 }): Promise<Challenge> => send("/auth/register", { method: "POST", body: JSON.stringify(input) });
@@ -261,10 +287,22 @@ export const updateCompany = (input: {
   email?: string;
   website?: string;
   phone?: string;
+  phone_country?: string;
   socials?: Partial<Record<SocialNetwork, string>>;
+  privacy?: Partial<Privacy>;
   current_password?: string;
   new_password?: string;
+  totp_code?: string;
+  email_code?: string;
 }): Promise<{ company: Company }> => send("/me", { method: "PATCH", body: JSON.stringify(input) });
+
+/** Consulta el TXT del dominio. Sin registro, la URL deja de estar vigente. */
+export const verifyWebsite = (): Promise<{ verified: boolean; error?: string; company: Company }> =>
+  send("/me/website/verify", { method: "POST" });
+
+/** Manda el código de seis dígitos para un cambio de contraseña. */
+export const requestPasswordEmail = (): Promise<{ sent: boolean; to: string; kind: CompanyEmailKind }> =>
+  send("/me/password/email", { method: "POST" });
 
 export const setEmail = (kind: CompanyEmailKind, email: string): Promise<{ emails: CompanyEmail[] }> =>
   send(`/emails/${kind}`, { method: "PUT", body: JSON.stringify({ email }) });

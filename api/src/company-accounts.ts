@@ -191,6 +191,61 @@ export function consumeReset(companyId: string, token: string, now: Date = new D
   return true;
 }
 
+/* --- Código de cambio de contraseña -------------------------------------- */
+
+const CODE_MINUTES = 15;
+
+function mintSixDigits(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(4));
+  /** `>>> 0` porque el desplazamiento de bits da un entero con signo y el
+   * módulo de un negativo sale negativo. */
+  const value =
+    ((((bytes[0] ?? 0) << 24) | ((bytes[1] ?? 0) << 16) | ((bytes[2] ?? 0) << 8) | (bytes[3] ?? 0)) >>>
+      0);
+  return String(value % 1_000_000).padStart(6, "0");
+}
+
+/** Emite un código nuevo; el anterior deja de valer. */
+export function startPasswordCode(companyId: string, now: Date = new Date()): string {
+  const code = mintSixDigits();
+  db().run(
+    `INSERT INTO company_password_codes (company_id, code_hash, expires_at, created_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT (company_id) DO UPDATE SET
+       code_hash = excluded.code_hash,
+       expires_at = excluded.expires_at,
+       created_at = excluded.created_at`,
+    [
+      companyId,
+      hashToken(code),
+      new Date(now.getTime() + CODE_MINUTES * 60_000).toISOString(),
+      now.toISOString(),
+    ],
+  );
+  return code;
+}
+
+export function consumePasswordCode(
+  companyId: string,
+  code: string,
+  now: Date = new Date(),
+): boolean {
+  const candidate = code.replace(/\s/g, "");
+  if (!/^\d{6}$/.test(candidate)) return false;
+
+  const row = db()
+    .query<{ code_hash: string; expires_at: string }, [string]>(
+      "SELECT code_hash, expires_at FROM company_password_codes WHERE company_id = ?",
+    )
+    .get(companyId);
+  if (!row) return false;
+  if (row.code_hash !== hashToken(candidate)) return false;
+  if (Date.parse(row.expires_at) < now.getTime()) return false;
+
+  db().run("DELETE FROM company_password_codes WHERE company_id = ?", [companyId]);
+  return true;
+}
+
 export const encryptionReady = (): Promise<boolean> => encryptionEnabled();
 
 /* --- Códigos de respaldo -------------------------------------------------- */

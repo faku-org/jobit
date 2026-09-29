@@ -11,6 +11,7 @@ import * as metrics from "./metrics.ts";
 import * as offers from "./offers.ts";
 import { OFFER_STATUSES } from "./offers.ts";
 import { generateSecret, otpauthUrl, verifyTotp } from "./totp.ts";
+import { challengeName, challengeValue, hasRecord, hostnameOf } from "./website.ts";
 
 /**
  * El panel de la empresa: entra con su cuenta y administra lo suyo.
@@ -80,6 +81,20 @@ const setChallenge = (cookie: CookieJar, token: string): void => {
   });
 };
 
+/** Lo que la empresa necesita para cargar el TXT de su dominio. */
+function websiteView(company: Company) {
+  if (!company.website) return null;
+  const host = hostnameOf(company.website);
+  if (!host) return null;
+  return {
+    host,
+    record_name: challengeName(host),
+    record_value: challengeValue(company.website_token),
+    verified: company.website_verified,
+    checked_at: company.website_checked_at,
+  };
+}
+
 /** Lo que la empresa ve de sí misma. Las notas internas no salen. */
 function companyView(company: Company) {
   return {
@@ -89,9 +104,12 @@ function companyView(company: Company) {
     email: company.email,
     website: company.website,
     phone: company.phone,
+    phone_country: company.phone_country,
     logo: company.logo,
     banner: company.banner,
     socials: company.socials,
+    privacy: company.privacy,
+    website_verification: websiteView(company),
     status: company.status,
     created_at: company.created_at,
     updated_at: company.updated_at,
@@ -105,6 +123,42 @@ function companyView(company: Company) {
     })),
     members: members.list(company.id),
   };
+}
+
+const DAY_MS = 86_400_000;
+
+/** Un dominio ya verificado se vuelve a mirar cada 24 h: si el TXT se borró, la
+ * verificación se cae sola, que es el punto de que dependa de un registro vivo. */
+async function refreshWebsite(company: Company): Promise<Company> {
+  if (!company.website || !company.website_verified || !company.website_token) return company;
+
+  const checked = Date.parse(company.website_checked_at);
+  if (!Number.isNaN(checked) && Date.now() - checked < DAY_MS) return company;
+
+  const host = hostnameOf(company.website);
+  if (!host) return company;
+
+  const verified = await hasRecord(host, company.website_token);
+  const updated = companies.setWebsiteVerification(company.id, verified);
+  return updated.ok ? updated.value : company;
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return email;
+  const head = local.slice(0, 2);
+  return `${head}${"*".repeat(Math.max(local.length - 2, 2))}@${domain}`;
+}
+
+/** El primer correo verificado que pueda recibir el código. */
+function verifiedContact(company: Company): { kind: emails.CompanyEmailKind; email: string } | null {
+  const list = emails.list(company.id);
+  const order: emails.CompanyEmailKind[] = ["recovery", "contact", "support", "billing"];
+  for (const kind of order) {
+    const entry = list.find((candidate) => candidate.kind === kind);
+    if (entry?.verified && entry.email) return { kind, email: entry.email };
+  }
+  return null;
 }
 
 const VERIFY_SUBJECT: Record<emails.CompanyEmailKind, string> = {
@@ -160,6 +214,7 @@ const registerBody = t.Object({
   email: t.String({ maxLength: 300 }),
   website: t.Optional(t.String({ maxLength: 300 })),
   phone: t.Optional(t.String({ maxLength: 40 })),
+  phone_country: t.Optional(t.String({ maxLength: 2 })),
   password: t.String({ minLength: 10, maxLength: 200 }),
   recovery_email: t.Optional(t.String({ maxLength: 300 })),
 });
@@ -182,14 +237,25 @@ const resetBody = t.Object({
   new_password: t.String({ minLength: 10, maxLength: 200 }),
 });
 
+const privacyBody = t.Object({
+  phone: t.Optional(t.Boolean()),
+  email: t.Optional(t.Boolean()),
+  website: t.Optional(t.Boolean()),
+  members: t.Optional(t.Boolean()),
+});
+
 const patchMeBody = t.Object({
   name: t.Optional(t.String({ maxLength: 200 })),
   email: t.Optional(t.String({ maxLength: 300 })),
   website: t.Optional(t.String({ maxLength: 300 })),
   phone: t.Optional(t.String({ maxLength: 40 })),
+  phone_country: t.Optional(t.String({ maxLength: 2 })),
   socials: t.Optional(t.Record(t.String(), t.String({ maxLength: 300 }))),
+  privacy: t.Optional(privacyBody),
   current_password: t.Optional(t.String({ maxLength: 200 })),
   new_password: t.Optional(t.String({ minLength: 10, maxLength: 200 })),
+  totp_code: t.Optional(t.String({ maxLength: 10 })),
+  email_code: t.Optional(t.String({ maxLength: 10 })),
 });
 
 /**
@@ -220,6 +286,7 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
         email,
         website: body.website,
         phone: body.phone,
+        phone_country: body.phone_country,
       });
       if (!created.ok) return status(422, { error: created.error });
 
@@ -462,10 +529,10 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
       }
     },
   })
-  .get("/session", ({ cookie, status }) => {
+  .get("/session", async ({ cookie, status }) => {
     const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
     if (!company) return status(401, { error: "sesión vencida" });
-    return { status: "ok", company: companyView(company) };
+    return { status: "ok", company: companyView(await refreshWebsite(company)) };
   })
   .patch(
     "/me",
@@ -478,23 +545,42 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
         if (!current || !(await accounts.verifyPassword(company.id, current))) {
           return status(401, { error: "la contraseña actual no coincide" });
         }
+
+        /** Cambiar la contraseña pide las dos cosas: el segundo paso y el código
+         * que llega al correo verificado. */
+        const secret = await accounts.totpSecret(company.id);
+        if (!secret || !accounts.totpEnabled(company.id)) {
+          return status(422, { error: "el segundo paso no está activo" });
+        }
+        if (!body.totp_code || !(await verifyTotp(secret, body.totp_code)).ok) {
+          return status(401, { error: "el código del segundo paso no es correcto" });
+        }
+        if (!body.email_code || !accounts.consumePasswordCode(company.id, body.email_code)) {
+          return status(401, { error: "el código del correo no es correcto o venció" });
+        }
+
         const changed = await accounts.setPassword(company.id, body.new_password);
         if (!changed.ok) return status(422, { error: changed.error });
       }
 
-      if (
+      const touchesProfile =
         body.name !== undefined ||
         body.email !== undefined ||
         body.website !== undefined ||
         body.phone !== undefined ||
-        body.socials !== undefined
-      ) {
+        body.phone_country !== undefined ||
+        body.socials !== undefined ||
+        body.privacy !== undefined;
+
+      if (touchesProfile) {
         const updated = companies.update(company.id, {
           name: body.name,
           email: body.email,
           website: body.website,
           phone: body.phone,
+          phone_country: body.phone_country,
           socials: body.socials,
+          privacy: body.privacy,
         });
         if (!updated.ok) return status(422, { error: updated.error });
         return { company: companyView(updated.value) };
@@ -504,6 +590,51 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
     },
     { body: patchMeBody },
   )
+  /** Manda el código de seis dígitos para un cambio de contraseña. */
+  .post("/me/password/email", async ({ cookie, status }) => {
+    const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+    if (!company) return status(401, { error: "sesión vencida" });
+
+    const contact = verifiedContact(company);
+    if (!contact) {
+      return status(422, { error: "primero cargá y verificá un correo" });
+    }
+
+    const code = accounts.startPasswordCode(company.id);
+    const sent = await sendMail({
+      to: contact.email,
+      subject: "Código para cambiar la contraseña",
+      text: [
+        `${company.name}: para cambiar la contraseña, poné este código.`,
+        "",
+        code,
+        "",
+        "Vence en 15 minutos. Si no fuiste vos, ignorá este mensaje: tu contraseña no cambia.",
+      ].join("\n"),
+    });
+    if (!sent.ok) return status(503, { error: sent.error });
+
+    return { sent: true, to: maskEmail(contact.email), kind: contact.kind };
+  })
+  /** Consulta el TXT del dominio. Sin registro, la URL deja de estar vigente. */
+  .post("/me/website/verify", async ({ cookie, status }) => {
+    const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+    if (!company) return status(401, { error: "sesión vencida" });
+    if (!company.website) return status(422, { error: "primero cargá el sitio" });
+
+    const host = hostnameOf(company.website);
+    const verified = host ? await hasRecord(host, company.website_token) : false;
+    const updated = companies.setWebsiteVerification(company.id, verified);
+    if (!updated.ok) return status(422, { error: updated.error });
+
+    return {
+      verified,
+      error: verified
+        ? undefined
+        : `No encontramos el registro. Cargá un TXT en ${host ?? "el dominio"} y probá de nuevo.`,
+      company: companyView(updated.value),
+    };
+  })
   .get("/emails", ({ cookie, status }) => {
     const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
     if (!company) return status(401, { error: "sesión vencida" });

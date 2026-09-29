@@ -21,6 +21,15 @@ ofertas piden más nivel del que tiene.
 | `worker/` | Scrapers de portales uruguayos. Escribe `worker/output/jobs.json`. |
 | `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
 | `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español, panel de empresa en `/empresas` y panel de administración en `/admin`. |
+| `docs/` | Documentación por sección, con pasos y FAQ. |
+
+## Documentación
+
+| Documento | Qué cubre |
+|---|---|
+| [`Architecture.md`](Architecture.md) | Cómo está armado el sistema y por qué. |
+| [`DESIGN.md`](DESIGN.md) | Principios, tokens y convenciones de interfaz. |
+| [`docs/`](docs/) | API, web, worker, base de datos, panel de empresa, deploy y FAQ. |
 
 ## Uso
 
@@ -91,7 +100,9 @@ termina donde termina la de verdad.
 | `POST /api/empresas/auth/recover/reset` | Cambia la contraseña con el token del enlace y vuelve a pedir el segundo paso. |
 | `POST /api/empresas/auth/logout` | Cierra la sesión de la empresa. |
 | `GET /api/empresas/session` | Qué empresa está detrás de la sesión, con perfil, correos y miembros. |
-| `PATCH /api/empresas/me` | Perfil (nombre, teléfono, sitio, redes) y contraseña. |
+| `PATCH /api/empresas/me` | Perfil (nombre, teléfono con país, sitio, redes, privacidad) y contraseña, que pide 2FA + código por correo. |
+| `POST /api/empresas/me/password/email` | Manda el código de 6 dígitos para cambiar la contraseña. |
+| `POST /api/empresas/me/website/verify` | Consulta el TXT del dominio; sin registro, la URL deja de estar vigente. |
 | `GET` / `PUT` / `DELETE /api/empresas/emails/:kind` | Correos de facturación, contacto, soporte y recuperación, con su verificación. |
 | `POST /api/empresas/emails/:kind/resend` | Reenvía el enlace de verificación de ese correo. |
 | `GET /api/empresas/verify` | El enlace que llega por mail; confirma y vuelve al panel. |
@@ -410,17 +421,28 @@ del segundo paso no tiene dónde guardarse cifrado.
 La contraseña, igual que la de las cuentas de usuario, pide un mínimo de
 seguridad: diez caracteres y al menos dos tipos entre mayúsculas, minúsculas,
 números y símbolos. La misma política se aplica en el navegador, para mostrarla
-mientras se escribe, y en la API, que es la que decide. El alta pide repetirla.
+mientras se escribe, y en la API, que es la que decide. El alta pide repetirla, y
+cambiarla pide, además, el código del segundo paso y un código de seis dígitos
+que se manda al primer correo verificado.
 
-La empresa administra su **perfil** —logo y banner (imágenes a disco, servidas
-por una ruta propia), teléfono, sitio y las redes sociales con su ícono— y sus
-**correos**: facturación, contacto, soporte y recuperación. Cada uno se confirma
-con un enlace de un solo uso que vence a las 24 horas; hasta entonces el panel lo
-marca como sin verificar. El correo de recuperación es el alterno al de contacto
-y es la salida para recuperar la cuenta: pide un enlace, lo recibe, elige una
-contraseña nueva y vuelve a activar el segundo paso. Sin proveedor de correo
-configurado los envíos quedan en el log, con el enlace adentro, para poder
-probar el recorrido en local.
+El panel está **dividido en áreas** —Imagen, Identidad, Redes, Correos,
+Privacidad, Miembros y Seguridad—, una por vez y cada una con su propio
+guardado, así nada es un scroll largo. En **Identidad** el teléfono se elige con
+el país de un menú con banderas (el prefijo lo pone el sistema) y el sitio se
+verifica con un registro DNS TXT (`_jobit.<dominio>`): la URL queda vigente
+mientras el registro exista y se vuelve a comprobar cada 24 horas. En **Redes**
+se carga el usuario o el enlace completo y da igual: el servidor normaliza
+(`acme` en Instagram es `instagram.com/acme`; `acme` en LinkedIn es la página de
+empresa). En **Privacidad** se elige qué se muestra en la ficha pública.
+
+La empresa administra sus **correos** —facturación, contacto, soporte y
+recuperación— y su perfil, con **logo y banner** (imágenes a disco, servidas por
+una ruta propia). Cada correo se confirma con un enlace de un solo uso que vence
+a las 24 horas; hasta entonces el panel lo marca como sin verificar. El correo de
+recuperación es el alterno al de contacto y es la salida para recuperar la
+cuenta: pide un enlace, lo recibe, elige una contraseña nueva y vuelve a activar
+el segundo paso. Sin proveedor de correo configurado los envíos quedan en el
+log, con el enlace adentro, para poder probar el recorrido en local.
 
 También puede **designar miembros**: usuarios de JobIt, por handle, que figuran
 como parte de la empresa. Es solo la designación; no entran al panel ni publican
