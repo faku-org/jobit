@@ -92,7 +92,12 @@ Ver `web/src/empresas/settings/Settings.tsx`.
 
 - **Se valida mientras se escribe y al salir del campo**, no recién al enviar.
   Los errores aparecen en el campo, en rojo, una vez que se tocó.
-- El botón de guardar se deshabilita mientras los datos no cierran.
+- **El botón de enviar nunca se deshabilita.** Un botón deshabilitado no
+  recibe foco y no explica qué falta. En su lugar, arriba del botón, un
+  resumen en vivo (`aria-live="polite"`) dice qué **falta** (vacío y
+  obligatorio) y qué **no cierra** (completo pero inconsistente), y cada ítem
+  lleva el foco a su campo. Si se envía con algo pendiente, el foco va al
+  primer campo con error.
 - Los avisos de "Guardado." son discretos y desaparecen solos.
 - Los campos llevan `label` asociado por `htmlFor`/`id`; `aria-invalid` cuando
   hay error.

@@ -12,6 +12,7 @@ una sección y arranca con los pasos para ejecutarla.
 | [`company-panel.md`](company-panel.md) | El panel de empresa de punta a punta. |
 | [`deploy.md`](deploy.md) | Puesta en producción (resumen; el detalle está en `deploy/`). |
 | [`faq.md`](faq.md) | Preguntas frecuentes. |
+| [`plan-implementacion.md`](plan-implementacion.md) | Orden de lo pendiente (roadmap, issues, PRs) y la revisión de UX/accesibilidad. |
 
 Para el panorama general ver [`../Architecture.md`](../Architecture.md) y para
 las convenciones de interfaz [`../DESIGN.md`](../DESIGN.md).

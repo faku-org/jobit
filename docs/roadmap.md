@@ -4,25 +4,7 @@ Lo que está pensado y todavía no construido, en el orden en que tiene sentido
 hacerlo. Nada de esto está implementado: es la lista para que no se pierda y
 para que lo que se sume después no contradiga lo que ya hay.
 
-## 1. Métricas de empresa y engagement
-
-El Resumen ya muestra vistas, postulaciones, palabras clave, los puestos más
-buscados y una gráfica por día. Lo que sigue:
-
-- **Ventanas comparables**: poder mirar la misma serie contra el período
-  anterior, no solo el número suelto.
-- **Embudo por oferta**: vistas → clics al aviso → postulaciones, por
-  publicación y por rubro.
-- **Alertas**: un pico de vistas sin postulaciones, o una oferta que se queda
-  sin visitas, avisados sin que haya que entrar a mirar.
-- **Reportes exportables**: el mismo corte que ve el panel, para bajar y
-  compartir con quien decide.
-
-Todo sigue sobre contadores agregados (`offer_daily`, los eventos anónimos) y
-las palabras clave que se extraen de las propias ofertas. Nada de esto agrega
-una fila por persona.
-
-## 2. Algoritmo de recomendación personalizado
+## 1. Algoritmo de recomendación personalizado
 
 Hoy las preferencias de quien busca (modalidad, nivel, jornada, rubros) marcan
 las ofertas que coinciden, en el navegador. Lo que falta:
@@ -40,6 +22,24 @@ las ofertas que coinciden, en el navegador. Lo que falta:
 El recomendador es lo que le da sentido a las palabras clave del panel: para
 que una empresa sepa con qué la va a encontrar quien busca.
 
+## 2. Métricas de empresa y engagement
+
+El Resumen ya muestra vistas, postulaciones, palabras clave, los puestos más
+buscados y una gráfica por día. Lo que sigue:
+
+- **Ventanas comparables**: poder mirar la misma serie contra el período
+  anterior, no solo el número suelto.
+- **Embudo por oferta**: vistas → clics al aviso → postulaciones, por
+  publicación y por rubro.
+- **Alertas**: un pico de vistas sin postulaciones, o una oferta que se queda
+  sin visitas, avisados sin que haya que entrar a mirar.
+- **Reportes exportables**: el mismo corte que ve el panel, para bajar y
+  compartir con quien decide.
+
+Todo sigue sobre contadores agregados (`offer_daily`, los eventos anónimos) y
+las palabras clave que se extraen de las propias ofertas. Nada de esto agrega
+una fila por persona.
+
 ## 3. Postulaciones con preguntas y requerimientos
 
 Hoy el botón de postular sale al aviso original. Lo que se quiere:
@@ -53,8 +53,16 @@ Hoy el botón de postular sale al aviso original. Lo que se quiere:
 - Los dos lados tienen que salir ganando: el que se postula ahorra tiempo en
   postulaciones que no encajan; la empresa ve solo lo que encaja.
 
-Pendiente de definir dónde viven las respuestas (¿la cuenta de JobIt, el aviso
-original, los dos?) antes de tocar el modelo.
+Las respuestas son **datos personales**, de los dos lados. Eso fija el modelo:
+
+- **Retención mínima** en el servidor, y la conversación sigue solo si las dos
+  partes aceptan mantenerla.
+- Cada parte guarda **una copia en su navegador, cifrada con la contraseña de
+  su cuenta**, que el servidor no ve.
+- La copia se puede **exportar a Markdown y a PDF** para imprimir.
+
+El diseño completo está en la fase 8 de
+[`plan-implementacion.md`](plan-implementacion.md).
 
 ## 4. Herramientas de IA para empresas (plan de pago)
 
