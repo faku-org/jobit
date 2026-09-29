@@ -13,6 +13,7 @@ interface AreaProps {
   company: Company;
   onUpdated: (company: Company) => void;
   onFail: (cause: unknown) => void;
+  onLeft: () => void;
 }
 
 const AREAS = [
@@ -32,9 +33,9 @@ type AreaId = (typeof AREAS)[number]["id"];
  * nada sea un scroll largo, y cada una guarda lo suyo: se puede cerrar una sin
  * tocar las demás. Las áreas no se mezclan nunca.
  */
-export function Settings({ company, onUpdated, onFail }: AreaProps) {
+export function Settings({ company, onUpdated, onFail, onLeft }: AreaProps) {
   const [area, setArea] = useState<AreaId>("imagen");
-  const props = { company, onUpdated, onFail };
+  const props = { company, onUpdated, onFail, onLeft };
 
   return (
     <div>

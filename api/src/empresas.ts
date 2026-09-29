@@ -11,6 +11,7 @@ import * as metrics from "./metrics.ts";
 import * as offers from "./offers.ts";
 import { OFFER_STATUSES } from "./offers.ts";
 import { generateSecret, otpauthUrl, verifyTotp } from "./totp.ts";
+import { topSearchRoles } from "./usage.ts";
 import { challengeName, challengeValue, hasRecord, hostnameOf } from "./website.ts";
 
 /**
@@ -258,6 +259,18 @@ const patchMeBody = t.Object({
   email_code: t.Optional(t.String({ maxLength: 10 })),
 });
 
+/** Cambiar el 2FA: la contraseña arranca el cambio y el código lo confirma. */
+const changeTotpBody = t.Object({
+  password: t.String({ maxLength: 200 }),
+  code: t.Optional(t.String({ maxLength: 10 })),
+});
+
+/** Lockdown y desactivar piden las dos cosas: contraseña y segundo paso. */
+const confirmSecurityBody = t.Object({
+  password: t.String({ maxLength: 200 }),
+  totp_code: t.String({ maxLength: 10 }),
+});
+
 /**
  * Publicar pide la empresa aprobada. `offers.ts` ya filtra `published` por
  * estado al armar el feed, así que esto es la respuesta honesta en el momento:
@@ -322,6 +335,11 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
       if (!company || !(await accounts.verifyPassword(company.id, body.password))) {
         return status(401, { error: "empresa o contraseña incorrectos" });
       }
+      if (accounts.isDeactivated(company.id)) {
+        return status(403, {
+          error: "esa cuenta está desactivada; recuperá el acceso por el correo de recuperación",
+        });
+      }
       if (company.status === "suspended") {
         return status(403, { error: "esa empresa está suspendida" });
       }
@@ -350,6 +368,9 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
       const company = companies.byId(companyId);
       if (!company || company.status === "suspended") {
         return status(401, { error: "esa empresa no está" });
+      }
+      if (accounts.isDeactivated(companyId)) {
+        return status(403, { error: "esa cuenta está desactivada" });
       }
 
       if (body.code === undefined) {
@@ -400,6 +421,9 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
       if (!company || company.status === "suspended") {
         return status(401, { error: "esa empresa no está" });
       }
+      if (accounts.isDeactivated(companyId)) {
+        return status(403, { error: "esa cuenta está desactivada" });
+      }
 
       const secret = await accounts.totpSecret(companyId);
       if (!secret || !accounts.totpEnabled(companyId)) {
@@ -422,6 +446,9 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
       const company = companies.byEmailOrSlug(body.identifier);
       if (!company || company.status === "suspended") {
         return status(401, { error: "empresa o código incorrectos" });
+      }
+      if (accounts.isDeactivated(company.id)) {
+        return status(403, { error: "esa cuenta está desactivada" });
       }
       if (!accounts.consumeRecoveryCode(company.id, body.code)) {
         return status(401, { error: "empresa o código incorrectos" });
@@ -473,8 +500,11 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
       const changed = await accounts.setPassword(company.id, body.new_password);
       if (!changed.ok) return status(422, { error: changed.error });
       /** Con la contraseña nueva se vuelve a pedir el segundo paso: es la
-       * salida para quien perdió el teléfono y no tiene códigos. */
+       * salida para quien perdió el teléfono y no tiene códigos. Y si la cuenta
+       * estaba desactivada, recuperar el acceso la vuelve a encender. */
       accounts.disableTotp(company.id);
+      accounts.clearPendingTotp(company.id);
+      accounts.reactivate(company.id);
       return { status: "ok" };
     },
     { body: resetBody },
@@ -616,6 +646,144 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
 
     return { sent: true, to: maskEmail(contact.email), kind: contact.kind };
   })
+  /**
+   * Cambiar el segundo paso. Sin `code` genera la clave nueva y la deja
+   * pendiente; con `code` la confirma y reemplaza la vieja. El 2FA actual sigue
+   * activo hasta ese momento, así que abandonar el cambio no deja la cuenta sin
+   * segundo paso. Al confirmar se cierran las otras sesiones y se renuevan los
+   * códigos de respaldo.
+   */
+  .post(
+    "/me/totp/setup",
+    async ({ body, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+      if (!(await accounts.verifyPassword(company.id, body.password))) {
+        return status(401, { error: "la contraseña no coincide" });
+      }
+      if (!accounts.totpEnabled(company.id)) {
+        return status(422, { error: "el segundo paso todavía no está activo" });
+      }
+      if (!(await accounts.encryptionReady())) {
+        return status(503, { error: "el segundo paso no está disponible" });
+      }
+
+      if (body.code === undefined) {
+        const secret = generateSecret();
+        const saved = await accounts.setPendingTotp(company.id, secret);
+        if (!saved.ok) return status(503, { error: saved.error });
+
+        return {
+          status: "setup",
+          account: company.email || company.slug,
+          secret,
+          otpauth: otpauthUrl({ secret, account: company.email || company.slug, issuer: ISSUER }),
+        };
+      }
+
+      const secret = await accounts.pendingTotpSecret(company.id);
+      if (!secret) return status(422, { error: "no hay un segundo paso pendiente" });
+
+      const check = await verifyTotp(secret, body.code);
+      if (!check.ok) return status(401, { error: "código incorrecto" });
+
+      accounts.promotePendingTotp(company.id);
+      /** Lo que veía la app vieja deja de valer: se cierran las otras sesiones. */
+      accounts.destroyOtherSessions(company.id, tokenOf(cookie[COMPANY_COOKIE]?.value));
+      return {
+        status: "ok",
+        company: companyView(companies.byId(company.id) ?? company),
+        recovery_codes: accounts.generateRecoveryCodes(company.id),
+      };
+    },
+    { body: changeTotpBody },
+  )
+  /**
+   * Lockdown: para cuando sospechás que alguien más entró. Cierra la sesión en
+   * todos los dispositivos —esta incluida— y renueva los códigos de respaldo.
+   * Los códigos viajan en la respuesta para mostrarlos una sola vez antes de
+   * que la cookie desaparezca.
+   */
+  .post(
+    "/me/lockdown",
+    async ({ body, cookie, status }) => {
+      const token = tokenOf(cookie[COMPANY_COOKIE]?.value);
+      const company = accounts.sessionCompany(token);
+      if (!company) return status(401, { error: "sesión vencida" });
+      if (!(await accounts.verifyPassword(company.id, body.password))) {
+        return status(401, { error: "la contraseña no coincide" });
+      }
+
+      const secret = await accounts.totpSecret(company.id);
+      if (!secret || !accounts.totpEnabled(company.id)) {
+        return status(422, { error: "el segundo paso no está activo" });
+      }
+      if (!(await verifyTotp(secret, body.totp_code)).ok) {
+        return status(401, { error: "el código del segundo paso no es correcto" });
+      }
+
+      accounts.destroyAllSessions(company.id);
+      const codes = accounts.generateRecoveryCodes(company.id);
+      cookie[COMPANY_COOKIE]?.remove();
+      cookie[CHALLENGE_COOKIE]?.remove();
+      return { status: "ok", recovery_codes: codes };
+    },
+    { body: confirmSecurityBody },
+  )
+  /**
+   * Desactivar la cuenta: deja de entrar hasta que se recupere por el correo
+   * alterno. Por eso pide que ese correo esté verificado antes de apagarla, y
+   * manda el enlace de recuperación en el momento para no dejar a nadie afuera.
+   */
+  .post(
+    "/me/deactivate",
+    async ({ body, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+      if (!(await accounts.verifyPassword(company.id, body.password))) {
+        return status(401, { error: "la contraseña no coincide" });
+      }
+
+      const secret = await accounts.totpSecret(company.id);
+      if (!secret || !accounts.totpEnabled(company.id)) {
+        return status(422, { error: "el segundo paso no está activo" });
+      }
+      if (!(await verifyTotp(secret, body.totp_code)).ok) {
+        return status(401, { error: "el código del segundo paso no es correcto" });
+      }
+
+      const recovery = emails.get(company.id, "recovery");
+      if (!recovery?.verified || !recovery.email) {
+        return status(422, {
+          error: "para desactivar hace falta un correo de recuperación verificado",
+        });
+      }
+
+      accounts.deactivate(company.id);
+      accounts.destroyAllSessions(company.id);
+
+      const reset = accounts.startReset(company.id);
+      const link = `${publicOrigin()}/empresas?recuperar=${encodeURIComponent(company.id)}.${encodeURIComponent(reset)}`;
+      await sendMail({
+        to: recovery.email,
+        subject: "Tu cuenta de empresa en JobIt quedó desactivada",
+        text: [
+          `${company.name}: desactivaste la cuenta.`,
+          "",
+          "Para volver a entrar, elegí una contraseña nueva acá:",
+          link,
+          "",
+          "El enlace vence en 30 minutos y sirve una sola vez. Si no fuiste vos,",
+          "escribinos: no hagas nada con este enlace.",
+        ].join("\n"),
+      });
+
+      cookie[COMPANY_COOKIE]?.remove();
+      cookie[CHALLENGE_COOKIE]?.remove();
+      return { status: "ok", email: maskEmail(recovery.email) };
+    },
+    { body: confirmSecurityBody },
+  )
   /** Consulta el TXT del dominio. Sin registro, la URL deja de estar vigente. */
   .post("/me/website/verify", async ({ cookie, status }) => {
     const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
@@ -744,13 +912,20 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
     },
     { params: t.Object({ userId: t.String() }) },
   )
-  /** Lo que la empresa ve de sí misma: contadores por oferta, nunca por persona. */
+  /** Lo que la empresa ve de sí misma: contadores por oferta, nunca por persona.
+   * Suma los puestos más buscados, que es un corte agregado de los eventos
+   * anónimos: dice qué se busca, nunca quién. */
   .get(
     "/metrics",
-    ({ query, cookie, status }) => {
+    async ({ query, cookie, status }) => {
       const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
       if (!company) return status(401, { error: "sesión vencida" });
-      return metrics.companyMetrics(company.id, query.days ?? 30);
+      const days = query.days ?? 30;
+      const [report, searchRoles] = await Promise.all([
+        metrics.companyMetrics(company.id, days),
+        topSearchRoles(days),
+      ]);
+      return { ...report, search_roles: searchRoles };
     },
     { query: t.Object({ days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })) }) },
   )

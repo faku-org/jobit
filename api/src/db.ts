@@ -141,7 +141,13 @@ CREATE TABLE IF NOT EXISTS company_accounts (
   company_id    TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
   password_hash TEXT NOT NULL,
   totp_secret_enc TEXT,
+  /** El secreto de un cambio de 2FA, mientras espera el código que lo confirma:
+   * así el segundo paso viejo sigue activo hasta que el nuevo anda. */
+  totp_pending_enc TEXT,
   totp_enabled  INTEGER NOT NULL DEFAULT 0,
+  /** Vacío es activa. Con fecha, la cuenta está desactivada y se vuelve por el
+   * correo de recuperación. */
+  deactivated_at TEXT NOT NULL DEFAULT '',
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
 );
@@ -262,6 +268,8 @@ function migrate(database: Database): void {
 
   add("company_accounts", "totp_secret_enc", "TEXT");
   add("company_accounts", "totp_enabled", "INTEGER NOT NULL DEFAULT 0");
+  add("company_accounts", "totp_pending_enc", "TEXT");
+  add("company_accounts", "deactivated_at", "TEXT NOT NULL DEFAULT ''");
 }
 
 export function db(): Database {

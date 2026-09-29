@@ -92,13 +92,14 @@ interface AccountRow {
   company_id: string;
   totp_secret_enc: string | null;
   totp_enabled: number;
+  deactivated_at: string;
 }
 
 function accountRow(companyId: string): AccountRow | null {
   return (
     db()
       .query<AccountRow, [string]>(
-        "SELECT company_id, totp_secret_enc, totp_enabled FROM company_accounts WHERE company_id = ?",
+        "SELECT company_id, totp_secret_enc, totp_enabled, deactivated_at FROM company_accounts WHERE company_id = ?",
       )
       .get(companyId) ?? null
   );
@@ -144,6 +145,76 @@ export function disableTotp(companyId: string, now: Date = new Date()): void {
     "UPDATE company_accounts SET totp_secret_enc = NULL, totp_enabled = 0, updated_at = ? WHERE company_id = ?",
     [now.toISOString(), companyId],
   );
+}
+
+/**
+ * Cambiar el segundo paso sin quedarse sin él: el secreto nuevo espera en
+ * `totp_pending_enc` y el viejo sigue valiendo hasta que un código lo confirme.
+ * Si nadie lo confirma, no pasa nada y el 2FA de siempre queda igual.
+ */
+export async function setPendingTotp(
+  companyId: string,
+  secret: string,
+  now: Date = new Date(),
+): Promise<Result<void>> {
+  const encrypted = await encrypt(secret);
+  if (!encrypted.ok) return encrypted;
+  db().run(
+    "UPDATE company_accounts SET totp_pending_enc = ?, updated_at = ? WHERE company_id = ?",
+    [encrypted.value, now.toISOString(), companyId],
+  );
+  return { ok: true, value: undefined };
+}
+
+export async function pendingTotpSecret(companyId: string): Promise<string | null> {
+  const row = db()
+    .query<{ totp_pending_enc: string | null }, [string]>(
+      "SELECT totp_pending_enc FROM company_accounts WHERE company_id = ?",
+    )
+    .get(companyId);
+  if (!row?.totp_pending_enc) return null;
+  const plain = await decrypt(row.totp_pending_enc);
+  return plain.ok ? plain.value : null;
+}
+
+/** El secreto pendiente pasa a ser el activo y el nuevo código ya cuenta. */
+export function promotePendingTotp(companyId: string, now: Date = new Date()): void {
+  db().run(
+    `UPDATE company_accounts
+        SET totp_secret_enc = totp_pending_enc, totp_pending_enc = NULL, totp_enabled = 1, updated_at = ?
+      WHERE company_id = ?`,
+    [now.toISOString(), companyId],
+  );
+}
+
+export function clearPendingTotp(companyId: string, now: Date = new Date()): void {
+  db().run("UPDATE company_accounts SET totp_pending_enc = NULL, updated_at = ? WHERE company_id = ?", [
+    now.toISOString(),
+    companyId,
+  ]);
+}
+
+/* --- Desactivar y recuperar la cuenta ------------------------------------ */
+
+export function isDeactivated(companyId: string): boolean {
+  return (accountRow(companyId)?.deactivated_at ?? "") !== "";
+}
+
+/** Desactivada: no entra nadie hasta que se recupere por el correo alterno. */
+export function deactivate(companyId: string, now: Date = new Date()): void {
+  db().run("UPDATE company_accounts SET deactivated_at = ?, updated_at = ? WHERE company_id = ?", [
+    now.toISOString(),
+    now.toISOString(),
+    companyId,
+  ]);
+}
+
+/** Recuperar el acceso con el enlace del correo la vuelve a encender. */
+export function reactivate(companyId: string, now: Date = new Date()): void {
+  db().run("UPDATE company_accounts SET deactivated_at = '', updated_at = ? WHERE company_id = ?", [
+    now.toISOString(),
+    companyId,
+  ]);
 }
 
 /* --- Enlace de recuperación por correo ----------------------------------- */
@@ -348,6 +419,7 @@ export function sessionCompany(token: string | undefined, now: Date = new Date()
 
   const company = companies.byId(row.company_id);
   if (!company || company.status === "suspended") return null;
+  if (isDeactivated(row.company_id)) return null;
 
   const lastSeen = Date.parse(row.last_seen);
   if (!Number.isNaN(lastSeen) && now.getTime() - lastSeen >= RENEW_AFTER_MS) {
@@ -365,6 +437,19 @@ export function sessionCompany(token: string | undefined, now: Date = new Date()
 export function destroySession(token: string | undefined): void {
   if (!token) return;
   db().run("DELETE FROM company_sessions WHERE token_hash = ?", [sha256(token)]);
+}
+
+/** Cierra todo menos la sesión que pide el lockdown, que necesita seguir
+ * abierta para mostrar los códigos de respaldo nuevos. */
+export function destroyOtherSessions(companyId: string, keep: string | undefined): void {
+  if (!keep) {
+    destroyAllSessions(companyId);
+    return;
+  }
+  db().run("DELETE FROM company_sessions WHERE company_id = ? AND token_hash != ?", [
+    companyId,
+    sha256(keep),
+  ]);
 }
 
 export function destroyAllSessions(companyId: string): void {

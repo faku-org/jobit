@@ -359,3 +359,24 @@ export async function loadUsage(days: number, today?: Date): Promise<UsageReport
     { days, today },
   );
 }
+
+/**
+ * Los puestos más buscados en la ventana. Es el mismo corte que hace el panel
+ * de uso, recortado a lo que una empresa puede ver: qué se busca, nunca quién
+ * lo busca. Sale de los eventos anónimos que ya se reciben; no agrega nada.
+ */
+export async function topSearchRoles(days: number, today?: Date): Promise<Labelled[]> {
+  const count = Math.max(Math.floor(days), 1);
+  const end = today ?? new Date();
+  const to = dayOf(end.getTime());
+  const from = dayOf(end.getTime() - (count - 1) * DAY_MS);
+
+  const rows = await readRows(eventsFilePath());
+  const searches = rows
+    .map(parseEventLine)
+    .filter((row): row is EventLine => row !== null)
+    .filter((event): event is Extract<EventLine, { kind: "search" }> => event.kind === "search")
+    .filter((event) => event.day >= from && event.day <= to);
+
+  return labelled(tally(searches.map((event) => event.role)), ROLE_LABEL);
+}

@@ -537,4 +537,130 @@ describe("métricas", () => {
   test("un id que no es una oferta propia no rompe el lote", async () => {
     expect(await appendEvents([{ kind: "offer_view", id: "no-existe" }])).toBe(0);
   });
+
+  test("el resumen trae la serie diaria completa y las palabras clave", async () => {
+    const { cookie, id } = await registerCompany("Acme", "rrhh@acme.com");
+    companies.update(id, { status: "approved" });
+
+    const created = await call(
+      "/api/empresas/offers",
+      withCookie(
+        json({ title: "Backend", description: "Manejo de Excel y SQL", status: "draft" }),
+        cookie,
+      ),
+    );
+    const offer = (await created.json()) as { id: string };
+    await appendEvents([{ kind: "offer_view", id: offer.id }]);
+
+    const response = await call("/api/empresas/metrics?days=7", withCookie({}, cookie));
+    const report = (await response.json()) as {
+      daily: { day: string }[];
+      keywords: { slug: string }[];
+      search_roles: unknown[];
+    };
+    expect(report.daily).toHaveLength(7);
+    expect(report.keywords.map((entry) => entry.slug)).toContain("excel");
+    expect(Array.isArray(report.search_roles)).toBe(true);
+  });
+});
+
+describe("cambiar el segundo paso", () => {
+  test("pide la contraseña, confirma con el código y renueva los códigos", async () => {
+    const { cookie, id } = await registerCompany("Acme", "rrhh@acme.com");
+    const oldSecret = await accounts.totpSecret(id);
+
+    const bad = await call(
+      "/api/empresas/me/totp/setup",
+      withCookie(json({ password: "no-es-esta" }), cookie),
+    );
+    expect(bad.status).toBe(401);
+
+    const start = await call(
+      "/api/empresas/me/totp/setup",
+      withCookie(json({ password: "una-clave-larga" }), cookie),
+    );
+    const setup = (await start.json()) as { status: string; secret: string };
+    expect(setup.status).toBe("setup");
+    expect(setup.secret).not.toBe(oldSecret);
+
+    /** El secreto nuevo espera: el de siempre sigue valiendo hasta confirmar. */
+    const stillOld = await loginCompany("rrhh@acme.com");
+    expect(stillOld.response.status).toBe(200);
+
+    const code = await totp(setup.secret);
+    const done = await call(
+      "/api/empresas/me/totp/setup",
+      withCookie(json({ password: "una-clave-larga", code }), cookie),
+    );
+    const body = (await done.json()) as { status: string; recovery_codes?: string[] };
+    expect(body.status).toBe("ok");
+    expect(body.recovery_codes).toHaveLength(8);
+  });
+});
+
+describe("lockdown", () => {
+  test("cierra todas las sesiones y renueva los códigos de respaldo", async () => {
+    const { cookie, id } = await registerCompany("Acme", "rrhh@acme.com");
+    const other = await loginCompany("rrhh@acme.com");
+    expect((await call("/api/empresas/session", withCookie({}, other.cookie))).status).toBe(200);
+
+    const secret = await accounts.totpSecret(id);
+    const code = secret ? await totp(secret) : "";
+    const response = await call(
+      "/api/empresas/me/lockdown",
+      withCookie(json({ password: "una-clave-larga", totp_code: code }), cookie),
+    );
+    const body = (await response.json()) as { recovery_codes: string[] };
+    expect(response.status).toBe(200);
+    expect(body.recovery_codes).toHaveLength(8);
+
+    expect((await call("/api/empresas/session", withCookie({}, other.cookie))).status).toBe(401);
+    expect((await call("/api/empresas/session", withCookie({}, cookie))).status).toBe(401);
+  });
+});
+
+describe("desactivar la cuenta", () => {
+  test("sin correo de recuperación verificado no se puede apagar", async () => {
+    const { cookie, id } = await registerCompany("Acme", "rrhh@acme.com");
+    const secret = await accounts.totpSecret(id);
+    const code = secret ? await totp(secret) : "";
+    const response = await call(
+      "/api/empresas/me/deactivate",
+      withCookie(json({ password: "una-clave-larga", totp_code: code }), cookie),
+    );
+    expect(response.status).toBe(422);
+  });
+
+  test("bloquea el ingreso y se recupera con el enlace del correo", async () => {
+    const { cookie, id } = await registerCompany("Acme", "rrhh@acme.com");
+    const saved = emails.set(id, "recovery", "recuperar@acme.com");
+    const token = saved.ok ? saved.value.token : null;
+    if (token) await call(`/api/empresas/verify?c=${id}&k=recovery&t=${token}`);
+    expect(emails.get(id, "recovery")?.verified).toBe(true);
+
+    const secret = await accounts.totpSecret(id);
+    const code = secret ? await totp(secret) : "";
+    const response = await call(
+      "/api/empresas/me/deactivate",
+      withCookie(json({ password: "una-clave-larga", totp_code: code }), cookie),
+    );
+    expect(response.status).toBe(200);
+
+    const login = await call(
+      "/api/empresas/auth/login",
+      json({ identifier: "rrhh@acme.com", password: "una-clave-larga" }),
+    );
+    expect(login.status).toBe(403);
+    expect((await call("/api/empresas/session", withCookie({}, cookie))).status).toBe(401);
+
+    const reset = accounts.startReset(id);
+    const changed = await call(
+      "/api/empresas/auth/recover/reset",
+      json({ company_id: id, token: reset, new_password: "otra-clave-larga" }),
+    );
+    expect(changed.status).toBe(200);
+
+    const again = await loginCompany("rrhh@acme.com", "otra-clave-larga");
+    expect(again.response.status).toBe(200);
+  });
 });

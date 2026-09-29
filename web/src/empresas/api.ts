@@ -172,6 +172,10 @@ export interface Metrics {
   daily: { day: string; views: number; applies: number }[];
   most_viewed: OfferMetrics[];
   most_applied: OfferMetrics[];
+  /** Habilidades que nombran las publicaciones de la empresa. */
+  keywords: { slug: string; label: string; count: number }[];
+  /** Los puestos más buscados en JobIt en la ventana, agregados y anónimos. */
+  search_roles: { value: string; label: string; count: number }[];
 }
 
 /** La sesión vencida no es un error a mostrar, es volver a la pantalla de
@@ -303,6 +307,33 @@ export const verifyWebsite = (): Promise<{ verified: boolean; error?: string; co
 /** Manda el código de seis dígitos para un cambio de contraseña. */
 export const requestPasswordEmail = (): Promise<{ sent: boolean; to: string; kind: CompanyEmailKind }> =>
   send("/me/password/email", { method: "POST" });
+
+/** Sin `code` arranca el cambio de segundo paso; con `code` lo confirma. */
+export const changeTotp = (password: string, code?: string): Promise<TotpSetup | TotpDone> =>
+  send("/me/totp/setup", {
+    method: "POST",
+    body: JSON.stringify(code === undefined ? { password } : { password, code }),
+  });
+
+/** Cierra la sesión en todos los dispositivos y renueva los códigos. */
+export const lockdown = (
+  password: string,
+  totpCode: string,
+): Promise<{ status: string; recovery_codes: string[] }> =>
+  send("/me/lockdown", {
+    method: "POST",
+    body: JSON.stringify({ password, totp_code: totpCode }),
+  });
+
+/** Apaga la cuenta hasta recuperarla por el correo alterno verificado. */
+export const deactivateAccount = (
+  password: string,
+  totpCode: string,
+): Promise<{ status: string; email: string }> =>
+  send("/me/deactivate", {
+    method: "POST",
+    body: JSON.stringify({ password, totp_code: totpCode }),
+  });
 
 export const setEmail = (kind: CompanyEmailKind, email: string): Promise<{ emails: CompanyEmail[] }> =>
   send(`/emails/${kind}`, { method: "PUT", body: JSON.stringify({ email }) });

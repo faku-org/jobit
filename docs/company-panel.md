@@ -51,6 +51,30 @@ POST /api/empresas/me/password/email   -> manda un código de 6 dígitos al prim
 PATCH /api/empresas/me  { current_password, new_password, totp_code, email_code }
 ```
 
+## Seguridad
+
+La sección de Seguridad son cuatro acciones sueltas, cada una con su tarjeta y
+su propio pedido. Ninguna comparte formulario con las demás.
+
+- **Cambiar el segundo paso.** `POST /api/empresas/me/totp/setup { password }`
+  genera un secreto nuevo y lo deja *pendiente*; con
+  `{ password, code }` lo confirma. El secreto viejo sigue activo hasta ese
+  momento, así que abandonar el cambio no deja la cuenta sin 2FA. Al confirmar
+  se cierran las demás sesiones y se renuevan los códigos de respaldo.
+- **Lockdown** (emergencia). `POST /api/empresas/me/lockdown { password, totp_code }`
+  cierra la sesión en todos los dispositivos —esta incluida— y renueva los
+  códigos de respaldo. Los códigos viajan en la respuesta para mostrarlos una
+  sola vez antes de que la cookie desaparezca.
+- **Desactivar la cuenta.** `POST /api/empresas/me/deactivate { password, totp_code }`
+  apaga la cuenta hasta que se recupere. Pide que el correo de recuperación esté
+  **verificado** y manda el enlace en el momento: sin esa puerta, nadie podría
+  volver. Recuperar el acceso es el mismo `recover/reset` de siempre, que además
+  la vuelve a encender.
+- **Cambiar la contraseña.** La de arriba, con 2FA y código por correo.
+
+Las cuentas desactivadas no entran ni con la contraseña ni con el código de
+respaldo: la única salida es el enlace del correo de recuperación.
+
 ## Las áreas del panel
 
 El panel de la empresa se divide en áreas separadas, una por vez, cada una con
@@ -64,7 +88,7 @@ su propio guardado. Nunca es un scroll largo.
 | Correos | Facturación, contacto, soporte y recuperación, con verificación. | `/api/empresas/emails/:kind` |
 | Privacidad | Qué se muestra en la ficha pública. | `PATCH /api/empresas/me` |
 | Miembros | Usuarios de JobIt designados. | `/api/empresas/members` |
-| Seguridad | Cambio de contraseña con 2FA + correo. | `/api/empresas/me` |
+| Seguridad | Cambiar 2FA, cambiar contraseña, lockdown y desactivar cuenta. | `/api/empresas/me/totp/setup`, `/me/lockdown`, `/me/deactivate`, `/me` |
 
 ### Redes: usuario o URL
 
@@ -116,6 +140,24 @@ ahí.
 `offer_daily` suma vistas y postulaciones por oferta y por día: dice cuántas
 veces, nunca quién. Suben por el canal anónimo de `/api/events` y solo para las
 publicadas acá.
+
+`GET /api/empresas/metrics?days=7|30|90` arma el Resumen:
+
+- **Visitas a la empresa**, **publicaciones** y **postulaciones** en la ventana.
+- **Serie diaria completa** (vistas y postulaciones), con los días en cero
+  incluidos, que es lo que alimenta la gráfica.
+- **Palabras clave**: las habilidades que nombran las publicaciones de la
+  empresa, contadas con el catálogo de `worker/src/skills.ts` — la misma
+  extracción que ya usa el informe de mercado. Es lo que después alimenta el
+  recomendador.
+- **Puestos más buscados**: los roles que la gente buscó en JobIt en la ventana,
+  leídos de los eventos anónimos (`usage.ts`). Es un corte agregado: dice qué
+  se busca, nunca quién.
+- Los rankings de **más vistas** y **más postuladas**.
+
+Ninguna de estas lecturas agrega una fila por persona: las visitas y las
+postulaciones son contadores por oferta y por día, y lo buscado viene de las
+búsquedas anónimas que ya se reciben.
 
 ## Probar en local
 

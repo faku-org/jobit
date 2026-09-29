@@ -102,7 +102,7 @@ export function Dashboard({
         ) : tab === "offers" ? (
           <Offers company={company} onFail={handle} />
         ) : (
-          <Settings company={company} onFail={handle} onUpdated={setCompany} />
+          <Settings company={company} onFail={handle} onUpdated={setCompany} onLeft={onLeft} />
         )}
       </main>
     </div>

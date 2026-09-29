@@ -9,7 +9,7 @@ foráneas en cascada.
 | Tabla | Qué guarda |
 |---|---|
 | `companies` | Empresas: nombre, slug, contacto, perfil, privacidad y estado del dominio. |
-| `company_accounts` | La contraseña (argon2id) y el secreto TOTP de cada empresa. |
+| `company_accounts` | La contraseña (argon2id), el secreto TOTP (el activo y el pendiente de un cambio), y si la cuenta está desactivada. |
 | `company_sessions` | Sesiones de empresa (solo el sha256 del token). |
 | `company_emails` | Correos de facturación, contacto, soporte y recuperación, con su token de verificación. |
 | `company_members` | Usuarios de JobIt designados como parte de una empresa. |
