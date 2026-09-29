@@ -1,5 +1,6 @@
 import { decrypt, encrypt, encryptionEnabled } from "./crypto.ts";
 import { db } from "./db.ts";
+import { checkPassword } from "./password.ts";
 import type { Result } from "./types.ts";
 
 /**
@@ -44,8 +45,6 @@ const sha256 = (value: string): string =>
 const MIN_HANDLE = 3;
 const MAX_HANDLE = 30;
 const MAX_DISPLAY_NAME = 80;
-const MAX_PASSWORD = 200;
-const MIN_PASSWORD = 8;
 
 /** Nombres que confundirían a quien ve una URL o pide soporte. */
 const RESERVED = new Set(["admin", "jobit", "soporte", "sistema", "root", "api", "www"]);
@@ -77,13 +76,7 @@ const cleanDisplayName = (raw: string): Result<string> => {
   return { ok: true, value: name.slice(0, MAX_DISPLAY_NAME) };
 };
 
-const cleanPassword = (raw: string): Result<string> => {
-  if (raw.length < MIN_PASSWORD) {
-    return { ok: false, error: `la contraseña necesita al menos ${MIN_PASSWORD} caracteres` };
-  }
-  if (raw.length > MAX_PASSWORD) return { ok: false, error: "esa contraseña es demasiado larga" };
-  return { ok: true, value: raw };
-};
+const cleanPassword = (raw: string): Result<string> => checkPassword(raw);
 
 export const hashPassword = (plain: string): Promise<string> => Bun.password.hash(plain);
 

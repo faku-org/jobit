@@ -7,15 +7,75 @@ export const COMPANY_STATUS_LABEL: Record<CompanyStatus, string> = {
   suspended: "Suspendida",
 };
 
+export const SOCIAL_NETWORKS = [
+  "linkedin",
+  "instagram",
+  "facebook",
+  "x",
+  "youtube",
+  "tiktok",
+  "whatsapp",
+] as const;
+export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
+
+export const SOCIAL_LABEL: Record<SocialNetwork, string> = {
+  linkedin: "LinkedIn",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  x: "X",
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  whatsapp: "WhatsApp",
+};
+
+export const EMAIL_KINDS = ["billing", "contact", "support", "recovery"] as const;
+export type CompanyEmailKind = (typeof EMAIL_KINDS)[number];
+
+export const EMAIL_KIND_LABEL: Record<CompanyEmailKind, string> = {
+  billing: "Facturación",
+  contact: "Contacto",
+  support: "Soporte",
+  recovery: "Recuperación",
+};
+
+export const EMAIL_KIND_HINT: Record<CompanyEmailKind, string> = {
+  billing: "Donde te llegan las facturas.",
+  contact: "El primero que ve la gente. Puede ser el mismo del alta.",
+  support: "Al que escribe quien necesita ayuda.",
+  recovery: "El alterno para recuperar la cuenta si perdés el acceso.",
+};
+
+export interface CompanyEmail {
+  kind: CompanyEmailKind;
+  email: string;
+  verified: boolean;
+  updated_at: string;
+}
+
+export interface CompanyMember {
+  user_id: string;
+  handle: string;
+  display_name: string;
+  created_at: string;
+}
+
 export interface Company {
   id: string;
   name: string;
   slug: string;
   email: string;
   website: string;
+  phone: string;
+  logo: string;
+  banner: string;
+  socials: Partial<Record<SocialNetwork, string>>;
   status: CompanyStatus;
   created_at: string;
   updated_at: string;
+  totp_enabled: boolean;
+  recovery_codes_left: number;
+  emails: CompanyEmail[];
+  members: CompanyMember[];
 }
 
 export const OFFER_STATUSES = ["draft", "published", "archived"] as const;
@@ -94,10 +154,16 @@ export interface Metrics {
 export class Unauthorized extends Error {}
 
 async function send<T>(path: string, init: RequestInit = {}): Promise<T> {
+  /** El multipart lo arma el navegador: si le ponemos el content-type, deja de
+   * llevar el boundary y el archivo no llega. */
+  const isForm = init.body instanceof FormData;
   const response = await fetch(`/api/empresas${path}`, {
     credentials: "same-origin",
     ...init,
-    headers: { "Content-Type": "application/json", ...init.headers },
+    headers: {
+      ...(isForm ? {} : { "Content-Type": "application/json" }),
+      ...init.headers,
+    },
   });
 
   if (response.status === 401) throw new Unauthorized("sesión vencida");
@@ -115,17 +181,64 @@ export interface SessionInfo {
   company: Company;
 }
 
-export const checkSession = (): Promise<SessionInfo> => send("/session");
+/** El desafío del segundo paso: todavía no hay sesión, hay que poner el código. */
+export interface Challenge {
+  status: "totp_required" | "totp_setup_required";
+  company: Company;
+}
 
-export const login = (identifier: string, password: string): Promise<SessionInfo> =>
-  send("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) });
+export interface TotpSetup {
+  status: "setup";
+  account: string;
+  secret: string;
+  otpauth: string;
+}
+
+export interface TotpDone {
+  status: "ok";
+  company: Company;
+  recovery_codes?: string[];
+}
+
+export const checkSession = (): Promise<SessionInfo> => send("/session");
 
 export const register = (input: {
   name: string;
   email: string;
   website?: string;
+  phone?: string;
   password: string;
-}): Promise<SessionInfo> => send("/auth/register", { method: "POST", body: JSON.stringify(input) });
+  recovery_email?: string;
+}): Promise<Challenge> => send("/auth/register", { method: "POST", body: JSON.stringify(input) });
+
+export const login = (identifier: string, password: string): Promise<Challenge> =>
+  send("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) });
+
+/** Arranca la activación del segundo paso: devuelve el secreto para el QR. */
+export const startTotpSetup = (): Promise<TotpSetup> =>
+  send("/auth/totp/setup", { method: "POST", body: JSON.stringify({}) });
+
+export const confirmTotpSetup = (code: string): Promise<TotpDone> =>
+  send("/auth/totp/setup", { method: "POST", body: JSON.stringify({ code }) });
+
+export const submitTotp = (code: string): Promise<TotpDone> =>
+  send("/auth/totp", { method: "POST", body: JSON.stringify({ code }) });
+
+export const recover = (identifier: string, code: string): Promise<TotpDone> =>
+  send("/auth/recover", { method: "POST", body: JSON.stringify({ identifier, code }) });
+
+export const recoverByEmail = (identifier: string): Promise<{ status: string }> =>
+  send("/auth/recover/email", { method: "POST", body: JSON.stringify({ identifier }) });
+
+export const resetPassword = (
+  companyId: string,
+  token: string,
+  newPassword: string,
+): Promise<{ status: string }> =>
+  send("/auth/recover/reset", {
+    method: "POST",
+    body: JSON.stringify({ company_id: companyId, token, new_password: newPassword }),
+  });
 
 export const logout = (): Promise<{ status: string }> => send("/auth/logout", { method: "POST" });
 
@@ -147,9 +260,35 @@ export const updateCompany = (input: {
   name?: string;
   email?: string;
   website?: string;
+  phone?: string;
+  socials?: Partial<Record<SocialNetwork, string>>;
   current_password?: string;
   new_password?: string;
 }): Promise<{ company: Company }> => send("/me", { method: "PATCH", body: JSON.stringify(input) });
+
+export const setEmail = (kind: CompanyEmailKind, email: string): Promise<{ emails: CompanyEmail[] }> =>
+  send(`/emails/${kind}`, { method: "PUT", body: JSON.stringify({ email }) });
+
+export const resendEmail = (kind: CompanyEmailKind): Promise<{ status: string }> =>
+  send(`/emails/${kind}/resend`, { method: "POST" });
+
+export const removeEmail = (kind: CompanyEmailKind): Promise<{ emails: CompanyEmail[] }> =>
+  send(`/emails/${kind}`, { method: "DELETE" });
+
+export const uploadMedia = (kind: "logo" | "banner", file: File): Promise<{ company: Company }> => {
+  const form = new FormData();
+  form.append("file", file);
+  return send(`/media/${kind}`, { method: "POST", body: form });
+};
+
+export const removeMedia = (kind: "logo" | "banner"): Promise<{ company: Company }> =>
+  send(`/media/${kind}`, { method: "DELETE" });
+
+export const addMember = (handle: string): Promise<{ members: CompanyMember[] }> =>
+  send("/members", { method: "POST", body: JSON.stringify({ handle }) });
+
+export const removeMember = (userId: string): Promise<{ members: CompanyMember[] }> =>
+  send(`/members/${userId}`, { method: "DELETE" });
 
 /** Las mismas del catálogo del worker, que es lo que la API acepta. */
 export const CATEGORIES: { slug: string; label: string }[] = [

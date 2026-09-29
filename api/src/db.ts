@@ -25,6 +25,10 @@ CREATE TABLE IF NOT EXISTS companies (
   slug        TEXT NOT NULL UNIQUE,
   email       TEXT NOT NULL DEFAULT '',
   website     TEXT NOT NULL DEFAULT '',
+  phone       TEXT NOT NULL DEFAULT '',
+  logo        TEXT NOT NULL DEFAULT '',
+  banner      TEXT NOT NULL DEFAULT '',
+  socials     TEXT NOT NULL DEFAULT '{}',
   status      TEXT NOT NULL DEFAULT 'pending',
   notes       TEXT NOT NULL DEFAULT '',
   created_at  TEXT NOT NULL,
@@ -124,12 +128,62 @@ CREATE TABLE IF NOT EXISTS user_sync (
 /* La cuenta de una empresa. Va en su propia tabla y no como columnas de
    companies para no tener que migrar la que ya existe en producción: la
    empresa la crea el admin o se autoregistra, y esto es solo lo que la deja
-   entrar. Sin fila acá, la empresa existe pero nadie puede loguearse. */
+   entrar. Sin fila acá, la empresa existe pero nadie puede loguearse.
+
+   El segundo paso (TOTP) es obligatorio para las empresas, así que el secreto
+   va cifrado igual que el de las cuentas de usuario. */
 CREATE TABLE IF NOT EXISTS company_accounts (
   company_id    TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
   password_hash TEXT NOT NULL,
+  totp_secret_enc TEXT,
+  totp_enabled  INTEGER NOT NULL DEFAULT 0,
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
+);
+
+/* El enlace de recuperación por correo. Uno solo por empresa y de un rato: el
+   token se guarda hasheado, igual que todos los demás. */
+CREATE TABLE IF NOT EXISTS company_resets (
+  company_id TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+/* Los correos de la empresa —facturación, contacto y soporte—, cada uno con su
+   verificación. kind es uno de los tipos y la fila se pisa al cambiarlo: una
+   empresa tiene uno de cada. El token se guarda hasheado y se manda una sola
+   vez por correo. */
+CREATE TABLE IF NOT EXISTS company_emails (
+  company_id    TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  kind          TEXT NOT NULL,
+  email         TEXT NOT NULL DEFAULT '',
+  verified      INTEGER NOT NULL DEFAULT 0,
+  token_hash    TEXT NOT NULL DEFAULT '',
+  token_expires TEXT NOT NULL DEFAULT '',
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  PRIMARY KEY (company_id, kind)
+);
+
+/* Quiénes de JobIt forman parte de la empresa. Es solo la designación: la
+   persona no entra al panel ni publica por estar acá. */
+CREATE TABLE IF NOT EXISTS company_members (
+  company_id TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (company_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS company_members_user ON company_members (user_id);
+
+/* El respaldo del segundo paso de la empresa, igual que el de las cuentas de
+   usuario: hasheado y de un solo uso. */
+CREATE TABLE IF NOT EXISTS company_recovery_codes (
+  company_id TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  code_hash  TEXT NOT NULL,
+  used_at    TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (company_id, code_hash)
 );
 
 /* Misma regla que el resto: solo el sha256 del token, nunca el token. */
@@ -160,6 +214,37 @@ CREATE INDEX IF NOT EXISTS offer_daily_offer ON offer_daily (offer_id);
 
 let handle: Database | null = null;
 
+/**
+ * SQLite no agrega columnas con `CREATE TABLE IF NOT EXISTS` sobre una tabla
+ * que ya existe. Las que se suman después de que la tabla está en producción
+ * van por acá: se agregan una sola vez y sin perder las filas.
+ */
+function migrate(database: Database): void {
+  const columns = (table: string): Set<string> =>
+    new Set(
+      database
+        .query<{ name: string }, []>(`PRAGMA table_info(${table})`)
+        .all()
+        .map((row) => row.name),
+    );
+
+  const add = (table: string, name: string, definition: string): void => {
+    if (columns(table).has(name)) return;
+    database.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+  };
+
+  const profileColumns: [string, string][] = [
+    ["phone", "TEXT NOT NULL DEFAULT ''"],
+    ["logo", "TEXT NOT NULL DEFAULT ''"],
+    ["banner", "TEXT NOT NULL DEFAULT ''"],
+    ["socials", "TEXT NOT NULL DEFAULT '{}'"],
+  ];
+  for (const [name, definition] of profileColumns) add("companies", name, definition);
+
+  add("company_accounts", "totp_secret_enc", "TEXT");
+  add("company_accounts", "totp_enabled", "INTEGER NOT NULL DEFAULT 0");
+}
+
 export function db(): Database {
   if (handle) return handle;
 
@@ -172,6 +257,7 @@ export function db(): Database {
   database.run("PRAGMA foreign_keys = ON");
   database.run("PRAGMA busy_timeout = 5000");
   database.run(SCHEMA);
+  migrate(database);
 
   handle = database;
   return database;

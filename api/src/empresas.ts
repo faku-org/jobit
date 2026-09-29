@@ -1,10 +1,16 @@
 import { Elysia, t } from "elysia";
 import * as accounts from "./company-accounts.ts";
+import * as emails from "./company-emails.ts";
+import * as members from "./company-members.ts";
 import * as companies from "./companies.ts";
 import type { Company } from "./companies.ts";
+import { sign, verifySignature } from "./crypto.ts";
+import { publicOrigin, sendMail } from "./mail.ts";
+import * as media from "./media.ts";
 import * as metrics from "./metrics.ts";
 import * as offers from "./offers.ts";
 import { OFFER_STATUSES } from "./offers.ts";
+import { generateSecret, otpauthUrl, verifyTotp } from "./totp.ts";
 
 /**
  * El panel de la empresa: entra con su cuenta y administra lo suyo.
@@ -13,20 +19,27 @@ import { OFFER_STATUSES } from "./offers.ts";
  * empresa se registra sola y queda `pending`; el admin la aprueba desde
  * `/admin`; recién ahí puede publicar. Todo lo de acá está acotado a la
  * empresa de la sesión: no hay forma de tocar la oferta de otra.
+ *
+ * El segundo paso es obligatorio: sin TOTP no hay sesión. El alta y el ingreso
+ * devuelven el desafío, no la cookie; recién el código de seis dígitos la abre.
  */
 const SECURE_COOKIES = process.env.ADMIN_INSECURE_COOKIES !== "true";
 export const COMPANY_COOKIE = "jobit_company";
-/** La cookie viaja solo a las rutas de este panel, como la del admin. */
+const CHALLENGE_COOKIE = "jobit_company_2fa";
+const CHALLENGE_MS = 10 * 60_000;
+/** La cookie de sesión viaja solo a las rutas de este panel, como la del admin. */
 const COOKIE_PATH = "/api/empresas";
+const ISSUER = "JobIt";
 
 /** Elysia entrega la cookie como unknown mientras no se le declare esquema. */
 const tokenOf = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined;
 
-const setSession = (
-  cookie: Record<string, { set: (options: Record<string, unknown>) => void } | undefined>,
-  session: accounts.CompanySession,
-): void => {
+interface CookieJar {
+  [key: string]: { set: (options: Record<string, unknown>) => void; remove: () => void } | undefined;
+}
+
+const setSession = (cookie: CookieJar, session: accounts.CompanySession): void => {
   cookie[COMPANY_COOKIE]?.set({
     value: session.token,
     httpOnly: true,
@@ -38,17 +51,89 @@ const setSession = (
   });
 };
 
-/** Lo que la empresa puede ver de sí misma. Las notas internas no salen. */
-const publicCompany = (company: Company) => ({
-  id: company.id,
-  name: company.name,
-  slug: company.slug,
-  email: company.email,
-  website: company.website,
-  status: company.status,
-  created_at: company.created_at,
-  updated_at: company.updated_at,
-});
+/** El segundo paso no crea sesión: el desafío viaja firmado y con vencimiento. */
+async function signChallenge(companyId: string, now: number = Date.now()): Promise<string | null> {
+  const payload = `${companyId}.${now + CHALLENGE_MS}`;
+  const signature = await sign(payload);
+  return signature.ok ? `${payload}.${signature.value}` : null;
+}
+
+async function readChallenge(token: string): Promise<string | null> {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [companyId, expiresAt, signature] = parts;
+  if (!companyId || !expiresAt || !signature) return null;
+
+  const expires = Number(expiresAt);
+  if (!Number.isFinite(expires) || expires < Date.now()) return null;
+  return (await verifySignature(`${companyId}.${expiresAt}`, signature)) ? companyId : null;
+}
+
+const setChallenge = (cookie: CookieJar, token: string): void => {
+  cookie[CHALLENGE_COOKIE]?.set({
+    value: token,
+    httpOnly: true,
+    secure: SECURE_COOKIES,
+    sameSite: "lax",
+    path: "/api",
+    maxAge: CHALLENGE_MS / 1000,
+  });
+};
+
+/** Lo que la empresa ve de sí misma. Las notas internas no salen. */
+function companyView(company: Company) {
+  return {
+    id: company.id,
+    name: company.name,
+    slug: company.slug,
+    email: company.email,
+    website: company.website,
+    phone: company.phone,
+    logo: company.logo,
+    banner: company.banner,
+    socials: company.socials,
+    status: company.status,
+    created_at: company.created_at,
+    updated_at: company.updated_at,
+    totp_enabled: accounts.totpEnabled(company.id),
+    recovery_codes_left: accounts.recoveryCodesLeft(company.id),
+    emails: emails.list(company.id).map((entry) => ({
+      kind: entry.kind,
+      email: entry.email,
+      verified: entry.verified,
+      updated_at: entry.updated_at,
+    })),
+    members: members.list(company.id),
+  };
+}
+
+const VERIFY_SUBJECT: Record<emails.CompanyEmailKind, string> = {
+  billing: "Verificá el correo de facturación de tu empresa",
+  contact: "Verificá el correo de contacto de tu empresa",
+  support: "Verificá el correo de soporte de tu empresa",
+  recovery: "Verificá el correo de recuperación de tu cuenta",
+};
+
+/** El enlace de verificación, al correo que se acaba de cargar. */
+async function sendVerification(
+  company: Company,
+  kind: emails.CompanyEmailKind,
+  token: string,
+  to: string,
+): Promise<void> {
+  const link = `${publicOrigin()}/api/empresas/verify?c=${encodeURIComponent(company.id)}&k=${kind}&t=${encodeURIComponent(token)}`;
+  await sendMail({
+    to,
+    subject: VERIFY_SUBJECT[kind],
+    text: [
+      `${company.name}: confirmá este correo para tu cuenta de JobIt.`,
+      "",
+      link,
+      "",
+      "El enlace vence en 24 horas. Si no fuiste vos, ignorá este mensaje.",
+    ].join("\n"),
+  });
+}
 
 const offerStatusSchema = t.Union(OFFER_STATUSES.map((value) => t.Literal(value)));
 
@@ -74,7 +159,9 @@ const registerBody = t.Object({
   name: t.String({ maxLength: 200 }),
   email: t.String({ maxLength: 300 }),
   website: t.Optional(t.String({ maxLength: 300 })),
-  password: t.String({ minLength: 8, maxLength: 200 }),
+  phone: t.Optional(t.String({ maxLength: 40 })),
+  password: t.String({ minLength: 10, maxLength: 200 }),
+  recovery_email: t.Optional(t.String({ maxLength: 300 })),
 });
 
 const loginBody = t.Object({
@@ -82,12 +169,27 @@ const loginBody = t.Object({
   password: t.String({ maxLength: 200 }),
 });
 
+const totpSetupBody = t.Object({ code: t.Optional(t.String({ maxLength: 10 })) });
+const totpCodeBody = t.Object({ code: t.String({ maxLength: 10 }) });
+const recoverBody = t.Object({
+  identifier: t.String({ maxLength: 300 }),
+  code: t.String({ maxLength: 20 }),
+});
+const recoverEmailBody = t.Object({ identifier: t.String({ maxLength: 300 }) });
+const resetBody = t.Object({
+  company_id: t.String({ maxLength: 64 }),
+  token: t.String({ maxLength: 200 }),
+  new_password: t.String({ minLength: 10, maxLength: 200 }),
+});
+
 const patchMeBody = t.Object({
   name: t.Optional(t.String({ maxLength: 200 })),
   email: t.Optional(t.String({ maxLength: 300 })),
   website: t.Optional(t.String({ maxLength: 300 })),
+  phone: t.Optional(t.String({ maxLength: 40 })),
+  socials: t.Optional(t.Record(t.String(), t.String({ maxLength: 300 }))),
   current_password: t.Optional(t.String({ maxLength: 200 })),
-  new_password: t.Optional(t.String({ minLength: 8, maxLength: 200 })),
+  new_password: t.Optional(t.String({ minLength: 10, maxLength: 200 })),
 });
 
 /**
@@ -103,13 +205,22 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
   .post(
     "/auth/register",
     async ({ body, cookie, status }) => {
+      if (!(await accounts.encryptionReady())) {
+        return status(503, { error: "el segundo paso no está disponible en este servidor" });
+      }
+
       const email = body.email.trim();
       if (!email) return status(422, { error: "hace falta un correo de contacto" });
       if (companies.byEmail(email)) {
         return status(422, { error: "ese correo ya está registrado" });
       }
 
-      const created = await companies.create({ name: body.name, email, website: body.website });
+      const created = await companies.create({
+        name: body.name,
+        email,
+        website: body.website,
+        phone: body.phone,
+      });
       if (!created.ok) return status(422, { error: created.error });
 
       const account = await accounts.register(created.value.id, body.password);
@@ -119,8 +230,20 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
         return status(422, { error: account.error });
       }
 
-      setSession(cookie, accounts.createSession(created.value.id));
-      return status(201, { status: "ok", company: publicCompany(created.value) });
+      const recovery = body.recovery_email?.trim();
+      if (recovery) {
+        const saved = emails.set(created.value.id, "recovery", recovery);
+        if (saved.ok && saved.value.token) {
+          await sendVerification(created.value, "recovery", saved.value.token, recovery.toLowerCase());
+        }
+      }
+
+      const challenge = await signChallenge(created.value.id);
+      if (!challenge) {
+        return status(503, { error: "el segundo paso no está disponible" });
+      }
+      setChallenge(cookie, challenge);
+      return status(201, { status: "totp_setup_required", company: companyView(created.value) });
     },
     { body: registerBody },
   )
@@ -136,16 +259,201 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
         return status(403, { error: "esa empresa está suspendida" });
       }
 
-      setSession(cookie, accounts.createSession(company.id));
-      return { status: "ok", company: publicCompany(company) };
+      const challenge = await signChallenge(company.id);
+      if (!challenge) return status(503, { error: "el segundo paso no está disponible" });
+      setChallenge(cookie, challenge);
+
+      return {
+        status: accounts.totpEnabled(company.id) ? "totp_required" : "totp_setup_required",
+        company: companyView(company),
+      };
     },
     { body: loginBody },
+  )
+  /**
+   * Sin `code` genera la clave y la devuelve una vez para el QR; con `code` la
+   * confirma, activa el segundo paso y recién ahí abre la sesión.
+   */
+  .post(
+    "/auth/totp/setup",
+    async ({ body, cookie, status }) => {
+      const companyId = await readChallenge(tokenOf(cookie[CHALLENGE_COOKIE]?.value) ?? "");
+      if (!companyId) return status(401, { error: "el segundo paso venció, volvé a entrar" });
+
+      const company = companies.byId(companyId);
+      if (!company || company.status === "suspended") {
+        return status(401, { error: "esa empresa no está" });
+      }
+
+      if (body.code === undefined) {
+        if (accounts.totpEnabled(companyId)) {
+          return status(422, { error: "el segundo paso ya está activado" });
+        }
+        if (!(await accounts.encryptionReady())) {
+          return status(503, { error: "el segundo paso no está disponible" });
+        }
+
+        const secret = generateSecret();
+        const saved = await accounts.setTotpSecret(companyId, secret);
+        if (!saved.ok) return status(503, { error: saved.error });
+
+        return {
+          status: "setup",
+          account: company.email || company.slug,
+          secret,
+          otpauth: otpauthUrl({ secret, account: company.email || company.slug, issuer: ISSUER }),
+        };
+      }
+
+      const secret = await accounts.totpSecret(companyId);
+      if (!secret) return status(422, { error: "no hay un segundo paso pendiente" });
+
+      const check = await verifyTotp(secret, body.code);
+      if (!check.ok) return status(401, { error: "código incorrecto" });
+
+      accounts.enableTotp(companyId);
+      setSession(cookie, accounts.createSession(companyId));
+      cookie[CHALLENGE_COOKIE]?.remove();
+      return status(201, {
+        status: "ok",
+        company: companyView(company),
+        /** Se muestran una sola vez: en la base queda el sha256. */
+        recovery_codes: accounts.generateRecoveryCodes(companyId),
+      });
+    },
+    { body: totpSetupBody },
+  )
+  .post(
+    "/auth/totp",
+    async ({ body, cookie, status }) => {
+      const companyId = await readChallenge(tokenOf(cookie[CHALLENGE_COOKIE]?.value) ?? "");
+      if (!companyId) return status(401, { error: "el segundo paso venció, volvé a entrar" });
+
+      const company = companies.byId(companyId);
+      if (!company || company.status === "suspended") {
+        return status(401, { error: "esa empresa no está" });
+      }
+
+      const secret = await accounts.totpSecret(companyId);
+      if (!secret || !accounts.totpEnabled(companyId)) {
+        return status(401, { error: "esa empresa no tiene segundo paso" });
+      }
+
+      const check = await verifyTotp(secret, body.code);
+      if (!check.ok) return status(401, { error: "código incorrecto" });
+
+      setSession(cookie, accounts.createSession(companyId));
+      cookie[CHALLENGE_COOKIE]?.remove();
+      return { status: "ok", company: companyView(company) };
+    },
+    { body: totpCodeBody },
+  )
+  /** Entrar con un código de respaldo, para cuando se perdió el teléfono. */
+  .post(
+    "/auth/recover",
+    ({ body, cookie, status }) => {
+      const company = companies.byEmailOrSlug(body.identifier);
+      if (!company || company.status === "suspended") {
+        return status(401, { error: "empresa o código incorrectos" });
+      }
+      if (!accounts.consumeRecoveryCode(company.id, body.code)) {
+        return status(401, { error: "empresa o código incorrectos" });
+      }
+
+      setSession(cookie, accounts.createSession(company.id));
+      return { status: "ok", company: companyView(company) };
+    },
+    { body: recoverBody },
+  )
+  /** Manda el enlace de recuperación al correo alterno. Responde igual siempre,
+   * para no decir si esa empresa existe. */
+  .post(
+    "/auth/recover/email",
+    async ({ body }) => {
+      const company = companies.byEmailOrSlug(body.identifier);
+      if (company && company.status !== "suspended") {
+        const recovery = emails.get(company.id, "recovery");
+        if (recovery?.verified && recovery.email) {
+          const token = accounts.startReset(company.id);
+          const link = `${publicOrigin()}/empresas?recuperar=${encodeURIComponent(company.id)}.${encodeURIComponent(token)}`;
+          await sendMail({
+            to: recovery.email,
+            subject: "Recuperar el acceso a tu empresa en JobIt",
+            text: [
+              `${company.name}: pediste recuperar el acceso.`,
+              "",
+              link,
+              "",
+              "El enlace vence en 30 minutos y sirve una sola vez. Si no fuiste vos,",
+              "ignorá este mensaje: tu contraseña no cambia.",
+            ].join("\n"),
+          });
+        }
+      }
+      return { status: "ok" };
+    },
+    { body: recoverEmailBody },
+  )
+  .post(
+    "/auth/recover/reset",
+    async ({ body, status }) => {
+      const company = companies.byId(body.company_id);
+      if (!company) return status(400, { error: "el enlace no vale o venció" });
+      if (!accounts.consumeReset(company.id, body.token)) {
+        return status(400, { error: "el enlace no vale o venció" });
+      }
+
+      const changed = await accounts.setPassword(company.id, body.new_password);
+      if (!changed.ok) return status(422, { error: changed.error });
+      /** Con la contraseña nueva se vuelve a pedir el segundo paso: es la
+       * salida para quien perdió el teléfono y no tiene códigos. */
+      accounts.disableTotp(company.id);
+      return { status: "ok" };
+    },
+    { body: resetBody },
   )
   .post("/auth/logout", ({ cookie }) => {
     accounts.destroySession(tokenOf(cookie[COMPANY_COOKIE]?.value));
     cookie[COMPANY_COOKIE]?.remove();
+    cookie[CHALLENGE_COOKIE]?.remove();
     return { status: "ok" };
   })
+  /** Verificación de correo: el enlace que llega por mail cae acá y de ahí sale
+   * para el panel. Es un GET porque lo abre el navegador. */
+  .get(
+    "/verify",
+    ({ query }) => {
+      let ok = false;
+      if (emails.isKind(query.k)) {
+        ok = emails.verify(query.c, query.k, query.t);
+      }
+      /** Relativo, para que valga igual en local y en producción: el enlace
+       * llega al mismo host por el que se pidió. */
+      const target = ok ? `/empresas?verificado=${query.k ?? ""}` : "/empresas?verificado=error";
+      return new Response(null, { status: 302, headers: { location: target } });
+    },
+    { query: t.Object({ c: t.String(), k: t.String(), t: t.String() }) },
+  )
+  /** Las imágenes son públicas: las ve cualquiera que mire la ficha. */
+  .get(
+    "/media/:companyId/:kind",
+    ({ params, status }) => {
+      if (!media.isKind(params.kind) || !media.isSafeId(params.companyId)) {
+        return status(404, { error: "no encontrado" });
+      }
+      const file = media.read(params.companyId, params.kind);
+      if (!file) return status(404, { error: "no encontrado" });
+
+      return new Response(file.bytes, {
+        headers: {
+          "content-type": file.type,
+          "cache-control": "public, max-age=3600",
+          "x-content-type-options": "nosniff",
+        },
+      });
+    },
+    { params: t.Object({ companyId: t.String(), kind: t.String() }) },
+  )
   /** De acá para abajo hay que estar adentro. */
   .guard({
     beforeHandle({ cookie, status }) {
@@ -157,7 +465,7 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
   .get("/session", ({ cookie, status }) => {
     const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
     if (!company) return status(401, { error: "sesión vencida" });
-    return { status: "ok", company: publicCompany(company) };
+    return { status: "ok", company: companyView(company) };
   })
   .patch(
     "/me",
@@ -174,19 +482,136 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
         if (!changed.ok) return status(422, { error: changed.error });
       }
 
-      if (body.name !== undefined || body.email !== undefined || body.website !== undefined) {
+      if (
+        body.name !== undefined ||
+        body.email !== undefined ||
+        body.website !== undefined ||
+        body.phone !== undefined ||
+        body.socials !== undefined
+      ) {
         const updated = companies.update(company.id, {
           name: body.name,
           email: body.email,
           website: body.website,
+          phone: body.phone,
+          socials: body.socials,
         });
         if (!updated.ok) return status(422, { error: updated.error });
-        return { company: publicCompany(updated.value) };
+        return { company: companyView(updated.value) };
       }
 
-      return { company: publicCompany(company) };
+      return { company: companyView(company) };
     },
     { body: patchMeBody },
+  )
+  .get("/emails", ({ cookie, status }) => {
+    const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+    if (!company) return status(401, { error: "sesión vencida" });
+    return { emails: companyView(company).emails };
+  })
+  .put(
+    "/emails/:kind",
+    async ({ params, body, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+      if (!emails.isKind(params.kind)) return status(404, { error: "ese correo no existe" });
+
+      const saved = emails.set(company.id, params.kind, body.email);
+      if (!saved.ok) return status(422, { error: saved.error });
+      if (saved.value.token) {
+        await sendVerification(company, params.kind, saved.value.token, body.email.trim().toLowerCase());
+      }
+      return { emails: companyView(company).emails };
+    },
+    { body: t.Object({ email: t.String({ maxLength: 300 }) }) },
+  )
+  .post(
+    "/emails/:kind/resend",
+    async ({ params, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+      if (!emails.isKind(params.kind)) return status(404, { error: "ese correo no existe" });
+
+      const refreshed = emails.refreshToken(company.id, params.kind);
+      if (!refreshed.ok) return status(422, { error: refreshed.error });
+
+      const current = emails.get(company.id, params.kind);
+      if (current?.email) {
+        await sendVerification(company, params.kind, refreshed.value, current.email);
+      }
+      return { status: "ok" };
+    },
+    { params: t.Object({ kind: t.String() }) },
+  )
+  .delete(
+    "/emails/:kind",
+    ({ params, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+      if (!emails.isKind(params.kind)) return status(404, { error: "ese correo no existe" });
+
+      emails.set(company.id, params.kind, "");
+      return { emails: companyView(company).emails };
+    },
+    { params: t.Object({ kind: t.String() }) },
+  )
+  .post(
+    "/media/:kind",
+    async ({ params, body, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+      if (!media.isKind(params.kind)) return status(404, { error: "ese archivo no existe" });
+
+      const bytes = new Uint8Array(await body.file.arrayBuffer());
+      const saved = media.save(company.id, params.kind, bytes);
+      if (!saved.ok) return status(422, { error: saved.error });
+
+      const updated = companies.setMedia(company.id, params.kind, saved.value);
+      if (!updated.ok) return status(422, { error: updated.error });
+      return { company: companyView(updated.value) };
+    },
+    { body: t.Object({ file: t.File() }) },
+  )
+  .delete(
+    "/media/:kind",
+    ({ params, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+      if (!media.isKind(params.kind)) return status(404, { error: "ese archivo no existe" });
+
+      media.remove(company.id, params.kind);
+      const updated = companies.setMedia(company.id, params.kind, "");
+      return { company: companyView(updated.ok ? updated.value : company) };
+    },
+    { params: t.Object({ kind: t.String() }) },
+  )
+  .get("/members", ({ cookie, status }) => {
+    const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+    if (!company) return status(401, { error: "sesión vencida" });
+    return { members: members.list(company.id) };
+  })
+  .post(
+    "/members",
+    ({ body, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+
+      const added = members.add(company.id, body.handle);
+      if (!added.ok) return status(422, { error: added.error });
+      return status(201, { members: members.list(company.id) });
+    },
+    { body: t.Object({ handle: t.String({ maxLength: 60 }) }) },
+  )
+  .delete(
+    "/members/:userId",
+    ({ params, cookie, status }) => {
+      const company = accounts.sessionCompany(tokenOf(cookie[COMPANY_COOKIE]?.value));
+      if (!company) return status(401, { error: "sesión vencida" });
+
+      members.remove(company.id, params.userId);
+      return { members: members.list(company.id) };
+    },
+    { params: t.Object({ userId: t.String() }) },
   )
   /** Lo que la empresa ve de sí misma: contadores por oferta, nunca por persona. */
   .get(

@@ -80,6 +80,41 @@ Para cerrar todas las sesiones abiertas, por ejemplo si se cambia la clave:
 sqlite3 /srv/jobit/data/jobit.db 'DELETE FROM admin_sessions;'
 ```
 
+## El panel de empresa
+
+Vive en `https://jobs.wefaber.net/empresas` y es autoservicio. Necesita dos cosas
+más que el resto:
+
+**La clave de cifrado.** El segundo paso de las empresas es obligatorio, así que
+sin `JOBIT_SECRET_KEY_FILE` el alta falla cerrado. La unidad ya la apunta a
+`/srv/jobit/data/secret.key`; hay que generarla una vez:
+
+```bash
+sudo -u jobit /opt/bun/bun -e 'await Bun.write("/srv/jobit/data/secret.key", Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url"))'
+sudo chmod 600 /srv/jobit/data/secret.key
+```
+
+Es la misma clave que cifra el email de las cuentas de usuario: **si se pierde,
+se pierden los secretos TOTP y los correos cifrados**, y esas cuentas no pueden
+entrar. Guardar copia.
+
+**El correo.** Los enlaces de verificación y de recuperación salen por Resend.
+Van en `/srv/jobit/api/.env`, que la unidad carga como `EnvironmentFile`:
+
+```
+RESEND_API_KEY=re_...
+MAIL_FROM=JobIt <no-reply@tudominio.net>
+```
+
+El dominio del remitente tiene que estar verificado en Resend (SPF/DKIM) o los
+correos caen en spam. Sin `RESEND_API_KEY` no se manda nada y los enlaces quedan
+en `journalctl -u jobit-api`, que alcanza para probar.
+
+El logo y el banner se guardan en `/srv/jobit/data/uploads`, dentro de lo que la
+unidad ya deja escribir. En nginx, `/api/empresas/media/` tiene su propio
+`location` con `client_max_body_size 5m`: el bloque general de `/api/` corta en
+16k.
+
 ## nginx
 
 ```bash

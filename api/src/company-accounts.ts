@@ -1,6 +1,8 @@
 import * as companies from "./companies.ts";
 import type { Company } from "./companies.ts";
+import { decrypt, encrypt, encryptionEnabled } from "./crypto.ts";
 import { db } from "./db.ts";
+import { checkPassword } from "./password.ts";
 import type { Result } from "./types.ts";
 
 /**
@@ -19,21 +21,12 @@ const DAY_MS = 86_400_000;
 /** Una sesión que se usa todos los días se renueva sola; una que no, vence. */
 const RENEW_AFTER_MS = DAY_MS;
 
-const MIN_PASSWORD = 8;
-const MAX_PASSWORD = 200;
-
 const sha256 = (value: string): string =>
   new Bun.CryptoHasher("sha256").update(value).digest("hex");
 
 export const hashPassword = (plain: string): Promise<string> => Bun.password.hash(plain);
 
-function cleanPassword(raw: string): Result<string> {
-  if (raw.length < MIN_PASSWORD) {
-    return { ok: false, error: `la contraseña necesita al menos ${MIN_PASSWORD} caracteres` };
-  }
-  if (raw.length > MAX_PASSWORD) return { ok: false, error: "esa contraseña es demasiado larga" };
-  return { ok: true, value: raw };
-}
+const cleanPassword = (raw: string): Result<string> => checkPassword(raw);
 
 export function hasAccount(companyId: string): boolean {
   const row = db()
@@ -91,6 +84,170 @@ export async function setPassword(
     companyId,
   ]);
   return { ok: true, value: undefined };
+}
+
+/* --- Segundo paso obligatorio -------------------------------------------- */
+
+interface AccountRow {
+  company_id: string;
+  totp_secret_enc: string | null;
+  totp_enabled: number;
+}
+
+function accountRow(companyId: string): AccountRow | null {
+  return (
+    db()
+      .query<AccountRow, [string]>(
+        "SELECT company_id, totp_secret_enc, totp_enabled FROM company_accounts WHERE company_id = ?",
+      )
+      .get(companyId) ?? null
+  );
+}
+
+export function totpEnabled(companyId: string): boolean {
+  return accountRow(companyId)?.totp_enabled === 1;
+}
+
+/** El secreto queda guardado pero apagado hasta que el código lo confirme. */
+export async function setTotpSecret(
+  companyId: string,
+  secret: string,
+  now: Date = new Date(),
+): Promise<Result<void>> {
+  const encrypted = await encrypt(secret);
+  if (!encrypted.ok) return encrypted;
+  db().run(
+    "UPDATE company_accounts SET totp_secret_enc = ?, totp_enabled = 0, updated_at = ? WHERE company_id = ?",
+    [encrypted.value, now.toISOString(), companyId],
+  );
+  return { ok: true, value: undefined };
+}
+
+export async function totpSecret(companyId: string): Promise<string | null> {
+  const row = accountRow(companyId);
+  if (!row?.totp_secret_enc) return null;
+  const plain = await decrypt(row.totp_secret_enc);
+  return plain.ok ? plain.value : null;
+}
+
+export function enableTotp(companyId: string, now: Date = new Date()): void {
+  db().run("UPDATE company_accounts SET totp_enabled = 1, updated_at = ? WHERE company_id = ?", [
+    now.toISOString(),
+    companyId,
+  ]);
+}
+
+/** Desactivar el segundo paso es parte de la recuperación: se vuelve a pedir
+ * en el próximo ingreso. */
+export function disableTotp(companyId: string, now: Date = new Date()): void {
+  db().run(
+    "UPDATE company_accounts SET totp_secret_enc = NULL, totp_enabled = 0, updated_at = ? WHERE company_id = ?",
+    [now.toISOString(), companyId],
+  );
+}
+
+/* --- Enlace de recuperación por correo ----------------------------------- */
+
+const RESET_MINUTES = 30;
+
+const hashToken = (value: string): string =>
+  new Bun.CryptoHasher("sha256").update(value).digest("hex");
+
+const mintToken = (): string =>
+  Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString("base64url");
+
+/** Emite un enlace nuevo; el anterior deja de valer. */
+export function startReset(companyId: string, now: Date = new Date()): string {
+  const token = mintToken();
+  db().run(
+    `INSERT INTO company_resets (company_id, token_hash, expires_at, created_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT (company_id) DO UPDATE SET
+       token_hash = excluded.token_hash,
+       expires_at = excluded.expires_at,
+       created_at = excluded.created_at`,
+    [
+      companyId,
+      hashToken(token),
+      new Date(now.getTime() + RESET_MINUTES * 60_000).toISOString(),
+      now.toISOString(),
+    ],
+  );
+  return token;
+}
+
+/** Consume el enlace: uno solo por emisión y con vencimiento. */
+export function consumeReset(companyId: string, token: string, now: Date = new Date()): boolean {
+  const row = db()
+    .query<{ token_hash: string; expires_at: string }, [string]>(
+      "SELECT token_hash, expires_at FROM company_resets WHERE company_id = ?",
+    )
+    .get(companyId);
+  if (!row || !token) return false;
+  if (row.token_hash !== hashToken(token)) return false;
+  if (Date.parse(row.expires_at) < now.getTime()) return false;
+
+  db().run("DELETE FROM company_resets WHERE company_id = ?", [companyId]);
+  return true;
+}
+
+export const encryptionReady = (): Promise<boolean> => encryptionEnabled();
+
+/* --- Códigos de respaldo -------------------------------------------------- */
+
+const RECOVERY_COUNT = 8;
+/** Sin 0/O/1/I/L: son códigos que alguien copia a mano. */
+const RECOVERY_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const RECOVERY_LENGTH = 10;
+
+function mintRecoveryCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(RECOVERY_LENGTH));
+  let code = "";
+  for (const byte of bytes) code += RECOVERY_ALPHABET[byte % RECOVERY_ALPHABET.length];
+  return code;
+}
+
+const normaliseCode = (raw: string): string => raw.toUpperCase().replace(/[^0-9A-Z]/g, "");
+
+/** Deja la lista anterior sin efecto: se pisan, nunca se acumulan. */
+export function generateRecoveryCodes(companyId: string): string[] {
+  db().run("DELETE FROM company_recovery_codes WHERE company_id = ?", [companyId]);
+
+  const codes = Array.from({ length: RECOVERY_COUNT }, mintRecoveryCode);
+  const insert = db().prepare(
+    "INSERT INTO company_recovery_codes (company_id, code_hash, used_at) VALUES (?, ?, '')",
+  );
+  for (const code of codes) insert.run(companyId, sha256(normaliseCode(code)));
+  return codes;
+}
+
+export function consumeRecoveryCode(
+  companyId: string,
+  code: string,
+  now: Date = new Date(),
+): boolean {
+  const hash = sha256(normaliseCode(code));
+  const row = db()
+    .query<{ code_hash: string }, [string, string]>(
+      "SELECT code_hash FROM company_recovery_codes WHERE company_id = ? AND code_hash = ? AND used_at = ''",
+    )
+    .get(companyId, hash);
+  if (!row) return false;
+
+  db().run(
+    "UPDATE company_recovery_codes SET used_at = ? WHERE company_id = ? AND code_hash = ?",
+    [now.toISOString(), companyId, hash],
+  );
+  return true;
+}
+
+export function recoveryCodesLeft(companyId: string): number {
+  const row = db()
+    .query<{ n: number }, [string]>(
+      "SELECT COUNT(*) AS n FROM company_recovery_codes WHERE company_id = ? AND used_at = ''",
+    )
+    .get(companyId);
+  return row?.n ?? 0;
 }
 
 /* --- Sesión --------------------------------------------------------------- */
