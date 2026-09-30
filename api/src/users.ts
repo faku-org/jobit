@@ -273,6 +273,21 @@ export function setDisplayName(userId: string, raw: string, now: Date = new Date
   return user ? { ok: true, value: user } : { ok: false, error: "esa cuenta no existe" };
 }
 
+/** Cambiar la contraseña sin saber la anterior, que es lo que hace un enlace de
+ * reset. Cierra todo lo abierto: si se resetea es porque se perdió el control
+ * de algo, y dejar sesiones vivas no lo recupera. */
+export async function resetPassword(
+  userId: string,
+  plain: string,
+  now: Date = new Date(),
+): Promise<Result<void>> {
+  const clean = cleanPassword(plain);
+  if (!clean.ok) return clean;
+  setPasswordHash(userId, await hashPassword(clean.value), now);
+  destroyAllSessions(userId);
+  return { ok: true, value: undefined };
+}
+
 export function setPasswordHash(userId: string, hash: string, now: Date = new Date()): void {
   db().run("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", [
     hash,

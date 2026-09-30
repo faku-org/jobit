@@ -4,6 +4,8 @@ import { encryptionEnabled, sign, verifySignature } from "./crypto.ts";
 import * as sync from "./sync.ts";
 import { generateSecret, otpauthUrl, verifyTotp } from "./totp.ts";
 import * as users from "./users.ts";
+import { isVerified } from "./email-tokens.ts";
+import { verifyInBackground } from "./verification.ts";
 
 /**
  * Las cuentas de quien publica, separadas de las del panel.
@@ -65,6 +67,20 @@ async function readChallenge(token: string): Promise<string | null> {
 
 const publicUser = (user: users.User) => users.publicUser(user);
 
+/** Lo mismo más si el correo está verificado. Es aparte porque saberlo pide
+ * descifrar el correo, y publicUser es sincrónico y se usa en todos lados. */
+async function withVerification(user: users.User) {
+  const address = await users.emailOf(user);
+  return { ...publicUser(user), email_verified: isVerified("user", user.id, address) };
+}
+
+/** Si la cuenta tiene un correo sin verificar, manda la verificación. */
+async function verifyIfNeeded(user: users.User): Promise<void> {
+  const address = await users.emailOf(user);
+  if (address && !isVerified("user", user.id, address))
+    verifyInBackground("user", user.id, address);
+}
+
 const registerBody = t.Object({
   handle: t.String({ maxLength: 60 }),
   display_name: t.String({ maxLength: 120 }),
@@ -100,6 +116,7 @@ export const account = new Elysia({ prefix: "/api" })
       if (!created.ok) return status(422, { error: created.error });
 
       setSession(cookie, users.createSession(created.value.user.id));
+      await verifyIfNeeded(created.value.user);
       return status(201, {
         status: "ok",
         /** Se muestran una sola vez: en la base queda el sha256. */
@@ -187,10 +204,10 @@ export const account = new Elysia({ prefix: "/api" })
       }
     },
   })
-  .get("/me", ({ cookie, status }) => {
+  .get("/me", async ({ cookie, status }) => {
     const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
     if (!user) return status(401, { error: "sesión vencida" });
-    return { user: publicUser(user) };
+    return { user: await withVerification(user) };
   })
   .patch(
     "/me",
@@ -214,10 +231,13 @@ export const account = new Elysia({ prefix: "/api" })
       if (body.email !== undefined) {
         const changed = await users.setEmail(user.id, body.email);
         if (!changed.ok) return status(422, { error: changed.error });
+        /** Un correo nuevo arranca sin verificar: la verificación vieja era de
+         * otra dirección y deja de valer sola, por el hash. */
+        await verifyIfNeeded(changed.value);
       }
 
       const updated = users.byId(user.id);
-      return { user: publicUser(updated ?? user) };
+      return { user: await withVerification(updated ?? user) };
     },
     { body: patchMeBody },
   )

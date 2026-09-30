@@ -231,6 +231,52 @@ CREATE TABLE IF NOT EXISTS service_hours (
 );
 
 CREATE INDEX IF NOT EXISTS service_hours_service ON service_hours (service_id, weekday);
+
+/* --- Correo -----------------------------------------------------------------
+   Si un correo está verificado, y los enlaces de un solo uso que mandamos.
+   Van en tablas propias y no como columnas de users o companies, que ya
+   existen en producción y no se migran: lo mismo que ya hizo company_accounts.
+
+   Ninguna guarda la dirección. email_hash es el sha256 del correo al que se
+   mandó, y sirve para una sola cosa: que cambiar el correo invalide la
+   verificación vieja sin que nadie tenga que acordarse de borrarla. */
+CREATE TABLE IF NOT EXISTS email_verified (
+  subject_kind  TEXT NOT NULL,
+  subject_id    TEXT NOT NULL,
+  email_hash    TEXT NOT NULL,
+  verified_at   TEXT NOT NULL,
+  PRIMARY KEY (subject_kind, subject_id)
+);
+
+/* Igual que las sesiones: solo el sha256 del token. Resend guarda cada correo
+   30 días, y con él el enlace; que el token venza en minutos y sirva una vez
+   es lo que hace que esa copia no valga nada. */
+CREATE TABLE IF NOT EXISTS email_tokens (
+  token_hash    TEXT PRIMARY KEY,
+  purpose       TEXT NOT NULL,
+  subject_kind  TEXT NOT NULL,
+  subject_id    TEXT NOT NULL,
+  email_hash    TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS email_tokens_subject ON email_tokens (subject_kind, subject_id, purpose);
+CREATE INDEX IF NOT EXISTS email_tokens_expiry ON email_tokens (expires_at);
+
+/* Las dos tablas apuntan a users o a companies según subject_kind, así que no
+   pueden tener clave foránea. Los triggers hacen lo que haría la cascada: el
+   borrado real de una cuenta se lleva su rastro de correo, venga de la ruta
+   que venga. */
+CREATE TRIGGER IF NOT EXISTS users_email_cleanup AFTER DELETE ON users BEGIN
+  DELETE FROM email_verified WHERE subject_kind = 'user' AND subject_id = old.id;
+  DELETE FROM email_tokens WHERE subject_kind = 'user' AND subject_id = old.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS companies_email_cleanup AFTER DELETE ON companies BEGIN
+  DELETE FROM email_verified WHERE subject_kind = 'company' AND subject_id = old.id;
+  DELETE FROM email_tokens WHERE subject_kind = 'company' AND subject_id = old.id;
+END;
 `;
 
 let handle: Database | null = null;

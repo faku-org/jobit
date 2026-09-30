@@ -3,9 +3,11 @@ import { Elysia, t } from "elysia";
 import { account } from "./account.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
+import { email } from "./email.ts";
 import { empresas } from "./empresas.ts";
 import { ingest, ingestEnabled } from "./ingest.ts";
 import { marketCsv, marketSheets } from "./export.ts";
+import { mailEnabled } from "./mail.ts";
 import { publish } from "./publish.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
@@ -343,6 +345,7 @@ export const app = new Elysia()
   .use(account)
   .use(publish)
   .use(empresas)
+  .use(email)
   .use(ingest)
   .get(
     "/api/jobs",
@@ -492,5 +495,10 @@ if (import.meta.main) {
     ingestEnabled()
       ? "ingesta: habilitada"
       : "ingesta: apagada (falta INGEST_TOKEN), /api/ingest responde 404",
+  );
+  console.log(
+    mailEnabled()
+      ? "correo: habilitado"
+      : "correo: apagado (falta RESEND_API_KEY), no se verifican correos ni se mandan resets",
   );
 }

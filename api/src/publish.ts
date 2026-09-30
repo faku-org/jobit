@@ -9,6 +9,7 @@ import {
   RESPONSE_TIMES,
   WORK_STYLES,
 } from "./services.ts";
+import { isVerified } from "./email-tokens.ts";
 import * as users from "./users.ts";
 
 /**
@@ -61,6 +62,19 @@ const serviceBody = t.Object({
   hours: t.Optional(t.Array(hoursSchema, { maxItems: 24 })),
 });
 
+/**
+ * Mandar un servicio a la cola exige un correo verificado. Borradores no:
+ * escribir sin terminar es como se escribe. Pero lo que llega a la moderación
+ * tiene que tener detrás a alguien a quien soporte le pueda escribir, y que
+ * reciba el aviso cuando se publique o se suspenda.
+ */
+async function canSubmit(user: users.User): Promise<boolean> {
+  return isVerified("user", user.id, await users.emailOf(user));
+}
+
+const NEEDS_EMAIL =
+  "para mandar un servicio a revisión hace falta un correo verificado: cargalo desde tu perfil";
+
 export const publish = new Elysia({ prefix: "/api/services" })
   .resolve(({ cookie, status }) => {
     const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
@@ -75,7 +89,10 @@ export const publish = new Elysia({ prefix: "/api/services" })
   }))
   .post(
     "/",
-    ({ user, body, status }) => {
+    async ({ user, body, status }) => {
+      if (body.status === "pending" && !(await canSubmit(user))) {
+        return status(422, { error: NEEDS_EMAIL });
+      }
       const created = services.create(user.id, body);
       return created.ok ? status(201, created.value) : status(422, { error: created.error });
     },
@@ -91,7 +108,10 @@ export const publish = new Elysia({ prefix: "/api/services" })
   })
   .patch(
     "/:id",
-    ({ user, params, body, status }) => {
+    async ({ user, params, body, status }) => {
+      if (body.status === "pending" && !(await canSubmit(user))) {
+        return status(422, { error: NEEDS_EMAIL });
+      }
       const updated = services.update(params.id, user.id, body);
       if (updated.ok) return updated.value;
       return updated.error === "ese servicio no existe"

@@ -1,5 +1,7 @@
 import { Elysia, t } from "elysia";
 import { secureCookies } from "./auth.ts";
+import { isVerified } from "./email-tokens.ts";
+import { verifyInBackground } from "./verification.ts";
 import * as accounts from "./company-accounts.ts";
 import * as companies from "./companies.ts";
 import type { Company } from "./companies.ts";
@@ -46,6 +48,9 @@ const publicCompany = (company: Company) => ({
   slug: company.slug,
   email: company.email,
   website: company.website,
+  /** El correo de contacto es por donde llega soporte y el reset: verificado
+   * quiere decir que el que figura hoy es uno que alguien de la empresa lee. */
+  email_verified: isVerified("company", company.id, company.email),
   status: company.status,
   created_at: company.created_at,
   updated_at: company.updated_at,
@@ -121,6 +126,7 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
       }
 
       setSession(cookie, accounts.createSession(created.value.id));
+      verifyInBackground("company", created.value.id, created.value.email);
       return status(201, { status: "ok", company: publicCompany(created.value) });
     },
     { body: registerBody },
@@ -182,7 +188,11 @@ export const empresas = new Elysia({ prefix: "/api/empresas" })
           website: body.website,
         });
         if (!updated.ok) return status(422, { error: updated.error });
-        return { company: publicCompany(updated.value) };
+        const fresh = updated.value;
+        if (fresh.email && !isVerified("company", fresh.id, fresh.email)) {
+          verifyInBackground("company", fresh.id, fresh.email);
+        }
+        return { company: publicCompany(fresh) };
       }
 
       return { company: publicCompany(company) };

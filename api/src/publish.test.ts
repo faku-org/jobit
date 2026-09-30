@@ -2,14 +2,25 @@ import { beforeEach, describe, expect, test } from "bun:test";
 
 process.env.DB_FILE = ":memory:";
 process.env.ADMIN_INSECURE_COOKIES = "true";
+process.env.JOBIT_SECRET_KEY = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString(
+  "base64",
+);
 
 const { closeDb } = await import("./db.ts");
 const { resetLimits } = await import("./limit.ts");
+const { setTransport } = await import("./mail.ts");
 const { app } = await import("./index.ts");
+
+let links: string[] = [];
 
 beforeEach(() => {
   closeDb();
   resetLimits();
+  links = [];
+  setTransport(async (mail) => {
+    links.push(mail.text.match(/\S+token=\S+/)?.[0] ?? "");
+    return { ok: true, value: "prueba" };
+  });
 });
 
 const call = (path: string, init: RequestInit = {}): Promise<Response> =>
@@ -32,6 +43,23 @@ async function registrado(handle = "faku"): Promise<string> {
   return cookieOf(response);
 }
 
+/** Alta con correo, y el correo confirmado con el enlace que habría llegado. */
+async function verificado(handle = "faku"): Promise<string> {
+  const response = await call(
+    "/api/auth/register",
+    send("POST", {
+      handle,
+      display_name: handle,
+      password: "una clave larga",
+      email: `${handle}@example.com`,
+    }),
+  );
+  for (let n = 0; n < 50 && links.length === 0; n++) await new Promise((r) => setTimeout(r, 5));
+  const link = new URL(links[0] ?? "");
+  await call(link.pathname + link.search);
+  return cookieOf(response);
+}
+
 const COMPLETO = {
   title: "Programador FullStack",
   summary: "Aplicaciones web a medida, de la base a la pantalla.",
@@ -44,7 +72,7 @@ const COMPLETO = {
 
 describe("servicios por HTTP", () => {
   test("se crean, se listan y se borran, y nada se publica solo", async () => {
-    const cookie = await registrado();
+    const cookie = await verificado();
 
     const created = await call("/api/services", send("POST", COMPLETO, cookie));
     expect(created.status).toBe(201);
@@ -85,6 +113,32 @@ describe("servicios por HTTP", () => {
   test("sin sesión no se publica nada", async () => {
     expect((await call("/api/services", send("POST", { title: "Lo que sea" }))).status).toBe(401);
     expect((await call("/api/services/mine")).status).toBe(401);
+  });
+});
+
+describe("correo verificado para mandar a revisión", () => {
+  test("sin verificar, el borrador sí y la cola no", async () => {
+    const cookie = await registrado();
+
+    const draft = await call("/api/services", send("POST", { title: "Electricista" }, cookie));
+    expect(draft.status).toBe(201);
+
+    const pending = await call("/api/services", send("POST", COMPLETO, cookie));
+    expect(pending.status).toBe(422);
+    expect(((await pending.json()) as { error: string }).error).toContain("correo verificado");
+  });
+
+  test("tampoco se puede pasar un borrador a la cola por PATCH", async () => {
+    const cookie = await registrado();
+    const draft = (await (
+      await call("/api/services", send("POST", { ...COMPLETO, status: "draft" }, cookie))
+    ).json()) as { id: string };
+
+    const response = await call(
+      `/api/services/${draft.id}`,
+      send("PATCH", { status: "pending" }, cookie),
+    );
+    expect(response.status).toBe(422);
   });
 });
 
