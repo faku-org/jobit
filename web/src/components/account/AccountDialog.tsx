@@ -118,7 +118,7 @@ const HEADING: Record<View, { title: string; hint: string }> = {
   password: { title: "Cambiar contraseña", hint: "Para cambiarla hace falta la actual." },
   email: {
     title: "Tu correo",
-    hint: "Para recuperar la cuenta y para los avisos. Va cifrado en el servidor, y los correos de JobIt nunca dicen qué pasó: solo que hay algo.",
+    hint: "Para recuperar la cuenta y para los avisos. Va cifrado en el servidor y solo se usa para escribirte. Los correos de JobIt no llevan tus datos: dicen que hay algo y te traen acá.",
   },
   "passkey-add": {
     title: "Agregar una llave de acceso",

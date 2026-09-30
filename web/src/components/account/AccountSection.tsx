@@ -394,8 +394,10 @@ function SignedIn({
           <span className="text-[11px] leading-relaxed text-onpanel/75">
             Llevar mis datos entre navegadores. Guarda en tu cuenta lo que marcaste, tus
             postulaciones, tus preferencias y tu perfil, para tenerlos en cualquier navegador donde
-            entres. En el servidor va <strong className="font-medium text-onpanel">cifrado</strong>,
-            y apagarlo lo borra.
+            entres. Apagarlo lo borra. Hoy va cifrado con una clave{" "}
+            <strong className="font-medium text-onpanel">del servidor</strong>, no tuya: frena a
+            quien se lleve una copia de la base, no a nosotros. Pasarlo a una clave que solo abra tu
+            contraseña es lo próximo.
           </span>
         </label>
         {sync.error ? (

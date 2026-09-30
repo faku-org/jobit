@@ -6,230 +6,263 @@ empresa a la que le escribió. JobIt no.** Telemetría anónima sí, nada más.
 Eso no se implementa con una promesa en la política. Se implementa haciendo que
 el servidor guarde algo que no puede abrir, y aceptando lo que eso cuesta.
 
-## Lo que ya cambió
+## Dos clases de datos
 
-**Se sacó el correo de las cuentas.** Estaba cifrado, pero con `ACCOUNT_KEY`,
-que la tiene JobIt: o sea que JobIt lo podía leer. Además no lo usaba nadie para
-nada, porque la recuperación por correo nunca existió. Era un dato legible sin
-una función que lo justificara, que es exactamente lo que la política dice que
-no se guarda.
+La regla necesita una distinción que al principio no estaba y que resolvió la
+contradicción con el correo:
 
-Sin correo, los códigos de respaldo pasan de ser "la salida si no dejaste mail"
-a ser **la única salida, para todos**. El texto del alta ya lo dice así.
+- **Datos de cuenta**: lo que hace falta para operar la cuenta. Handle, hash de
+  la contraseña, correo, llaves de acceso, datos de facturación el día que
+  haya. JobIt los tiene porque sin ellos no puede cumplir su parte: escribirte
+  para confirmar, dejarte recuperar el acceso, contestarle a una empresa por
+  soporte. Se guardan los mínimos y se dice cuáles.
+- **Datos de contenido**: lo que la persona produce para otro. Postulaciones,
+  CV, respuestas a preguntas del reclutador, y lo que se sincroniza entre
+  navegadores. Esto es lo que JobIt no debe poder leer. Se cifra en el
+  navegador.
 
-Esto se revierte en diez minutos si preferís lo contrario. Lo que no se puede
-es tenerlo guardado y decir que JobIt no accede a los datos.
+El correo es dato de cuenta. En las cuentas de empresa siempre fue
+obligatorio y en claro (es su contacto); en las de personas es opcional para
+buscar, obligatorio y confirmado para publicar, y va cifrado en reposo con
+clave del servidor. Lo manda Resend, y por qué ese y no otro está en
+[correo.md](correo.md).
 
-## La excepción que no se puede cerrar hoy
+## Dónde estamos
 
-**El secreto TOTP.** Verificar un código de seis dígitos exige tener el secreto
-con el que se generó: no hay forma de que el servidor valide un TOTP sin poder
-generarlo él. Hoy está cifrado en reposo, y la clave la tiene JobIt.
+| Qué                               | Estado                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| Segundo paso                      | **Hecho.** WebAuthn: el servidor guarda claves públicas, nada más.            |
+| Secreto TOTP                      | Solo cuentas viejas; se borra al agregar una llave.                           |
+| Correo                            | Dato de cuenta, cifrado con clave del servidor. Decidido.                     |
+| Verificar el código servido       | **Hecho.** Build reproducible, `/version.json`, `bun run verificar`.          |
+| Núcleo de cifrado en el navegador | **Hecho y probado.** `web/src/lib/e2e.ts`. Sin cablear todavía.               |
+| Sync                              | Cifrado con clave del servidor: **JobIt podría leerlo.** La política lo dice. |
+| Postulaciones                     | No existen todavía. Nacen cifradas, con cabecera de cribado.                  |
 
-La salida real es **WebAuthn**: el servidor guarda una clave pública y verifica
-una firma, y no hay ningún secreto del lado nuestro. Además es mejor de usar,
-porque es la huella o el PIN del dispositivo en vez de copiar dígitos.
+## El esquema, como quedó implementado
 
-Mientras tanto queda como excepción escrita, no como cosa que nadie notó.
+Todo con WebCrypto nativo. El código es `web/src/lib/e2e.ts`; los tests
+(`e2e.test.ts`) prueban además los ataques: casillero robado, contexto
+cruzado, un bit cambiado, un casillero trasplantado de otro sobre. Se probó en
+Chromium que interopera con Bun en los dos sentidos.
 
-## El esquema
-
-### 1. La contraseña se parte en dos
+### 1. Un secreto, dos claves
 
 ```
-salt        <- del servidor, por cuenta, público
-H_auth      = KDF(contraseña, salt, "auth")   -> va al servidor
-H_wrap      = KDF(contraseña, salt, "wrap")   -> nunca sale del navegador
+master = PBKDF2-SHA256(secreto, sal, 600.000)     <- lo caro, una vez
+auth   = HKDF(master, "jobit/v1/<tipo>/auth")      -> va al servidor
+wrap   = HKDF(master, "jobit/v1/<tipo>/wrap")      -> no sale del navegador
 ```
 
-El servidor recibe `H_auth` como si fuera la contraseña y le aplica argon2id
-encima, como ya hace hoy. Nunca ve `H_wrap`, y de `H_auth` no se puede derivar.
+El servidor recibe `auth` en lugar de la contraseña y le aplica argon2id
+encima, como hoy. De `auth` no se llega a `wrap` sin volver a pasar por el
+secreto.
 
-Sobre el KDF del navegador: WebCrypto trae PBKDF2 nativo y no trae Argon2id. Se
-puede cargar argon2 en WASM (unos 40 kB) o usar PBKDF2-SHA512 con muchas
-iteraciones. PBKDF2 aguanta peor una GPU que Argon2id, y es lo que hay sin
-dependencia. **Es una decisión a tomar, no un detalle.**
+**El KDF es PBKDF2, y la razón es el CSP.** Argon2id aguanta mucho mejor una
+GPU, pero en el navegador solo existe como WASM, y cargar WASM pide
+`'wasm-unsafe-eval'` en `script-src`. Aflojar el CSP para endurecer el KDF es
+cambiar un riesgo por otro. Los parámetros (`kdf`, `iterations`, `salt`)
+viajan con cada cuenta, así que pasar a Argon2id el día que convenga es
+reenvolver una clave, no recifrar nada.
+
+Costo medido: ~110 ms por derivación en un servidor x64 con Chromium. En un
+teléfono de gama media, estimo entre 0,3 y 0,6 s. Se paga al entrar, no en
+cada acción.
+
+**Lo que esto deja expuesto, dicho claro:** quien robe la base tiene la clave
+privada envuelta y su sal. Probar una contraseña le cuesta un PBKDF2 de
+600.000 vueltas, sin pasar por el argon2id del servidor. Contra contraseñas
+débiles eso no alcanza, y hoy el mínimo es de 8 caracteres
+(`MIN_PASSWORD` en `api/src/users.ts`). Con el cifrado activo ese mínimo tiene
+que subir a 12 para las cuentas que migren: es lo que separa "robaron la base"
+de "leyeron el contenido".
 
 ### 2. Cada cuenta tiene un par de claves
 
-Generado en el navegador al darse de alta. ECDH P-256, que es lo que soportan
-todos los navegadores.
+ECDH P-256, generado en el navegador en el alta. La pública se guarda tal cual.
+La privada se guarda envuelta con `wrap` (AES-256-GCM, con la etiqueta
+"password" como dato asociado). Al entrar, el navegador baja el blob y lo abre.
 
-- La pública se guarda tal cual: es pública.
-- La privada se guarda **envuelta con `H_wrap`**. Para el servidor es un blob
-  opaco que no significa nada.
+La privada que sale de abrir el blob **no es exportable**: ni un script
+inyectado la puede sacar del navegador. La puede usar mientras la página esté
+abierta, que es el límite de cualquier cifrado en una página web.
 
-Al entrar, el navegador baja el blob y lo abre con la contraseña. Funciona desde
-cualquier dispositivo sin sincronizar nada.
-
-### 3. Cada postulación es un sobre cerrado
+### 3. Cada contenido es un sobre
 
 ```
-clave_contenido   = AES-256-GCM aleatoria, una por postulación
-sobre             = cifrar(datos, clave_contenido)
-para_la_empresa   = envolver(clave_contenido, pública de la empresa)
-para_quien_postula= envolver(clave_contenido, pública de la persona)
+clave        = AES-256-GCM al azar, una por sobre
+datos        = cifrar(contenido, clave, AAD = contexto)
+casillero_i  = envolver(clave, ECDH(efímera_i, pública_i) -> HKDF)
 ```
 
-El servidor guarda el sobre y las dos llaves envueltas. Puede borrarlo, contarlo
-y hacerlo vencer. No puede abrirlo.
+Un sobre de postulación lleva dos casilleros, la empresa y quien postula (así
+puede releer lo que mandó). El sync lleva uno, el propio.
 
-Que la llave vaya envuelta también para quien postula es lo que le deja releer
-lo que mandó. Sin eso, la persona pierde acceso a su propia postulación, que
-sería un chiste malo.
+El **contexto** ("sync", "application:<id>") va como dato asociado en el
+contenido y en cada casillero. Un sobre cerrado para una postulación no abre
+como otra, y el servidor no puede cambiar blobs de lugar.
 
-### 4. Los códigos de respaldo cambian de significado
+### 4. Los códigos de respaldo, y un agujero que había
 
-Hoy un código cambia la contraseña. **Con cifrado de punta a punta eso no
-alcanza:** cambiar la contraseña cambia `H_wrap`, y la clave privada queda
-envuelta con la anterior. La cuenta se recupera y el contenido se pierde.
+Con cifrado de punta a punta, cambiar la contraseña ya no alcanza para
+recuperar: la privada está envuelta con la vieja. Así que **cada código envuelve
+su propia copia de la privada**.
 
-Así que cada código de respaldo tiene que llevar **su propia copia envuelta de
-la clave privada**. Ocho códigos, ocho copias. Usar uno abre la clave, la
-reenvuelve con la contraseña nueva y quema el código.
+Al diseñarlo apareció un problema en lo que hay hoy: el servidor guarda
+`sha256(código)`. Para autenticar alcanza, pero el día que un código abra una
+copia de la privada, ese hash es un atajo offline: ~49 bits por código a
+velocidad de GPU son horas. **Los códigos pasan por el mismo `derive()` que la
+contraseña** y el servidor guarda argon2id del `auth` del código, no el sha256.
 
-Consecuencia, y hay que decirla fuerte: **perder los ocho códigos y la
-contraseña ya no es perder la cuenta, es perder el contenido.** No hay reset
-posible, por diseño y no por falta de ganas.
+Una sal para los ocho códigos de la cuenta, no una por código: quien recupera
+no sabe cuál tiene en la mano, y con una sal por código habría que correr ocho
+PBKDF2. Así corre uno y prueba el desenvolver (barato) contra cada copia. Quien
+ataque prueba cada intento contra los ocho a la vez; con ~49 bits y 600.000
+vueltas por intento, sigue siendo inviable.
+
+**Perder contraseña y códigos es perder el contenido.** No hay reset posible,
+por diseño. El correo recupera la cuenta, no lo cifrado.
 
 ### 5. Cambiar la contraseña es barato
 
-Se reenvuelve la clave privada con el `H_wrap` nuevo. No se vuelve a cifrar
-ninguna postulación, porque ninguna está cifrada con la contraseña.
+Se reenvuelve la privada con el `wrap` nuevo. Ningún sobre se toca.
 
-## Lo que esto rompe
+## La migración, en orden
 
-### El cribado del lado del servidor
+Nada de esto rompe a nadie si se hace así:
 
-En `docs/empresas.md` propuse que la API calculara el puntaje contra los
-requisitos y ordenara la bandeja. **Con el sobre cerrado eso no se puede.** El
-servidor no sabe qué dice adentro.
+1. **Parámetros públicos por handle.** `GET /api/auth/params?handle=` devuelve
+   `{kdf, iterations, salt}`. Para un handle que no existe devuelve una sal
+   falsa pero estable (`HMAC(clave del servidor, handle)`), para no confirmar
+   qué cuentas existen.
+2. **Migración perezosa al entrar.** Una cuenta vieja entra con la contraseña
+   en claro, como hoy. En ese momento el navegador la tiene, así que crea la
+   bóveda (`createVault`), manda `auth`, la bóveda y códigos nuevos. El
+   servidor reemplaza argon2id(contraseña) por argon2id(auth), guarda la
+   bóveda y marca la cuenta como `auth_v = 2`. Desde ahí la contraseña no
+   vuelve a viajar.
+3. **Códigos nuevos al migrar.** Los viejos están como sha256: se descartan y
+   se muestran ocho nuevos, una vez. Es un paso más en el primer ingreso, y es
+   el precio de cerrar el atajo del punto 4.
+4. **El sync se recifra en el navegador.** Primer ingreso migrado: el navegador
+   baja el sync viejo (el servidor lo descifra una última vez), lo cierra para
+   la propia pública con contexto `sync`, lo sube, y el servidor borra el
+   formato viejo. `PUT /api/me/sync` pasa a aceptar solo sobres. El servidor
+   ya no puede validar la forma de lo que guarda, solo el tamaño.
+5. **La clave en la sesión.** Para no pedir la contraseña en cada recarga, la
+   privada (no exportable) se guarda en IndexedDB mientras la sesión viva; un
+   `CryptoKey` no exportable sigue sin serlo ahí. Salir la borra.
+6. **Reset por correo.** Recupera la cuenta y deja la bóveda cerrada: con un
+   código se reabre; sin código, se crea una nueva y el sync arranca de lo que
+   haya en ese navegador. Hay que decirlo en la pantalla de reset, no
+   descubrirlo después.
+7. **Apagar el camino viejo.** Cuando no quede ninguna cuenta en `auth_v = 1`
+   con sync, o a los 90 días, se saca el descifrado del sync con clave del
+   servidor. Ahí la política puede cambiar la frase del sync.
 
-Dos salidas:
+Las llaves de acceso no cambian: siguen siendo el segundo paso. Cuando la
+extensión PRF de WebAuthn esté en todos lados, cada llave puede envolver su
+propia copia de la privada y entrar sin contraseña. Hoy no está en todos lados,
+y por eso no se usa.
 
-**A. Todo adentro del sobre.** La empresa baja los sobres, los abre en su
-navegador y filtra ahí. Honesto y simple. Con 30 postulaciones va bárbaro; con
-500 son 500 blobs a bajar y descifrar cada vez que abre la bandeja. Se arregla
-con un índice cacheado en IndexedDB, que es más código.
+## Lo que rompe, y lo que se decidió
 
-**B. Cabecera de cribado afuera del sobre.** Solo ids de catálogo (nivel, años,
-rubro, departamento), sin nombre, sin contacto, sin texto libre, y **sin vínculo
-con la cuenta**. El servidor puede ordenar por eso y no sabe de quién es cada
-fila.
+### El cribado: cabecera afuera del sobre (decidido)
 
-B escala y es menos puro. La pregunta honesta es si `{senior, 5 años,
-tecnología, Montevideo}` es "un dato directo de la persona". Suelto no lo es;
-pegado a un `user_id` sí. Por eso B exige que esa fila **no** tenga `user_id`.
+La API no puede puntuar lo que no puede leer. Se eligió la **cabecera de
+cribado**: ids de catálogo (nivel, años, rubro, departamento, respuestas de
+opción múltiple a las preguntas del reclutador), sin nombre, sin contacto, sin
+texto libre, **y sin vínculo con la cuenta**. El servidor ordena y filtra por
+eso sin saber de quién es cada fila. El resto va en el sobre.
+
+`{senior, 5 años, tecnología, Montevideo}` suelto no es un dato directo de una
+persona. Pegado a un `user_id` sí, y por eso la fila no lo tiene.
 
 ### El vínculo postulación ↔ persona
 
-Aunque todo esté cifrado, una columna `applications.user_id` le dice a JobIt
-quién postuló a qué. Eso es un dato directo, y de los más sensibles: es saber
-que alguien con trabajo está buscando otro.
+`applications` **no tiene `user_id`**. Quien postula guarda la lista de lo
+suyo en su navegador y, cifrada para sí, en el servidor. El servidor ve un blob
+por persona y su tamaño.
 
-La salida: **la tabla no guarda `user_id`.** Quien postula guarda en su navegador
-la lista de lo suyo, igual que hoy guarda las ofertas marcadas, y además una
-copia envuelta con su propia clave en el servidor para no perderla al cambiar de
-dispositivo. El servidor ve un blob por persona; su tamaño insinúa cuántas
-postulaciones hay y nada más.
+## ¿Esto le cierra la puerta a la IA o a lo pago?
 
-## El límite honesto, y va en la política
+La pregunta vino con una propuesta: generar un `user_id` al suscribirse, a
+cambio de funciones más completas. Dos cosas por separado, porque mezcladas
+esconden la tensión.
+
+**El `user_id` ya existe.** Toda cuenta tiene uno. Lo que el esquema evita no
+es identificar a la persona sino **guardar el vínculo** entre la persona y su
+contenido. Identificar para cobrar, para limitar o para escribirle es dato de
+cuenta y es compatible.
+
+**El rate limit no necesita el vínculo.** Postular pide sesión, y al momento
+del pedido el servidor sabe quién es: puede contar en memoria, como el
+limitador de hoy, y no escribirlo. Lo que se promete es que **no queda
+guardado**, no que el servidor no lo sepa nunca. La política lo tiene que decir
+con esas palabras. Un contador persistente por día (`user_id, día, cantidad`)
+también es aceptable: dice cuánto, no a qué.
+
+**Lo pago tampoco.** Una suscripción es facturación: dato de cuenta, y el que
+lo ve de verdad es el procesador de pagos.
+
+**La IA sí tiene un costo, y es este:** no hay IA de fondo sobre lo guardado.
+"Analizamos tus postulaciones todas las noches" no existe, porque el servidor
+no las puede leer. Lo que sí existe:
+
+1. **IA en el navegador.** Modelos chicos locales (la Prompt API de Chrome,
+   transformers.js). Cero acceso intacto. Hoy limitada; mejora rápido.
+2. **IA por acción, con consentimiento en esa acción.** El navegador descifra
+   y manda ese contenido puntual a un endpoint que lo procesa y no lo guarda.
+   En ese pedido JobIt (y el proveedor del modelo, que es otro encargado) ve el
+   contenido. Es una excepción a la regla, y solo vale si la persona la elige
+   ahí, sabiendo eso, cada vez o por función.
+3. **IA del lado de la empresa.** La empresa abre sus sobres en su navegador y
+   decide qué hace. Lo gobierna el EULA de empresas, no nosotros.
+
+**Lo que no haría:** atar más funciones a entregar más datos. Si lo pago
+compra "funciones más completas" a cambio de privacidad, los que pagan tienen
+menos privacidad que los que no, y la regla deja de ser un valor y pasa a ser
+un precio. Mejor: cada función que necesite un vínculo lo pide ella, opt-in y
+con fecha de vencimiento, pague o no pague la persona.
+
+### El caso que sí necesita vínculo: avisarle al candidato
+
+"La empresa te pasó a entrevista" por correo exige que el servidor sepa qué
+cuenta avisar. Sin vínculo, el candidato se entera cuando abre JobIt (su
+navegador conoce sus postulaciones y pregunta por ellas). Con aviso, hace falta
+un vínculo, y la propuesta es **acotado al propósito**: al postular, casilla
+"avisarme por correo"; si se marca, se guarda `(postulación, cuenta)` en una
+tabla aparte, solo mientras la postulación esté abierta, y se borra al
+cerrarse. El correo no dice qué empresa ni qué puesto: "tenés novedades".
+
+## El límite honesto (ya está en la política)
 
 Esto protege contra: que roben la base, que se filtre un backup, que alguien
 pida los datos por vía legal, que un administrador curiosee, que se pierda el
 disco del VPS.
 
-**No protege contra JobIt sirviendo otro JavaScript.** El navegador cifra con el
-código que le mandamos nosotros. Un despliegue modificado, o uno comprometido,
-puede quedarse con el texto antes de cerrar el sobre.
+**No protege contra JobIt sirviendo otro JavaScript.** Eso no lo arregla
+ningún cifrado. Lo que se hizo: el build es reproducible, `/version.json`
+publica el commit y el hash de cada archivo, `bun run verificar` compara, y una
+tarea diaria en GitHub lo corre desde afuera (ver [verificar.md](verificar.md)).
+La política lo dice en la sección 13, "El código que te servimos".
 
-Decir "JobIt no puede leer tus datos" a secas sería mentir un poco. Lo que se
-puede decir con todas las letras es: **no podemos leerlos desde la base, y si
-quisiéramos leerlos tendríamos que cambiarte el código que te servimos.** Y
-después dar con qué chequearlo: hash del build publicado, `integrity` en el
-bundle, y build reproducible el día que se pueda.
+## Ley 18.331 y las empresas
 
-Esa frase, dicha así, vale más que la promesa grande, porque es verificable.
-
-## Ley 18.331
-
-Si la empresa puede leer y JobIt no, lo más probable es que la empresa sea la
-responsable del tratamiento y JobIt algo más parecido a un intermediario. Eso
-cambia quién contesta un reclamo y qué tiene que decir cada término.
-
-**No lo afirmo.** Hay que confirmarlo con alguien que sepa antes de escribirlo
-en los términos, porque escribirlo mal es peor que no escribirlo.
-
-Lo que sí es seguro: una vez que la empresa abre el sobre, los datos están en su
-máquina y JobIt no puede hacer nada al respecto. Eso la política lo tiene que
-decir, no insinuar.
-
-## Avisos sin correo
-
-Primero una corrección: **no es un certificado lo que falta.** DKIM sí es un par
-de claves publicado en DNS, y SPF y DMARC son dos registros más, y todo eso se
-configura en una tarde. El problema es otro y es peor.
-
-Desde noviembre de 2025 Gmail rechaza directamente lo que no autentica bien
-(5.7.26) y Microsoft hace lo mismo (550 5.7.515). Y los rangos de IP de casi
-todos los VPS ya están en listas tipo la PBL de Spamhaus, que existe justamente
-para marcar direcciones que no deberían mandar correo. Con SPF, DKIM y DMARC
-perfectos, un VPS nuevo igual arranca sospechoso, y el calentamiento es mandar
-50 a 100 por día subiendo de a poco durante un mes y medio.
-
-O sea: **configurarlo bien es necesario y no alcanza.** No te faltaba un papel,
-te falta reputación, y esa no se configura.
-
-Las alternativas, con lo que cuesta cada una:
-
-**1. Relé transaccional.** Brevo da 300 por día gratis, Resend 3.000 por mes,
-Amazon SES cobra unos 0,10 dólares cada mil. Ellos ponen la reputación y vos
-ponés los registros DNS de `wefaber.net`. Resuelve el spam de verdad.
-
-El costo choca de frente con la regla de arriba: el relé ve la dirección de
-quien recibe. Se puede achicar mandando un correo que no diga nada ("tenés
-novedades, entrá"), pero el relé igual aprende que esa dirección tiene cuenta.
-Bajo la regla nueva, esto solo entra si la persona lo elige sabiendo eso.
-
-**2. Web Push (VAPID), y es la que recomiendo.** El navegador se suscribe, el
-servidor le manda el aviso firmado con su propia clave. Sin terceros más allá
-del servicio de push del navegador, y el protocolo ya cifra el contenido para
-que ese servicio no lo lea. Gratis, self-hosted, sin reputación que construir.
-
-El límite: en iPhone solo anda si la persona agrega el sitio a la pantalla de
-inicio, porque desde una pestaña de Safari el Push API no existe. En Android y
-escritorio anda desde una pestaña común.
-
-**3. Telegram.** La persona conecta su Telegram una vez. Gratis, instantáneo, no
-tiene problema de spam y acá lo usa todo el mundo. Telegram aprende la
-asociación, igual que el relé aprende la dirección.
-
-**4. Bandeja adentro de JobIt.** Gratis, no filtra nada, y depende de que la
-persona vuelva a mirar.
-
-**Lo que armaría:** la bandeja como fuente de verdad, siempre, porque no le
-cuenta nada a nadie. Web Push arriba como capa de aviso gratis. Telegram como
-opción para quien lo quiera. Y correo: ninguno.
-
-Sin correo, la frase "JobIt no guarda tu correo" es literalmente verdadera y no
-hay que matizarla, que es el tipo de frase que sostiene la marca entera.
+Si la empresa lee y JobIt no, la empresa se parece más a la responsable del
+tratamiento y JobIt a un intermediario. **No lo afirmo**: lo tiene que
+confirmar alguien que sepa. Lo que sí está decidido es la palanca: el EULA de
+empresas exige cumplir, como mínimo, nuestra política con los datos que
+reciben, y la que no cumple pierde el servicio. El borrador está en
+[eula-empresas.md](eula-empresas.md).
 
 ## Lo que cuesta, junto
 
 - Perder contraseña y códigos es perder el contenido, no solo el acceso.
-- No hay búsqueda ni orden del lado del servidor sobre lo cifrado.
-- La bandeja de la empresa se pone pesada con volumen.
-- El frontend pasa a ser crítico para la seguridad, no solo para la experiencia.
-- Los payloads crecen y el alta gana un paso, generar las claves.
-- Soporte no puede ayudar a nadie a recuperar nada, nunca.
-
-## Lo que necesito que decidas
-
-1. **¿Cabecera de cribado en claro (B) o todo adentro del sobre (A)?** Es lo que
-   decide si la bandeja de la empresa escala.
-2. **¿KDF del navegador: PBKDF2 nativo o argon2 en WASM?**
-3. **¿Web Push, Telegram, las dos, o solo bandeja?**
-4. **¿Confirmo que el correo se va, o lo vuelvo a poner?** Ya está sacado en la
-   rama.
-5. **¿WebAuthn entra en el alcance de #27 o queda para después?** Es la única
-   forma de cerrar la excepción del TOTP.
+- No hay búsqueda ni orden del lado del servidor sobre lo cifrado; la cabecera
+  cubre el cribado y nada más.
+- No hay IA de fondo sobre lo guardado.
+- El frontend pasa a ser crítico para la seguridad, no solo para la
+  experiencia. De ahí la verificación del build.
+- El primer ingreso después de migrar pide guardar códigos nuevos.
+- Soporte no puede ayudar a nadie a recuperar contenido, nunca.
