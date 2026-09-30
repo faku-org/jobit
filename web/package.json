@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && bun run scripts/manifest.ts",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit"
   },

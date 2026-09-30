@@ -1,0 +1,51 @@
+name: Verificar el sitio
+
+# Comprueba, desde una máquina que no es el servidor de JobIt, que lo que sirve
+# jobs.wefaber.net es el build de un commit público. Ver docs/verificar.md.
+#
+# Corre en un runner de GitHub a propósito: el deploy usa uno propio, y una
+# verificación que corre en la misma máquina que sirve el sitio no verifica
+# nada.
+
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Sitio a verificar"
+        required: false
+        default: "https://jobs.wefaber.net"
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SITE: ${{ inputs.url || 'https://jobs.wefaber.net' }}
+    steps:
+      - name: Qué commit dice servir
+        id: live
+        run: |
+          commit=$(curl -fsS "$SITE/version.json" | jq -er .commit)
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "El sitio dice servir $commit"
+
+      - name: Checkout de ese commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.live.outputs.commit }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Verificar
+        run: bun run verificar --url "$SITE"

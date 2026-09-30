@@ -194,6 +194,20 @@
     @apply rounded bg-wash px-1.5 py-0.5 font-mono text-[13px] text-ink;
   }
 
+  /* Los comandos de /verificar: se copian enteros, así que no se cortan; si no
+     entran, la caja se desplaza sola y la página no. */
+  .legal-doc pre {
+    @apply my-4 overflow-x-auto rounded-xl border border-line bg-wash p-4;
+  }
+
+  .legal-doc pre code {
+    @apply bg-transparent p-0 leading-relaxed;
+  }
+
+  .legal-action {
+    @apply inline-flex items-center rounded-full border border-brand/45 bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-wash disabled:cursor-progress disabled:opacity-60;
+  }
+
   /* El resumen de arriba: lo mismo que dice el documento, en tres líneas, para
      quien no va a leer las catorce secciones. No reemplaza al texto. */
   .legal-lead {

@@ -51,7 +51,7 @@
     <main class="legal">
       <div class="legal-head">
         <h1>Política de privacidad</h1>
-        <p>Última actualización: 22 de setiembre de 2026</p>
+        <p>Última actualización: 30 de setiembre de 2026 · <a href="#cambios">qué cambió</a></p>
       </div>
 
       <div class="legal-grid">
@@ -76,7 +76,7 @@
                 <path d="m6 9 6 6 6-6" />
               </svg>
               Secciones
-              <span>14</span>
+              <span>15</span>
             </summary>
 
             <nav aria-label="Secciones de la política" data-toc>
@@ -92,8 +92,9 @@
               <a href="#derechos"><span>10</span> Tus derechos</a>
               <a href="#conservacion"><span>11</span> Cuánto se conserva</a>
               <a href="#seguridad"><span>12</span> Seguridad</a>
-              <a href="#cambios"><span>13</span> Cambios</a>
-              <a href="#contacto"><span>14</span> Contacto</a>
+              <a href="#codigo"><span>13</span> El código que te servimos</a>
+              <a href="#cambios"><span>14</span> Cambios</a>
+              <a href="#contacto"><span>15</span> Contacto</a>
             </nav>
           </details>
         </aside>
@@ -102,8 +103,8 @@
           <div class="legal-lead">
             <p>
               <strong>Buscar trabajo no pide cuenta.</strong> Tu perfil, tus guardadas y tus
-              postulaciones viven en tu navegador y no tienen copia en ningún servidor. Solo si creás
-              una cuenta para publicar se guarda lo mínimo del punto 3.
+              postulaciones viven en tu navegador y no tienen copia en ningún servidor. Solo si
+              creás una cuenta para publicar se guarda lo mínimo del punto 3.
             </p>
             <p>
               <strong>El CV se lee en tu máquina.</strong> El archivo no se sube a ningún lado ni
@@ -176,20 +177,37 @@
                 guarda en ningún lado.
               </li>
               <li>
-                <strong>Un email, si lo cargás.</strong> Es opcional y solo sirve para recuperar la
-                cuenta; va <strong>cifrado en reposo</strong>. Quien no lo carga se lleva códigos de
-                respaldo y se queda sin recuperación por correo, y eso se avisa en el alta.
+                <strong>Un email, si lo cargás.</strong> Para buscar trabajo es opcional. Para
+                <strong>publicar un servicio</strong> hace falta, y confirmado: es por donde te
+                escribimos para recuperar la cuenta, confirmar que el correo es tuyo y avisarte de
+                algo que pase con lo que publicaste. Va <strong>cifrado en reposo</strong>. Quien no
+                lo carga se lleva códigos de respaldo y se queda sin recuperación por correo, y eso
+                se avisa en el alta. Para saber si está confirmado guardamos el sha256 del correo y
+                la fecha; si lo cambiás, hay que confirmar el nuevo.
               </li>
               <li>
-                <strong>El secreto del segundo paso, si lo activás.</strong> También va cifrado. Los
-                códigos de respaldo se guardan hasheados y se muestran una sola vez.
+                <strong>Tus llaves de acceso, si agregás alguna.</strong> Una llave de acceso
+                (passkey) es el segundo paso para entrar: la guarda tu teléfono, tu computadora o tu
+                llave física, y la huella o el PIN que usás para desbloquearla nunca sale de ese
+                aparato. De cada una guardamos la <strong>clave pública</strong>, el nombre que le
+                pusiste y el día en que la agregaste. Con eso se puede comprobar que sos vos, pero
+                no hacerse pasar por vos. Las cuentas que ya tenían el código de seis dígitos lo
+                siguen usando hasta que agreguen una llave, y ahí ese secreto se borra.
+              </li>
+              <li>
+                Los <strong>códigos de respaldo</strong> se guardan hasheados y se muestran una sola
+                vez.
               </li>
               <li>
                 <strong>Lo que elegiste sincronizar, si prendés el sync.</strong> Viene apagado. Al
                 activarlo, tu perfil, tus preferencias, tus guardadas, tus postulaciones y tus
-                fuentes propias se guardan en un solo bloque <strong>cifrado en reposo</strong> para
-                que los tengas en cualquier navegador donde entres. El servidor no lo lee, no lo usa
-                y no lo cruza con nada; apagarlo lo borra.
+                fuentes propias se guardan en un solo bloque para que los tengas en cualquier
+                navegador donde entres. No lo leemos, no lo usamos y no lo cruzamos con nada, y
+                apagarlo lo borra. <strong>Pero hoy va cifrado con una clave del servidor</strong>,
+                no con una tuya: protege contra alguien que se lleve una copia de la base, no contra
+                nosotros. Técnicamente podríamos leerlo. Pasarlo a un cifrado que solo abra tu
+                contraseña es el próximo cambio grande (punto 13), y hasta entonces preferimos
+                decírtelo a que lo supongas.
               </li>
             </ul>
             <p>
@@ -223,9 +241,10 @@
             <h2>5. Lo que sale del navegador</h2>
             <p>
               Si creaste una cuenta y <strong>prendiste el sync</strong> (punto 3), lo que elegiste
-              llevar —tu perfil, tus preferencias, tus guardadas, tus postulaciones y tus fuentes
-              propias— viaja a tu cuenta <strong>cifrado en reposo</strong>. Es opt-in, va atado a tu
-              identidad y se apaga borrándolo desde la cuenta.
+              llevar (tu perfil, tus preferencias, tus guardadas, tus postulaciones y tus fuentes
+              propias) viaja a tu cuenta cifrado con la clave del servidor, con el límite que
+              explica ese punto. Es opt-in, va atado a tu identidad y se apaga borrándolo desde la
+              cuenta.
             </p>
             <p>
               Aparte de eso, hay un interruptor en Perfil,
@@ -308,10 +327,13 @@
               eso tampoco vas a ver un cartel pidiéndote que aceptes cookies.
             </p>
             <p>
-              Hay dos cookies, las dos de sesión y las dos HttpOnly: la del panel de administración
-              (SameSite=Strict, alcanza solo a <code>/api/admin</code> y vence a las 12 horas) y la
-              de tu cuenta, si entrás (SameSite=Lax, alcanza a <code>/api</code> y vence a los 30
-              días, renovándose con el uso). Ninguna sirve para seguirte por otros sitios.
+              Todas las cookies son de sesión y HttpOnly: la de tu cuenta, si entrás (SameSite=Lax,
+              alcanza a <code>/api</code> y vence a los 30 días, renovándose con el uso); una de
+              pocos minutos mientras entrás o agregás una llave de acceso, que guarda el desafío que
+              la llave tiene que firmar y se borra al usarse; la del panel de empresa
+              (SameSite=Strict, solo <code>/api/empresas</code>) y la del panel de administración
+              (SameSite=Strict, solo <code>/api/admin</code>, 12 horas). Ninguna sirve para seguirte
+              por otros sitios.
             </p>
           </section>
 
@@ -334,9 +356,21 @@
                 WhatsApp, según lo que elijas. Nosotros no vemos con quién la compartiste.
               </li>
               <li>
-                <strong>Dónde corre todo:</strong> en un único servidor bajo nuestro control. No hay
-                proveedores procesando datos por nosotros, ni analítica, ni servicios en la nube
-                involucrados en las estadísticas.
+                <strong>El correo lo manda Resend</strong> (resend.com), un servicio de envío de
+                email con servidores en Estados Unidos. Es el único proveedor que procesa un dato
+                tuyo por nosotros, y solo cuando hay que escribirte: recibe tu dirección y el texto
+                del mensaje, que es corto y no lleva nada de tu perfil, tus postulaciones ni lo que
+                publicaste, solo el enlace para confirmar o restablecer y avisos como "cambió algo
+                en tu cuenta". Los correos van en texto plano, sin píxel de apertura ni enlaces
+                reescritos para contar clicks. Resend guarda el registro del envío 30 días y actúa
+                como encargado bajo su acuerdo de tratamiento de datos. Usamos un proveedor porque
+                un servidor propio no llega a la bandeja de entrada de Gmail ni de Outlook: sin él,
+                el correo de confirmación terminaría en spam o rebotado.
+              </li>
+              <li>
+                <strong>Dónde corre todo lo demás:</strong> en un único servidor bajo nuestro
+                control. No hay analítica de terceros ni servicios en la nube involucrados en las
+                estadísticas.
               </li>
             </ul>
           </section>
@@ -346,9 +380,9 @@
             <p>
               JobIt está pensado para quien busca su primer empleo, así que lo usan personas
               jóvenes. <strong>Buscar trabajo no pide ningún dato personal:</strong> ni nombre, ni
-              documento, ni teléfono, ni correo. Crear una cuenta para publicar pide un handle, un
-              nombre visible y una contraseña, y el email es opcional. Nada de lo que sale del
-              navegador permite saber quién es ni qué edad tiene quien está buscando.
+              documento, ni teléfono, ni correo. Crear una cuenta pide un handle, un nombre visible
+              y una contraseña; publicar un servicio pide además un correo confirmado. Nada de lo
+              que sale del navegador permite saber quién es ni qué edad tiene quien está buscando.
             </p>
           </section>
 
@@ -398,6 +432,12 @@
                 copia de respaldo.
               </li>
               <li>
+                <strong>Los enlaces que te mandamos por correo:</strong> se guarda solo su sha256,
+                sirven una vez y vencen solos (el de confirmar a las 24 horas, el de restablecer la
+                contraseña a los 30 minutos).
+              </li>
+              <li><strong>El registro de envíos en Resend:</strong> 30 días.</li>
+              <li>
                 <strong>Las filas anónimas de uso:</strong> se conservan mientras sirvan para
                 entender qué se busca y mejorar el catálogo. Al no tener identificador, no son datos
                 de una persona.
@@ -416,20 +456,82 @@
               cargar scripts de afuera. Ni el panel ni las cuentas guardan contraseñas en texto
               plano: las dos guardan un hash argon2id y, de cada sesión abierta, solo el sha256 del
               token, así que una copia de la base no alcanza para hacerse pasar por nadie. El email
-              y el secreto del segundo paso van cifrados en reposo.
+              va cifrado en reposo, y de las llaves de acceso solo hay claves públicas, que no
+              sirven para entrar. Los límites de pedidos por minuto cuentan por la dirección que ve
+              nuestro propio servidor, no por lo que diga el pedido, así que no se esquivan
+              inventando cabeceras.
+            </p>
+            <p>
+              Hay una cosa que el cifrado no arregla y que conviene decir claro:
+              <strong>quien controla el servidor que te manda el código controla el código</strong>.
+              Por eso el punto siguiente.
+            </p>
+          </section>
+
+          <section id="codigo">
+            <h2>13. El código que te servimos</h2>
+            <p>
+              Todo lo que esta política promete sobre tu navegador (que el CV no sale, que el
+              buscador no manda lo que escribís, y el día de mañana que tus datos se cifran con una
+              clave que solo vos tenés) lo cumple el JavaScript que te manda nuestro servidor. Si
+              ese JavaScript fuera otro, podría leer cualquier cosa antes de cifrarla. Ningún
+              cifrado lo impide: es el límite honesto de cualquier servicio web, no solo de este.
+            </p>
+            <p>Lo que sí podemos hacer es que se pueda comprobar, y lo hacemos así:</p>
+            <ul>
+              <li>
+                <strong>El código es público</strong> en
+                <a href="https://github.com/faku-org/jobit">github.com/faku-org/jobit</a>.
+              </li>
+              <li>
+                <strong>El build es reproducible:</strong> el mismo commit da los mismos bytes en
+                cualquier máquina con las mismas versiones de las herramientas.
+              </li>
+              <li>
+                <strong>El sitio publica qué commit sirve</strong> en
+                <a href="/version.json">/version.json</a>, con el sha256 de cada archivo.
+              </li>
+              <li>
+                <strong>Cualquiera puede compararlo:</strong> clonar el repositorio, pararse en ese
+                commit y correr <code>bun run verificar</code>, que buildea y compara byte a byte
+                con lo que sirve el sitio. Una tarea pública del repositorio hace lo mismo todos los
+                días desde una máquina que no controlamos. Los pasos están en
+                <a href="/verificar">/verificar</a>.
+              </li>
+            </ul>
+            <p>
+              Esto no te protege en el momento en que abrís la página, y no lo vamos a vender como
+              si lo hiciera: te sirve para que un cambio a escondidas deje rastro público y alguien
+              lo pueda señalar. Es la diferencia entre "confiá en nosotros" y "podés revisarlo".
             </p>
           </section>
 
           <section id="cambios">
-            <h2>13. Cambios</h2>
+            <h2>14. Cambios</h2>
             <p>
-              Si esta política cambia, la versión nueva queda publicada acá con su fecha arriba. Los
-              cambios que afecten qué sale del navegador se avisan además dentro de la app.
+              Esta política va a cambiar a medida que JobIt crezca. Lo que no cambia es el criterio:
+              guardar lo mínimo, que tus datos los vean vos y con quien elijas compartirlos, y
+              decirte los límites en vez de dejarlos implícitos.
+            </p>
+            <p>
+              Cada versión queda publicada acá con su fecha arriba, y lo que cambió, en el
+              <a href="https://github.com/faku-org/jobit/blob/main/CHANGELOG.md"
+                >registro de cambios</a
+              >
+              del repositorio, en la sección "Datos y privacidad", y en el historial de este mismo
+              archivo. Los cambios que afecten qué sale del navegador se avisan además dentro de la
+              app, antes de que empiecen a correr.
+            </p>
+            <p>
+              <strong>El 30 de setiembre de 2026</strong> cambió: el correo pasa a ser necesario (y
+              confirmado) para publicar un servicio, y se manda con Resend (punto 8); el segundo
+              paso pasa a ser una llave de acceso en lugar de un código; el sync dice cómo está
+              cifrado de verdad (punto 3); y se agrega cómo verificar el código (punto 13).
             </p>
           </section>
 
           <section id="contacto">
-            <h2>14. Contacto</h2>
+            <h2>15. Contacto</h2>
             <p>
               <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>. Escribinos también si
               encontrás algo en el sitio que no coincida con lo que dice este documento.

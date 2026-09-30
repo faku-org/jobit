@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es-UY">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Verificar el código · JobIt</title>
+    <meta
+      name="description"
+      content="Qué commit sirve JobIt y cómo comprobar, sin confiar en nosotros, que el JavaScript que corre en tu navegador es el código público de ese commit."
+    />
+    <link rel="canonical" href="https://jobs.wefaber.net/verificar" />
+    <meta name="robots" content="index, follow" />
+
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e3f2fd" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a1220" />
+
+    <script>
+      /* Mismo criterio que la app: el tema se pinta antes del primer render. */
+      try {
+        const stored = JSON.parse(localStorage.getItem("jobit.prefs.v1") || "{}");
+        const theme =
+          stored.theme === "light" || stored.theme === "dark"
+            ? stored.theme
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
+
+    <link rel="stylesheet" href="/src/legal.css" />
+  </head>
+  <body>
+    <header class="legal-island">
+      <div>
+        <a class="legal-brand" href="/">
+          <img alt="" aria-hidden="true" src="/logo.png" />
+          <div>
+            <strong>JobIt</strong>
+            <span>Verificar el código</span>
+          </div>
+        </a>
+        <a class="legal-back" href="/">Volver al buscador</a>
+      </div>
+    </header>
+
+    <main class="legal">
+      <div class="legal-head">
+        <h1>¿Es este el código publicado?</h1>
+        <p>Lo que corre en tu navegador, contra lo que cualquiera puede leer en el repositorio.</p>
+      </div>
+
+      <div class="legal-doc">
+        <div class="legal-lead">
+          <p>
+            Lo que promete la <a href="/privacidad">política de privacidad</a> sobre tu navegador lo
+            cumple el JavaScript que te mandamos. Esta página dice qué commit es ese JavaScript y
+            cómo comprobarlo <strong>sin tener que creernos</strong>.
+          </p>
+        </div>
+
+        <section id="ahora">
+          <h2>Lo que se está sirviendo ahora</h2>
+          <ul data-version>
+            <li>Commit: <code data-field="commit">cargando…</code></li>
+            <li>Fecha del commit: <span data-field="date">…</span></li>
+            <li>Hash del build: <code data-field="build">…</code></li>
+            <li>Archivos: <span data-field="count">…</span></li>
+          </ul>
+          <p>
+            El detalle completo, con el sha256 de cada archivo, está en
+            <a href="/version.json">/version.json</a>.
+          </p>
+          <p>
+            <button class="legal-action" data-check type="button">
+              Comprobar en este navegador
+            </button>
+          </p>
+          <p aria-live="polite" data-result></p>
+          <div class="legal-note">
+            <p>
+              <strong>Esta comprobación sola no alcanza, y es a propósito que lo decimos.</strong>
+              Esta página también la manda nuestro servidor: uno que quisiera mentir podría mentir
+              acá. Lo que prueba es que el sitio sirve lo que declara. Que lo que declara sea el
+              código público lo prueba lo de abajo, que corre en una máquina que no controlamos.
+            </p>
+          </div>
+        </section>
+
+        <section id="sin-confiar">
+          <h2>Comprobarlo sin confiar en nosotros</h2>
+          <p>Con <a href="https://bun.sh">Bun</a> y git, en tu máquina:</p>
+          <pre><code>git clone https://github.com/faku-org/jobit
+cd jobit
+git checkout &lt;el commit de arriba&gt;
+bun install --frozen-lockfile
+bun run verificar</code></pre>
+          <p>
+            Baja <code>/version.json</code>, comprueba que cada archivo que sirve el sitio es el que
+            dice, buildea ese commit en tu máquina y compara byte a byte. Si coincide, el código que
+            corre en tu navegador es el que se puede leer en el repositorio. Si no, lo dice archivo
+            por archivo.
+          </p>
+          <p>
+            Y si no querés instalar nada: una tarea pública del repositorio (<a
+              href="https://github.com/faku-org/jobit/actions/workflows/verificar.yml"
+              >Verificar el sitio</a
+            >) corre lo mismo todos los días en una máquina de GitHub, y el resultado de cada
+            corrida queda a la vista de cualquiera.
+          </p>
+        </section>
+
+        <section id="limites">
+          <h2>Lo que esto no hace</h2>
+          <ul>
+            <li>
+              <strong>No te protege en el momento.</strong> Si un día servimos otra cosa, esto no lo
+              frena: lo deja registrado y cualquiera lo puede señalar. Es disuasión con rastro
+              público, no un candado.
+            </li>
+            <li>
+              <strong>No mira el servidor.</strong> Lo que hace la API con lo que le llega no se
+              puede verificar desde afuera. Por eso lo sensible se diseña para que no le llegue en
+              claro, y la política dice dónde todavía le llega.
+            </li>
+            <li>
+              <strong>Puede fallar sin que nadie mienta.</strong> Con otra versión de Bun o de las
+              dependencias, el build puede salir distinto. La guía de
+              <a href="https://github.com/faku-org/jobit/blob/main/docs/verificar.md"
+                >docs/verificar.md</a
+              >
+              explica cómo distinguir una cosa de la otra.
+            </li>
+          </ul>
+        </section>
+
+        <section id="cambios">
+          <h2>Qué cambió</h2>
+          <p>
+            Cada versión anota lo que cambió en el
+            <a href="https://github.com/faku-org/jobit/blob/main/CHANGELOG.md"
+              >registro de cambios</a
+            >. Lo que toca a tus datos va en su propia sección, "Datos y privacidad", para que no se
+            pierda entre lo demás. Si algo de lo que corre no coincide con lo que dice, escribinos a
+            <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>: es exactamente lo que queremos
+            saber.
+          </p>
+        </section>
+
+        <div class="legal-foot">
+          <a href="/">JobIt</a>
+          <a href="/privacidad">Privacidad</a>
+          <a href="https://github.com/faku-org/jobit">Código</a>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/src/verificar.ts"></script>
+  </body>
+</html>

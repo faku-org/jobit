@@ -21,7 +21,7 @@ const PROXY = Object.fromEntries(
 
 /** Rutas que en producción nginx sirve desde su propio `<archivo>.html` en vez
  * de dejar que el catch-all devuelva la app. */
-const PAGES = new Set(["/terminos", "/privacidad", "/empresas", "/admin"]);
+const PAGES = new Set(["/terminos", "/privacidad", "/empresas", "/admin", "/verificar"]);
 
 /** Misma lista que deploy/nginx.conf location = /. curl manda Accept
  * estrella, no text/plain, así que el User-Agent es lo que decide. */
@@ -106,6 +106,7 @@ export default defineConfig({
         empresas: resolve(import.meta.dirname, "empresas.html"),
         terminos: resolve(import.meta.dirname, "terminos.html"),
         privacidad: resolve(import.meta.dirname, "privacidad.html"),
+        verificar: resolve(import.meta.dirname, "verificar.html"),
       },
     },
   },
