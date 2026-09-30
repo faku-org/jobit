@@ -6,7 +6,7 @@ import { useScrolledPast } from "../../hooks/useScrolledPast.ts";
 import type { CustomFeed, FeedResult } from "../../lib/feed.ts";
 import { islandTransition } from "../../lib/motion.ts";
 import { type Profile, profileCount } from "../../lib/profile.ts";
-import type { SessionUser } from "../../lib/session.ts";
+import { type SessionUser, mailLanding } from "../../lib/session.ts";
 import type { Usage } from "../../lib/stats.ts";
 import {
   type Facet,
@@ -81,8 +81,11 @@ export function DynamicIsland({
   onEraseEverything,
   onImportCv,
 }: DynamicIslandProps) {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("search");
+  /** Llegar desde un enlace de correo (verificar o cambiar la contraseña)
+   * abre la isla directo en la cuenta, que es donde se termina el trámite. */
+  const landing = mailLanding();
+  const [open, setOpen] = useState(landing !== null);
+  const [tab, setTab] = useState<Tab>(landing ? "account" : "search");
   const condensed = useScrolledPast(24);
 
   /**
@@ -227,6 +230,7 @@ export function DynamicIsland({
                   />
                 ) : (
                   <AccountSection
+                    landing={landing}
                     ready={session.ready}
                     sync={sync}
                     user={session.user}

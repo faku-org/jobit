@@ -1,18 +1,29 @@
 import {
+  Fingerprint,
   KeyRound,
   Lock,
   LogOut,
   Mail,
+  MailCheck,
   ShieldCheck,
   ShieldOff,
   TriangleAlert,
   UserRound,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AccountSync } from "../../hooks/useAccountSync.ts";
 import { formatDay } from "../../lib/format.ts";
-import { type SessionUser, currentUser, logout } from "../../lib/session.ts";
-import { AccountDialog, type AccountAction } from "./AccountDialog.tsx";
+import {
+  type MailLanding,
+  type Passkey,
+  type SessionUser,
+  currentUser,
+  listPasskeys,
+  logout,
+  resendVerification,
+} from "../../lib/session.ts";
+import { AccountDialog, type AccountAction, type AccountContext } from "./AccountDialog.tsx";
 import { accountDangerClass, accountPrimaryClass, accountQuietClass } from "./controls.ts";
 
 interface AccountSectionProps {
@@ -24,7 +35,14 @@ interface AccountSectionProps {
   onUser: (user: SessionUser | null) => void;
   /** El estado del sync de la cuenta, manejado arriba con el resto del panel. */
   sync: AccountSync;
+  /** Si se llegó desde un enlace de correo, qué traía. */
+  landing?: MailLanding | null;
 }
+
+const LANDING_NOTE: Record<"verified" | "expired", string> = {
+  verified: "Listo: tu correo quedó confirmado.",
+  expired: "Ese enlace ya venció o se usó. Pedí uno nuevo desde tu cuenta.",
+};
 
 /**
  * La cuenta de quien publica. Es lo único de la app que vive en el servidor,
@@ -32,8 +50,22 @@ interface AccountSectionProps {
  * esto no. Cada trámite (alta, ingreso, contraseña, 2FA, borrado) abre el mismo
  * modal, con una pantalla distinta.
  */
-export function AccountSection({ user, ready, onUser, sync }: AccountSectionProps) {
-  const [action, setAction] = useState<AccountAction | null>(null);
+export function AccountSection({ user, ready, onUser, sync, landing }: AccountSectionProps) {
+  /** Un enlace de reset abre directo la pantalla de contraseña nueva. */
+  const [action, setAction] = useState<AccountAction | null>(
+    landing?.kind === "reset" ? "reset" : null,
+  );
+  const [context, setContext] = useState<AccountContext>(
+    landing?.kind === "reset" ? { token: landing.token } : {},
+  );
+  const [note, setNote] = useState(
+    landing && landing.kind !== "reset" ? LANDING_NOTE[landing.kind] : "",
+  );
+
+  const open = (next: AccountAction, extra: AccountContext = {}): void => {
+    setContext(extra);
+    setAction(next);
+  };
 
   /** Vuelve a leer la cuenta después de un cambio, para no adivinar el estado. */
   const refresh = async (): Promise<void> => {
@@ -44,27 +76,56 @@ export function AccountSection({ user, ready, onUser, sync }: AccountSectionProp
     }
   };
 
+  /** Recién verificado: la sesión que ya estaba cargada todavía dice que no.
+   * El ref la relee una sola vez aunque StrictMode monte el efecto dos. */
+  const reread = useRef(false);
+  useEffect(() => {
+    if (reread.current || landing?.kind !== "verified") return;
+    reread.current = true;
+    currentUser()
+      .then(onUser)
+      .catch(() => {
+        /* Si la API no contesta, el aviso igual dice que quedó confirmado. */
+      });
+  }, [landing, onUser]);
+
   if (!ready) {
     return <p className="px-4 text-[11px] text-onpanel-faint">Cargando tu cuenta…</p>;
   }
 
   return (
     <div className="space-y-4 px-4 pt-1 pb-4">
+      {note ? (
+        <div className="flex items-start gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
+          <MailCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
+          <p className="flex-1 text-[11px] leading-relaxed text-onpanel/80">{note}</p>
+          <button
+            aria-label="Cerrar aviso"
+            className="text-onpanel/50 transition-colors hover:text-onpanel"
+            type="button"
+            onClick={() => setNote("")}
+          >
+            <X aria-hidden className="size-3.5" />
+          </button>
+        </div>
+      ) : null}
+
       {user ? (
         <SignedIn
           user={user}
           sync={sync}
-          onAction={setAction}
+          onAction={open}
           onLogout={() => void logout().then(() => onUser(null))}
         />
       ) : (
-        <SignedOut onAction={setAction} />
+        <SignedOut onAction={open} />
       )}
 
       {action ? (
         <AccountDialog
           key={action}
           action={action}
+          context={context}
           user={user}
           onClose={() => setAction(null)}
           onUser={onUser}
@@ -93,8 +154,9 @@ function SignedOut({ onAction }: { onAction: (action: AccountAction) => void }) 
           Para publicar
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-onpanel/70">
-          Publicar servicios va a pedir una cuenta: un handle, tu nombre visible y una contraseña.
-          El email es opcional y solo sirve para recuperarla.
+          Publicar servicios pide una cuenta: un handle, tu nombre visible y una contraseña. Para
+          mandar un servicio a revisión hace falta además un correo confirmado, que es por donde te
+          llegan los avisos y la recuperación.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -115,17 +177,19 @@ function SignedOut({ onAction }: { onAction: (action: AccountAction) => void }) 
           ¿No podés entrar?
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-onpanel/70">
-          Si perdiste la contraseña se entra con un código de respaldo. Sin email cargado no hay
-          otra forma de recuperar la cuenta.
+          Con un correo confirmado te mandamos un enlace para cambiar la contraseña. Sin correo, se
+          entra con un código de respaldo.
         </p>
-        <button
-          className={`${accountQuietClass} mt-2`}
-          type="button"
-          onClick={() => onAction("recover")}
-        >
-          <KeyRound aria-hidden className="size-4 text-sky" />
-          Perdí el acceso
-        </button>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button className={accountQuietClass} type="button" onClick={() => onAction("forgot")}>
+            <Mail aria-hidden className="size-4 text-sky" />
+            Olvidé mi contraseña
+          </button>
+          <button className={accountQuietClass} type="button" onClick={() => onAction("recover")}>
+            <KeyRound aria-hidden className="size-4 text-sky" />
+            Tengo un código de respaldo
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -140,9 +204,41 @@ function SignedIn({
 }: {
   user: SessionUser;
   sync: AccountSync;
-  onAction: (action: AccountAction) => void;
+  onAction: (action: AccountAction, context?: AccountContext) => void;
   onLogout: () => void;
 }) {
+  const [keys, setKeys] = useState<Passkey[]>([]);
+  const [resent, setResent] = useState("");
+
+  /** La lista se relee cuando cambia cuántas hay: después de agregar o sacar. */
+  useEffect(() => {
+    if (user.passkeys === 0) {
+      setKeys([]);
+      return;
+    }
+    void listPasskeys().then((result) => {
+      if (result.ok) setKeys(result.value.passkeys);
+    });
+  }, [user.passkeys]);
+
+  const resend = async (): Promise<void> => {
+    const result = await resendVerification();
+    setResent(
+      !result.ok
+        ? result.error
+        : result.value.verified
+          ? "Ya estaba confirmado."
+          : "Te mandamos el enlace. Si no llega, fijate en spam o esperá diez minutos para pedir otro.",
+    );
+  };
+
+  const secondStep =
+    user.passkeys > 0
+      ? "Llave de acceso"
+      : user.totp_enabled
+        ? "Códigos (de salida)"
+        : "Sin segundo paso";
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
@@ -155,10 +251,12 @@ function SignedIn({
         </div>
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-            user.totp_enabled ? "bg-sky text-ink" : "bg-onpanel-wash text-onpanel-faint"
+            user.passkeys > 0 || user.totp_enabled
+              ? "bg-sky text-ink"
+              : "bg-onpanel-wash text-onpanel-faint"
           }`}
         >
-          {user.totp_enabled ? "2FA activo" : "Sin 2FA"}
+          {user.passkeys > 0 || user.totp_enabled ? "2FA activo" : "Sin 2FA"}
         </span>
       </div>
 
@@ -169,15 +267,90 @@ function SignedIn({
         <dl className="mt-2 divide-y divide-onpanel/10 overflow-hidden rounded-xl border border-onpanel/10">
           <Row label="Handle" value={`@${user.handle}`} />
           <Row label="Nombre visible" value={user.display_name} />
-          <Row label="Email de recuperación" value={user.has_email ? "Cargado" : "Sin cargar"} />
-          <Row label="Segundo paso (TOTP)" value={user.totp_enabled ? "Activado" : "Apagado"} />
+          <Row
+            label="Correo"
+            value={
+              !user.has_email ? "Sin cargar" : user.email_verified ? "Confirmado" : "Sin confirmar"
+            }
+          />
+          <Row label="Segundo paso" value={secondStep} />
           <Row label="Códigos de respaldo" value={`${user.recovery_codes_left} sin usar`} />
           <Row label="Creada" value={formatDay(user.created_at)} />
         </dl>
         <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
           Nada de IP, user agent ni historial de inicios: las filas se estampan con el día y nunca
-          con la hora. El email y la clave del segundo paso van cifrados.
+          con la hora. El correo va cifrado. De las llaves se guarda solo la parte pública: con una
+          copia de la base no se entra a ninguna cuenta.
         </p>
+      </div>
+
+      {user.has_email && !user.email_verified ? (
+        <div className="rounded-xl border border-sky/30 px-3 py-2.5">
+          <p className="text-[11px] leading-relaxed text-onpanel/80">
+            Tu correo todavía no está confirmado. Hasta que lo esté no te llegan avisos ni podés
+            mandar un servicio a revisión.
+          </p>
+          <button
+            className="mt-1.5 text-[11px] font-medium text-sky underline underline-offset-2 transition-colors hover:text-onpanel"
+            type="button"
+            onClick={() => void resend()}
+          >
+            Mandarme el enlace de nuevo
+          </button>
+          {resent ? <p className="mt-1 text-[11px] text-onpanel/70">{resent}</p> : null}
+        </div>
+      ) : null}
+
+      {user.totp_enabled && user.passkeys === 0 ? (
+        <div className="rounded-xl border border-sky/30 px-3 py-2.5">
+          <p className="text-[11px] leading-relaxed text-onpanel/80">
+            Tu segundo paso usa códigos de seis dígitos, que ya no se activan: para verificarlos el
+            servidor tiene que guardar una clave con la que podría generarlos. Agregá una llave de
+            acceso y esa clave se borra sola.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="border-t border-onpanel/10 pt-3">
+        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+          Llaves de acceso
+        </p>
+        {keys.length > 0 ? (
+          <ul className="mt-2 divide-y divide-onpanel/10 overflow-hidden rounded-xl border border-onpanel/10">
+            {keys.map((key) => (
+              <li key={key.id} className="flex items-center gap-2.5 px-3 py-2">
+                <Fingerprint aria-hidden className="size-3.5 shrink-0 text-sky" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-medium text-onpanel">{key.name}</p>
+                  <p className="text-[10px] text-onpanel-faint">
+                    desde {formatDay(key.created_on)}
+                  </p>
+                </div>
+                <button
+                  className="text-[11px] text-onpanel/60 underline underline-offset-2 transition-colors hover:text-red-400"
+                  type="button"
+                  onClick={() =>
+                    onAction("passkey-remove", { passkeyId: key.id, passkeyName: key.name })
+                  }
+                >
+                  Sacar
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1 text-[11px] leading-relaxed text-onpanel/70">
+            La huella, la cara o el PIN de tu dispositivo como segundo paso, además de la
+            contraseña.
+          </p>
+        )}
+        <div className="mt-2">
+          <ActionButton
+            icon={Fingerprint}
+            label={keys.length > 0 ? "Agregar otra llave" : "Agregar una llave de acceso"}
+            onClick={() => onAction("passkey-add")}
+          />
+        </div>
       </div>
 
       <div className="border-t border-onpanel/10 pt-3">
@@ -192,22 +365,16 @@ function SignedIn({
           />
           <ActionButton
             icon={Mail}
-            label={user.has_email ? "Cambiar email" : "Cargar email"}
+            label={user.has_email ? "Cambiar correo" : "Cargar correo"}
             onClick={() => onAction("email")}
           />
           {user.totp_enabled ? (
             <ActionButton
               icon={ShieldOff}
-              label="Desactivar segundo paso"
+              label="Apagar los códigos"
               onClick={() => onAction("totp-off")}
             />
-          ) : (
-            <ActionButton
-              icon={ShieldCheck}
-              label="Activar segundo paso"
-              onClick={() => onAction("totp-on")}
-            />
-          )}
+          ) : null}
           <ActionButton icon={LogOut} label="Cerrar sesión" onClick={onLogout} />
         </div>
       </div>
@@ -227,8 +394,8 @@ function SignedIn({
           <span className="text-[11px] leading-relaxed text-onpanel/75">
             Llevar mis datos entre navegadores. Guarda en tu cuenta lo que marcaste, tus
             postulaciones, tus preferencias y tu perfil, para tenerlos en cualquier navegador donde
-            entres. En el servidor va{" "}
-            <strong className="font-medium text-onpanel">cifrado</strong>, y apagarlo lo borra.
+            entres. En el servidor va <strong className="font-medium text-onpanel">cifrado</strong>,
+            y apagarlo lo borra.
           </span>
         </label>
         {sync.error ? (

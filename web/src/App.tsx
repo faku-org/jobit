@@ -33,6 +33,7 @@ import { isOnboarded } from "./lib/profile.ts";
 import { pickHighlights } from "./lib/match.ts";
 import { toRanking } from "./lib/ranking.ts";
 import { readViewState } from "./lib/url.ts";
+import { mailLanding } from "./lib/session.ts";
 import {
   EMPTY_FILTERS,
   type Filters,
@@ -112,7 +113,12 @@ export default function App() {
    * at all: the list used to load behind the questions and have them dropped
    * on top, which read as an interruption rather than a welcome.
    */
-  const showIntro = !isOnboarded(prefs.profile) || replayingIntro;
+  /** Quien llega desde un enlace de correo viene a terminar un trámite de su
+   * cuenta, muchas veces en un navegador donde nunca usó JobIt (el correo en el
+   * teléfono). La bienvenida taparía justo el aviso que vino a ver: se deja
+   * para la próxima visita. */
+  const fromMail = mailLanding() !== null;
+  const showIntro = (!isOnboarded(prefs.profile) && !fromMail) || replayingIntro;
   useTheme(prefs.theme);
   useJobLink(openJob, setOpenJob);
   useViewLink(
@@ -423,24 +429,24 @@ export default function App() {
         ) : (
           <>
             <div className="mt-3">
-                <FilterBar
-                  categories={meta?.categories ?? []}
-                  departments={meta?.departments ?? []}
-                  canReviewDiscarded={canReviewDiscarded}
-                  discardedCount={prefs.dismissed.size}
-                  filters={filters}
-                  hasPreferences={hasPreferences}
-                  isDirty={isDirty}
-                  matchCount={similarOnly ? total : matches.size}
-                  noExperienceCount={meta?.no_experience_count ?? 0}
-                  onlySimilar={similarOnly}
-                  reviewingDiscarded={reviewing}
-                  showCategory={!isSavedView}
-                  onChange={setFilters}
-                  onReset={reset}
-                  onToggleReviewDiscarded={() => setReviewingDiscarded((current) => !current)}
-                  onToggleSimilar={() => setOnlySimilar((current) => !current)}
-                />
+              <FilterBar
+                categories={meta?.categories ?? []}
+                departments={meta?.departments ?? []}
+                canReviewDiscarded={canReviewDiscarded}
+                discardedCount={prefs.dismissed.size}
+                filters={filters}
+                hasPreferences={hasPreferences}
+                isDirty={isDirty}
+                matchCount={similarOnly ? total : matches.size}
+                noExperienceCount={meta?.no_experience_count ?? 0}
+                onlySimilar={similarOnly}
+                reviewingDiscarded={reviewing}
+                showCategory={!isSavedView}
+                onChange={setFilters}
+                onReset={reset}
+                onToggleReviewDiscarded={() => setReviewingDiscarded((current) => !current)}
+                onToggleSimilar={() => setOnlySimilar((current) => !current)}
+              />
             </div>
 
             {isSavedView && savedGroups.length > 1 ? (

@@ -1,20 +1,29 @@
+import {
+  type PublicKeyCredentialCreationOptionsJSON,
+  type PublicKeyCredentialRequestOptionsJSON,
+  startAuthentication,
+  startRegistration,
+} from "@simplewebauthn/browser";
 import { Copy, Download, X } from "lucide-react";
 import { m } from "motion/react";
-import { type FormEvent, Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { islandTransition } from "../../lib/motion.ts";
 import { iconButtonClass } from "../../lib/styles.ts";
 import {
   type SessionUser,
-  type TotpSetup,
-  confirmTotp,
+  addPasskey,
   deleteMe,
   disableTotp,
   login,
+  passkeyOptions,
   patchMe,
   recover,
   register,
-  startTotp,
+  removePasskey,
+  requestReset,
+  resetPassword,
+  submitPasskey,
   submitTotp,
 } from "../../lib/session.ts";
 import {
@@ -24,9 +33,12 @@ import {
   accountQuietClass,
 } from "./controls.ts";
 
-/** El generador de QR pesa y solo hace falta al activar el segundo paso: baja
- * en su propio chunk, no con la app entera. */
-const TotpQr = lazy(() => import("./TotpQr.tsx").then((module) => ({ default: module.TotpQr })));
+/** Lo que tira el navegador cuando la persona cancela la llave o se le pasa el
+ * tiempo: no es un error de la cuenta y no hay que mostrarlo como tal. */
+const passkeyProblem = (cause: unknown): string =>
+  cause instanceof Error && cause.name === "NotAllowedError"
+    ? "Se canceló o se venció el tiempo. Probá de nuevo."
+    : "Este navegador no pudo usar la llave. Probá con otro dispositivo o con un código de respaldo.";
 
 /**
  * Cada trámite de la cuenta es una pantalla del mismo modal. Nada de esto se
@@ -37,16 +49,30 @@ export type AccountAction =
   | "register"
   | "login"
   | "recover"
+  | "forgot"
+  | "reset"
   | "password"
   | "email"
-  | "totp-on"
+  | "passkey-add"
+  | "passkey-remove"
   | "totp-off"
   | "delete";
 
-type View = AccountAction | "totp" | "codes";
+/** `passkey` es el segundo paso del login; `sent`, la respuesta a un pedido de
+ * reset, que dice lo mismo exista o no la cuenta. */
+type View = AccountAction | "totp" | "passkey" | "codes" | "sent";
+
+/** Lo que algunas pantallas necesitan traer de afuera: el token de un enlace
+ * de reset, o qué llave se quiere sacar. */
+export interface AccountContext {
+  token?: string;
+  passkeyId?: string;
+  passkeyName?: string;
+}
 
 interface AccountDialogProps {
   action: AccountAction;
+  context?: AccountContext;
   user: SessionUser | null;
   onClose: () => void;
   /** La sesión cambió (alta, ingreso o borrado): el panel se entera acá. */
@@ -58,12 +84,28 @@ interface AccountDialogProps {
 const HEADING: Record<View, { title: string; hint: string }> = {
   register: {
     title: "Crear cuenta",
-    hint: "Se guarda lo mínimo: un handle, tu nombre visible y una contraseña.",
+    hint: "Se guarda lo mínimo: un handle, tu nombre visible, una contraseña y, si querés, un correo.",
   },
   login: { title: "Entrar", hint: "Con tu handle y tu contraseña." },
   totp: {
     title: "Segundo paso",
     hint: "Poné el código de seis dígitos de tu app de autenticación.",
+  },
+  passkey: {
+    title: "Segundo paso",
+    hint: "Tu cuenta tiene una llave de acceso: usala para terminar de entrar.",
+  },
+  forgot: {
+    title: "Olvidé mi contraseña",
+    hint: "Si tu cuenta tiene un correo verificado, te mandamos un enlace para cambiarla.",
+  },
+  sent: {
+    title: "Revisá tu correo",
+    hint: "El enlace vence en 30 minutos y sirve una sola vez.",
+  },
+  reset: {
+    title: "Contraseña nueva",
+    hint: "Al guardarla se cierran todas las sesiones abiertas de la cuenta.",
   },
   recover: {
     title: "Recuperar el acceso",
@@ -75,16 +117,20 @@ const HEADING: Record<View, { title: string; hint: string }> = {
   },
   password: { title: "Cambiar contraseña", hint: "Para cambiarla hace falta la actual." },
   email: {
-    title: "Email de recuperación",
-    hint: "Solo sirve para recuperar la cuenta. Va cifrado en el servidor.",
+    title: "Tu correo",
+    hint: "Para recuperar la cuenta y para los avisos. Va cifrado en el servidor, y los correos de JobIt nunca dicen qué pasó: solo que hay algo.",
   },
-  "totp-on": {
-    title: "Activar el segundo paso",
-    hint: "Escaneá el código con tu app de autenticación y confirmá con el código que te muestre.",
+  "passkey-add": {
+    title: "Agregar una llave de acceso",
+    hint: "La huella, la cara o el PIN de tu dispositivo, o una llave física. JobIt guarda solo la parte pública: con una copia de la base no se entra a ninguna cuenta.",
+  },
+  "passkey-remove": {
+    title: "Sacar una llave",
+    hint: "Pide tu contraseña, para que nadie frente a una sesión abierta pueda desarmar el segundo paso.",
   },
   "totp-off": {
-    title: "Desactivar el segundo paso",
-    hint: "Pide tu contraseña. Después vas a poder entrar solo con ella.",
+    title: "Apagar los códigos de seis dígitos",
+    hint: "Pide tu contraseña. Mejor todavía: agregá una llave de acceso, que los reemplaza y los apaga sola.",
   },
   delete: {
     title: "Borrar mi cuenta",
@@ -96,12 +142,17 @@ const SUBMIT_LABEL: Record<View, string> = {
   register: "Crear cuenta",
   login: "Entrar",
   totp: "Confirmar",
+  passkey: "Usar mi llave",
   recover: "Recuperar",
+  forgot: "Mandar el enlace",
+  sent: "Listo",
+  reset: "Guardar",
   codes: "Ya los guardé",
   password: "Guardar",
   email: "Guardar",
-  "totp-on": "Activar",
-  "totp-off": "Desactivar",
+  "passkey-add": "Crear la llave",
+  "passkey-remove": "Sacar la llave",
+  "totp-off": "Apagar",
   delete: "Borrar todo",
 };
 
@@ -125,13 +176,28 @@ function downloadCodes(codes: string[], handle: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function AccountDialog({ action, user, onClose, onUser, onRefresh }: AccountDialogProps) {
+export function AccountDialog({
+  action,
+  context,
+  user,
+  onClose,
+  onUser,
+  onRefresh,
+}: AccountDialogProps) {
   const [view, setView] = useState<View>(action);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [codes, setCodes] = useState<string[]>([]);
-  const [setup, setSetup] = useState<TotpSetup | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [keyName, setKeyName] = useState("");
+  /** Las opciones de la llave, pedidas antes del clic: ver el efecto de abajo. */
+  const [loginOptions, setLoginOptions] = useState<PublicKeyCredentialRequestOptionsJSON | null>(
+    null,
+  );
+  const [createOptions, setCreateOptions] = useState<PublicKeyCredentialCreationOptionsJSON | null>(
+    null,
+  );
 
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -144,17 +210,9 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
   /** El modal juega su salida y recién ahí pide que lo desmonten. */
   const [closing, setClosing] = useState(false);
   const close = useCallback(() => setClosing(true), []);
-  /** El QR ampliado: el mismo Escape que lo cierra no debe cerrar el modal. */
-  const [qrZoom, setQrZoom] = useState(false);
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (qrZoom) {
-        setQrZoom(false);
-        return;
-      }
-      close();
+      if (event.key === "Escape") close();
     };
 
     const previous = document.body.style.overflow;
@@ -165,22 +223,26 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [close, qrZoom]);
+  }, [close]);
 
-  /** La clave del segundo paso se pide al abrir. El ref evita el doble pedido
-   * con el que StrictMode monta los efectos en desarrollo. */
+  /**
+   * Las opciones para crear una llave se piden al abrir la pantalla, no al
+   * tocar el botón. Safari solo deja usar la llave pegada a un clic, y un
+   * fetch en el medio le hace perder ese clic: el botón tiene que llamar a la
+   * llave directo. El ref evita el doble pedido de StrictMode en desarrollo.
+   */
   const started = useRef(false);
   useEffect(() => {
-    if (view !== "totp-on" || started.current) return;
+    if (view !== "passkey-add" || started.current) return;
     started.current = true;
     setBusy(true);
-    startTotp()
+    passkeyOptions()
       .then((result) => {
         if (!result.ok) {
           setError(result.error);
           return;
         }
-        setSetup(result.value);
+        setCreateOptions(result.value);
       })
       .finally(() => setBusy(false));
   }, [view]);
@@ -217,12 +279,72 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
         case "login": {
           const result = await login(handle, password);
           if (!result.ok) return result.error;
+          if (result.value.status === "passkey_required") {
+            setLoginOptions(result.value.options);
+            setView("passkey");
+            return;
+          }
           if (result.value.status === "totp_required") {
             setCode("");
             setView("totp");
             return;
           }
           onUser(result.value.user);
+          close();
+          return;
+        }
+        case "passkey": {
+          if (!loginOptions) return "El segundo paso venció, volvé a entrar.";
+          let response;
+          try {
+            response = await startAuthentication({ optionsJSON: loginOptions });
+          } catch (cause) {
+            return passkeyProblem(cause);
+          }
+          const result = await submitPasskey(response);
+          if (!result.ok) return result.error;
+          onUser(result.value.user);
+          close();
+          return;
+        }
+        case "forgot": {
+          const result = await requestReset(handle);
+          if (!result.ok) return result.error;
+          setView("sent");
+          return;
+        }
+        case "sent":
+          close();
+          return;
+        case "reset": {
+          if (!context?.token) return "Ese enlace no trae un token. Pedí uno nuevo.";
+          const result = await resetPassword(context.token, password);
+          if (!result.ok) return result.error;
+          setPassword("");
+          setRepeat("");
+          setNotice("Listo. Entrá con la contraseña nueva.");
+          setView("login");
+          return;
+        }
+        case "passkey-add": {
+          if (!createOptions) return "La llave todavía no está lista.";
+          let response;
+          try {
+            response = await startRegistration({ optionsJSON: createOptions });
+          } catch (cause) {
+            return passkeyProblem(cause);
+          }
+          const result = await addPasskey(response, keyName);
+          if (!result.ok) return result.error;
+          await onRefresh();
+          close();
+          return;
+        }
+        case "passkey-remove": {
+          if (!context?.passkeyId) return "No se sabe qué llave sacar.";
+          const result = await removePasskey(context.passkeyId, password);
+          if (!result.ok) return result.error;
+          await onRefresh();
           close();
           return;
         }
@@ -249,14 +371,6 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
         }
         case "email": {
           const result = await patchMe({ email });
-          if (!result.ok) return result.error;
-          await onRefresh();
-          close();
-          return;
-        }
-        case "totp-on": {
-          if (!setup) return "La clave todavía no está lista.";
-          const result = await confirmTotp(code);
           if (!result.ok) return result.error;
           await onRefresh();
           close();
@@ -291,17 +405,25 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
           ? code !== ""
           : view === "recover"
             ? handle !== "" && code !== ""
-            : view === "password"
-              ? password !== "" && next !== ""
-              : view === "email"
-                ? email !== ""
-                : view === "totp-on"
-                  ? setup !== null && code !== ""
-                  : view === "totp-off"
-                    ? password !== ""
-                    : view === "delete"
-                      ? password !== "" && confirmed
-                      : true;
+            : view === "forgot"
+              ? handle !== ""
+              : view === "reset"
+                ? password !== "" && repeat === password
+                : view === "passkey"
+                  ? loginOptions !== null
+                  : view === "passkey-add"
+                    ? createOptions !== null
+                    : view === "passkey-remove"
+                      ? password !== ""
+                      : view === "password"
+                        ? password !== "" && next !== ""
+                        : view === "email"
+                          ? email !== ""
+                          : view === "totp-off"
+                            ? password !== ""
+                            : view === "delete"
+                              ? password !== "" && confirmed
+                              : true;
 
   const heading = HEADING[view];
   const field = accountFieldClass;
@@ -400,7 +522,7 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
                 <input
                   autoComplete="email"
                   className={field}
-                  placeholder="Email (opcional, para recuperar)"
+                  placeholder="Correo (opcional: para recuperar la cuenta y los avisos)"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -418,16 +540,30 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
-                <button
-                  className="self-start text-[11px] font-medium text-brand underline underline-offset-2 transition-colors hover:text-ink"
-                  type="button"
-                  onClick={() => {
-                    setError("");
-                    setView("recover");
-                  }}
-                >
-                  Olvidé mi contraseña o mi handle
-                </button>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <button
+                    className="text-[11px] font-medium text-brand underline underline-offset-2 transition-colors hover:text-ink"
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setNotice("");
+                      setView("forgot");
+                    }}
+                  >
+                    Olvidé mi contraseña
+                  </button>
+                  <button
+                    className="text-[11px] font-medium text-brand underline underline-offset-2 transition-colors hover:text-ink"
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setNotice("");
+                      setView("recover");
+                    }}
+                  >
+                    Tengo un código de respaldo
+                  </button>
+                </div>
               </>
             ) : null}
 
@@ -517,51 +653,106 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
                 />
                 <p className="text-[11px] leading-relaxed text-muted">
                   {user?.has_email
-                    ? "Cargar uno nuevo reemplaza el anterior."
-                    : "Sin email, los códigos de respaldo siguen siendo la única salida."}
+                    ? "Cargar uno nuevo reemplaza el anterior y te manda un enlace para confirmarlo."
+                    : "Te mandamos un enlace para confirmarlo. Sin correo, los códigos de respaldo siguen siendo la única salida."}
                 </p>
               </>
             ) : null}
 
-            {view === "totp-on" ? (
-              setup ? (
-                <>
-                  <p className="text-[11px] leading-relaxed text-muted">
-                    Escaneá este código con tu app de autenticación y después poné el código que te
-                    muestre.
+            {view === "passkey" ? (
+              <p className="text-[11px] leading-relaxed text-muted">
+                Tocá el botón y seguí lo que te pida el dispositivo: la huella, la cara, el PIN o la
+                llave física. Si la perdiste, entrá con un código de respaldo.
+              </p>
+            ) : null}
+
+            {view === "passkey-add" ? (
+              <>
+                <input
+                  className={field}
+                  maxLength={60}
+                  placeholder="Un nombre para reconocerla (ej.: mi teléfono)"
+                  value={keyName}
+                  onChange={(event) => setKeyName(event.target.value)}
+                />
+                <p className="text-[11px] leading-relaxed text-muted">
+                  {user?.totp_enabled
+                    ? "Al crearla se apagan los códigos de seis dígitos y se borra su clave del servidor."
+                    : "Desde ahora, entrar va a pedir la contraseña y la llave."}
+                </p>
+              </>
+            ) : null}
+
+            {view === "passkey-remove" ? (
+              <>
+                <p className="text-[11px] leading-relaxed text-muted">
+                  Vas a sacar{" "}
+                  <strong className="font-medium text-soft">
+                    {context?.passkeyName || "esta llave"}
+                  </strong>
+                  .{" "}
+                  {user && user.passkeys <= 1
+                    ? "Es la única: sin ella, entrar vuelve a pedir solo la contraseña."
+                    : "Las otras llaves siguen andando."}
+                </p>
+                <input
+                  autoComplete="current-password"
+                  className={field}
+                  placeholder="tu contraseña"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </>
+            ) : null}
+
+            {view === "forgot" ? (
+              <>
+                <input
+                  autoComplete="username"
+                  className={field}
+                  placeholder="handle"
+                  value={handle}
+                  onChange={(event) => setHandle(event.target.value)}
+                />
+                <p className="text-[11px] leading-relaxed text-muted">
+                  Si no tenés correo cargado, entrá con un código de respaldo.
+                </p>
+              </>
+            ) : null}
+
+            {view === "sent" ? (
+              <p className="text-[11px] leading-relaxed text-muted">
+                Si hay una cuenta con ese handle y un correo cargado, te llega un enlace en un rato.
+                La respuesta es la misma exista o no, para que nadie use esto para saber quién está
+                registrado.
+              </p>
+            ) : null}
+
+            {view === "reset" ? (
+              <>
+                <input
+                  autoComplete="new-password"
+                  className={field}
+                  placeholder="contraseña nueva"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+                <input
+                  autoComplete="new-password"
+                  className={field}
+                  placeholder="repetila"
+                  type="password"
+                  value={repeat}
+                  onChange={(event) => setRepeat(event.target.value)}
+                />
+                {repeat !== "" && repeat !== password ? (
+                  <p className="text-[11px] leading-relaxed text-red-400">
+                    Las contraseñas no coinciden.
                   </p>
-                  <Suspense fallback={<div className="mx-auto size-44 rounded-xl bg-white" />}>
-                    <TotpQr
-                      expanded={qrZoom}
-                      value={setup.otpauth}
-                      onCollapse={() => setQrZoom(false)}
-                      onExpand={() => setQrZoom(true)}
-                    />
-                  </Suspense>
-                  <p className="text-[11px] leading-relaxed text-muted">
-                    ¿No podés escanear? Cargá esta clave a mano:
-                  </p>
-                  <p className="rounded-lg bg-onpanel-wash px-2 py-1.5 font-mono text-xs tracking-wide text-onpanel">
-                    {setup.secret}
-                  </p>
-                  <details className="text-[11px] text-onpanel/60">
-                    <summary className="cursor-pointer">Ver el enlace otpauth</summary>
-                    <p className="mt-1 break-all rounded-lg bg-onpanel-wash px-2 py-1.5 font-mono text-[10px]">
-                      {setup.otpauth}
-                    </p>
-                  </details>
-                  <input
-                    autoComplete="one-time-code"
-                    className={field}
-                    inputMode="numeric"
-                    placeholder="000000"
-                    value={code}
-                    onChange={(event) => setCode(event.target.value)}
-                  />
-                </>
-              ) : (
-                <p className="text-[11px] leading-relaxed text-muted">Generando tu clave…</p>
-              )
+                ) : null}
+              </>
             ) : null}
 
             {view === "totp-off" ? (
@@ -601,6 +792,9 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
               </>
             ) : null}
 
+            {notice ? (
+              <p className="text-[11px] leading-relaxed text-emerald-400">{notice}</p>
+            ) : null}
             {error ? <p className="text-[11px] leading-relaxed text-red-400">{error}</p> : null}
           </div>
 
@@ -636,9 +830,16 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
                 >
                   {busy ? "Un momento…" : SUBMIT_LABEL[view]}
                 </button>
-                <button className={accountQuietClass} disabled={busy} type="button" onClick={close}>
-                  Volver
-                </button>
+                {view === "sent" ? null : (
+                  <button
+                    className={accountQuietClass}
+                    disabled={busy}
+                    type="button"
+                    onClick={close}
+                  >
+                    Volver
+                  </button>
+                )}
               </>
             )}
           </div>

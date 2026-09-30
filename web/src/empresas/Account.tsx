@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { COMPANY_STATUS_LABEL, type Company, updateCompany } from "./api.ts";
+import { COMPANY_STATUS_LABEL, type Company, resendVerification, updateCompany } from "./api.ts";
 
 const field =
   "mt-1.5 w-full rounded-xl border border-sky/70 bg-mist px-3 py-2.5 text-sm text-ink outline-none focus:border-brand";
@@ -25,6 +25,21 @@ export function Account({
   const [changing, setChanging] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordDone, setPasswordDone] = useState(false);
+  const [resent, setResent] = useState("");
+
+  const resend = () => {
+    resendVerification()
+      .then((result) =>
+        setResent(
+          result.verified
+            ? "Ya estaba confirmado."
+            : "Te mandamos el enlace. Si no llega, fijate en spam o esperá diez minutos para pedir otro.",
+        ),
+      )
+      .catch((cause: unknown) =>
+        setResent(cause instanceof Error ? cause.message : "no se pudo mandar"),
+      );
+  };
 
   const save = (event: React.FormEvent) => {
     event.preventDefault();
@@ -90,6 +105,21 @@ export function Account({
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
+          {company.email_verified ? (
+            <p className="mt-1.5 text-[11px] text-emerald-700">Confirmado.</p>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-faint">
+              Sin confirmar: por acá llegan el soporte y el cambio de contraseña.{" "}
+              <button
+                className="underline underline-offset-2 hover:text-ink"
+                type="button"
+                onClick={resend}
+              >
+                Mandarme el enlace
+              </button>
+              {resent ? <span className="block">{resent}</span> : null}
+            </p>
+          )}
 
           <label className="mt-4 block text-xs font-medium text-soft" htmlFor="website">
             Sitio web

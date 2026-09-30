@@ -12,6 +12,8 @@ export interface Company {
   name: string;
   slug: string;
   email: string;
+  /** Que el correo de contacto de hoy es uno que alguien de la empresa lee. */
+  email_verified: boolean;
   website: string;
   status: CompanyStatus;
   created_at: string;
@@ -128,6 +130,28 @@ export const register = (input: {
 }): Promise<SessionInfo> => send("/auth/register", { method: "POST", body: JSON.stringify(input) });
 
 export const logout = (): Promise<{ status: string }> => send("/auth/logout", { method: "POST" });
+
+/** Contesta lo mismo exista o no la empresa: no sirve para saber quién está. */
+export const requestReset = (identifier: string): Promise<{ message: string }> =>
+  send("/auth/recover", { method: "POST", body: JSON.stringify({ identifier }) });
+
+export const resendVerification = (): Promise<{ verified: boolean }> =>
+  send("/me/email/verify", { method: "POST", body: "{}" });
+
+/** El reset vive en /api/auth porque el enlace es el mismo para personas y
+ * empresas: el token sabe de qué cuenta es. */
+export async function resetPassword(token: string, password: string): Promise<void> {
+  const response = await fetch("/api/auth/reset", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `La API respondió ${response.status}`);
+  }
+}
 
 export const getMetrics = (days: number): Promise<Metrics> => send(`/metrics?days=${days}`);
 

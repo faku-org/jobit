@@ -557,9 +557,9 @@ export function Onboarding({
             <div className="mt-5 flex gap-2.5 rounded-2xl border border-sky/60 bg-surface px-4 py-3 sm:mt-6">
               <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
               <p className="text-sm leading-relaxed text-soft">
-                Lo que hagas acá <strong className="font-semibold">no sube a ninguna nube</strong>.
-                No hay cuenta ni contraseña: todo queda guardado en este navegador y las empresas no
-                ven nada de esto.
+                Lo que hagas acá <strong className="font-semibold">queda en este navegador</strong>{" "}
+                y las empresas no ven nada de esto. No hace falta cuenta: es opcional, y sirve para
+                publicar un servicio o para llevar tus datos a otro navegador si lo elegís.
               </p>
             </div>
 
