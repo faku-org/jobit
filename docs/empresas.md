@@ -173,8 +173,9 @@ que el sistema discrimine sin que nadie pueda decir por qué.
 **El puntaje no lo calcula el servidor.** Con la postulación adentro de un sobre
 cerrado, la API no sabe qué dice. El cribado corre en el navegador de la
 empresa, después de abrir el sobre, o sobre una cabecera de ids de catálogo que
-viaja afuera y sin vínculo con ninguna cuenta. Cuál de las dos es la decisión 1
-de `cero-acceso.md`.
+viaja afuera y sin vínculo con ninguna cuenta. **Se eligió la cabecera**: ver
+`cero-acceso.md`. Lo que la empresa le exige a sus propios procesos con esos
+datos está en `eula-empresas.md`.
 
 La única excepción razonable es el excluyente declarado: si la oferta pide
 libreta de conducir y la persona contestó que no tiene, va a "no cumple", no a

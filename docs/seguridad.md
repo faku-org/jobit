@@ -81,6 +81,29 @@ protege de esto, porque adentro del iframe la petición es del mismo sitio.
 La oferta se sigue pudiendo enmarcar. La app, no: sin `?embed=` y adentro de un
 frame, no se dibuja.
 
+### 7. nginx servía la app sin CSP, sin HSTS y sin nosniff
+
+nginx hereda los `add_header` del `server` solo en los `location` que no tienen
+ninguno propio. Bastaba un `add_header Cache-Control` en un `location` para que
+ese bloque saliera sin ninguna de las cabeceras de seguridad. Estaban así `/`,
+`/index.html`, `/empresas`, `/admin` y `/assets/`: la página principal, la que
+tiene las sesiones, se servía **sin CSP**.
+
+Ahora la caché se pone con `expires` (`epoch` es `no-cache`), que no es un
+`add_header` y no rompe la herencia. Verificado con nginx 1.24 levantando la
+config vieja y la nueva lado a lado: la vieja devolvía `/` sin CSP ni HSTS, la
+nueva con las dos. Se pierde el `immutable` de `/assets/`, que solo ahorraba
+revalidar al recargar.
+
+### 8. `/admin.html` se servía a cualquiera
+
+`/admin` tenía la lista de direcciones de Tailscale, pero `/admin.html`, el
+mismo archivo pedido por su nombre, caía en el catch-all y salía para todo el
+mundo. La API del admin siempre estuvo cerrada por su propio `location`, así
+que era la página y no los datos; igual era una puerta que decía estar cerrada.
+Ahora `/admin.html` tiene la misma lista. Verificado desde una dirección fuera
+de la lista: antes 200, ahora 403.
+
 ## Lo que se miró y está bien
 
 - **SQL.** Todas las consultas van con parámetros. Lo único que se interpola es
@@ -98,10 +121,20 @@ frame, no se dibuja.
 - **Contraseñas.** argon2id por `Bun.password`. Un login a un handle que no
   existe verifica igual contra un hash de descarte, así que no se puede saber
   quién está registrado midiendo lo que tarda.
-- **Secretos en reposo.** Correo y secreto TOTP con AES-256-GCM. Autenticado: un
-  byte cambiado no descifra, no descifra cualquier cosa.
+- **Secretos en reposo.** Correo, sync y el secreto TOTP de las cuentas viejas
+  con AES-256-GCM y la clave de `JOBIT_SECRET_KEY(_FILE)`. Autenticado: un byte
+  cambiado no descifra, no descifra cualquier cosa. **Es clave del servidor:**
+  protege de una copia de la base, no de JobIt. Ver
+  [`cero-acceso.md`](cero-acceso.md).
+- **Llaves de acceso.** De cada una, la clave pública y el contador. Los
+  desafíos van en la base (con vencimiento) y no en una cookie firmada, así
+  que las llaves no dependen de ningún secreto nuestro.
+- **Enlaces por correo.** Un solo uso, en la base solo el sha256, vencen a las
+  24 horas (confirmar) o a los 30 minutos (restablecer). La respuesta al pedir
+  un reset es la misma exista o no la cuenta, y el envío va en segundo plano
+  para que tampoco lo delate el tiempo.
 - **Falla cerrado.** Sin `ADMIN_PASSWORD_HASH` el panel contesta 404 entero. Sin
-  `ACCOUNT_KEY`, las cuentas y los servicios también.
+  `JOBIT_SECRET_KEY` no se puede guardar un correo ni prender el sync.
 - **Autorización.** Un servicio ajeno contesta 404, no 403: el id no sirve para
   saber si hay algo del otro lado.
 
@@ -114,15 +147,15 @@ Por orden de lo que más molesta.
    `POST /api/auth/login`. Es #34 y es la contradicción más grande que tiene
    hoy la Zero Data Policy escrita.
 
-2. **El secreto TOTP lo puede leer JobIt, y no hay forma de que no.** Verificar
-   un código exige tener el secreto con el que se generó. Está cifrado en
-   reposo, pero con una clave nuestra. Es la única excepción que queda a la
-   regla de cero acceso, y la salida es WebAuthn: ver
+2. **Lo cifrado con clave del servidor lo puede leer JobIt.** El correo (que es
+   dato de cuenta y está bien que lo lea), el sync (que no) y el secreto TOTP de
+   las cuentas que todavía no agregaron una llave. El TOTP se cierra solo a
+   medida que la gente pasa a WebAuthn; el sync, con la migración de
    [`cero-acceso.md`](cero-acceso.md).
 
-   De ahí sale la regla operativa: **`data/jobit.db` y `data/account.key` no
-   pueden viajar juntos a un respaldo.** Si van juntos, el cifrado no protege de
-   nada. Va en el runbook de despliegue.
+   Regla operativa mientras tanto: **la base y el archivo de
+   `JOBIT_SECRET_KEY_FILE` no pueden viajar juntos a un respaldo.** Si van
+   juntos, el cifrado no protege de nada.
 
 3. **`stats.jsonl` y `events.jsonl` crecen sin techo.** No hay rotación ni tope.
    El límite de peticiones lo hace lento, no imposible. Un `logrotate` o un tope
@@ -137,17 +170,20 @@ Por orden de lo que más molesta.
    tiene vuelta: sin eso no se puede elegir un nombre. El login no filtra nada,
    que es donde importa.
 
-6. **No hay recuperación más que los códigos de respaldo.** No es que falte
-   implementar el reset por correo: no se guarda correo, a propósito, porque
-   sería un dato de una persona que JobIt puede leer. Quien pierda los códigos
-   pierde la cuenta, está avisado en el alta con todas las letras, y es lo que
-   más soporte va a generar. Con las postulaciones cifradas va a ser peor:
-   perderlos pasa a ser perder el contenido, no solo el acceso.
+6. **Los códigos de respaldo se guardan como sha256 sin sal.** Para autenticar
+   alcanza (se prueban online, con límite). El día que un código abra una copia
+   de la clave privada deja de alcanzar: ~49 bits a velocidad de GPU son horas.
+   La migración a cifrado de punta a punta los reemplaza por argon2id de un
+   derivado lento. Hasta entonces no es explotable, y está escrito para que
+   nadie conecte las dos cosas sin verlo.
 
-7. **El panel tiene una sola contraseña y no tiene segundo factor.** La
-   contramedida disponible hoy es la lista de direcciones que ya está comentada
-   en el `nginx.conf`. Si el panel se administra siempre desde los mismos
-   lugares, conviene descomentarla.
+   La recuperación por correo existe desde que volvió el correo: recupera la
+   cuenta. Con el sync cifrado de punta a punta no va a recuperar el contenido,
+   y la pantalla lo va a tener que decir.
+
+7. **El panel tiene una sola contraseña y no tiene segundo factor.** Lo
+   compensa que solo se llega desde la VPN (Tailscale), en la página y en la
+   API. Pasarle WebAuthn es lo mismo que ya tienen las cuentas.
 
 8. **`/api/stats` y `/api/events` los puede llenar cualquiera.** No hay identidad
    por diseño, así que las métricas son "lo que llegó", no "lo que pasó". No es
@@ -166,5 +202,8 @@ bun test
 ```
 
 Los baldes de límite, el saneo de URLs, el cifrado en reposo, los vectores TOTP
-del RFC 6238 y que ni el token ni los códigos de respaldo queden en claro en la
-base tienen cada uno su test.
+del RFC 6238, las llaves de acceso (con un autenticador de software que firma
+de verdad), los enlaces por correo, los sobres cifrados y que ni el token ni
+los códigos de respaldo queden en claro en la base tienen cada uno su test.
+
+Lo que sirve el sitio se verifica aparte: ver [`verificar.md`](verificar.md).

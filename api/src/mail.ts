@@ -10,7 +10,7 @@ import type { Result } from "./types.ts";
  * reputación, y esa la pone el relé. La comparación entera está en
  * docs/correo.md.
  *
- * Dos reglas que salen de que Resend guarda cada mensaje 30 días en Estados
+ * Dos reglas que salen de que Resend guarda cada mensaje hasta 30 días en Estados
  * Unidos, y que no se negocian:
  *
  * - Solo texto plano. Sin HTML no hay píxel de seguimiento posible, ni imagen
@@ -120,7 +120,7 @@ export async function send(mail: Mail): Promise<Result<string>> {
 
 /* --- Plantillas -------------------------------------------------------------
    Todas dicen lo mismo de distinta forma: que hay algo y dónde verlo. Ninguna
-   lleva datos de nadie, así que lo que Resend guarde durante 30 días es un
+   lleva datos de nadie, así que lo que Resend guarde hasta 30 días es un
    enlace que ya venció y una frase genérica. */
 
 export const verifyMail = (to: string, link: string): Mail => ({
