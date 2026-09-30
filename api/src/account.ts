@@ -2,8 +2,9 @@ import { Elysia, t } from "elysia";
 import { secureCookies } from "./auth.ts";
 import { encryptionEnabled, sign, verifySignature } from "./crypto.ts";
 import * as sync from "./sync.ts";
-import { generateSecret, otpauthUrl, verifyTotp } from "./totp.ts";
+import { verifyTotp } from "./totp.ts";
 import * as users from "./users.ts";
+import * as passkeys from "./passkeys.ts";
 import { isVerified } from "./email-tokens.ts";
 import { verifyInBackground } from "./verification.ts";
 
@@ -20,8 +21,9 @@ import { verifyInBackground } from "./verification.ts";
  */
 export const SESSION_COOKIE = "jobit_session";
 const CHALLENGE_COOKIE = "jobit_2fa";
+/** El desafío de la llave entre que se piden opciones y vuelve la firma. */
+const WEBAUTHN_COOKIE = "jobit_webauthn";
 const CHALLENGE_MS = 5 * 60_000;
-const ISSUER = "JobIt";
 
 const SECURE_COOKIES = secureCookies();
 
@@ -65,7 +67,13 @@ async function readChallenge(token: string): Promise<string | null> {
   return (await verifySignature(`${userId}.${expiresAt}`, signature)) ? userId : null;
 }
 
-const publicUser = (user: users.User) => users.publicUser(user);
+/** `passkeys` es cuántas llaves tiene, no cuáles: la lista se pide aparte y
+ * con sesión. `totp_enabled` sigue saliendo mientras haya cuentas que lo
+ * tengan de antes, para que la web les ofrezca pasarse a una llave. */
+const publicUser = (user: users.User) => ({
+  ...users.publicUser(user),
+  passkeys: passkeys.countFor(user.id),
+});
 
 /** Lo mismo más si el correo está verificado. Es aparte porque saberlo pide
  * descifrar el correo, y publicUser es sincrónico y se usa en todos lados. */
@@ -94,12 +102,33 @@ const loginBody = t.Object({
 });
 
 const passwordBody = t.Object({ password: t.String({ maxLength: 200 }) });
+/** HttpOnly y strict: el desafío solo viaja en las llamadas de la propia web. */
+function setWebauthnCookie(
+  cookie: Record<string, { set: (options: Record<string, unknown>) => void } | undefined>,
+  token: string,
+): void {
+  cookie[WEBAUTHN_COOKIE]?.set({
+    value: token,
+    httpOnly: true,
+    secure: SECURE_COOKIES,
+    sameSite: "strict",
+    path: "/api",
+    maxAge: passkeys.CHALLENGE_SECONDS,
+  });
+}
+
+/** La respuesta del navegador la valida entera la biblioteca de WebAuthn; acá
+ * solo se exige que sea un objeto. */
+const credentialBody = t.Object({
+  response: t.Any(),
+  name: t.Optional(t.String({ maxLength: 60 })),
+});
+
 const totpCodeBody = t.Object({ code: t.String({ maxLength: 10 }) });
 const recoverBody = t.Object({
   handle: t.String({ maxLength: 60 }),
   code: t.String({ maxLength: 20 }),
 });
-const totpSetupBody = t.Object({ code: t.Optional(t.String({ maxLength: 10 })) });
 const patchMeBody = t.Object({
   display_name: t.Optional(t.String({ maxLength: 120 })),
   email: t.Optional(t.String({ maxLength: 300 })),
@@ -136,6 +165,15 @@ export const account = new Elysia({ prefix: "/api" })
       }
       if (user.status !== "active") return status(403, { error: "esa cuenta está suspendida" });
 
+      if (passkeys.countFor(user.id) > 0) {
+        const pending = await passkeys.startLogin(user);
+        setWebauthnCookie(cookie, pending.token);
+        return { status: "passkey_required", options: pending.options };
+      }
+
+      /** TOTP ya no se activa, pero quien lo tenía de antes sigue entrando con
+       * él hasta que agregue una llave, que es cuando se borra el secreto.
+       * Sacarlo de golpe le bajaría la seguridad a solo contraseña. */
       if (user.totp_enabled) {
         const challenge = await signChallenge(user.id);
         if (!challenge) return status(503, { error: "el segundo paso no está disponible" });
@@ -175,6 +213,24 @@ export const account = new Elysia({ prefix: "/api" })
       return { status: "ok", user: publicUser(user) };
     },
     { body: totpCodeBody },
+  )
+  .post(
+    "/auth/passkey",
+    async ({ body, cookie, status }) => {
+      const token = tokenOf(cookie[WEBAUTHN_COOKIE]?.value);
+      cookie[WEBAUTHN_COOKIE]?.remove();
+      if (!token) return status(401, { error: "el segundo paso venció, volvé a entrar" });
+
+      const signed = await passkeys.finishLogin(token, body.response);
+      if (!signed.ok) return status(401, { error: signed.error });
+
+      const user = users.byId(signed.value);
+      if (!user || user.status !== "active") return status(401, { error: "esa cuenta no está" });
+
+      setSession(cookie, users.createSession(user.id));
+      return { status: "ok", user: publicUser(user) };
+    },
+    { body: credentialBody },
   )
   .post(
     "/auth/recover",
@@ -257,41 +313,16 @@ export const account = new Elysia({ prefix: "/api" })
     { body: passwordBody },
   )
   /**
-   * Sin `code` arranca la activación y devuelve el secreto (una vez, para
-   * dibujar el QR). Con `code`, lo confirma y recién ahí queda activado.
+   * El TOTP ya no se activa. Para verificarlo el servidor tenía que guardar el
+   * secreto, o sea poder generar el código de cualquiera: justo lo que la regla
+   * de cero acceso dice que JobIt no tiene. El segundo paso ahora es una llave
+   * de acceso (/me/passkeys). Quien ya lo tenía sigue entrando con él hasta
+   * que agregue una llave, y puede apagarlo con DELETE.
    */
-  .post(
-    "/me/totp",
-    async ({ body, cookie, status }) => {
-      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
-      if (!user) return status(401, { error: "sesión vencida" });
-
-      if (body.code !== undefined) {
-        const secret = await users.totpSecret(user);
-        if (!secret) return status(422, { error: "no hay un segundo paso pendiente" });
-
-        const check = await verifyTotp(secret, body.code);
-        if (!check.ok) return status(401, { error: "código incorrecto" });
-
-        users.enableTotp(user.id);
-        return { status: "ok", totp_enabled: true };
-      }
-
-      if (user.totp_enabled) return status(422, { error: "el segundo paso ya está activado" });
-      if (!(await encryptionEnabled())) {
-        return status(503, { error: "el segundo paso no está disponible en este servidor" });
-      }
-
-      const secret = generateSecret();
-      const saved = await users.setTotpSecret(user.id, secret);
-      if (!saved.ok) return status(503, { error: saved.error });
-
-      return {
-        secret,
-        otpauth: otpauthUrl({ secret, account: user.handle, issuer: ISSUER }),
-      };
-    },
-    { body: totpSetupBody },
+  .post("/me/totp", ({ status }) =>
+    status(410, {
+      error: "el segundo paso ahora es con una llave de acceso: agregala desde tu perfil",
+    }),
   )
   .delete(
     "/me/totp",
@@ -304,6 +335,52 @@ export const account = new Elysia({ prefix: "/api" })
 
       users.disableTotp(user.id);
       return { status: "ok", totp_enabled: false };
+    },
+    { body: passwordBody },
+  )
+  /** Las llaves de la cuenta: un nombre y el día del alta, nada más. */
+  .get("/me/passkeys", ({ cookie, status }) => {
+    const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+    if (!user) return status(401, { error: "sesión vencida" });
+    return { passkeys: passkeys.listFor(user.id) };
+  })
+  .post("/me/passkeys/options", async ({ cookie, status }) => {
+    const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+    if (!user) return status(401, { error: "sesión vencida" });
+
+    const pending = await passkeys.startRegistration(user);
+    if (!pending.ok) return status(422, { error: pending.error });
+    setWebauthnCookie(cookie, pending.value.token);
+    return pending.value.options;
+  })
+  .post(
+    "/me/passkeys",
+    async ({ body, cookie, status }) => {
+      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+      if (!user) return status(401, { error: "sesión vencida" });
+
+      const token = tokenOf(cookie[WEBAUTHN_COOKIE]?.value);
+      cookie[WEBAUTHN_COOKIE]?.remove();
+      if (!token) return status(422, { error: "el pedido venció, probá de nuevo" });
+
+      const added = await passkeys.finishRegistration(user, token, body.response, body.name ?? "");
+      return added.ok ? status(201, added.value) : status(422, { error: added.error });
+    },
+    { body: credentialBody },
+  )
+  /** Sacar una llave pide la contraseña, igual que apagar el TOTP: alguien
+   * frente a una sesión abierta no puede desarmar el segundo paso. */
+  .delete(
+    "/me/passkeys/:id",
+    async ({ params, body, cookie, status }) => {
+      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+      if (!user) return status(401, { error: "sesión vencida" });
+      if (!(await users.verifyPassword(user, body.password))) {
+        return status(401, { error: "la contraseña no coincide" });
+      }
+      return passkeys.remove(user.id, params.id)
+        ? { status: "ok", passkeys: passkeys.countFor(user.id) }
+        : status(404, { error: "esa llave no existe" });
     },
     { body: passwordBody },
   )

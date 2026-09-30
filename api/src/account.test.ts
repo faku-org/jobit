@@ -9,7 +9,8 @@ process.env.JOBIT_SECRET_KEY = KEY;
 const { closeDb } = await import("./db.ts");
 const { resetSecretKey } = await import("./crypto.ts");
 const { resetLimits } = await import("./limit.ts");
-const { totp } = await import("./totp.ts");
+const { generateSecret, totp } = await import("./totp.ts");
+const users = await import("./users.ts");
 const { app } = await import("./index.ts");
 
 const ADMIN_HASH = await Bun.password.hash("abrite sesamo");
@@ -139,23 +140,25 @@ describe("ingreso", () => {
   });
 });
 
-describe("segundo paso", () => {
-  async function enableTotp(cookie: string): Promise<string> {
-    const setup = await call("/api/me/totp", withCookie(json({}), cookie));
-    const body = (await setup.json()) as { secret: string; otpauth: string };
-    expect(body.otpauth.startsWith("otpauth://totp/")).toBe(true);
-
-    const code = await totp(body.secret);
-    if (!code) throw new Error("sin código");
-    const confirm = await call("/api/me/totp", withCookie(json({ code }), cookie));
-    expect(confirm.status).toBe(200);
-    return body.secret;
+/* El TOTP ya no se activa: el segundo paso nuevo es una llave de acceso
+   (passkeys.test.ts). Lo que sigue probando esto es la cuenta que ya lo tenía
+   de antes, que tiene que seguir entrando igual hasta que agregue una llave. */
+describe("segundo paso heredado (TOTP)", () => {
+  /** Como quedó una cuenta que lo activó antes del cambio: directo en la base. */
+  async function enableTotp(_cookie: string): Promise<string> {
+    const user = users.byHandle("faku");
+    if (!user) throw new Error("sin cuenta");
+    const secret = generateSecret();
+    const saved = await users.setTotpSecret(user.id, secret);
+    if (!saved.ok) throw new Error(saved.error);
+    users.enableTotp(user.id);
+    return secret;
   }
 
-  test("sin confirmar no queda activado", async () => {
+  test("ya no se puede activar por la ruta", async () => {
     const { cookie } = await register();
     const setup = await call("/api/me/totp", withCookie(json({}), cookie));
-    expect(setup.status).toBe(200);
+    expect(setup.status).toBe(410);
 
     const body = (await call("/api/me", { headers: { cookie } })).json() as Promise<{
       user: { totp_enabled: boolean };
@@ -202,7 +205,10 @@ describe("segundo paso", () => {
     const { cookie } = await register();
     await enableTotp(cookie);
 
-    const refused = await call("/api/me/totp", withCookie(json({ password: "otra" }, "DELETE"), cookie));
+    const refused = await call(
+      "/api/me/totp",
+      withCookie(json({ password: "otra" }, "DELETE"), cookie),
+    );
     expect(refused.status).toBe(401);
 
     const done = await call(
@@ -237,7 +243,10 @@ describe("recuperación", () => {
 describe("la cuenta propia", () => {
   test("se cambia el nombre visible", async () => {
     const { cookie } = await register();
-    const response = await call("/api/me", withCookie(json({ display_name: "Facu Faber" }, "PATCH"), cookie));
+    const response = await call(
+      "/api/me",
+      withCookie(json({ display_name: "Facu Faber" }, "PATCH"), cookie),
+    );
     expect(response.status).toBe(200);
     const body = (await response.json()) as { user: { display_name: string } };
     expect(body.user.display_name).toBe("Facu Faber");
@@ -248,7 +257,10 @@ describe("la cuenta propia", () => {
 
     const refused = await call(
       "/api/me",
-      withCookie(json({ current_password: "otra", new_password: "una-clave-nueva" }, "PATCH"), cookie),
+      withCookie(
+        json({ current_password: "otra", new_password: "una-clave-nueva" }, "PATCH"),
+        cookie,
+      ),
     );
     expect(refused.status).toBe(401);
 

@@ -232,6 +232,37 @@ CREATE TABLE IF NOT EXISTS service_hours (
 
 CREATE INDEX IF NOT EXISTS service_hours_service ON service_hours (service_id, weekday);
 
+/* --- Llaves de acceso (WebAuthn) ---------------------------------------------
+   El segundo paso que no le deja a JobIt ningún secreto: se guarda la clave
+   PÚBLICA de la llave y se verifica una firma. Con TOTP el servidor tenía que
+   poder generar el código, o sea tener el secreto; acá una copia de la base
+   no sirve para entrar a ninguna cuenta.
+
+   Solo el día del alta, igual que el resto: nada de "último uso", que sería un
+   historial de inicios de sesión con otro nombre. */
+CREATE TABLE IF NOT EXISTS user_passkeys (
+  credential_id  TEXT PRIMARY KEY,
+  user_id        TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  public_key     TEXT NOT NULL,
+  counter        INTEGER NOT NULL DEFAULT 0,
+  transports     TEXT NOT NULL DEFAULT '',
+  name           TEXT NOT NULL DEFAULT '',
+  created_on     TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS user_passkeys_user ON user_passkeys (user_id);
+
+/* El desafío vive entre que el navegador pide opciones y devuelve la firma: un
+   par de minutos. Va en la base y no en una cookie firmada para que las
+   llaves no dependan de JOBIT_SECRET_KEY, que es justo una clave nuestra. */
+CREATE TABLE IF NOT EXISTS webauthn_challenges (
+  token_hash  TEXT PRIMARY KEY,
+  purpose     TEXT NOT NULL,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  challenge   TEXT NOT NULL,
+  expires_at  TEXT NOT NULL
+);
+
 /* --- Correo -----------------------------------------------------------------
    Si un correo está verificado, y los enlaces de un solo uso que mandamos.
    Van en tablas propias y no como columnas de users o companies, que ya
