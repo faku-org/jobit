@@ -1,10 +1,12 @@
 import { SlidersHorizontal } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { AnimatePresence, m } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import type { AccountSync } from "../../hooks/useAccountSync.ts";
 import { useScrolledPast } from "../../hooks/useScrolledPast.ts";
 import type { CustomFeed, FeedResult } from "../../lib/feed.ts";
 import { islandTransition } from "../../lib/motion.ts";
 import { type Profile, profileCount } from "../../lib/profile.ts";
+import type { SessionUser } from "../../lib/session.ts";
 import type { Usage } from "../../lib/stats.ts";
 import {
   type Facet,
@@ -14,9 +16,9 @@ import {
   hiddenCount,
   preferenceCount,
 } from "../../lib/types.ts";
+import { AccountSection } from "../account/AccountSection.tsx";
 import { PreferencesPanel } from "../profile/Preferences.tsx";
 import { ProfilePanel } from "../profile/ProfilePanel.tsx";
-import LOGO from "../../../brand/JobIt.png";
 
 interface DynamicIslandProps {
   meta: Meta | null;
@@ -32,6 +34,14 @@ interface DynamicIslandProps {
   usage: Usage;
   /** What the danger zone would erase, passed through to the profile sheet. */
   counts: { saved: number; applications: number; dismissed: number };
+  /** La sesión y el sync se resuelven arriba, en App, así la cuenta y los datos
+   * miran el mismo estado. */
+  session: {
+    user: SessionUser | null;
+    ready: boolean;
+    setUser: (user: SessionUser | null) => void;
+  };
+  sync: AccountSync;
   onChangePreferences: (preferences: Preferences) => void;
   onChangeSources: (sources: string[]) => void;
   onChangeFeeds: (feeds: CustomFeed[]) => void;
@@ -41,7 +51,7 @@ interface DynamicIslandProps {
   onImportCv: (profile: Profile, preferences: Preferences) => void;
 }
 
-type Tab = "search" | "profile";
+type Tab = "search" | "profile" | "account";
 
 /**
  * A floating header, detached from the top of the page: wide at rest, shrunk
@@ -61,6 +71,8 @@ export function DynamicIsland({
   profile,
   usage,
   counts,
+  session,
+  sync,
   onChangePreferences,
   onChangeSources,
   onChangeFeeds,
@@ -73,13 +85,24 @@ export function DynamicIsland({
   const [tab, setTab] = useState<Tab>("search");
   const condensed = useScrolledPast(24);
 
+  /**
+   * El panel arranca arriba en cada pestaña. Mide lo que mide su contenido,
+   * hasta el 70% de la pantalla: una pestaña corta no deja un hueco vacío, y
+   * una larga scrollea adentro. El header tiene `layout`, así que el cambio de
+   * alto entre pestañas se anima solo.
+   */
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: 0 });
+  }, [tab]);
+
   const count = preferenceCount(preferences) + hiddenCount(preferences);
   const studies = profileCount(profile);
   const compact = condensed && !open;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4 sm:top-4">
-      <motion.header
+      <m.header
         layout
         className={`pointer-events-auto w-full overflow-hidden rounded-[26px] bg-panel text-onpanel shadow-[var(--shadow-panel)] ring-1 ring-onpanel/10 backdrop-blur-xl ${
           compact ? "max-w-md" : "max-w-3xl"
@@ -88,21 +111,25 @@ export function DynamicIsland({
         animate={{ opacity: 1, y: 0 }}
         transition={islandTransition}
       >
-        <motion.div layout className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
-          <motion.span
+        <m.div layout className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+          <m.span
             layout
             className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-white"
           >
-            <picture>
-              <img src={LOGO} alt="JobIt" className="size-full rounded-full" />
-            </picture>
-          </motion.span>
+            <img
+              alt="JobIt"
+              className="size-full rounded-full"
+              height={32}
+              src="/icon-64.png"
+              width={32}
+            />
+          </m.span>
 
-          <motion.div layout className="min-w-0 flex-1">
+          <m.div layout className="min-w-0 flex-1">
             <h1 className="text-[15px] leading-tight font-semibold tracking-tight">JobIt</h1>
             <AnimatePresence initial={false} mode="popLayout">
               {compact ? null : (
-                <motion.p
+                <m.p
                   key="full"
                   animate={{ opacity: 1 }}
                   className="truncate text-xs text-onpanel/60"
@@ -110,12 +137,12 @@ export function DynamicIsland({
                   initial={{ opacity: 0 }}
                 >
                   Ofertas de trabajo en Uruguay
-                </motion.p>
+                </m.p>
               )}
             </AnimatePresence>
-          </motion.div>
+          </m.div>
 
-          <motion.button
+          <m.button
             layout
             aria-expanded={open}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -129,75 +156,88 @@ export function DynamicIsland({
             <SlidersHorizontal aria-hidden className="size-3.5" />
             <span className="hidden sm:inline">Preferencias</span>
             {count > 0 ? <span>({count})</span> : null}
-          </motion.button>
-        </motion.div>
+          </m.button>
+        </m.div>
 
         <AnimatePresence initial={false}>
           {open ? (
-            <motion.div
+            <m.div
               key="panel"
-              animate={{ height: "auto", opacity: 1 }}
-              className="max-h-[70svh] overflow-y-auto"
-              exit={{ height: 0, opacity: 0 }}
-              initial={{ height: 0, opacity: 0 }}
+              initial={{ gridTemplateRows: "0fr", opacity: 0 }}
+              animate={{ gridTemplateRows: "1fr", opacity: 1 }}
+              /* Sin opacidad en la salida: el panel se pliega, no se desvanece
+                 primero y después se encoge, que es lo que se sentía en dos
+                 pasos. La entrada sí aparece. */
+              exit={{ gridTemplateRows: "0fr" }}
+              className="grid overflow-hidden"
               transition={islandTransition}
             >
-              <div className="flex gap-1 px-4 pt-1 pb-2">
-                {(
-                  [
-                    ["search", "Búsqueda", count],
-                    ["profile", "Perfil", studies],
-                  ] as const
-                ).map(([value, label, badge]) => (
-                  <button
-                    key={value}
-                    aria-pressed={tab === value}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      tab === value
-                        ? "bg-onpanel/15 text-onpanel"
-                        : "text-onpanel/55 hover:text-onpanel"
-                    }`}
-                    type="button"
-                    onClick={() => setTab(value)}
-                  >
-                    {label}
-                    {badge > 0 ? <span className="ml-1 tabular-nums">({badge})</span> : null}
-                  </button>
-                ))}
-              </div>
+              <div className="max-h-[70svh] min-h-0 overflow-y-auto" ref={scroller}>
+                <div className="sticky top-0 z-10 flex gap-1 bg-panel px-4 pt-1 pb-2">
+                  {(
+                    [
+                      ["search", "Búsqueda", count],
+                      ["profile", "Perfil", studies],
+                      ["account", "Cuenta", 0],
+                    ] as const
+                  ).map(([value, label, badge]) => (
+                    <button
+                      key={value}
+                      aria-pressed={tab === value}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                        tab === value
+                          ? "bg-onpanel/15 text-onpanel"
+                          : "text-onpanel/55 hover:text-onpanel"
+                      }`}
+                      type="button"
+                      onClick={() => setTab(value)}
+                    >
+                      {label}
+                      {badge > 0 ? <span className="ml-1 tabular-nums">({badge})</span> : null}
+                    </button>
+                  ))}
+                </div>
 
-              {tab === "search" ? (
-                <PreferencesPanel
-                  categories={categories}
-                  departments={departments}
-                  meta={meta}
-                  feedResults={feedResults}
-                  feeds={feeds}
-                  feedsLoading={feedsLoading}
-                  preferences={preferences}
-                  sources={sources}
-                  onChange={onChangePreferences}
-                  onChangeFeeds={onChangeFeeds}
-                  onChangeSources={onChangeSources}
-                />
-              ) : (
-                <ProfilePanel
-                  categories={categories}
-                  counts={counts}
-                  preferences={preferences}
-                  profile={profile}
-                  theme={theme}
-                  usage={usage}
-                  onChange={onChangeProfile}
-                  onChangeTheme={onChangeTheme}
-                  onEraseEverything={onEraseEverything}
-                  onImportCv={onImportCv}
-                />
-              )}
-            </motion.div>
+                {tab === "search" ? (
+                  <PreferencesPanel
+                    categories={categories}
+                    departments={departments}
+                    meta={meta}
+                    feedResults={feedResults}
+                    feeds={feeds}
+                    feedsLoading={feedsLoading}
+                    preferences={preferences}
+                    sources={sources}
+                    onChange={onChangePreferences}
+                    onChangeFeeds={onChangeFeeds}
+                    onChangeSources={onChangeSources}
+                  />
+                ) : tab === "profile" ? (
+                  <ProfilePanel
+                    categories={categories}
+                    counts={counts}
+                    preferences={preferences}
+                    profile={profile}
+                    theme={theme}
+                    usage={usage}
+                    onChange={onChangeProfile}
+                    onChangeTheme={onChangeTheme}
+                    onEraseEverything={onEraseEverything}
+                    onImportCv={onImportCv}
+                  />
+                ) : (
+                  <AccountSection
+                    ready={session.ready}
+                    sync={sync}
+                    user={session.user}
+                    onUser={session.setUser}
+                  />
+                )}
+              </div>
+            </m.div>
           ) : null}
         </AnimatePresence>
-      </motion.header>
+      </m.header>
     </div>
   );
 }

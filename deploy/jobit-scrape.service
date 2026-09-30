@@ -1,0 +1,50 @@
+[Unit]
+Description=JobIt scrape
+Documentation=https://github.com/faku-org/jobit
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jobit
+Group=jobit
+# El cwd es worker/ a propósito: ahí Bun carga worker/.env, que es donde viven
+# JOBIT_SCRAPE_PROXY (la salida por el egress de la PC) y JOBIT_HEARTBEAT_URL.
+WorkingDirectory=/srv/jobit/worker
+# Bun propio en /opt/bun: ProtectHome=true aísla /home, donde vive el bun de
+# hermes. Tras un upgrade de bun de hermes, refrescar con:
+#   sudo cp $(readlink -f /usr/local/bin/bun) /opt/bun/bun
+ExecStart=/opt/bun/bun run src/index.ts
+
+# La primera corrida baja ~2000 detalles y tarda; después solo los nuevos.
+TimeoutStartSec=40min
+# El worker trabaja contra un sitio ajeno: una pausa entre pedidos ya la hace
+# él (http.ts); esto es el techo de cuánto puede durar la corrida entera.
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+# El cache de detalles y el jobs.json son lo único que se escribe.
+ReadWritePaths=/srv/jobit/worker/output /srv/jobit/worker/cache
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+LockPersonality=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Bun compila en caliente y necesita páginas escribibles y ejecutables.
+MemoryDenyWriteExecute=false
+
+LimitNOFILE=8192
+MemoryMax=768M

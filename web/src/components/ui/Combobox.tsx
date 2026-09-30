@@ -1,9 +1,9 @@
 import { Check, ChevronDown, Search, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, m } from "motion/react";
+import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable.ts";
 import { type CatalogEntry, groupCatalog, searchCatalog } from "../../lib/catalog.ts";
-import { fadeUpTransition } from "../../lib/motion.ts";
+import { fadeUpTransition, revealPresence } from "../../lib/motion.ts";
 
 interface ComboboxProps<T extends CatalogEntry> {
   label: string;
@@ -37,6 +37,9 @@ export function Combobox<T extends CatalogEntry>({
   const [active, setActive] = useState(0);
   const container = useDismissable<HTMLDivElement>(open, () => setOpen(false));
   const list = useRef<HTMLDivElement>(null);
+  /** El input tiene `role="combobox"`, y un combobox sin `aria-controls` no le
+   * dice al lector de pantalla qué lista está abriendo. */
+  const listId = useId();
   const input = useRef<HTMLInputElement>(null);
 
   const full = selected.length >= max;
@@ -47,13 +50,24 @@ export function Combobox<T extends CatalogEntry>({
   const { options, groups } = useMemo(() => {
     const chosen = new Set(selected);
     const found = searchCatalog(entries, query).filter((entry) => !chosen.has(entry.id));
-    let index = -1;
-    const numbered = groupCatalog(found).map(
-      ([group, items]) =>
-        [group, items.map((entry) => ({ entry, index: ++index }))] as [
-          string,
-          { entry: T; index: number }[],
-        ],
+    /** La posición plana sale de contar lo que quedó atrás, y no de un
+     * contador que se va incrementando adentro del map: una variable que se
+     * reasigna mientras se renderiza le hace perder al compilador la
+     * memoización de todo el componente. */
+    const grouped = groupCatalog(found);
+    const starts = grouped.reduce<number[]>(
+      (acc, [, items]) => {
+        acc.push((acc[acc.length - 1] ?? 0) + items.length);
+        return acc;
+      },
+      [0],
+    );
+    const numbered = grouped.map(
+      ([group, items], group_index) =>
+        [
+          group,
+          items.map((entry, offset) => ({ entry, index: (starts[group_index] ?? 0) + offset })),
+        ] as [string, { entry: T; index: number }[]],
     );
     return { options: found, groups: numbered };
   }, [entries, query, selected]);
@@ -145,6 +159,7 @@ export function Combobox<T extends CatalogEntry>({
         <input
           ref={input}
           aria-autocomplete="list"
+          aria-controls={listId}
           aria-expanded={open}
           aria-label={label}
           className="w-full rounded-lg border border-onpanel/20 bg-onpanel/5 py-1.5 pr-8 pl-8 text-xs text-onpanel outline-none transition-colors placeholder:text-onpanel-faint focus:border-sky disabled:opacity-50"
@@ -172,50 +187,51 @@ export function Combobox<T extends CatalogEntry>({
           Combobox scroll, and an absolutely placed list is clipped by them. */}
       <AnimatePresence>
         {open && !full ? (
-          <motion.div
+          <m.div
             ref={list}
-            animate={{ opacity: 1, height: "auto" }}
-            className="mt-1 max-h-56 overflow-y-auto rounded-xl border border-onpanel/20 bg-onpanel/5 p-1"
-            exit={{ opacity: 0, height: 0 }}
-            initial={{ opacity: 0, height: 0 }}
+            {...revealPresence}
+            id={listId}
+            className="mt-1 grid overflow-hidden rounded-xl border border-onpanel/20 bg-onpanel/5"
             role="listbox"
             transition={fadeUpTransition}
           >
-            {options.length === 0 ? (
-              <p className="px-2.5 py-3 text-center text-[11px] text-onpanel-muted">
-                No hay nada con ese nombre en la lista.
-              </p>
-            ) : (
-              groups.map(([group, items]) => (
-                <div key={group}>
-                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold tracking-wide text-onpanel-faint uppercase">
-                    {group}
-                  </p>
-                  {items.map(({ entry, index }) => (
-                    <button
-                      key={entry.id}
-                      aria-selected={index === active}
-                      className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
-                        index === active
-                          ? "bg-onpanel/15 text-onpanel"
-                          : "text-onpanel/75 hover:bg-onpanel-wash"
-                      }`}
-                      data-index={index}
-                      role="option"
-                      type="button"
-                      onClick={() => pick(entry.id)}
-                      onMouseEnter={() => setActive(index)}
-                    >
-                      <span className="truncate">{entry.label}</span>
-                      {index === active ? (
-                        <Check aria-hidden className="size-3 shrink-0 text-sky" />
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
-              ))
-            )}
-          </motion.div>
+            <div className="min-h-0 max-h-56 overflow-y-auto p-1">
+              {options.length === 0 ? (
+                <p className="px-2.5 py-3 text-center text-[11px] text-onpanel-muted">
+                  No hay nada con ese nombre en la lista.
+                </p>
+              ) : (
+                groups.map(([group, items]) => (
+                  <div key={group}>
+                    <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold tracking-wide text-onpanel-faint uppercase">
+                      {group}
+                    </p>
+                    {items.map(({ entry, index }) => (
+                      <button
+                        key={entry.id}
+                        aria-selected={index === active}
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
+                          index === active
+                            ? "bg-onpanel/15 text-onpanel"
+                            : "text-onpanel/75 hover:bg-onpanel-wash"
+                        }`}
+                        data-index={index}
+                        role="option"
+                        type="button"
+                        onClick={() => pick(entry.id)}
+                        onMouseEnter={() => setActive(index)}
+                      >
+                        <span className="truncate">{entry.label}</span>
+                        {index === active ? (
+                          <Check aria-hidden className="size-3 shrink-0 text-sky" />
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </div>

@@ -11,7 +11,7 @@ import {
   Tag as TagIcon,
   Wallet,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable.ts";
 import {
@@ -22,6 +22,7 @@ import {
   formatSalary,
   relativeDate,
 } from "../../lib/format.ts";
+import { formatWeeklyHours, jobWeeklyHours } from "../../lib/schedule.ts";
 import { type Profile, meetsEducation } from "../../lib/profile.ts";
 import { fadeUpTransition } from "../../lib/motion.ts";
 import { chipClass, menuItemClass, mutedChip, popoverClass } from "../../lib/styles.ts";
@@ -84,7 +85,7 @@ function TagChip({ tag, actions, icon: Icon, tone = mutedChip }: TagChipProps) {
 
   return (
     <span ref={container} className="relative inline-flex">
-      <motion.button
+      <m.button
         aria-expanded={open}
         aria-haspopup="menu"
         className={`${tone} transition-colors hover:text-ink ${
@@ -97,11 +98,11 @@ function TagChip({ tag, actions, icon: Icon, tone = mutedChip }: TagChipProps) {
         {Icon ? <Icon aria-hidden className="size-3.5" /> : null}
         {tag.label.charAt(0).toUpperCase() + tag.label.slice(1)}
         {preferred ? <Star aria-hidden className="size-3 fill-current text-brand" /> : null}
-      </motion.button>
+      </m.button>
 
       <AnimatePresence>
         {open ? (
-          <motion.div
+          <m.div
             animate={{ opacity: 1, y: 0 }}
             className={`${popoverClass} top-full left-0 mt-1 w-52`}
             exit={{ opacity: 0, y: -4 }}
@@ -129,7 +130,7 @@ function TagChip({ tag, actions, icon: Icon, tone = mutedChip }: TagChipProps) {
                 {preferred ? "Quitar de prioridades" : "Priorizar este tag"}
               </MenuItem>
             ) : null}
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </span>
@@ -143,6 +144,7 @@ export function JobChips({ job, actions }: JobChipsProps) {
   const mode = workMode(job);
   const closing = closesIn(job.closes_at);
   const meets = meetsEducation(job, actions.profile);
+  const hours = jobWeeklyHours(job);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -235,7 +237,12 @@ export function JobChips({ job, actions }: JobChipsProps) {
         </span>
       ) : null}
 
-      {job.schedule ? (
+      {hours !== null ? (
+        <span className={mutedChip} title={job.schedule ?? undefined}>
+          <CalendarClock aria-hidden className="size-3.5" />
+          {formatWeeklyHours(hours)}
+        </span>
+      ) : job.schedule ? (
         <span className={mutedChip}>
           <CalendarClock aria-hidden className="size-3.5" />
           {job.schedule.charAt(0).toUpperCase() + job.schedule.slice(1)}

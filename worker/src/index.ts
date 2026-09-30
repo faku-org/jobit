@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { DetailCache } from "./cache.ts";
 import { dedupe } from "./dedupe.ts";
+import { proxyDescription } from "./http.ts";
 import { keepIfEmpty } from "./keep.ts";
 import { toJob } from "./normalize.ts";
 import { buscojobs } from "./sources/buscojobs.ts";
@@ -80,15 +81,36 @@ async function readPrevious(): Promise<Job[] | undefined> {
   }
 }
 
+/** El worker solo avisa por acá cuando BuscoJobs vino fresco: es el canario de
+ * que la salida (el egress de la PC o el proxy) sigue viva. Si deja de llegar,
+ * un monitor externo avisa. Uruguay Concursa no lo dispara a propósito, porque
+ * esa fuente no bloquea y no dice nada de la otra. */
+const HEARTBEAT_URL = (process.env.JOBIT_HEARTBEAT_URL ?? "").trim();
+
+async function heartbeat(total: number): Promise<void> {
+  if (!HEARTBEAT_URL) return;
+
+  const separator = HEARTBEAT_URL.includes("?") ? "&" : "?";
+  try {
+    await fetch(`${HEARTBEAT_URL}${separator}total=${total}`);
+    log("heartbeat enviado (BuscoJobs fresco)");
+  } catch (cause) {
+    console.warn(`no se pudo mandar el heartbeat: ${String(cause)}`);
+  }
+}
+
 async function run(): Promise<void> {
   const options = parseArgs(Bun.argv.slice(2));
   const startedAt = Date.now();
   const cache = await DetailCache.load();
   const previous = await readPrevious();
   log(`cache: ${cache.size} detalles`);
+  log(`salida: ${proxyDescription()}`);
 
   const jobs: Job[] = [];
   const liveKeys = new Set<string>();
+  /** Las fuentes que trajeron algo en esta corrida, en vez de conservarse. */
+  const fresh = new Set<string>();
 
   for (const source of SOURCES) {
     log(`\n[${source.id}] recolectando listados`);
@@ -108,6 +130,7 @@ async function run(): Promise<void> {
       continue;
     }
 
+    fresh.add(source.id);
     for (const stub of stubs) liveKeys.add(`${source.id}:${stub.source_id}`);
     jobs.push(...(await enrich(source, stubs, cache, options)));
   }
@@ -126,6 +149,9 @@ async function run(): Promise<void> {
   };
 
   await Bun.write(OUTPUT_PATH, `${JSON.stringify(payload, null, 2)}\n`);
+
+  if (fresh.has("buscojobs")) await heartbeat(merged.length);
+  else log("\nBuscoJobs no vino fresco: no se manda heartbeat");
 
   const withDescription = merged.filter((job) => job.description.length > 0).length;
   const firstJob = merged.filter((job) => job.no_experience).length;

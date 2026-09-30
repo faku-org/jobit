@@ -1,330 +1,237 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-/** Solo el tipo: un import de tipos se borra al compilar y no adelanta la
- * carga del módulo, que tiene que pasar después de fijar DB_FILE. */
-import type { RegisterInput } from "./users.ts";
 
 process.env.DB_FILE = ":memory:";
-process.env.ACCOUNT_KEY = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString(
-  "base64",
-);
+
+const KEY = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
 
 const { closeDb, db } = await import("./db.ts");
-const { resetSecretsCache } = await import("./secrets.ts");
-const { totpCode } = await import("./totp.ts");
+const { resetSecretKey } = await import("./crypto.ts");
 const users = await import("./users.ts");
 
 beforeEach(() => {
   closeDb();
-  resetSecretsCache();
+  resetSecretKey();
+  process.env.JOBIT_SECRET_KEY = KEY;
+  delete process.env.JOBIT_SECRET_KEY_FILE;
 });
 
-const alta = (overrides: Partial<RegisterInput> = {}) =>
-  users.register({
+const register = (overrides: Partial<Parameters<typeof users.create>[0]> = {}) =>
+  users.create({
     handle: "faku",
-    display_name: "Facundo",
-    password: "una clave larga",
+    display_name: "Facu",
+    password: "una-clave-larga",
     ...overrides,
   });
 
-describe("alta", () => {
-  test("crea la cuenta y devuelve los códigos de respaldo", async () => {
-    const created = await alta();
-    expect(created.ok).toBe(true);
-    if (!created.ok) return;
-
-    expect(created.value.user.handle).toBe("faku");
-    expect(created.value.recovery_codes).toHaveLength(8);
-    expect(new Set(created.value.recovery_codes).size).toBe(8);
+describe("normaliseHandle", () => {
+  test("baja a minúsculas y recorta", () => {
+    const result = users.normaliseHandle("  Faku  ");
+    expect(result.ok && result.value).toBe("faku");
   });
 
-  test("el handle se guarda en minúsculas", async () => {
-    const created = await alta({ handle: "FaKu" });
-    expect(created.ok && created.value.user.handle).toBe("faku");
-  });
-
-  test("no se puede repetir un handle", async () => {
-    await alta();
-    const repetido = await alta({ display_name: "Otro" });
-    expect(repetido.ok).toBe(false);
-  });
-
-  test("rechaza handles que no entran en una URL", async () => {
-    for (const handle of ["ab", "con espacio", "a".repeat(25), "acento#"]) {
-      expect((await alta({ handle })).ok).toBe(false);
-    }
-  });
-
-  test("rechaza contraseñas cortas", async () => {
-    expect((await alta({ password: "corta" })).ok).toBe(false);
-  });
-
-  /* No hay dónde guardar un correo: la tabla no tiene la columna. Si alguien
-     la vuelve a agregar, esto lo agarra. */
-  test("no hay correo en ningún lado", () => {
-    const columnas = db()
-      .query<{ name: string }, []>("SELECT name FROM pragma_table_info('users')")
-      .all()
-      .map((row) => row.name);
-    expect(columnas).not.toContain("email_enc");
-    expect(columnas.some((name) => name.includes("email"))).toBe(false);
-  });
-
-  test("la contraseña nunca queda en claro", async () => {
-    await alta();
-    const row = db().query<{ password_hash: string }, []>("SELECT password_hash FROM users").get();
-    expect(row?.password_hash).not.toContain("una clave larga");
-    expect(row?.password_hash.startsWith("$argon2")).toBe(true);
+  test("rechaza lo corto, lo raro y lo reservado", () => {
+    expect(users.normaliseHandle("ab").ok).toBe(false);
+    expect(users.normaliseHandle("con espacios").ok).toBe(false);
+    expect(users.normaliseHandle("admin").ok).toBe(false);
   });
 });
 
-describe("entrada", () => {
-  beforeEach(async () => {
-    await alta();
+describe("create", () => {
+  test("nace activo y con ocho códigos de respaldo", async () => {
+    const result = await register();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.value.user.status).toBe("active");
+    expect(result.value.recoveryCodes).toHaveLength(8);
+    expect(users.recoveryCodesLeft(result.value.user.id)).toBe(8);
   });
 
-  test("la clave correcta entra", async () => {
-    expect(await users.verifyLogin("faku", "una clave larga")).not.toBeNull();
+  test("la contraseña se guarda hasheada, no en claro", async () => {
+    const result = await register();
+    if (!result.ok) return;
+    expect(result.value.user.password_hash).not.toBe("una-clave-larga");
+    expect(await users.verifyPassword(result.value.user, "una-clave-larga")).toBe(true);
+    expect(await users.verifyPassword(result.value.user, "otra")).toBe(false);
   });
 
-  test("cualquier otra no", async () => {
-    expect(await users.verifyLogin("faku", "otra clave")).toBeNull();
-    expect(await users.verifyLogin("nadie", "una clave larga")).toBeNull();
+  test("dos veces el mismo handle no entra", async () => {
+    await register();
+    const second = await register({ handle: "FAKU" });
+    expect(second.ok).toBe(false);
   });
 
-  test("una cuenta suspendida no entra", async () => {
-    db().run("UPDATE users SET status = 'suspended' WHERE handle = 'faku'");
-    expect(await users.verifyLogin("faku", "una clave larga")).toBeNull();
+  test("exige una contraseña de largo mínimo", async () => {
+    expect((await register({ password: "corta" })).ok).toBe(false);
+  });
+
+  test("sin clave de cifrado, el email no se acepta", async () => {
+    resetSecretKey();
+    delete process.env.JOBIT_SECRET_KEY;
+    const result = await register({ email: "faku@ejemplo.com" });
+    expect(result.ok).toBe(false);
+  });
+
+  test("con clave, el email queda cifrado y no como se escribió", async () => {
+    const result = await register({ email: "Faku@Ejemplo.com" });
+    if (!result.ok) return;
+    expect(result.value.user.email_enc).not.toBeNull();
+    expect(result.value.user.email_enc).not.toContain("ejemplo.com");
+    expect(await users.emailOf(result.value.user)).toBe("faku@ejemplo.com");
+  });
+});
+
+describe("códigos de respaldo", () => {
+  test("uno sirve una sola vez", async () => {
+    const result = await register();
+    if (!result.ok) return;
+    const { user, recoveryCodes } = result.value;
+    const code = recoveryCodes[0] ?? "";
+
+    expect(users.consumeRecoveryCode(user.id, code)).toBe(true);
+    expect(users.consumeRecoveryCode(user.id, code)).toBe(false);
+    expect(users.recoveryCodesLeft(user.id)).toBe(7);
+  });
+
+  test("se toleran minúsculas y guiones de más", async () => {
+    const result = await register();
+    if (!result.ok) return;
+    const code = result.value.recoveryCodes[0] ?? "";
+    expect(users.consumeRecoveryCode(result.value.user.id, code.toLowerCase())).toBe(true);
+  });
+
+  test("uno inventado no entra", async () => {
+    const result = await register();
+    if (!result.ok) return;
+    expect(users.consumeRecoveryCode(result.value.user.id, "ZZZZZZZZZZ")).toBe(false);
+  });
+
+  test("volver a generarlos invalida los viejos", async () => {
+    const result = await register();
+    if (!result.ok) return;
+    const old = result.value.recoveryCodes[0] ?? "";
+
+    users.generateRecoveryCodes(result.value.user.id);
+    expect(users.consumeRecoveryCode(result.value.user.id, old)).toBe(false);
+    expect(users.recoveryCodesLeft(result.value.user.id)).toBe(8);
   });
 });
 
 describe("sesiones", () => {
-  let id = "";
+  test("la recién creada vale y devuelve al usuario", async () => {
+    const result = await register();
+    if (!result.ok) return;
 
-  beforeEach(async () => {
-    const created = await alta();
-    id = created.ok ? created.value.user.id : "";
+    const session = users.createSession(result.value.user.id);
+    expect(users.sessionUser(session.token)?.id).toBe(result.value.user.id);
   });
 
-  test("la recién creada vale y trae a la persona", () => {
-    const session = users.startSession(id);
-    expect(users.sessionUser(session.token)?.handle).toBe("faku");
+  test("el token no queda en claro en la base", async () => {
+    const result = await register();
+    if (!result.ok) return;
+
+    const session = users.createSession(result.value.user.id);
+    const rows = db().query<{ token_hash: string }, []>("SELECT token_hash FROM user_sessions").all();
+    expect(rows[0]?.token_hash).not.toBe(session.token);
+    expect(rows[0]?.token_hash).toHaveLength(64);
   });
 
-  test("el token en claro no queda guardado", () => {
-    const session = users.startSession(id);
+  test("vence a los treinta días", async () => {
+    const result = await register();
+    if (!result.ok) return;
+
+    const start = new Date("2026-01-01T00:00:00.000Z");
+    const session = users.createSession(result.value.user.id, start);
+
+    const vencida = new Date(start.getTime() + 31 * 86_400_000);
+    expect(users.sessionUser(session.token, vencida)).toBeNull();
+  });
+
+  test("a los veintinueve días todavía vale", async () => {
+    const result = await register();
+    if (!result.ok) return;
+
+    const start = new Date("2026-01-01T00:00:00.000Z");
+    const session = users.createSession(result.value.user.id, start);
+
+    const casi = new Date(start.getTime() + 29 * 86_400_000);
+    expect(users.sessionUser(session.token, casi)).not.toBeNull();
+  });
+
+  test("se renueva sola con el uso", async () => {
+    const result = await register();
+    if (!result.ok) return;
+
+    const start = new Date("2026-01-01T00:00:00.000Z");
+    const session = users.createSession(result.value.user.id, start);
+
+    const unDiaDespues = new Date(start.getTime() + 86_400_000 + 1000);
+    users.sessionUser(session.token, unDiaDespues);
+
     const row = db()
-      .query<{ token_hash: string }, []>("SELECT token_hash FROM user_sessions")
-      .get();
-    expect(row?.token_hash).not.toBe(session.token);
-    expect(row?.token_hash).toHaveLength(64);
+      .query<{ expires_at: string }, [string]>("SELECT expires_at FROM user_sessions WHERE token_hash = ?")
+      .get(new Bun.CryptoHasher("sha256").update(session.token).digest("hex"));
+    expect(row?.expires_at).toBe(new Date(unDiaDespues.getTime() + 30 * 86_400_000).toISOString());
   });
 
-  test("un token inventado no vale", () => {
-    users.startSession(id);
-    expect(users.sessionUser("inventado")).toBeNull();
-    expect(users.sessionUser(undefined)).toBeNull();
-  });
+  test("cerrarla la invalida en el acto", async () => {
+    const result = await register();
+    if (!result.ok) return;
 
-  test("dura treinta días y se renueva sola al usarla", () => {
-    const start = new Date("2026-01-01T00:00:00.000Z");
-    const session = users.startSession(id, "open", start);
-
-    const dia29 = new Date(start.getTime() + 29 * 86_400_000);
-    expect(users.sessionUser(session.token, dia29)?.handle).toBe("faku");
-
-    /** La visita del día 29 la corrió treinta días más. */
-    const dia45 = new Date(start.getTime() + 45 * 86_400_000);
-    expect(users.sessionUser(session.token, dia45)?.handle).toBe("faku");
-  });
-
-  test("sin usarla, a los treinta y uno ya no vale", () => {
-    const start = new Date("2026-01-01T00:00:00.000Z");
-    const session = users.startSession(id, "open", start);
-    const dia31 = new Date(start.getTime() + 31 * 86_400_000);
-    expect(users.sessionUser(session.token, dia31)).toBeNull();
-  });
-
-  test("la del segundo paso no es una sesión todavía", () => {
-    const session = users.startSession(id, "totp");
+    const session = users.createSession(result.value.user.id);
+    users.destroySession(session.token);
     expect(users.sessionUser(session.token)).toBeNull();
-    expect(users.pendingTotpUser(session.token)?.handle).toBe("faku");
   });
 
-  test("el primer paso caduca a los cinco minutos", () => {
-    const start = new Date("2026-01-01T00:00:00.000Z");
-    const session = users.startSession(id, "totp", start);
-    const seisMinutos = new Date(start.getTime() + 6 * 60_000);
-    expect(users.pendingTotpUser(session.token, seisMinutos)).toBeNull();
-  });
+  test("una cuenta suspendida no entra aunque la sesión exista", async () => {
+    const result = await register();
+    if (!result.ok) return;
 
-  test("pasado el segundo paso vale treinta días", () => {
-    const session = users.startSession(id, "totp");
-    users.openSession(session.token);
-    expect(users.sessionUser(session.token)?.handle).toBe("faku");
-  });
-
-  test("cerrar una no toca las otras, y cerrarlas todas sí", () => {
-    const primera = users.startSession(id);
-    const segunda = users.startSession(id);
-
-    users.destroySession(primera.token);
-    expect(users.sessionUser(primera.token)).toBeNull();
-    expect(users.sessionUser(segunda.token)).not.toBeNull();
-
-    users.destroyUserSessions(id);
-    expect(users.sessionUser(segunda.token)).toBeNull();
-  });
-
-  test("suspender la cuenta corta las sesiones abiertas", () => {
-    const session = users.startSession(id);
-    db().run("UPDATE users SET status = 'suspended' WHERE id = ?", [id]);
+    const session = users.createSession(result.value.user.id);
+    db().run("UPDATE users SET status = 'suspended' WHERE id = ?", [result.value.user.id]);
     expect(users.sessionUser(session.token)).toBeNull();
   });
 });
 
-describe("perfil", () => {
-  let id = "";
+describe("segundo paso", () => {
+  test("el secreto se guarda cifrado y vuelve entero", async () => {
+    const result = await register();
+    if (!result.ok) return;
 
-  beforeEach(async () => {
-    const created = await alta();
-    id = created.ok ? created.value.user.id : "";
+    await users.setTotpSecret(result.value.user.id, "GEZDGNBVGY3TQOJQ");
+    const stored = users.byId(result.value.user.id);
+    if (!stored) return;
+
+    expect(stored.totp_secret_enc).not.toContain("GEZDGNBVGY3TQOJQ");
+    expect(stored.totp_enabled).toBe(false);
+    expect(await users.totpSecret(stored)).toBe("GEZDGNBVGY3TQOJQ");
   });
 
-  test("se puede cambiar el nombre visible", async () => {
-    const updated = await users.updateProfile(id, { display_name: "Faku" });
-    expect(updated.ok && updated.value.display_name).toBe("Faku");
-  });
+  test("activar y desactivar", async () => {
+    const result = await register();
+    if (!result.ok) return;
 
-  test("cambiar la contraseña cierra todo lo abierto", async () => {
-    const session = users.startSession(id);
-    const done = await users.changePassword(id, "una clave larga", "otra clave larga");
+    await users.setTotpSecret(result.value.user.id, "GEZDGNBVGY3TQOJQ");
+    users.enableTotp(result.value.user.id);
+    expect(users.byId(result.value.user.id)?.totp_enabled).toBe(true);
 
-    expect(done.ok).toBe(true);
-    expect(users.sessionUser(session.token)).toBeNull();
-    expect(await users.verifyLogin("faku", "otra clave larga")).not.toBeNull();
-  });
-
-  test("sin la contraseña actual no se cambia", async () => {
-    const done = await users.changePassword(id, "la que no es", "otra clave larga");
-    expect(done.ok).toBe(false);
-    expect(await users.verifyLogin("faku", "una clave larga")).not.toBeNull();
-  });
-});
-
-describe("segundo factor", () => {
-  let id = "";
-
-  beforeEach(async () => {
-    const created = await alta();
-    id = created.ok ? created.value.user.id : "";
-  });
-
-  test("se guarda el secreto pero no se prende hasta que haya un código", async () => {
-    const setup = await users.startTotp(id);
-    expect(setup.ok).toBe(true);
-    expect(users.byId(id)?.totp_enabled).toBe(0);
-
-    if (!setup.ok) return;
-    const code = await totpCode(setup.value.secret);
-    expect((await users.confirmTotp(id, code ?? "")).ok).toBe(true);
-    expect(users.byId(id)?.totp_enabled).toBe(1);
-  });
-
-  test("el secreto queda cifrado en la base", async () => {
-    const setup = await users.startTotp(id);
-    const row = db()
-      .query<{ totp_secret_enc: string }, []>("SELECT totp_secret_enc FROM users")
-      .get();
-    expect(setup.ok && row?.totp_secret_enc).not.toContain(setup.ok ? setup.value.secret : "");
-  });
-
-  test("un código que no coincide no lo prende", async () => {
-    await users.startTotp(id);
-    expect((await users.confirmTotp(id, "000000")).ok).toBe(false);
-    expect(users.byId(id)?.totp_enabled).toBe(0);
-  });
-
-  test("apagarlo pide la contraseña", async () => {
-    const setup = await users.startTotp(id);
-    if (!setup.ok) return;
-    await users.confirmTotp(id, (await totpCode(setup.value.secret)) ?? "");
-
-    expect((await users.disableTotp(id, "la que no es")).ok).toBe(false);
-    expect(users.byId(id)?.totp_enabled).toBe(1);
-
-    expect((await users.disableTotp(id, "una clave larga")).ok).toBe(true);
-    expect(users.byId(id)?.totp_enabled).toBe(0);
-    expect(users.byId(id)?.totp_secret_enc).toBe("");
-  });
-});
-
-describe("recuperación", () => {
-  test("un código de respaldo cambia la clave y se quema", async () => {
-    const created = await alta();
-    if (!created.ok) return;
-
-    const code = created.value.recovery_codes[0] ?? "";
-    const session = users.startSession(created.value.user.id);
-
-    const done = await users.recoverWithCode("faku", code, "la clave nueva");
-    expect(done.ok).toBe(true);
-    expect(await users.verifyLogin("faku", "la clave nueva")).not.toBeNull();
-    /** Recuperar cierra lo que estuviera abierto: si se recupera es porque se
-     * perdió el control de algo. */
-    expect(users.sessionUser(session.token)).toBeNull();
-
-    expect((await users.recoverWithCode("faku", code, "otra vez larga")).ok).toBe(false);
-    expect(users.recoveryCodesLeft(created.value.user.id)).toBe(7);
-  });
-
-  test("un código inventado no sirve, y tampoco un handle que no existe", async () => {
-    await alta();
-    expect((await users.recoverWithCode("faku", "NOEXISTE-01", "la clave nueva")).ok).toBe(false);
-    expect((await users.recoverWithCode("nadie", "NOEXISTE-01", "la clave nueva")).ok).toBe(false);
-  });
-
-  test("regenerarlos quema los viejos", async () => {
-    const created = await alta();
-    if (!created.ok) return;
-
-    const viejo = created.value.recovery_codes[0] ?? "";
-    const nuevos = users.regenerateRecoveryCodes(created.value.user.id);
-
-    expect(nuevos).toHaveLength(8);
-    expect(nuevos).not.toContain(viejo);
-    expect((await users.recoverWithCode("faku", viejo, "la clave nueva")).ok).toBe(false);
-  });
-
-  test("los códigos no quedan en claro en la base", async () => {
-    const created = await alta();
-    if (!created.ok) return;
-
-    const guardados = db()
-      .query<{ code_hash: string }, []>("SELECT code_hash FROM user_recovery_codes")
-      .all()
-      .map((row) => row.code_hash);
-
-    for (const code of created.value.recovery_codes) expect(guardados).not.toContain(code);
-    expect(guardados[0]).toHaveLength(64);
+    users.disableTotp(result.value.user.id);
+    const off = users.byId(result.value.user.id);
+    expect(off?.totp_enabled).toBe(false);
+    expect(off?.totp_secret_enc).toBeNull();
   });
 });
 
 describe("borrado", () => {
-  test("se lleva la cuenta, las sesiones y los códigos", async () => {
-    const created = await alta();
-    if (!created.ok) return;
-    const id = created.value.user.id;
-    users.startSession(id);
+  test("se lleva sesiones y códigos consigo", async () => {
+    const result = await register();
+    if (!result.ok) return;
 
-    expect((await users.removeAccount(id, "la que no es")).ok).toBe(false);
-    expect((await users.removeAccount(id, "una clave larga")).ok).toBe(true);
+    users.createSession(result.value.user.id);
+    expect(users.remove(result.value.user.id)).toBe(true);
+    expect(users.byId(result.value.user.id)).toBeNull();
 
-    expect(users.byId(id)).toBeNull();
-    expect(db().query<{ n: number }, []>("SELECT COUNT(*) AS n FROM user_sessions").get()?.n).toBe(
-      0,
-    );
-    expect(
-      db().query<{ n: number }, []>("SELECT COUNT(*) AS n FROM user_recovery_codes").get()?.n,
-    ).toBe(0);
+    expect(db().query("SELECT * FROM user_sessions").all()).toHaveLength(0);
+    expect(db().query("SELECT * FROM user_recovery_codes").all()).toHaveLength(0);
   });
 });

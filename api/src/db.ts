@@ -73,42 +73,29 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 
 CREATE INDEX IF NOT EXISTS admin_sessions_expiry ON admin_sessions (expires_at);
 
-/* --- Cuentas de personas ------------------------------------------------
-   Nada que ver con admin_sessions: un usuario no es un admin y las dos
-   sesiones no se cruzan. Se guarda lo mínimo para que alguien pueda volver a
-   entrar y editar lo suyo, y ni un campo más: no hay IP, no hay user agent, no
-   hay historial de inicios de sesión.
-
-   No hay correo. Se guardaba cifrado, pero con una clave que tiene JobIt: lo
-   habría podido leer, y la regla es que a los datos de una persona llegan esa
-   persona y la empresa a la que le escribió, nadie más. Guardarlo "por si
-   después sirve" es justo lo que la política dice que no se hace.
-
-   El secreto TOTP sí queda, cifrado, y es la excepción conocida: verificar un
-   código exige tener el secreto. La salida es WebAuthn, donde el servidor
-   guarda una clave pública y verifica una firma. Ver docs/cero-acceso.md. */
+/* Quien publica un servicio. Nada de esto se cruza con el admin: son dos
+   sesiones distintas y ninguna sirve para la otra. El email es opcional y va
+   cifrado porque solo existe para recuperar la cuenta; el secreto TOTP, por la
+   misma razón, tampoco se guarda en claro. */
 CREATE TABLE IF NOT EXISTS users (
-  id             TEXT PRIMARY KEY,
-  handle         TEXT NOT NULL UNIQUE,
-  display_name   TEXT NOT NULL,
-  password_hash  TEXT NOT NULL,
-  totp_secret_enc TEXT NOT NULL DEFAULT '',
-  totp_enabled   INTEGER NOT NULL DEFAULT 0,
-  status         TEXT NOT NULL DEFAULT 'active',
-  created_at     TEXT NOT NULL,
-  updated_at     TEXT NOT NULL
+  id              TEXT PRIMARY KEY,
+  handle          TEXT NOT NULL UNIQUE,
+  display_name    TEXT NOT NULL,
+  password_hash   TEXT NOT NULL,
+  email_enc       TEXT,
+  totp_secret_enc TEXT,
+  totp_enabled    INTEGER NOT NULL DEFAULT 0,
+  status          TEXT NOT NULL DEFAULT 'active',
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL
 );
 
-/* Igual que admin_sessions: solo el sha256 del token.
+CREATE INDEX IF NOT EXISTS users_handle ON users (handle);
 
-   "stage" separa la sesión a medio abrir de la abierta. Quien tiene 2FA pasa
-   por una fila 'totp' de cinco minutos que no sirve para nada más que para
-   mandar el código; recién ahí se convierte en 'open'. Así el segundo paso no
-   necesita otro token dando vueltas fuera de la cookie. */
+/* Igual que admin_sessions: solo el sha256 del token, nunca el token. */
 CREATE TABLE IF NOT EXISTS user_sessions (
   token_hash  TEXT PRIMARY KEY,
   user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  stage       TEXT NOT NULL DEFAULT 'open',
   created_at  TEXT NOT NULL,
   expires_at  TEXT NOT NULL,
   last_seen   TEXT NOT NULL
@@ -117,15 +104,58 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 CREATE INDEX IF NOT EXISTS user_sessions_expiry ON user_sessions (expires_at);
 CREATE INDEX IF NOT EXISTS user_sessions_user ON user_sessions (user_id);
 
-/* La única salida para quien no dejó email. Se muestran una sola vez y se
-   guardan hasheados: son aleatorios de 50 bits, así que sha256 alcanza por la
-   misma razón que alcanza para el token de sesión. */
+/* Los códigos de respaldo se guardan hasheados y se muestran una sola vez. */
 CREATE TABLE IF NOT EXISTS user_recovery_codes (
-  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  code_hash  TEXT NOT NULL,
-  used_at    TEXT NOT NULL DEFAULT '',
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code_hash TEXT NOT NULL,
+  used_at   TEXT NOT NULL DEFAULT '',
   PRIMARY KEY (user_id, code_hash)
 );
+
+/* Lo que alguien eligió llevar de un navegador a otro. Es un JSON opaco para el
+   servidor y va cifrado en reposo, igual que el email: sin clave configurada el
+   sync queda apagado. Se borra solo cuando se borra la cuenta. */
+CREATE TABLE IF NOT EXISTS user_sync (
+  user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  payload_enc TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
+
+/* La cuenta de una empresa. Va en su propia tabla y no como columnas de
+   companies para no tener que migrar la que ya existe en producción: la
+   empresa la crea el admin o se autoregistra, y esto es solo lo que la deja
+   entrar. Sin fila acá, la empresa existe pero nadie puede loguearse. */
+CREATE TABLE IF NOT EXISTS company_accounts (
+  company_id    TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  password_hash TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL
+);
+
+/* Misma regla que el resto: solo el sha256 del token, nunca el token. */
+CREATE TABLE IF NOT EXISTS company_sessions (
+  token_hash  TEXT PRIMARY KEY,
+  company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  created_at  TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  last_seen   TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS company_sessions_expiry ON company_sessions (expires_at);
+CREATE INDEX IF NOT EXISTS company_sessions_company ON company_sessions (company_id);
+
+/* Lo que ve quien publica: contadores agregados por oferta y por día, nunca
+   una fila por visita. Es la única forma de mostrar métricas sin empezar a
+   saber quién miró: el contador dice cuántas veces, no de quién. */
+CREATE TABLE IF NOT EXISTS offer_daily (
+  offer_id  TEXT NOT NULL REFERENCES offers(id) ON DELETE CASCADE,
+  day       TEXT NOT NULL,
+  views     INTEGER NOT NULL DEFAULT 0,
+  applies   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (offer_id, day)
+);
+
+CREATE INDEX IF NOT EXISTS offer_daily_offer ON offer_daily (offer_id);
 
 /* --- Servicios ----------------------------------------------------------
    Un servicio no es una oferta de empleo y no vive en "offers": el flujo de

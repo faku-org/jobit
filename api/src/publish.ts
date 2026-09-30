@@ -1,6 +1,5 @@
 import { Elysia, t } from "elysia";
-import { USER_COOKIE } from "./account.ts";
-import { accountsEnabled } from "./secrets.ts";
+import { SESSION_COOKIE } from "./account.ts";
 import * as services from "./services.ts";
 import {
   CONTACT_KINDS,
@@ -63,13 +62,8 @@ const serviceBody = t.Object({
 });
 
 export const publish = new Elysia({ prefix: "/api/services" })
-  .guard({
-    beforeHandle({ status }) {
-      if (!accountsEnabled()) return status(404, { error: "no encontrado" });
-    },
-  })
   .resolve(({ cookie, status }) => {
-    const user = users.sessionUser(tokenOf(cookie[USER_COOKIE]?.value));
+    const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
     if (!user) return status(401, { error: "sesión vencida" });
     return { user };
   })

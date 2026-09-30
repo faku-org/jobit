@@ -6,7 +6,9 @@ encontrar el primer empleo: filtros por rubro, departamento y jornada, marca de
 
 Además guarda preferencias (modalidad presencial, remota o híbrida, nivel,
 jornada y rubros): las ofertas que coinciden quedan destacadas y se pueden
-mostrar solas con "Solo similares". Todo vive en el navegador, sin cuenta.
+mostrar solas con "Solo similares". Todo vive en el navegador: buscar trabajo no
+pide cuenta. Publicar servicios va a pedir una, y esa cuenta es lo único que se
+guarda en el servidor.
 
 Suma los llamados del Estado (Uruguay Concursa) en su propia pestaña, ordenados
 por fecha de cierre, y un perfil con lo que estudió la persona para marcar qué
@@ -18,7 +20,7 @@ ofertas piden más nivel del que tiene.
 |---|---|
 | `worker/` | Scrapers de portales uruguayos. Escribe `worker/output/jobs.json`. |
 | `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
-| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español y panel en `/admin`. |
+| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español, panel de empresa en `/empresas` y panel de administración en `/admin`. |
 
 ## Uso
 
@@ -31,6 +33,14 @@ las nuevas):
 
 ```bash
 bun run scrape
+```
+
+Si la API que tiene que quedarse con esas ofertas corre en otra máquina, el
+mismo comando y la subida van juntos (ver "Scrapeo, agenda y salida por
+proxy"):
+
+```bash
+bun run scrape:push
 ```
 
 Levantar API y web juntos:
@@ -52,12 +62,34 @@ termina donde termina la de verdad.
 | Endpoint | Descripción |
 |---|---|
 | `GET /health` | Estado del servicio. |
-| `GET /api/jobs` | Ofertas filtradas y paginadas. |
-| `GET /api/jobs/:id` | Una oferta completa. |
+| `GET /api/jobs` | Ofertas filtradas y paginadas. Con `format=txt` o `Accept: text/plain` sale el mismo listado en texto. |
+| `GET /api/jobs.txt` | Ese listado ya en texto, para `curl` y para grep. Mismos parámetros. |
+| `GET /api/cli` | La URL del tablero en texto: entiende `view` y `job` además de los filtros. |
+| `GET /api/jobs/:id` | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción. |
 | `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
+| `GET /api/market` | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos. |
+| `GET /api/market.csv` | Ese mismo informe como CSV, todas las tablas bajo un encabezado. |
+| `GET /api/market.xlsx` | Ese mismo informe como planilla, una pestaña por tabla. |
 | `POST /api/stats` | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`. |
 | `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
 | `GET /api/admin/usage` | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión. |
+| `POST /api/ingest/jobs` | Recibe el `jobs.json` del worker corriendo en otra máquina. Pide token. |
+| `POST /api/auth/register` | Crea la cuenta y devuelve, una sola vez, los códigos de respaldo. |
+| `POST /api/auth/login` | Entra; si la cuenta tiene 2FA, pide el segundo paso en vez de abrir sesión. |
+| `POST /api/auth/totp` | El segundo paso: cierra el ingreso con el código de seis dígitos. |
+| `POST /api/auth/recover` | Entra con un código de respaldo. |
+| `POST /api/auth/logout` | Cierra la sesión y borra la cookie. |
+| `GET` / `PATCH` / `DELETE /api/me` | Quién soy, editar la cuenta y borrarla de verdad. |
+| `POST` / `DELETE /api/me/totp` | Activar y desactivar el segundo paso. |
+| `GET` / `PUT` / `DELETE /api/me/sync` | Bajar, guardar o borrar lo que la cuenta sincroniza entre navegadores. |
+| `POST /api/empresas/auth/register` | Alta autogestionada de una empresa. Nace pendiente y con la sesión puesta. |
+| `POST /api/empresas/auth/login` | Entra con el correo o con el slug. |
+| `POST /api/empresas/auth/logout` | Cierra la sesión de la empresa. |
+| `GET /api/empresas/session` | Qué empresa está detrás de la sesión. |
+| `PATCH /api/empresas/me` | Editar los datos de la empresa y la contraseña. |
+| `GET /api/empresas/offers` | Las publicaciones propias, con su estado. |
+| `POST` / `PATCH` / `DELETE /api/empresas/offers[/:id]` | CRUD de sus publicaciones, acotado a la empresa de la sesión. |
+| `GET /api/empresas/metrics` | Vistas y postulaciones por publicación, agregadas por día. |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -75,16 +107,58 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 | `sort` | `recent` (por defecto) o `closing`, que ordena por fecha de cierre. |
 | `ids` | Lista de ids separados por coma. |
 | `limit` / `offset` | Paginado. `limit` por defecto 50, máximo 200. |
+| `format` | `json` (por defecto) o `txt`. El texto es para leerlo o grepearlo desde la CLI. |
 
 `category`, `level`, `remote` y `job_type` aceptan varios valores separados por
 coma y la oferta matchea con cualquiera de ellos. Una oferta sin teletrabajo
 cuenta como `onsite`.
 
+Las dos descargas del mercado salen del mismo informe y no piden nada: no hay
+parámetros, no hay sesión, y el archivo se llama `jobit-mercado-AAAA-MM-DD` con
+la fecha del scrape. El CSV apila las tablas (`total`, `frescura`, `fuente`,
+`puesto`, `rubro`, `departamento`, `habilidad`, `modalidad`, `jornada` y
+`nivel`) bajo un encabezado común, con la columna `tabla` diciendo cuál es cada
+fila; el XLSX pone una pestaña por tabla y saca de cada una las columnas que no
+usa.
+
+El corte de `habilidad` cuenta las que más se nombran en títulos, descripciones
+y requisitos, contra un catálogo controlado (`worker/src/skills.ts`, el mismo
+patrón que `roles.ts`): "Excel avanzado" y "Excel intermedio" cuentan igual, y
+una habilidad mencionada en menos de cinco avisos no entra, porque una es
+anécdota. Cada habilidad lleva la mediana de lo que pagan los avisos que la
+piden.
+
+```bash
+curl -s http://localhost:3000/api/market.csv | head -3
+curl -s "http://localhost:3000/api/jobs.txt?q=cajero&limit=5"
+```
+
+## Desde la CLI
+
+Los filtros viajan en la URL de la web. `curl` de esa misma dirección
+devuelve el listado en texto, sin JavaScript:
+
+```bash
+curl -s "http://localhost:5173/?q=cajero"
+curl -s "http://localhost:5173/?view=state"
+curl -s "http://localhost:5173/?view=market"
+curl -s "http://localhost:5173/?job=<id>"
+```
+
+Guardadas y seguimiento viven en el navegador: desde la CLI no hay nada que
+devolver. El atajo estable, sin negociación de User-Agent, es `GET /api/cli`
+con los mismos parámetros.
+
 Variables de entorno: `PORT` (3000), `HOST` (127.0.0.1), `JOBS_FILE` (ruta al
-JSON del worker), `DB_FILE` (SQLite de empresas y ofertas propias),
+JSON del worker), `DB_FILE` (SQLite de empresas, ofertas propias y cuentas),
 `STATS_FILE` y `EVENTS_FILE` (rutas de los `.jsonl`), `CORS_ORIGIN` (origen del
 dev server de Vite), `ADMIN_PASSWORD_HASH_FILE` (archivo con el hash del panel;
-sin él `/api/admin` responde 404).
+sin él `/api/admin` responde 404), `INGEST_TOKEN_FILE` (archivo con el token de
+ingesta; sin él `/api/ingest` responde 404), `JOBIT_SECRET_KEY_FILE` (archivo
+con la clave de 32 bytes que cifra el email y el secreto TOTP de las cuentas;
+sin ella, el alta sin email sigue andando pero el email y el 2FA quedan
+apagados) y `PUBLIC_ORIGIN` (origen que va en los canonical y og:url de las
+páginas server-rendered; por defecto el de producción).
 
 ## Perfil y estadísticas
 
@@ -182,14 +256,71 @@ etiquetas Open Graph y Twitter, el manifiesto y un JSON-LD con `WebSite` y
 
 Mientras la app corre, `web/src/lib/meta.ts` reescribe título y descripción con
 la oferta abierta: lo ven la pestaña, el historial y los buscadores que ejecutan
-JavaScript, no los scrapers de WhatsApp o LinkedIn, que leen la cáscara y paran
-ahí. Por eso un `?job=<id>` compartido siempre previsualiza como la portada. El
-canonical manda cualquier query string a la raíz, y el `?embed=` además se marca
+JavaScript. Pero eso no alcanza para los scrapers de WhatsApp o LinkedIn, que no
+ejecutan nada.
+
+Por eso el contenido que se busca con intención alta tiene su propia dirección,
+servida por la API y puesta delante de la app por nginx (`api/src/site.ts`):
+
+| Ruta | Qué muestra |
+|---|---|
+| `/empleo/<id>` | La ficha de una oferta, con su descripción y su JSON-LD. Es la URL que se comparte. |
+| `/mercado` | El informe del mercado. |
+| `/rubro/<slug>` | Las ofertas de un rubro. |
+| `/departamento/<nombre>` | Las ofertas de un departamento. |
+| `/puesto/<slug>` | Las ofertas de un puesto. |
+
+Son documentos HTML sueltos, sin React: el mismo patrón que `/terminos`. Un
+scraper los lee enteros, así que un enlace compartido ya no previsualiza como la
+portada. La app sigue siendo la experiencia: cada página enlaza a la vista
+filtrada correspondiente. Además, la intro del onboarding dejó de tapar el
+tablero: es una capa sobre la app montada, así que el listado se pide y se
+dibuja igual en la primera visita.
+
+El JSON-LD `JobPosting` sale solo en `/empleo/<id>` y solo cuando la oferta vive
+acá de verdad: `source` igual a `jobit` y sin enlace de postulación externo
+(`directApply`). Las scrapeadas no lo llevan y siguen enlazando al aviso
+original, porque marcarlas como propias es lo que Google penaliza en los
+agregadores. El canonical de cada página apunta a sí misma; el `?embed=` se marca
 `noindex` en tiempo de ejecución.
 
-No hay JSON-LD `JobPosting` a propósito: las ofertas se enlazan al aviso
-original y no se republican, y marcarlas acá como si vivieran en JobIt es lo que
-Google penaliza en los agregadores.
+## Cuentas
+
+Para publicar servicios va a hacer falta una cuenta; buscar trabajo no. Es lo
+único del sistema que se guarda en el servidor, y se guarda lo mínimo: handle,
+nombre visible y hash de contraseña (argon2id). El email es opcional y solo
+sirve para recuperar la cuenta, el segundo paso por TOTP es opcional, y los dos
+van cifrados en reposo con una clave que vive en `JOBIT_SECRET_KEY_FILE`.
+
+El login es por `handle`, no por email, justamente para que el email pueda
+faltar. Quien no lo carga se lleva códigos de respaldo y se queda sin reset: los
+códigos se muestran una sola vez y en la base queda su sha256. Nada de IP, user
+agent, historial de inicios ni "último acceso desde"; las filas se estampan con
+el día y nunca con la hora, igual que las estadísticas.
+
+En la interfaz todo esto vive en la pestaña **Cuenta** del panel de
+preferencias: el estado de la sesión, lo que se guarda del lado del servidor y
+los botones de cada trámite. Crear la cuenta, entrar, recuperar el acceso,
+cambiar la contraseña, el email o el segundo paso y borrar la cuenta abren el
+mismo modal, cada uno con su pantalla.
+
+El **sync entre navegadores** es opcional y viene apagado. Prendido, el servidor
+guarda en `user_sync` un JSON que no interpreta —perfil, preferencias, guardadas,
+postulaciones y fuentes propias— cifrado en reposo con la misma clave que el
+email y el TOTP. Al entrar desde otro navegador se baja, se mezcla con lo local y
+se vuelve a subir; lo que se acumula se une y lo que se elige de a uno lo gana el
+navegador que estás usando. Apagarlo borra la fila.
+
+La sesión es una cookie `jobit_session` (`HttpOnly`, `SameSite=Lax`, alcance
+`/api`, 30 días con renovación) y en la base solo queda el sha256 del token. Es
+otra sesión que la del panel: una cookie de usuario no abre `/api/admin` y una
+del panel no abre `/api/me`. Probar contraseñas está limitado a diez intentos
+cada quince minutos por dirección. `DELETE /api/me` borra de verdad: usuario,
+sesiones, códigos y, cuando existan, los servicios publicados.
+
+Better Auth quedó descartado a propósito: exige email para todo usuario, guarda
+el token de sesión sin hashear y no cifra el secreto TOTP, las tres cosas que la
+Zero Data Policy evita.
 
 ## Panel de administración
 
@@ -207,10 +338,10 @@ sin identificador y con el día y nunca la hora, así que sigue sin haber nada p
 persona. Las búsquedas sin resultados son el único corte que dice qué se busca y
 el tablero no tiene.
 
-La credencial es un hash argon2id. No hay tabla de usuarios ni clave en texto
-plano en ningún lado, y sin hash configurado el panel queda apagado entero:
-`/api/admin` contesta 404, así que un despliegue sin configurar se queda sin
-admin en vez de con un admin abierto.
+La credencial es un hash argon2id. El panel no tiene tabla de usuarios propia ni
+clave en texto plano en ningún lado, y sin hash configurado el panel queda
+apagado entero: `/api/admin` contesta 404, así que un despliegue sin configurar
+se queda sin admin en vez de con un admin abierto.
 
 La configuración de la API va en **`api/.env`**, no en la raíz: la API arranca
 con `bun run --cwd api start`, así que Bun carga el `.env` de ese directorio y
@@ -243,11 +374,56 @@ Las empresas viven en SQLite (`data/jobit.db`, `DB_FILE` para moverlo), aparte
 del JSON del scraper, que se reescribe entero en cada corrida y no es lugar para
 algo que la app edita.
 
+## Panel de empresa
+
+En `/empresas`, con su propio bundle: quien busca trabajo no se baja el código
+de administrar una empresa. La empresa entra con su cuenta (correo o slug más
+contraseña), ve cómo rinden sus publicaciones y administra lo suyo. El alta es
+autogestionada y **nace pendiente**: el admin la aprueba desde `/admin` y recién
+ahí puede publicar. `offers.ts` ya saca al tablero solo lo publicado de una
+empresa aprobada, así que una cuenta sin aprobar no filtra nada.
+
+La cuenta vive en su propia tabla (`company_accounts`, con `company_sessions`
+para las sesiones) y es otra cookie: `jobit_company`, `HttpOnly`,
+`SameSite=Strict`, alcance `/api/empresas` y 30 días con renovación. No se cruza
+con la del panel ni con la de quien publica un servicio, y en la base solo queda
+el sha256 del token. Todo lo de la API está acotado a la empresa de la sesión:
+una oferta ajena responde 404 igual que una que no existe.
+
+**Las métricas no saben de nadie.** `offer_daily` suma por oferta y por día
+(vistas y postulaciones): dice cuántas veces, nunca quién. Suben por el mismo
+canal anónimo de `/api/events` (`offer_view`, `offer_apply`, que llevan solo el
+id público de la oferta) y solo para las publicadas acá; si la persona apagó el
+envío de estadísticas, no suben, y son entonces una muestra de quien lo tiene
+prendido. El panel muestra publicadas, vistas y postulaciones, y los puestos
+más vistos y más postulados en una ventana de 7, 30 o 90 días.
+
+### Probar en local
+
+```bash
+bun install
+cp api/.env.example api/.env   # descomentá ADMIN_PASSWORD_HASH_FILE y ADMIN_INSECURE_COOKIES
+bun -e 'await Bun.write("data/admin.hash", await Bun.password.hash(prompt("clave: ")))'
+bun run dev
+```
+
+El dev server resuelve `/empresas` y `/admin` igual que producción, así que se
+prueba el recorrido entero: se crea la empresa en `/empresas`, se aprueba en
+`/admin` (que sin nginx de por medio no filtra por IP) y recién ahí publica.
+
+El **admin solo se alcanza desde la VPN interna (Tailscale)**: nginx deja
+`/admin` y `/api/admin` a `100.64.0.0/10` (y `fd7a:115c:a1e0::/48` en IPv6), con
+la clave como segunda cerradura. `/empresas` es público porque es autoservicio.
+
+Queda para la próxima tanda el material complementario por publicación, los
+extras (path de LearnIt, llaves de acceso, conectores de calendario) y el feed
+de la empresa; el modelo y el panel ya están armados para colgar eso.
+
 ## Fuentes
 
 | Fuente | Estado |
 |---|---|
-| BuscoJobs Uruguay | Activa. Listados por rubro y detalle por oferta. |
+| BuscoJobs Uruguay | Activa. El worker sale por el egress de la PC para que no le conteste 403 (ver abajo). |
 | Uruguay Concursa | Activa. Llamados del Estado abiertos y próximos, con fecha de cierre. |
 | Gallito | Pendiente. El sitio responde 403 detrás de Cloudflare y necesita un navegador headless. |
 
@@ -255,3 +431,73 @@ El worker consulta de a una petición por vez, con pausa entre pedidos, y cachea
 las descripciones en `worker/cache/` para no volver a pedirlas. Es una
 herramienta de uso personal: no republica las ofertas, siempre enlaza al aviso
 original.
+
+Si una fuente vuelve vacía, el worker conserva lo que esa misma fuente había
+dejado en la corrida anterior (`worker/src/keep.ts`) en vez de escribir cero.
+Un 403 no puede vaciar el tablero.
+
+## Scrapeo, agenda y salida por proxy
+
+El scrapeo corre en el VPS cada seis horas (`deploy/jobit-scrape.timer`). Pero
+BuscoJobs le contesta 403 a la IP del VPS, que es de datacenter, así que el
+worker sale a internet por el egress de la PC: una máquina con IP limpia presta
+su salida con `bun run egress` (`worker/src/egress.ts`, un proxy CONNECT mínimo,
+sin dependencias).
+
+En la PC:
+
+```bash
+EGRESS_HOST=<ip-del-tailnet> EGRESS_PORT=8787 EGRESS_TOKEN=<clave> bun run egress
+```
+
+En el VPS, en `worker/.env` (que es el que Bun carga cuando corre el service):
+
+```
+JOBIT_SCRAPE_PROXY=http://:<clave>@<ip-del-tailnet>:8787
+JOBIT_HEARTBEAT_URL=https://hc-ping.com/...
+```
+
+`JOBIT_HEARTBEAT_URL` se pinguea **solo cuando BuscoJobs vino fresco**: es el
+canario de que el egress sigue vivo, y si la señal deja de llegar un monitor
+avisa. Si algún día se contrata un proxy residencial pago, `JOBIT_SCRAPE_PROXY`
+apunta ahí y la PC deja de hacer falta: es cambiar una variable.
+
+### Cargar las ofertas a mano
+
+Si preferís no depender de la agenda, `bun run scrape:push` hace el scrapeo y lo
+sube por HTTP. Es `bun run scrape` seguido de `bun run push`, que manda
+`worker/output/jobs.json` a `POST /api/ingest/jobs`. La API lo valida, lo escribe
+al lado y renombra, y como relee por mtime queda servido sin reiniciar nada.
+
+La configuración de la máquina que scrapea va en **`worker/.env`**
+(`worker/.env.example` tiene todas las variables):
+
+```
+JOBIT_INGEST_URL=https://jobs.wefaber.net/api/ingest/jobs
+JOBIT_INGEST_TOKEN=<el mismo que INGEST_TOKEN_FILE en el servidor>
+```
+
+La credencial es un token propio y no la sesión del panel: quien scrapea es una
+máquina, y lo único que tiene que poder hacer es reemplazar el archivo de
+ofertas. Sin token configurado del lado de la API la ruta contesta 404, igual
+que `/api/admin`.
+
+Tres cosas que la ingesta no deja pasar, porque las tres borrarían el tablero
+por accidente: un archivo sin ofertas, un archivo que no tiene la forma de
+`jobs.json`, y un archivo más viejo que el que ya está publicado. El cuerpo
+viaja comprimido (cinco megas se van en poco más de uno) y también se acepta el
+JSON pelado, así que a mano es:
+
+```bash
+gzip -c worker/output/jobs.json | curl -sS -X POST --data-binary @- \
+  -H "authorization: Bearer $JOBIT_INGEST_TOKEN" \
+  -H "content-type: application/octet-stream" \
+  https://jobs.wefaber.net/api/ingest/jobs
+```
+
+## Licencia
+
+Apache License 2.0. El código se puede usar, modificar y redistribuir; hay que
+conservar `LICENSE` y `NOTICE`, y mencionar JobIt como proyecto original
+(`https://github.com/faku-org/jobit`, `https://jobs.wefaber.net`). El nombre,
+el logo y la identidad visual son de Faber y no van con esa licencia.

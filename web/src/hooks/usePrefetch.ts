@@ -12,7 +12,7 @@ const SEPARATOR = "|";
  * lados; donde falta, un timeout corto hace lo mismo que importa acá, que es
  * no pelearle el ancho de banda a la primera pantalla.
  */
-function onIdle(run: () => void): () => void {
+export function onIdle(run: () => void): () => void {
   if (typeof requestIdleCallback === "function") {
     const id = requestIdleCallback(run, { timeout: 2500 });
     return () => cancelIdleCallback(id);

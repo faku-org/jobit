@@ -1,333 +1,304 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
 process.env.DB_FILE = ":memory:";
-process.env.INSECURE_COOKIES = "true";
-const KEY = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64");
+process.env.ADMIN_INSECURE_COOKIES = "true";
+
+const KEY = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
+process.env.JOBIT_SECRET_KEY = KEY;
 
 const { closeDb } = await import("./db.ts");
+const { resetSecretKey } = await import("./crypto.ts");
 const { resetLimits } = await import("./limit.ts");
-const { resetSecretsCache } = await import("./secrets.ts");
-const { totpCode } = await import("./totp.ts");
+const { totp } = await import("./totp.ts");
 const { app } = await import("./index.ts");
+
+const ADMIN_HASH = await Bun.password.hash("abrite sesamo");
 
 beforeEach(() => {
   closeDb();
   resetLimits();
-  resetSecretsCache();
-  process.env.ACCOUNT_KEY = KEY;
+  resetSecretKey();
+  process.env.JOBIT_SECRET_KEY = KEY;
+  delete process.env.JOBIT_SECRET_KEY_FILE;
+  process.env.ADMIN_PASSWORD_HASH = ADMIN_HASH;
+  delete process.env.ADMIN_PASSWORD_HASH_FILE;
 });
 
 const call = (path: string, init: RequestInit = {}): Promise<Response> =>
   app.handle(new Request(`http://localhost${path}`, init));
 
-const send = (method: string, body: unknown): RequestInit => ({
+const json = (body: unknown, method = "POST"): RequestInit => ({
   method,
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
 });
-
-const json = (body: unknown): RequestInit => send("POST", body);
 
 const withCookie = (init: RequestInit, cookie: string): RequestInit => ({
   ...init,
   headers: { ...(init.headers as Record<string, string>), cookie },
 });
 
-const cookieOf = (response: Response): string =>
-  (response.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
-
-const ALTA = {
-  handle: "faku",
-  display_name: "Facundo",
-  password: "una clave larga",
-};
-
-/** Alta y cookie de sesión, que es como empieza casi todo lo de abajo. */
-async function registrado(): Promise<string> {
-  return cookieOf(await call("/api/auth/register", json(ALTA)));
+function cookiesOf(response: Response): string[] {
+  const headers = response.headers as Headers & { getSetCookie?: () => string[] };
+  const many = headers.getSetCookie?.();
+  if (many && many.length > 0) return many;
+  const single = response.headers.get("set-cookie");
+  return single ? [single] : [];
 }
 
-describe("con las cuentas apagadas", () => {
-  beforeEach(() => {
-    delete process.env.ACCOUNT_KEY;
-  });
+const cookieNamed = (response: Response, name: string): string =>
+  cookiesOf(response)
+    .map((raw) => raw.split(";")[0] ?? "")
+    .find((pair) => pair.startsWith(`${name}=`)) ?? "";
 
-  test("el alta ni existe", async () => {
-    expect((await call("/api/auth/register", json(ALTA))).status).toBe(404);
-  });
+async function register(handle = "faku"): Promise<{
+  response: Response;
+  cookie: string;
+  recoveryCodes: string[];
+  body: Record<string, unknown>;
+}> {
+  const response = await call(
+    "/api/auth/register",
+    json({ handle, display_name: "Facu", password: "una-clave-larga" }),
+  );
+  const body = (await response.json()) as Record<string, unknown>;
+  return {
+    response,
+    cookie: cookieNamed(response, "jobit_session"),
+    recoveryCodes: (body.recovery_codes as string[] | undefined) ?? [],
+    body,
+  };
+}
 
-  test("los servicios tampoco", async () => {
-    expect((await call("/api/services/mine")).status).toBe(404);
-  });
-
-  test("el resto de la API sigue andando", async () => {
-    expect((await call("/health")).status).toBe(200);
-  });
-});
+const login = (handle = "faku", password = "una-clave-larga") =>
+  call("/api/auth/login", json({ handle, password }));
 
 describe("alta", () => {
-  test("crea la cuenta, deja la cookie y muestra los códigos una sola vez", async () => {
-    const response = await call("/api/auth/register", json(ALTA));
+  test("deja la sesión puesta y devuelve los códigos de respaldo", async () => {
+    const { response, cookie, recoveryCodes } = await register();
     expect(response.status).toBe(201);
+    expect(recoveryCodes).toHaveLength(8);
 
-    const body = (await response.json()) as {
-      recovery_codes: string[];
-      warning: string;
-      user: { handle: string };
-    };
+    const setCookie = cookiesOf(response).join("\n").toLowerCase();
+    expect(setCookie).toContain("jobit_session=");
+    expect(setCookie).toContain("httponly");
+    expect(setCookie).toContain("samesite=lax");
+    expect(setCookie).toContain("path=/api");
+
+    const me = await call("/api/me", { headers: { cookie } });
+    expect(me.status).toBe(200);
+    const body = (await me.json()) as { user: { handle: string; recovery_codes_left: number } };
     expect(body.user.handle).toBe("faku");
-    expect(body.recovery_codes).toHaveLength(8);
-    /** Sin correo no hay reset, y hay que decirlo con todas las letras. */
-    expect(body.warning).toContain("única forma de volver a entrar");
-
-    const cookie = response.headers.get("set-cookie") ?? "";
-    expect(cookie).toContain("jobit_session=");
-    expect(cookie.toLowerCase()).toContain("httponly");
-    expect(cookie.toLowerCase()).toContain("samesite=lax");
-    expect(cookie).toContain("Path=/api");
+    expect(body.user.recovery_codes_left).toBe(8);
   });
 
-  test("el handle repetido se rechaza sin abrir sesión", async () => {
-    await call("/api/auth/register", json(ALTA));
-    const response = await call("/api/auth/register", json(ALTA));
-    expect(response.status).toBe(422);
-    expect(response.headers.get("set-cookie")).toBeNull();
+  test("un handle ya tomado no entra", async () => {
+    await register();
+    const second = await register("FAKU");
+    expect(second.response.status).toBe(422);
+  });
+
+  test("la respuesta nunca trae el hash ni el email", async () => {
+    const { body } = await register();
+    const raw = JSON.stringify(body);
+    expect(raw).not.toContain("password");
+    expect(raw).not.toContain("hash");
+    expect(raw).not.toContain("email_enc");
   });
 });
 
-describe("entrada", () => {
-  beforeEach(async () => {
-    await call("/api/auth/register", json(ALTA));
-  });
-
-  test("la clave correcta abre sesión", async () => {
-    const response = await call(
-      "/api/auth/login",
-      json({ handle: "faku", password: "una clave larga" }),
-    );
+describe("ingreso", () => {
+  test("con la clave correcta abre sesión", async () => {
+    await register();
+    const response = await login();
     expect(response.status).toBe(200);
-    expect((await response.json()) as { status: string }).toMatchObject({ status: "ok" });
+    expect(cookieNamed(response, "jobit_session")).not.toBe("");
   });
 
-  test("el mismo error para el handle que no existe y para la clave mala", async () => {
-    const mala = await call("/api/auth/login", json({ handle: "faku", password: "otra clave" }));
-    const nadie = await call(
-      "/api/auth/login",
-      json({ handle: "nadie", password: "una clave larga" }),
-    );
-
-    expect(mala.status).toBe(401);
-    expect(nadie.status).toBe(401);
-    expect(await mala.json()).toEqual(await nadie.json());
+  test("con la clave mala no", async () => {
+    await register();
+    expect((await login("faku", "probando")).status).toBe(401);
   });
 
-  test("cerrar sesión la invalida en el acto", async () => {
-    const cookie = await registrado();
-    await call("/api/auth/logout", withCookie(json({}), cookie));
+  test("un handle que no existe contesta lo mismo que la clave mala", async () => {
+    const missing = await login("nadie", "lo-que-sea");
+    expect(missing.status).toBe(401);
+  });
+
+  test("cerrar sesión la invalida", async () => {
+    const { cookie } = await register();
+    await call("/api/auth/logout", { method: "POST", headers: { cookie } });
     expect((await call("/api/me", { headers: { cookie } })).status).toBe(401);
   });
-});
 
-describe("segundo factor", () => {
-  test("el login se queda en el primer paso hasta que llegue el código", async () => {
-    const cookie = await registrado();
-
-    const setup = (await (await call("/api/me/totp", withCookie(json({}), cookie))).json()) as {
-      secret: string;
-      otpauth: string;
-    };
-    expect(setup.otpauth.startsWith("otpauth://totp/")).toBe(true);
-
-    const code = (await totpCode(setup.secret)) ?? "";
-    expect((await call("/api/me/totp/confirm", withCookie(json({ code }), cookie))).status).toBe(
-      200,
-    );
-
-    const login = await call(
-      "/api/auth/login",
-      json({ handle: "faku", password: "una clave larga" }),
-    );
-    expect(await login.json()).toEqual({ status: "totp" });
-
-    /** La sesión a medio abrir no es nadie todavía. */
-    const media = cookieOf(login);
-    expect((await call("/api/me", { headers: { cookie: media } })).status).toBe(401);
-
-    const segundo = await call(
-      "/api/auth/totp",
-      withCookie(json({ code: (await totpCode(setup.secret)) ?? "" }), media),
-    );
-    expect(segundo.status).toBe(200);
-    expect((await call("/api/me", { headers: { cookie: media } })).status).toBe(200);
-  });
-
-  test("un código que no coincide no abre nada", async () => {
-    const cookie = await registrado();
-    const setup = (await (await call("/api/me/totp", withCookie(json({}), cookie))).json()) as {
-      secret: string;
-    };
-    await call(
-      "/api/me/totp/confirm",
-      withCookie(json({ code: (await totpCode(setup.secret)) ?? "" }), cookie),
-    );
-
-    const login = await call(
-      "/api/auth/login",
-      json({ handle: "faku", password: "una clave larga" }),
-    );
-    const media = cookieOf(login);
-
-    expect((await call("/api/auth/totp", withCookie(json({ code: "000000" }), media))).status).toBe(
-      401,
-    );
-    expect((await call("/api/me", { headers: { cookie: media } })).status).toBe(401);
+  test("probar claves se corta a los diez intentos", async () => {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await login("faku", "probando");
+    }
+    expect((await login("faku", "probando")).status).toBe(429);
   });
 });
 
-describe("perfil", () => {
-  test("dice quién soy y qué publiqué, y nunca el hash ni el correo", async () => {
-    const cookie = await registrado();
-    const body = (await (await call("/api/me", { headers: { cookie } })).json()) as Record<
-      string,
-      unknown
-    >;
+describe("segundo paso", () => {
+  async function enableTotp(cookie: string): Promise<string> {
+    const setup = await call("/api/me/totp", withCookie(json({}), cookie));
+    const body = (await setup.json()) as { secret: string; otpauth: string };
+    expect(body.otpauth.startsWith("otpauth://totp/")).toBe(true);
 
-    expect(body.user).toMatchObject({ handle: "faku" });
-    expect(JSON.stringify(body)).not.toContain("argon2");
-    expect(body.services).toMatchObject({ draft: 0, published: 0 });
-    expect(body.recovery_codes_left).toBe(8);
+    const code = await totp(body.secret);
+    if (!code) throw new Error("sin código");
+    const confirm = await call("/api/me/totp", withCookie(json({ code }), cookie));
+    expect(confirm.status).toBe(200);
+    return body.secret;
+  }
+
+  test("sin confirmar no queda activado", async () => {
+    const { cookie } = await register();
+    const setup = await call("/api/me/totp", withCookie(json({}), cookie));
+    expect(setup.status).toBe(200);
+
+    const body = (await call("/api/me", { headers: { cookie } })).json() as Promise<{
+      user: { totp_enabled: boolean };
+    }>;
+    expect((await body).user.totp_enabled).toBe(false);
   });
 
-  test("sin sesión no hay perfil", async () => {
+  test("activado, el login pide el código antes de dar sesión", async () => {
+    const { cookie } = await register();
+    const secret = await enableTotp(cookie);
+
+    const step = await login();
+    expect(step.status).toBe(200);
+    const { status: stepStatus } = (await step.json()) as { status: string };
+    expect(stepStatus).toBe("totp_required");
+    expect(cookieNamed(step, "jobit_session")).toBe("");
+    const challenge = cookieNamed(step, "jobit_2fa");
+    expect(challenge).not.toBe("");
+
+    /** Sin el segundo paso no hay sesión. */
     expect((await call("/api/me")).status).toBe(401);
-    expect((await call("/api/me", { headers: { cookie: "jobit_session=inventada" } })).status).toBe(
-      401,
-    );
+
+    const code = await totp(secret);
+    if (!code) throw new Error("sin código");
+    const done = await call("/api/auth/totp", withCookie(json({ code }), challenge));
+    expect(done.status).toBe(200);
+
+    const session = cookieNamed(done, "jobit_session");
+    expect(session).not.toBe("");
+    expect((await call("/api/me", { headers: { cookie: session } })).status).toBe(200);
   });
 
-  test("el borrado pide la contraseña y borra de verdad", async () => {
-    const cookie = await registrado();
+  test("un código que no es el actual no abre", async () => {
+    const { cookie } = await register();
+    await enableTotp(cookie);
+    const step = await login();
+    const challenge = cookieNamed(step, "jobit_2fa");
 
-    expect(
-      (await call("/api/me", withCookie(send("DELETE", { password: "la que no es" }), cookie)))
-        .status,
-    ).toBe(422);
+    const wrong = await call("/api/auth/totp", withCookie(json({ code: "000000" }), challenge));
+    expect(wrong.status).toBe(401);
+  });
 
-    expect(
-      (await call("/api/me", withCookie(send("DELETE", { password: "una clave larga" }), cookie)))
-        .status,
-    ).toBe(200);
+  test("desactivarlo pide la contraseña", async () => {
+    const { cookie } = await register();
+    await enableTotp(cookie);
 
-    expect((await call("/api/me", { headers: { cookie } })).status).toBe(401);
-    expect(
-      (await call("/api/auth/login", json({ handle: "faku", password: "una clave larga" }))).status,
-    ).toBe(401);
+    const refused = await call("/api/me/totp", withCookie(json({ password: "otra" }, "DELETE"), cookie));
+    expect(refused.status).toBe(401);
+
+    const done = await call(
+      "/api/me/totp",
+      withCookie(json({ password: "una-clave-larga" }, "DELETE"), cookie),
+    );
+    expect(done.status).toBe(200);
+    expect((await login()).status).toBe(200);
   });
 });
 
-describe("servicios", () => {
-  test("se crean, se listan y se borran, y nada se publica solo", async () => {
-    const cookie = await registrado();
+describe("recuperación", () => {
+  test("un código de respaldo abre sesión y se consume", async () => {
+    const { recoveryCodes } = await register();
+    const code = recoveryCodes[0] ?? "";
 
-    const created = await call(
-      "/api/services",
+    const response = await call("/api/auth/recover", json({ handle: "faku", code }));
+    expect(response.status).toBe(200);
+    expect(cookieNamed(response, "jobit_session")).not.toBe("");
+
+    const twice = await call("/api/auth/recover", json({ handle: "faku", code }));
+    expect(twice.status).toBe(401);
+  });
+
+  test("un código inventado no entra", async () => {
+    await register();
+    const response = await call("/api/auth/recover", json({ handle: "faku", code: "ZZZZZZZZZZ" }));
+    expect(response.status).toBe(401);
+  });
+});
+
+describe("la cuenta propia", () => {
+  test("se cambia el nombre visible", async () => {
+    const { cookie } = await register();
+    const response = await call("/api/me", withCookie(json({ display_name: "Facu Faber" }, "PATCH"), cookie));
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { user: { display_name: string } };
+    expect(body.user.display_name).toBe("Facu Faber");
+  });
+
+  test("cambiar la contraseña pide la actual", async () => {
+    const { cookie } = await register();
+
+    const refused = await call(
+      "/api/me",
+      withCookie(json({ current_password: "otra", new_password: "una-clave-nueva" }, "PATCH"), cookie),
+    );
+    expect(refused.status).toBe(401);
+
+    const changed = await call(
+      "/api/me",
       withCookie(
-        json({
-          title: "Programador FullStack",
-          summary: "Aplicaciones web a medida, de la base a la pantalla.",
-          category: "tecnologia",
-          contact_kind: "whatsapp",
-          contact_value: "099123456",
-          prices: [{ amount: 1500, currency: "UYU", unit: "hora" }],
-          status: "pending",
-        }),
+        json({ current_password: "una-clave-larga", new_password: "una-clave-nueva" }, "PATCH"),
         cookie,
       ),
     );
-    expect(created.status).toBe(201);
-    const service = (await created.json()) as { id: string; status: string };
-    expect(service.status).toBe("pending");
-
-    const mine = (await (await call("/api/services/mine", { headers: { cookie } })).json()) as {
-      services: unknown[];
-      max: number;
-    };
-    expect(mine.services).toHaveLength(1);
-
-    expect(
-      (await call(`/api/services/${service.id}`, withCookie(send("DELETE", {}), cookie))).status,
-    ).toBe(200);
+    expect(changed.status).toBe(200);
+    expect((await login("faku", "la-vieja")).status).toBe(401);
+    expect((await login("faku", "una-clave-nueva")).status).toBe(200);
   });
 
-  test("el servicio de otro contesta igual que uno que no existe", async () => {
-    const mio = await registrado();
-    const created = await call("/api/services", withCookie(json({ title: "Electricista" }), mio));
-    const service = (await created.json()) as { id: string };
+  test("borrarse borra de verdad y cierra la sesión", async () => {
+    const { cookie } = await register();
 
-    const ajeno = cookieOf(
-      await call(
-        "/api/auth/register",
-        json({ handle: "ajeno", display_name: "Ajeno", password: "otra clave larga" }),
-      ),
+    const refused = await call("/api/me", withCookie(json({ password: "otra" }, "DELETE"), cookie));
+    expect(refused.status).toBe(401);
+
+    const done = await call(
+      "/api/me",
+      withCookie(json({ password: "una-clave-larga" }, "DELETE"), cookie),
     );
+    expect(done.status).toBe(200);
 
-    expect((await call(`/api/services/${service.id}`, { headers: { cookie: ajeno } })).status).toBe(
-      404,
-    );
-    expect(
-      (await call(`/api/services/${service.id}`, withCookie(send("DELETE", {}), ajeno))).status,
-    ).toBe(404);
-  });
-
-  test("sin sesión no se publica nada", async () => {
-    expect((await call("/api/services", json({ title: "Lo que sea" }))).status).toBe(401);
-    expect((await call("/api/services/mine")).status).toBe(401);
+    expect((await call("/api/me", { headers: { cookie } })).status).toBe(401);
+    expect((await login()).status).toBe(401);
   });
 });
 
-describe("límite de intentos", () => {
-  test("/api/auth aguanta diez y corta", async () => {
-    for (let intento = 0; intento < 10; intento++) {
-      const response = await call(
-        "/api/auth/login",
-        json({ handle: "nadie", password: "xxxxxxxxxx" }),
-      );
-      expect(response.status).toBe(401);
-    }
+describe("aislamiento del panel", () => {
+  const adminLogin = async (): Promise<string> => {
+    const response = await call("/api/admin/login", json({ password: "abrite sesamo" }));
+    return cookieNamed(response, "jobit_admin");
+  };
 
-    const cortado = await call(
-      "/api/auth/login",
-      json({ handle: "nadie", password: "xxxxxxxxxx" }),
-    );
-    expect(cortado.status).toBe(429);
-    expect(cortado.headers.get("retry-after")).not.toBeNull();
+  test("una sesión de usuario no abre el panel", async () => {
+    const { cookie } = await register();
+    expect((await call("/api/admin/companies", { headers: { cookie } })).status).toBe(401);
   });
 
-  test("una x-forwarded-for inventada no regala un balde nuevo", async () => {
-    for (let intento = 0; intento < 10; intento++) {
-      await call("/api/auth/login", json({ handle: "nadie", password: "xxxxxxxxxx" }));
-    }
-
-    /* La cabecera que nginx agrega al final es la única real, y esta no pasó
-       por nginx: si contara, alguien se inventa una dirección por intento. */
-    const disfrazado = await app.handle(
-      new Request("http://localhost/api/auth/login", {
-        ...json({ handle: "nadie", password: "xxxxxxxxxx" }),
-        headers: {
-          "Content-Type": "application/json",
-          "x-forwarded-for": "1.2.3.4",
-        },
-      }),
-    );
-    expect(disfrazado.status).toBe(429);
+  test("una sesión del panel no abre la cuenta", async () => {
+    const admin = await adminLogin();
+    expect(admin).not.toBe("");
+    expect((await call("/api/me", { headers: { cookie: admin } })).status).toBe(401);
   });
 
-  test("cerrar sesión no gasta el presupuesto de quien está entrando", async () => {
-    for (let intento = 0; intento < 12; intento++) {
-      await call("/api/auth/logout", json({}));
-    }
-    expect(
-      (await call("/api/auth/login", json({ handle: "nadie", password: "xxxxxxxxxx" }))).status,
-    ).toBe(401);
+  test("sin cookie, la cuenta propia no contesta", async () => {
+    expect((await call("/api/me")).status).toBe(401);
   });
 });

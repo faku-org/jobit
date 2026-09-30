@@ -1,4 +1,12 @@
-import { CalendarArrowDown, Focus, Layers, RefreshCw, RotateCcw, Shuffle, Target } from "lucide-react";
+import {
+  CalendarArrowDown,
+  Focus,
+  Layers,
+  RefreshCw,
+  RotateCcw,
+  Shuffle,
+  Target,
+} from "lucide-react";
 import type { CustomFeed, FeedResult } from "../../lib/feed.ts";
 import { SOURCE_LABEL, formatScrapedAt, pluralOffers } from "../../lib/format.ts";
 import { advancedSummary, searchSummary, sourcesSummary, workSummary } from "../../lib/sections.ts";

@@ -1,8 +1,8 @@
-import { Bookmark, EyeOff, Search, Sparkles, Target, X } from "lucide-react";
-import { motion } from "motion/react";
-import { fieldClass } from "../../lib/styles.ts";
+import { Bookmark, EyeOff, Sparkles, Target, X } from "lucide-react";
+import { m } from "motion/react";
 import type { Facet, Filters, JobType, Level, WorkMode } from "../../lib/types.ts";
 import { type Option, Select } from "../ui/Select.tsx";
+import { SearchField } from "./SearchField.tsx";
 
 interface FilterBarProps {
   filters: Filters;
@@ -73,7 +73,7 @@ function Toggle({
   onClick: () => void;
 }) {
   return (
-    <motion.button
+    <m.button
       aria-pressed={active}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
         active
@@ -86,7 +86,7 @@ function Toggle({
     >
       <Icon aria-hidden className="size-3.5" />
       {children}
-    </motion.button>
+    </m.button>
   );
 }
 
@@ -110,30 +110,7 @@ export function FilterBar({
 }: FilterBarProps) {
   return (
     <div className="rounded-2xl border border-sky/50 bg-surface p-3 shadow-[var(--shadow-hairline)]">
-      <div className="relative">
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-brand"
-        />
-        <input
-          aria-label="Buscar ofertas"
-          className={`${fieldClass} py-2.5 pr-10 pl-10 placeholder:text-faint`}
-          placeholder="Buscar por puesto, empresa, ciudad o palabra de la descripción"
-          type="text"
-          value={filters.q}
-          onChange={(event) => onChange({ ...filters, q: event.target.value })}
-        />
-        {filters.q ? (
-          <button
-            aria-label="Limpiar búsqueda"
-            className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-0.5 text-faint transition-colors hover:text-ink"
-            type="button"
-            onClick={() => onChange({ ...filters, q: "" })}
-          >
-            <X aria-hidden className="size-4" />
-          </button>
-        ) : null}
-      </div>
+      <SearchField value={filters.q} onChange={(q) => onChange({ ...filters, q })} />
 
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
         {showCategory ? (

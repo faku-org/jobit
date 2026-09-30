@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { fetchMarket } from "../lib/api.ts";
+import { boardVersion, subscribeBoard } from "../lib/board.ts";
 import type { MarketReport } from "../lib/market.ts";
 
 type Status = "loading" | "ready" | "error";
@@ -9,6 +10,11 @@ type Status = "loading" | "ready" | "error";
  * así lo puede dejar listo un prefetch antes de que nadie abra Mercado. */
 let cached: MarketReport | null = null;
 let inFlight: Promise<MarketReport> | null = null;
+
+/** Corrió el scraper: lo guardado describe una tanda que ya no está. */
+export function clearMarket(): void {
+  cached = null;
+}
 
 /** Sin señal de cancelación a propósito: lo que trajo un prefetch tiene que
  * sobrevivir al componente que lo pidió, o abrir y cerrar la vista cancelaría
@@ -35,34 +41,50 @@ export function prefetchMarket(): void {
   void load().catch(() => {});
 }
 
+interface State {
+  report: MarketReport | null;
+  status: Status;
+  /** La tanda que describe `report`, para soltarlo cuando llega otra. */
+  version: string;
+}
+
+const begin = (version: string): State =>
+  cached === null
+    ? { report: null, status: "loading", version }
+    : { report: cached, status: "ready", version };
+
 /**
- * Loaded the first time the market view is opened and then kept: the report is
- * the same for everyone and only changes when the scraper runs.
+ * Se trae la primera vez que se abre Mercado y después se queda: el informe es
+ * el mismo para todos. Cuando corre el scraper cambia la versión del tablero y
+ * esto lo vuelve a pedir solo, sin recargar la página.
  */
 export function useMarket(enabled: boolean): { report: MarketReport | null; status: Status } {
-  const [report, setReport] = useState<MarketReport | null>(cached);
-  const [status, setStatus] = useState<Status>(cached === null ? "loading" : "ready");
+  const version = useSyncExternalStore(subscribeBoard, boardVersion);
+  const [state, setState] = useState<State>(() => begin(version));
+
+  /** Otra tanda deja sin respaldo lo que se está mostrando: se suelta durante
+   * el render y no en un efecto, para no pintar un frame con el informe viejo. */
+  if (state.version !== version) setState(begin(version));
+
+  const { report, version: asked } = state;
 
   useEffect(() => {
     if (!enabled || report !== null) return;
 
     let live = true;
-    setStatus("loading");
 
     load()
       .then((value) => {
-        if (!live) return;
-        setReport(value);
-        setStatus("ready");
+        if (live) setState({ report: value, status: "ready", version: asked });
       })
       .catch(() => {
-        if (live) setStatus("error");
+        if (live) setState((current) => ({ ...current, status: "error" }));
       });
 
     return () => {
       live = false;
     };
-  }, [enabled, report]);
+  }, [enabled, report, asked]);
 
-  return { report, status };
+  return { report: state.report, status: state.status };
 }

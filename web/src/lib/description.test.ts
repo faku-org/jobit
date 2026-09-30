@@ -74,6 +74,39 @@ describe("parseDescription", () => {
       { kind: "paragraph", text: "Otro párrafo." },
     ]);
   });
+
+  test("a title-case section plus short sentences is a list", () => {
+    const text = [
+      "Requisitos",
+      "",
+      "Estudios administrativos (UTU o similares).",
+      "",
+      "Conocimientos de herramientas informáticas (paquete Office).",
+      "",
+      "Libreta de conducir categoría A.",
+      "",
+      "Responsabilidades",
+      "",
+      "Realizar llamadas telefónicas a clientes.",
+      "",
+      "Registrar gestiones en el sistema interno.",
+    ].join("\n");
+    const blocks = parseDescription(text);
+    expect(kinds(blocks)).toEqual(["heading", "list", "heading", "list"]);
+    expect(blocks[1]).toEqual({
+      kind: "list",
+      items: [
+        "Estudios administrativos (UTU o similares).",
+        "Conocimientos de herramientas informáticas (paquete Office).",
+        "Libreta de conducir categoría A.",
+      ],
+    });
+  });
+
+  test("a heading and one sentence stay a paragraph, not a one-item list", () => {
+    const blocks = parseDescription("¿Cuál será tu desafío?\n\nLiderar el equipo.");
+    expect(kinds(blocks)).toEqual(["heading", "paragraph"]);
+  });
 });
 
 describe("renderSpans", () => {

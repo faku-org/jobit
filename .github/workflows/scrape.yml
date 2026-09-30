@@ -15,6 +15,12 @@ jobs:
       # Corre sobre el deploy en /srv/jobit, no sobre el checkout: el output
       # y el cache de detalles viven ahí, fuera del rsync. El cron lo hace
       # como `jobit`; el runner no puede escribir ese jobs.json (EACCES).
+      #
+      # La agenda normal es deploy/jobit-scrape.timer, cada seis horas; esto es
+      # el disparo manual. El scrapeo corre acá y sale por el egress de la PC
+      # (JOBIT_SCRAPE_PROXY en worker/.env), porque BuscoJobs contesta 403 a la
+      # IP del VPS. Si el egress no está, keep.ts conserva lo último suyo en
+      # vez de escribir cero.
       - name: Scrape into /srv/jobit
         working-directory: /srv/jobit
         run: sudo -u jobit env PATH=/opt/bun:$PATH /opt/bun/bun run scrape

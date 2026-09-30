@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { fadeUpTransition, stagger } from "../../lib/motion.ts";
 
 /** One measured thing, whatever shape it ends up being drawn as. */
@@ -48,10 +48,11 @@ function Bars({ rows }: { rows: ChartRow[] }) {
               </span>
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-mist">
-              <motion.div
-                animate={{ width: `${width}%` }}
-                className="h-full rounded-full bg-brand"
-                initial={{ width: 0 }}
+              <m.div
+                animate={{ scaleX: 1 }}
+                className="h-full origin-left rounded-full bg-brand"
+                initial={{ scaleX: 0 }}
+                style={{ width: `${width}%` }}
                 transition={{ ...fadeUpTransition, delay: stagger(index, 0.03, 0.2) }}
               />
             </div>
@@ -106,7 +107,20 @@ function foldTail(rows: ChartRow[]): ChartRow[] {
 function Donut({ rows: given }: { rows: ChartRow[] }) {
   const rows = foldTail(given);
   const total = rows.reduce((sum, row) => sum + row.value, 0);
-  let offset = 0;
+  /**
+   * Dónde arranca cada tajada, calculado antes de dibujar. Antes era un `let`
+   * que se iba sumando adentro del `map`, y una variable que se reasigna
+   * mientras se renderiza es algo que el compilador de React no puede seguir:
+   * dejaba de memoizar el gráfico entero.
+   */
+  const starts = rows.reduce<number[]>(
+    (acc, row) => {
+      const previous = acc[acc.length - 1] ?? 0;
+      acc.push(previous + share(row.value, total) * CIRCUMFERENCE);
+      return acc;
+    },
+    [0],
+  );
 
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
@@ -124,8 +138,9 @@ function Donut({ rows: given }: { rows: ChartRow[] }) {
             and the slices were arriving stuck part-way. */}
         {rows.map((row, index) => {
           const length = share(row.value, total) * CIRCUMFERENCE;
-          const circle = (
-            <motion.circle
+          const offset = starts[index] ?? 0;
+          return (
+            <m.circle
               key={row.key}
               animate={{ opacity: sliceOpacity(index, rows.length) }}
               cx="80"
@@ -140,8 +155,6 @@ function Donut({ rows: given }: { rows: ChartRow[] }) {
               transition={{ ...fadeUpTransition, delay: stagger(index, 0.04, 0.24) }}
             />
           );
-          offset += length;
-          return circle;
         })}
       </svg>
 

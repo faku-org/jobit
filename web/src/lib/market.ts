@@ -36,6 +36,13 @@ export interface DepartmentStat {
   salary: SalarySummary | null;
 }
 
+export interface SkillStat {
+  slug: string;
+  label: string;
+  count: number;
+  salary: SalarySummary | null;
+}
+
 export interface Breakdown {
   value: string;
   count: number;
@@ -53,6 +60,7 @@ export interface MarketReport {
   roles: RoleStat[];
   categories: CategoryStat[];
   departments: DepartmentStat[];
+  skills: SkillStat[];
   levels: Breakdown[];
   modes: Breakdown[];
   jobTypes: Breakdown[];

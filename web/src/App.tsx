@@ -1,33 +1,31 @@
 import { Loader2 } from "lucide-react";
-import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { m } from "motion/react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { CategoryChips } from "./components/board/CategoryChips.tsx";
 import { DynamicIsland } from "./components/board/DynamicIsland.tsx";
 import { FadeUp } from "./components/ui/FadeUp.tsx";
 import { FilterBar } from "./components/board/FilterBar.tsx";
 import { JobCard } from "./components/job/JobCard.tsx";
 import { JobList } from "./components/job/JobList.tsx";
-import { JobModal } from "./components/job/JobModal.tsx";
-import { Market } from "./components/market/Market.tsx";
-import { Onboarding } from "./components/profile/Onboarding.tsx";
 import { EmptyState, ErrorState, JobListSkeleton } from "./components/board/States.tsx";
-import { Tracking } from "./components/board/Tracking.tsx";
 import type { TagActions } from "./components/job/JobChips.tsx";
 import { ViewTabs } from "./components/board/ViewTabs.tsx";
-import { useDebounced } from "./hooks/useDebounced.ts";
+import { useAccountSync } from "./hooks/useAccountSync.ts";
 import { useJobPrefs } from "./hooks/useJobPrefs.ts";
 import { useJobLink } from "./hooks/useJobLink.ts";
 import { useJobs } from "./hooks/useJobs.ts";
+import { useMeta } from "./hooks/useMeta.ts";
+import { useSession } from "./hooks/useSession.ts";
 import { useViewLink } from "./hooks/useViewLink.ts";
 import { useCustomFeeds } from "./hooks/useCustomFeeds.ts";
 import { prefetchMarket, useMarket } from "./hooks/useMarket.ts";
-import { usePrefetchViews } from "./hooks/usePrefetch.ts";
+import { onIdle, usePrefetchViews } from "./hooks/usePrefetch.ts";
 import { useStats } from "./hooks/useStats.ts";
 import { useSearchTracking, useTracking } from "./hooks/useTracking.ts";
 import { useTheme } from "./hooks/useTheme.ts";
-import { fetchJob, fetchMeta, isAbortError, jobsQueryKey } from "./lib/api.ts";
-import { prefetchJobs } from "./lib/jobsCache.ts";
-import { BOARD_VIEWS, type BoardContext, jobsQuery } from "./lib/query.ts";
+import { isAbortError, jobsQueryKey } from "./lib/api.ts";
+import { loadJob, prefetchJobIds, prefetchJobs, readJob } from "./lib/jobsCache.ts";
+import { BOARD_VIEWS, type BoardContext, jobsQuery, keepListView } from "./lib/query.ts";
 import { fadeUpTransition } from "./lib/motion.ts";
 import { pluralOffers } from "./lib/format.ts";
 import { readDevFlags } from "./lib/dev.ts";
@@ -40,7 +38,6 @@ import {
   type Filters,
   type Application,
   type Job,
-  type Meta,
   type Tag,
   type View,
   applyTagToFilters,
@@ -52,6 +49,20 @@ import {
   preferenceCount,
   togglePreferredTag,
 } from "./lib/types.ts";
+
+const loadOnboarding = () =>
+  import("./components/profile/Onboarding.tsx").then((module) => ({ default: module.Onboarding }));
+const loadMarket = () =>
+  import("./components/market/Market.tsx").then((module) => ({ default: module.Market }));
+const loadJobModal = () =>
+  import("./components/job/JobModal.tsx").then((module) => ({ default: module.JobModal }));
+const loadTracking = () =>
+  import("./components/board/Tracking.tsx").then((module) => ({ default: module.Tracking }));
+
+const Onboarding = lazy(loadOnboarding);
+const Market = lazy(loadMarket);
+const JobModal = lazy(loadJobModal);
+const Tracking = lazy(loadTracking);
 
 /**
  * One line under the tabs saying what each list is for. The shortlist and the
@@ -65,20 +76,6 @@ const VIEW_HINT: Record<View, string> = {
   tracking: "Las que ya mandaste, con el estado de cada una. Tocá una para ver la oferta.",
   market: "",
 };
-
-function useMeta(): Meta | null {
-  const [meta, setMeta] = useState<Meta | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchMeta(controller.signal)
-      .then(setMeta)
-      .catch(() => setMeta(null));
-    return () => controller.abort();
-  }, []);
-
-  return meta;
-}
 
 export default function App() {
   /** Read once on mount, so a shared link paints its own section on the first
@@ -104,6 +101,10 @@ export default function App() {
   const [goneIds, setGoneIds] = useState<Set<string>>(new Set());
 
   const prefs = useJobPrefs();
+  /** Quién está adentro y qué eligió sincronizar. Va acá, arriba de la isla,
+   * porque el sync toca las mismas preferencias que el resto del panel. */
+  const session = useSession();
+  const accountSync = useAccountSync(prefs, session.user, session.ready);
   const meta = useMeta();
   /**
    * Read from storage on the first render, so a first visit paints the intro
@@ -112,7 +113,6 @@ export default function App() {
    * on top, which read as an interruption rather than a welcome.
    */
   const showIntro = !isOnboarded(prefs.profile) || replayingIntro;
-  const debouncedQuery = useDebounced(filters.q);
   useTheme(prefs.theme);
   useJobLink(openJob, setOpenJob);
   useViewLink(
@@ -157,7 +157,7 @@ export default function App() {
    * que se va a tocar, que se trae de fondo con esta misma consulta.
    */
   const board: BoardContext = {
-    filters: { ...filters, q: debouncedQuery },
+    filters,
     preferences: prefs.preferences,
     ranking,
     savedIds,
@@ -167,15 +167,20 @@ export default function App() {
     reviewing,
   };
 
-  const query = jobsQuery(view, board);
+  /** Mercado y seguimiento no tienen lista: se queda la última para no abortar
+   * el pedido ni vaciar lo que ya estaba en caché. */
+  const listViewRef = useRef<View>("all");
+  const listView = keepListView(view, listViewRef.current);
+  listViewRef.current = listView;
+  const query = jobsQuery(listView, board);
   const sort = query.sort;
 
-  const { jobs, total, status, error, hasMore, loadMore } = useJobs(query, !showIntro);
+  const { jobs, total, status, error, hasMore, loadMore } = useJobs(query, true);
 
   /** Una lista de guardadas vacía no tiene nada que adelantar: sabemos sin
    * preguntar que vuelve vacía. */
   const worthPrefetching = (candidate: View): boolean =>
-    candidate !== view && (candidate !== "saved" || savedIds.length > 0);
+    candidate !== listView && (candidate !== "saved" || savedIds.length > 0);
 
   /** Las otras listas, traídas en el rato libre que deja la primera. */
   const asleep = BOARD_VIEWS.filter(worthPrefetching).map((candidate) =>
@@ -183,14 +188,50 @@ export default function App() {
   );
   usePrefetchViews(asleep, !showIntro && status === "ready");
 
+  /** Estado es otra consulta (fuente + cierre) y si espera a que Ofertas
+   * termine siempre llega tarde. Se pide en cuanto hay app, en paralelo. */
+  const stateKey = jobsQueryKey(jobsQuery("state", board));
+  useEffect(() => {
+    if (showIntro) return;
+    prefetchJobs(stateKey);
+  }, [showIntro, stateKey]);
+
   /** Al apuntar una pestaña, antes del clic: lo que tarda en bajar el dedo
    * suele alcanzar para que la lista ya esté cuando se suelta. */
+  const trackedKey = prefs.applications.map((entry) => entry.id).join(",");
+
   const prefetchView = (next: View) => {
     if (next === "market") prefetchMarket();
-    else if (next !== "tracking" && worthPrefetching(next)) {
+    else if (next === "tracking") {
+      void loadTracking();
+      prefetchJobIds(trackedKey.split(",").filter(Boolean));
+    } else if (worthPrefetching(next)) {
       prefetchJobs(jobsQueryKey(jobsQuery(next, board)));
     }
   };
+
+  /** La ficha es 20 KB: si se pide al abrir, el clic espera el JS. Se trae
+   * apenas hay app, no cuando ya se tocó una tarjeta. */
+  useEffect(() => {
+    if (showIntro) return;
+    void loadJobModal();
+  }, [showIntro]);
+
+  /** Las filas de seguimiento y las ofertas detrás. En esa pestaña no corre
+   * useJobs, así que no se espera a que el tablero esté listo. */
+  useEffect(() => {
+    if (showIntro) return;
+    const warm = (): void => {
+      void loadTracking();
+      prefetchJobIds(trackedKey.split(",").filter(Boolean));
+    };
+    if (view === "tracking") {
+      warm();
+      return;
+    }
+    if (status !== "ready") return;
+    return onIdle(warm);
+  }, [showIntro, view, status, trackedKey]);
 
   const matches = new Set(
     hasPreferences
@@ -208,7 +249,7 @@ export default function App() {
       ? []
       : customFeeds.jobs.filter(
           (job) =>
-            matchesFilters(job, { ...filters, q: debouncedQuery }) &&
+            matchesFilters(job, filters) &&
             !prefs.preferences.hiddenCategories.includes(job.category) &&
             (job.department === null ||
               !prefs.preferences.hiddenDepartments.includes(job.department)) &&
@@ -264,8 +305,14 @@ export default function App() {
   useSearchTracking(filters, total, status === "ready");
 
   const openTracked = (application: Application) => {
+    const cached = readJob(application.id);
+    if (cached) {
+      setOpenJob(cached);
+      return;
+    }
+
     setOpeningId(application.id);
-    fetchJob(application.id)
+    loadJob(application.id)
       .then((job) => setOpenJob(job))
       .catch((cause: unknown) => {
         if (isAbortError(cause)) return;
@@ -279,23 +326,6 @@ export default function App() {
     setSavedCategory("");
     setReviewingDiscarded(false);
   };
-
-  if (showIntro) {
-    return (
-      <Onboarding
-        categories={meta?.categories ?? []}
-        departments={meta?.departments ?? []}
-        preferences={prefs.preferences}
-        profile={prefs.profile}
-        showWelcome={prefs.introSeenAt === "" || replayingIntro}
-        onFinish={(profile, preferences) => {
-          setReplayingIntro(false);
-          prefs.completeOnboarding(profile, preferences);
-        }}
-        onWelcomeSeen={prefs.markIntroSeen}
-      />
-    );
-  }
 
   /* Deliberately not animated as a whole. A transform here would make this
      div the containing block for every fixed child, which put the job sheet
@@ -319,7 +349,9 @@ export default function App() {
         meta={meta}
         preferences={prefs.preferences}
         profile={prefs.profile}
+        session={session}
         sources={prefs.sources}
+        sync={accountSync}
         theme={prefs.theme}
         usage={usage}
         onChangePreferences={prefs.setPreferences}
@@ -354,14 +386,16 @@ export default function App() {
         {view === "tracking" ? (
           <div className="mt-6">
             <FadeUp delay={0.05}>
-              <Tracking
-                applications={prefs.applications}
-                goneIds={goneIds}
-                openingId={openingId}
-                onOpen={openTracked}
-                onRemove={prefs.removeApplication}
-                onSetStatus={prefs.setApplicationStatus}
-              />
+              <Suspense fallback={<JobListSkeleton />}>
+                <Tracking
+                  applications={prefs.applications}
+                  goneIds={goneIds}
+                  openingId={openingId}
+                  onOpen={openTracked}
+                  onRemove={prefs.removeApplication}
+                  onSetStatus={prefs.setApplicationStatus}
+                />
+              </Suspense>
             </FadeUp>
           </div>
         ) : isMarketView ? (
@@ -369,17 +403,19 @@ export default function App() {
             {market.status === "error" ? (
               <ErrorState message="No se pudieron cargar las estadísticas del mercado." />
             ) : market.report ? (
-              <Market
-                report={market.report}
-                onExploreCategory={(category) => {
-                  setView("all");
-                  setFilters({ ...EMPTY_FILTERS, category });
-                }}
-                onSearch={(q) => {
-                  setView("all");
-                  setFilters({ ...EMPTY_FILTERS, q });
-                }}
-              />
+              <Suspense fallback={<JobListSkeleton />}>
+                <Market
+                  report={market.report}
+                  onExploreCategory={(category) => {
+                    setView("all");
+                    setFilters({ ...EMPTY_FILTERS, category });
+                  }}
+                  onSearch={(q) => {
+                    setView("all");
+                    setFilters({ ...EMPTY_FILTERS, q });
+                  }}
+                />
+              </Suspense>
             ) : (
               <JobListSkeleton />
             )}
@@ -387,7 +423,6 @@ export default function App() {
         ) : (
           <>
             <div className="mt-3">
-              <FadeUp delay={0.05}>
                 <FilterBar
                   categories={meta?.categories ?? []}
                   departments={meta?.departments ?? []}
@@ -406,7 +441,6 @@ export default function App() {
                   onToggleReviewDiscarded={() => setReviewingDiscarded((current) => !current)}
                   onToggleSimilar={() => setOnlySimilar((current) => !current)}
                 />
-              </FadeUp>
             </div>
 
             {isSavedView && savedGroups.length > 1 ? (
@@ -421,7 +455,7 @@ export default function App() {
 
             <div className="mt-6 mb-3 flex h-5 items-center px-1 text-xs text-muted">
               {status === "ready" || status === "loadingMore" ? (
-                <motion.span
+                <m.span
                   key={`${total}-${visible.length}-${discardedHere}-${sort}`}
                   animate={{ opacity: 1 }}
                   initial={{ opacity: 0 }}
@@ -432,7 +466,7 @@ export default function App() {
                   {discardedHere > 0 ? ` · ${discardedHere} descartadas` : ""}
                   {sort === "match" ? " · ordenadas para vos" : ""}
                   {sort === "closing" ? " · las que cierran primero" : ""}
-                </motion.span>
+                </m.span>
               ) : null}
             </div>
 
@@ -503,6 +537,7 @@ export default function App() {
               ) : (
                 <>
                   <JobList
+                    key={listView}
                     byCategory={isSavedView && savedCategory === ""}
                     jobs={visible}
                     renderJob={(job) => (
@@ -523,7 +558,7 @@ export default function App() {
 
                   {hasMore ? (
                     <div className="mt-6 flex justify-center">
-                      <motion.button
+                      <m.button
                         className="inline-flex items-center gap-2 rounded-xl border border-sky/70 bg-surface px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-mist disabled:opacity-60"
                         disabled={status === "loadingMore"}
                         type="button"
@@ -534,7 +569,7 @@ export default function App() {
                           <Loader2 aria-hidden className="size-4 animate-spin" />
                         ) : null}
                         Ver más ofertas
-                      </motion.button>
+                      </m.button>
                     </div>
                   ) : null}
                 </>
@@ -545,20 +580,42 @@ export default function App() {
       </main>
 
       {openJob ? (
-        <JobModal
-          key={openJob.id}
-          applications={prefs.applications}
-          isApplied={prefs.appliedIds.has(openJob.id)}
-          isDismissed={prefs.dismissed.has(openJob.id)}
-          isMatch={highlights.has(openJob.id)}
-          isSaved={prefs.saved.has(openJob.id)}
-          job={openJob}
-          tagActions={tagActions}
-          onApplied={prefs.addApplication}
-          onClose={() => setOpenJob(null)}
-          onToggleDismissed={prefs.toggleDismissed}
-          onToggleSaved={prefs.toggleSaved}
-        />
+        <Suspense fallback={null}>
+          <JobModal
+            key={openJob.id}
+            applications={prefs.applications}
+            isApplied={prefs.appliedIds.has(openJob.id)}
+            isDismissed={prefs.dismissed.has(openJob.id)}
+            isMatch={highlights.has(openJob.id)}
+            isSaved={prefs.saved.has(openJob.id)}
+            job={openJob}
+            tagActions={tagActions}
+            onApplied={prefs.addApplication}
+            onClose={() => setOpenJob(null)}
+            onToggleDismissed={prefs.toggleDismissed}
+            onToggleSaved={prefs.toggleSaved}
+          />
+        </Suspense>
+      ) : null}
+
+      {/* La intro es una capa sobre la app, no una pantalla que la reemplace:
+          así el tablero se pide y se dibuja igual, y un buscador que entra con
+          el storage vacío ve ofertas y no solo "Bienvenido a JobIt". */}
+      {showIntro ? (
+        <Suspense fallback={null}>
+          <Onboarding
+            categories={meta?.categories ?? []}
+            departments={meta?.departments ?? []}
+            preferences={prefs.preferences}
+            profile={prefs.profile}
+            showWelcome={prefs.introSeenAt === "" || replayingIntro}
+            onFinish={(profile, preferences) => {
+              setReplayingIntro(false);
+              prefs.completeOnboarding(profile, preferences);
+            }}
+            onWelcomeSeen={prefs.markIntroSeen}
+          />
+        </Suspense>
       ) : null}
     </div>
   );

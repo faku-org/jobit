@@ -68,3 +68,9 @@ export function jobsQuery(view: View, context: BoardContext): JobsQueryOptions {
 /** Las que se pintan con una consulta de ofertas: Seguimiento sale de lo que
  * hay guardado acá y Mercado tiene su propio informe. */
 export const BOARD_VIEWS: View[] = ["all", "state", "saved"];
+
+/** Mercado y seguimiento no tienen lista propia: se queda la última que sí,
+ * para no abortar ni tirar lo que ya se trajo. */
+export function keepListView(view: View, last: View): View {
+  return BOARD_VIEWS.includes(view) ? view : last;
+}

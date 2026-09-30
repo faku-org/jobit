@@ -5,6 +5,8 @@
  * reads the shape back out so the sheet can show headings as headings and
  * lists as lists.
  */
+import { fold } from "./catalog.ts";
+
 export type Block =
   | { kind: "heading"; text: string }
   | { kind: "fields"; rows: { label: string; value: string }[] }
@@ -21,6 +23,31 @@ const FIELD = /^([A-Za-zÁÉÍÓÚÑÜáéíóúñü][\wÁÉÍÓÚÑÜáéíóú
 const HEADING_COLON = /^([A-Za-zÁÉÍÓÚÑÜáéíóúñü][\wÁÉÍÓÚÑÜáéíóúñü ¿?()/.,-]{2,48}):[ \t]*$/;
 
 const MAX_HEADING_LENGTH = 48;
+
+/** One-word (or short) section titles BuscoJobs writes in title case, without
+ * a colon and without shouting. They still introduce a list. */
+const SECTION_HEADINGS = new Set([
+  "requisitos",
+  "requerimientos",
+  "responsabilidades",
+  "funciones",
+  "tareas",
+  "actividades",
+  "ofrecemos",
+  "se ofrece",
+  "beneficios",
+  "que ofrecemos",
+  "proponemos",
+  "perfil",
+  "perfil del puesto",
+  "perfil solicitado",
+  "condiciones",
+  "conocimientos",
+  "experiencia requerida",
+]);
+
+const isSectionHeading = (line: string): boolean =>
+  SECTION_HEADINGS.has(fold(stripHeading(line)).replace(/\s+/g, " ").trim());
 
 /**
  * Emoji that did not survive the job board's own encoding: an employer typed
@@ -42,6 +69,7 @@ const isUpperCase = (line: string): boolean =>
 function isHeading(line: string): boolean {
   if (line.length > MAX_HEADING_LENGTH) return false;
   if (HEADING_COLON.test(line)) return true;
+  if (isSectionHeading(line)) return true;
   if (line.endsWith("?") && line.length > 4) return true;
   return isUpperCase(line) && !line.includes(",") && !line.endsWith(".");
 }
@@ -116,7 +144,45 @@ export function parseDescription(text: string): Block[] {
   }
 
   flushAll();
-  return blocks;
+  return clusterSectionItems(blocks);
+}
+
+/** A lone short sentence under a heading is one item of an unbulleted list:
+ * BuscoJobs writes "Requisitos" and then each requirement on its own line,
+ * with a blank line in between and no dash. Two or more of those become a
+ * list; a single one stays a paragraph so a heading plus a sentence does not
+ * turn into a one-bullet list. */
+const MAX_ITEM_LENGTH = 200;
+
+const isItemParagraph = (text: string): boolean =>
+  text.length <= MAX_ITEM_LENGTH && !text.includes(". ");
+
+function clusterSectionItems(blocks: Block[]): Block[] {
+  const out: Block[] = [];
+  let index = 0;
+
+  while (index < blocks.length) {
+    const block = blocks[index];
+    if (!block) break;
+    out.push(block);
+    index += 1;
+    if (block.kind !== "heading") continue;
+
+    const items: string[] = [];
+    while (index < blocks.length) {
+      const next = blocks[index];
+      if (next?.kind !== "paragraph" || !isItemParagraph(next.text)) break;
+      items.push(next.text);
+      index += 1;
+    }
+
+    if (items.length >= 2) out.push({ kind: "list", items });
+    else {
+      for (const text of items) out.push({ kind: "paragraph", text });
+    }
+  }
+
+  return out;
 }
 
 /** A run of text with the meaning the renderer needs to give it. */

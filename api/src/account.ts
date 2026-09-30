@@ -1,82 +1,110 @@
 import { Elysia, t } from "elysia";
 import { secureCookies } from "./auth.ts";
-import { accountsEnabled } from "./secrets.ts";
-import * as services from "./services.ts";
+import { encryptionEnabled, sign, verifySignature } from "./crypto.ts";
+import * as sync from "./sync.ts";
+import { generateSecret, otpauthUrl, verifyTotp } from "./totp.ts";
 import * as users from "./users.ts";
-import { verifyTotp } from "./totp.ts";
 
 /**
- * El lado de quien publica: alta, entrada, segundo factor y perfil.
+ * Las cuentas de quien publica, separadas de las del panel.
  *
- * Nada de esto se sirve si falta ACCOUNT_KEY, igual que el panel sin su hash:
- * sin clave no hay con qué cifrar el correo ni el secreto del segundo factor,
- * y un despliegue así tiene que quedarse sin cuentas antes que guardar esos
- * datos en claro.
+ * Es otra cookie (`jobit_session`, alcance /api) y otra tabla
+ * (`user_sessions`): una sesión de usuario no sirve para /api/admin y una del
+ * panel no sirve para acá. Comparten el mecanismo, no el alcance.
+ *
+ * La cookie dura 30 días porque quien publica un servicio no entra todos los
+ * días, y se renueva sola con el uso. `Secure` sale de la misma variable de
+ * escape que el panel, que existe solo para desarrollo sobre http://.
  */
-export const USER_COOKIE = "jobit_session";
+export const SESSION_COOKIE = "jobit_session";
+const CHALLENGE_COOKIE = "jobit_2fa";
+const CHALLENGE_MS = 5 * 60_000;
+const ISSUER = "JobIt";
 
-/** Elysia entrega el valor de la cookie como unknown mientras no se le declare
- * un esquema; acá alcanza con quedarse solo con lo que sea texto. */
+const SECURE_COOKIES = secureCookies();
+
+/** Elysia entrega la cookie como unknown mientras no se le declare un esquema. */
 const tokenOf = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined;
 
-/**
- * `lax` y no `strict` como el panel: un enlace a un servicio compartido por
- * fuera del sitio tiene que llegar con la sesión puesta o la persona ve la
- * página como si nunca hubiera entrado. Lax igual no manda la cookie en un
- * POST de otro origen, que es el vector de CSRF que importa acá.
- *
- * El camino es /api y no /api/admin: son dos sesiones distintas, con nombres
- * distintos, y ninguna llega a las rutas de la otra por accidente.
- */
-const cookieOptions = (expiresAt: string) =>
-  ({
+const setSession = (
+  cookie: Record<string, { set: (options: Record<string, unknown>) => void } | undefined>,
+  session: users.UserSession,
+): void => {
+  cookie[SESSION_COOKIE]?.set({
+    value: session.token,
     httpOnly: true,
-    secure: secureCookies(),
+    secure: SECURE_COOKIES,
     sameSite: "lax",
     path: "/api",
-    expires: new Date(expiresAt),
-  }) as const;
+    expires: new Date(session.expiresAt),
+  });
+};
 
-const passwordSchema = t.String({ minLength: 1, maxLength: 200 });
+/**
+ * El segundo paso no crea sesión: el desafío viaja en una cookie propia,
+ * firmada con la clave del servidor y de cinco minutos, así que entre el login
+ * y el código no hay ninguna sesión abierta.
+ */
+async function signChallenge(userId: string, now: number = Date.now()): Promise<string | null> {
+  const payload = `${userId}.${now + CHALLENGE_MS}`;
+  const signature = await sign(payload);
+  return signature.ok ? `${payload}.${signature.value}` : null;
+}
+
+async function readChallenge(token: string): Promise<string | null> {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [userId, expiresAt, signature] = parts;
+  if (!userId || !expiresAt || !signature) return null;
+
+  const expires = Number(expiresAt);
+  if (!Number.isFinite(expires) || expires < Date.now()) return null;
+  return (await verifySignature(`${userId}.${expiresAt}`, signature)) ? userId : null;
+}
+
+const publicUser = (user: users.User) => users.publicUser(user);
 
 const registerBody = t.Object({
-  handle: t.String({ maxLength: 40 }),
-  display_name: t.String({ maxLength: 80 }),
-  password: passwordSchema,
+  handle: t.String({ maxLength: 60 }),
+  display_name: t.String({ maxLength: 120 }),
+  password: t.String({ minLength: 8, maxLength: 200 }),
+  email: t.Optional(t.String({ maxLength: 300 })),
 });
 
 const loginBody = t.Object({
-  handle: t.String({ maxLength: 40 }),
-  password: passwordSchema,
+  handle: t.String({ maxLength: 60 }),
+  password: t.String({ maxLength: 200 }),
 });
 
-const codeSchema = t.String({ maxLength: 10 });
+const passwordBody = t.Object({ password: t.String({ maxLength: 200 }) });
+const totpCodeBody = t.Object({ code: t.String({ maxLength: 10 }) });
+const recoverBody = t.Object({
+  handle: t.String({ maxLength: 60 }),
+  code: t.String({ maxLength: 20 }),
+});
+const totpSetupBody = t.Object({ code: t.Optional(t.String({ maxLength: 10 })) });
+const patchMeBody = t.Object({
+  display_name: t.Optional(t.String({ maxLength: 120 })),
+  email: t.Optional(t.String({ maxLength: 300 })),
+  current_password: t.Optional(t.String({ maxLength: 200 })),
+  new_password: t.Optional(t.String({ minLength: 8, maxLength: 200 })),
+});
+const syncBody = t.Object({ payload: t.Any() });
 
 export const account = new Elysia({ prefix: "/api" })
-  .guard({
-    beforeHandle({ status }) {
-      if (!accountsEnabled()) return status(404, { error: "no encontrado" });
-    },
-  })
   .post(
     "/auth/register",
     async ({ body, cookie, status }) => {
-      const created = await users.register(body);
+      const created = await users.create(body);
       if (!created.ok) return status(422, { error: created.error });
 
-      const session = users.startSession(created.value.user.id);
-      cookie[USER_COOKIE]?.set({ value: session.token, ...cookieOptions(session.expiresAt) });
-
-      /** Los códigos salen una sola vez y en ningún lado más: son literalmente
-       * lo único que separa a la persona de perder la cuenta, y la pantalla
-       * del alta tiene que decirlo así y no en letra chica. */
+      setSession(cookie, users.createSession(created.value.user.id));
       return status(201, {
         status: "ok",
-        user: created.value.user,
-        recovery_codes: created.value.recovery_codes,
-        warning:
-          "Guardá estos códigos ahora: no se vuelven a mostrar y son la única forma de volver a entrar si perdés la contraseña. JobIt no guarda tu correo, así que no hay reset que mandarte.",
+        /** Se muestran una sola vez: en la base queda el sha256. */
+        recovery_codes: created.value.recoveryCodes,
+        user: publicUser(created.value.user),
       });
     },
     { body: registerBody },
@@ -84,143 +112,223 @@ export const account = new Elysia({ prefix: "/api" })
   .post(
     "/auth/login",
     async ({ body, cookie, status }) => {
-      const user = await users.verifyLogin(body.handle, body.password);
-      /** El mismo mensaje para handle inexistente, clave mala y cuenta
-       * suspendida: la respuesta no es un directorio de quién está registrado. */
-      if (!user) return status(401, { error: "usuario o contraseña incorrectos" });
+      const user = users.byHandle(body.handle);
+      /** Una sola respuesta para el handle que no existe y la clave que no es. */
+      if (!user || !(await users.verifyPassword(user, body.password))) {
+        return status(401, { error: "handle o contraseña incorrectos" });
+      }
+      if (user.status !== "active") return status(403, { error: "esa cuenta está suspendida" });
 
-      const stage = user.totp_enabled === 1 ? "totp" : "open";
-      const session = users.startSession(user.id, stage);
-      cookie[USER_COOKIE]?.set({ value: session.token, ...cookieOptions(session.expiresAt) });
+      if (user.totp_enabled) {
+        const challenge = await signChallenge(user.id);
+        if (!challenge) return status(503, { error: "el segundo paso no está disponible" });
+        cookie[CHALLENGE_COOKIE]?.set({
+          value: challenge,
+          httpOnly: true,
+          secure: SECURE_COOKIES,
+          sameSite: "lax",
+          path: "/api",
+          maxAge: CHALLENGE_MS / 1000,
+        });
+        return { status: "totp_required" };
+      }
 
-      return stage === "totp" ? { status: "totp" } : { status: "ok", user: users.publicUser(user) };
+      setSession(cookie, users.createSession(user.id));
+      return { status: "ok", user: publicUser(user) };
     },
     { body: loginBody },
   )
-  /** El segundo paso. La sesión a medio abrir ya está en la cookie, así que no
-   * hay un token de desafío dando vueltas por fuera. */
   .post(
     "/auth/totp",
     async ({ body, cookie, status }) => {
-      const token = tokenOf(cookie[USER_COOKIE]?.value);
-      const user = users.pendingTotpUser(token);
-      if (!token || !user) return status(401, { error: "volvé a entrar" });
+      const userId = await readChallenge(tokenOf(cookie[CHALLENGE_COOKIE]?.value) ?? "");
+      if (!userId) return status(401, { error: "el segundo paso venció, volvé a entrar" });
 
-      const secret = await users.totpSecretOf(user);
-      if (!secret || !(await verifyTotp(secret, body.code))) {
-        return status(401, { error: "ese código no coincide" });
-      }
+      const user = users.byId(userId);
+      if (!user || user.status !== "active") return status(401, { error: "esa cuenta no está" });
 
-      const expiresAt = users.openSession(token);
-      cookie[USER_COOKIE]?.set({ value: token, ...cookieOptions(expiresAt) });
-      return { status: "ok", user: users.publicUser(user) };
+      const secret = await users.totpSecret(user);
+      if (!secret) return status(401, { error: "esa cuenta no tiene segundo paso" });
+
+      const check = await verifyTotp(secret, body.code);
+      if (!check.ok) return status(401, { error: "código incorrecto" });
+
+      setSession(cookie, users.createSession(user.id));
+      cookie[CHALLENGE_COOKIE]?.remove();
+      return { status: "ok", user: publicUser(user) };
     },
-    { body: t.Object({ code: t.String({ maxLength: 10 }) }) },
+    { body: totpCodeBody },
   )
-  /**
-   * Un código de respaldo cambia la contraseña y cierra todo lo abierto. Es la
-   * única recuperación que hay y la única que puede haber: recuperar por
-   * correo obliga a guardar una dirección que JobIt pueda leer, y a los datos
-   * de una persona llegan esa persona y la empresa a la que le escribió.
-   */
   .post(
     "/auth/recover",
-    async ({ body, status }) => {
-      const done = await users.recoverWithCode(body.handle, body.code, body.password);
-      return done.ok ? { status: "ok" } : status(422, { error: done.error });
+    ({ body, cookie, status }) => {
+      const user = users.byHandle(body.handle);
+      if (!user || user.status !== "active")
+        return status(401, { error: "handle o código incorrectos" });
+      if (!users.consumeRecoveryCode(user.id, body.code)) {
+        return status(401, { error: "handle o código incorrectos" });
+      }
+
+      setSession(cookie, users.createSession(user.id));
+      return { status: "ok", user: publicUser(user) };
     },
-    {
-      body: t.Object({
-        handle: t.String({ maxLength: 40 }),
-        code: t.String({ maxLength: 20 }),
-        password: passwordSchema,
-      }),
-    },
+    { body: recoverBody },
   )
   .post("/auth/logout", ({ cookie }) => {
-    users.destroySession(tokenOf(cookie[USER_COOKIE]?.value));
-    cookie[USER_COOKIE]?.remove();
+    users.destroySession(tokenOf(cookie[SESSION_COOKIE]?.value));
+    cookie[SESSION_COOKIE]?.remove();
     return { status: "ok" };
   })
-  /** De acá para abajo hace falta una sesión abierta. `resolve` corta con 401
-   * cuando no la hay, así que el handler ya recibe a la persona resuelta y no
-   * vuelve a buscarla. */
-  .resolve(({ cookie, status }) => {
-    const user = users.sessionUser(tokenOf(cookie[USER_COOKIE]?.value));
-    if (!user) return status(401, { error: "sesión vencida" });
-    return { user };
+  /** De acá para abajo hay que estar adentro. */
+  .guard({
+    beforeHandle({ cookie, status }) {
+      if (!users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value))) {
+        return status(401, { error: "sesión vencida" });
+      }
+    },
   })
-  .get("/me", ({ user }) => ({
-    user: users.publicUser(user),
-    recovery_codes_left: users.recoveryCodesLeft(user.id),
-    services: services.countByUser(user.id),
-  }))
+  .get("/me", ({ cookie, status }) => {
+    const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+    if (!user) return status(401, { error: "sesión vencida" });
+    return { user: publicUser(user) };
+  })
   .patch(
     "/me",
-    async ({ user, body, status }) => {
-      const updated = await users.updateProfile(user.id, body);
-      return updated.ok ? { user: updated.value } : status(422, { error: updated.error });
+    async ({ body, cookie, status }) => {
+      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+      if (!user) return status(401, { error: "sesión vencida" });
+
+      if (body.new_password !== undefined) {
+        const current = body.current_password;
+        if (!current || !(await users.verifyPassword(user, current))) {
+          return status(401, { error: "la contraseña actual no coincide" });
+        }
+        users.setPasswordHash(user.id, await users.hashPassword(body.new_password));
+      }
+
+      if (body.display_name !== undefined) {
+        const renamed = users.setDisplayName(user.id, body.display_name);
+        if (!renamed.ok) return status(422, { error: renamed.error });
+      }
+
+      if (body.email !== undefined) {
+        const changed = await users.setEmail(user.id, body.email);
+        if (!changed.ok) return status(422, { error: changed.error });
+      }
+
+      const updated = users.byId(user.id);
+      return { user: publicUser(updated ?? user) };
     },
-    {
-      body: t.Object({ display_name: t.Optional(t.String({ maxLength: 80 })) }),
-    },
+    { body: patchMeBody },
   )
-  /** Borra de verdad: la cuenta, sus sesiones, sus códigos y sus servicios. */
   .delete(
     "/me",
-    async ({ user, body, cookie, status }) => {
-      const done = await users.removeAccount(user.id, body.password);
-      if (!done.ok) return status(422, { error: done.error });
+    async ({ body, cookie, status }) => {
+      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+      if (!user) return status(401, { error: "sesión vencida" });
+      if (!(await users.verifyPassword(user, body.password))) {
+        return status(401, { error: "la contraseña no coincide" });
+      }
 
-      cookie[USER_COOKIE]?.remove();
+      users.remove(user.id);
+      cookie[SESSION_COOKIE]?.remove();
       return { status: "ok" };
     },
-    { body: t.Object({ password: passwordSchema }) },
+    { body: passwordBody },
   )
+  /**
+   * Sin `code` arranca la activación y devuelve el secreto (una vez, para
+   * dibujar el QR). Con `code`, lo confirma y recién ahí queda activado.
+   */
   .post(
-    "/me/password",
-    async ({ user, body, cookie, status }) => {
-      const done = await users.changePassword(user.id, body.current, body.next);
-      if (!done.ok) return status(422, { error: done.error });
+    "/me/totp",
+    async ({ body, cookie, status }) => {
+      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+      if (!user) return status(401, { error: "sesión vencida" });
 
-      /** Cambiar la clave cerró todas las sesiones, la de acá incluida. */
-      cookie[USER_COOKIE]?.remove();
-      return { status: "ok" };
+      if (body.code !== undefined) {
+        const secret = await users.totpSecret(user);
+        if (!secret) return status(422, { error: "no hay un segundo paso pendiente" });
+
+        const check = await verifyTotp(secret, body.code);
+        if (!check.ok) return status(401, { error: "código incorrecto" });
+
+        users.enableTotp(user.id);
+        return { status: "ok", totp_enabled: true };
+      }
+
+      if (user.totp_enabled) return status(422, { error: "el segundo paso ya está activado" });
+      if (!(await encryptionEnabled())) {
+        return status(503, { error: "el segundo paso no está disponible en este servidor" });
+      }
+
+      const secret = generateSecret();
+      const saved = await users.setTotpSecret(user.id, secret);
+      if (!saved.ok) return status(503, { error: saved.error });
+
+      return {
+        secret,
+        otpauth: otpauthUrl({ secret, account: user.handle, issuer: ISSUER }),
+      };
     },
-    {
-      body: t.Object({ current: passwordSchema, next: passwordSchema }),
-    },
-  )
-  /** Cierra todo lo abierto de la cuenta. Sirve para la sesión que quedó en
-   * una máquina prestada, que es el único "último acceso" que se puede ofrecer
-   * sin guardar de dónde entró cada uno. */
-  .post("/me/sessions/close", ({ user, cookie }) => {
-    users.destroyUserSessions(user.id);
-    cookie[USER_COOKIE]?.remove();
-    return { status: "ok" };
-  })
-  .post("/me/recovery-codes", ({ user }) => ({
-    recovery_codes: users.regenerateRecoveryCodes(user.id),
-  }))
-  /** Devuelve el secreto y el otpauth:// una sola vez. El QR lo dibuja el
-   * navegador: no hace falta que el secreto pase por una imagen del servidor. */
-  .post("/me/totp", async ({ user, status }) => {
-    const setup = await users.startTotp(user.id);
-    return setup.ok ? setup.value : status(422, { error: setup.error });
-  })
-  .post(
-    "/me/totp/confirm",
-    async ({ user, body, status }) => {
-      const done = await users.confirmTotp(user.id, body.code);
-      return done.ok ? { status: "ok" } : status(422, { error: done.error });
-    },
-    { body: t.Object({ code: codeSchema }) },
+    { body: totpSetupBody },
   )
   .delete(
     "/me/totp",
-    async ({ user, body, status }) => {
-      const done = await users.disableTotp(user.id, body.password);
-      return done.ok ? { status: "ok" } : status(422, { error: done.error });
+    async ({ body, cookie, status }) => {
+      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+      if (!user) return status(401, { error: "sesión vencida" });
+      if (!(await users.verifyPassword(user, body.password))) {
+        return status(401, { error: "la contraseña no coincide" });
+      }
+
+      users.disableTotp(user.id);
+      return { status: "ok", totp_enabled: false };
     },
-    { body: t.Object({ password: passwordSchema }) },
-  );
+    { body: passwordBody },
+  )
+  /**
+   * Lo que la persona eligió llevar entre navegadores. El servidor guarda un
+   * JSON opaco y cifrado: no lo lee, no lo cuenta y no lo cruza con nada.
+   */
+  .get("/me/sync", async ({ cookie, status }) => {
+    const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+    if (!user) return status(401, { error: "sesión vencida" });
+
+    const found = await sync.pull(user.id);
+    if (!found.ok) return status(503, { error: found.error });
+    if (!found.value) return { enabled: false, payload: null, updated_at: "" };
+
+    try {
+      return {
+        enabled: true,
+        payload: JSON.parse(found.value.payload) as unknown,
+        updated_at: found.value.updatedAt,
+      };
+    } catch {
+      /** Un guardado que ya no se puede leer no bloquea la cuenta: se pisa con
+       * el próximo envío. */
+      return { enabled: true, payload: null, updated_at: found.value.updatedAt };
+    }
+  })
+  .put(
+    "/me/sync",
+    async ({ body, cookie, status }) => {
+      const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+      if (!user) return status(401, { error: "sesión vencida" });
+      if (!(await encryptionEnabled())) {
+        return status(503, { error: "la sincronización no está disponible en este servidor" });
+      }
+
+      const saved = await sync.push(user.id, JSON.stringify(body.payload ?? null));
+      if (!saved.ok) return status(422, { error: saved.error });
+      return { status: "ok", updated_at: saved.value };
+    },
+    { body: syncBody },
+  )
+  .delete("/me/sync", ({ cookie, status }) => {
+    const user = users.sessionUser(tokenOf(cookie[SESSION_COOKIE]?.value));
+    if (!user) return status(401, { error: "sesión vencida" });
+    sync.clear(user.id);
+    return { status: "ok" };
+  });

@@ -2,9 +2,12 @@
   "name": "@jobit/worker",
   "version": "0.0.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "scrape": "bun run src/index.ts",
+    "push": "bun run src/push.ts",
+    "egress": "bun run src/egress.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -12,6 +15,8 @@
   },
   "exports": {
     "./categories": "./src/categories.ts",
-    "./roles": "./src/roles.ts"
+    "./labels": "./src/labels.ts",
+    "./roles": "./src/roles.ts",
+    "./skills": "./src/skills.ts"
   }
 }

@@ -4,9 +4,6 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { ServiceInput } from "./services.ts";
 
 process.env.DB_FILE = ":memory:";
-process.env.ACCOUNT_KEY = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString(
-  "base64",
-);
 
 const { closeDb, db } = await import("./db.ts");
 const services = await import("./services.ts");
@@ -33,12 +30,12 @@ const completo = (overrides: Partial<ServiceInput> = {}): ServiceInput => ({
 beforeEach(async () => {
   closeDb();
 
-  const uno = await users.register({
+  const uno = await users.create({
     handle: "faku",
     display_name: "Facundo",
     password: "una clave larga",
   });
-  const dos = await users.register({
+  const dos = await users.create({
     handle: "ajeno",
     display_name: "Ajeno",
     password: "otra clave larga",
@@ -244,7 +241,7 @@ describe("borrar", () => {
 
   test("borrar la cuenta se lleva los servicios", async () => {
     services.create(id, completo());
-    await users.removeAccount(id, "una clave larga");
+    users.remove(id);
     expect(services.listByUser(id)).toHaveLength(0);
     expect(db().query<{ n: number }, []>("SELECT COUNT(*) AS n FROM services").get()?.n).toBe(0);
   });

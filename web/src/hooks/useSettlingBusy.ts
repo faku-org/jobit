@@ -32,9 +32,17 @@ export const holdBusy = (started: number, minMs = AURA_BUSY_MIN_MS): Promise<voi
  */
 export function useSettlingBusy(busy: boolean, minMs: number = AURA_INTRO_MS): boolean {
   const [held, setHeld] = useState(() => busy || minMs > 0);
-  const started = useRef(performance.now());
+  /**
+   * Cuándo arrancó la espera que se está aguantando. Lo llena el efecto y no el
+   * render: `performance.now()` en el cuerpo es una llamada impura, que además
+   * de rearmarse y tirarse en cada render le hace perder al compilador la
+   * memoización de todo el componente que use este hook.
+   */
+  const started = useRef<number | null>(null);
 
   useEffect(() => {
+    if (started.current === null) started.current = performance.now();
+
     if (busy) {
       started.current = performance.now();
       setHeld(true);
