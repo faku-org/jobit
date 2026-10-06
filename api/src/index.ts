@@ -3,9 +3,11 @@ import { Elysia, t } from "elysia";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
+import { EmbedderError } from "./embeddings.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
 import { buildMarketReport } from "./market.ts";
 import { type Ranking, isEmptyRanking, isMix } from "./rank.ts";
+import { searchBoard, similarBoard } from "./search.ts";
 import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed } from "./feed.ts";
@@ -169,6 +171,42 @@ function readRanking(query: JobsQueryParams): Ranking | undefined {
   return isEmptyRanking(ranking) ? undefined : ranking;
 }
 
+/**
+ * Arma el JobsQuery del tablero a partir de los parámetros sueltos. Lo
+ * comparten /api/jobs y /api/search a propósito: "los mismos filtros que el
+ * feed" tiene que ser literal, no una copia que se desincroniza.
+ */
+function readQuery(query: JobsQueryParams, ranking?: Ranking): Result<JobsQuery> {
+  const levels = parseSet("level", query.level, LEVELS);
+  const workModes = parseSet("remote", query.remote, WORK_MODES);
+  const jobTypes = parseSet("job_type", query.job_type, JOB_TYPES);
+  const invalid = [levels, workModes, jobTypes].find((result) => !result.ok);
+  if (invalid && !invalid.ok) return { ok: false, error: invalid.error };
+
+  return {
+    ok: true,
+    value: {
+      ids: asSet(splitList(query.ids)),
+      q: query.q?.trim() || undefined,
+      levels: levels.ok ? levels.value : undefined,
+      workModes: workModes.ok ? workModes.value : undefined,
+      categories: asSet(splitList(query.category)),
+      sources: asSet(splitList(query.source)),
+      departments: asSet(splitList(query.department)),
+      hiddenCategories: asSet(splitList(query.hide_category)),
+      hiddenDepartments: asSet(splitList(query.hide_department)),
+      jobTypes: jobTypes.ok ? jobTypes.value : undefined,
+      salary: parseSalary(query.salary_min, query.salary_max, query.salary_unknown),
+      noExperience: query.no_experience || undefined,
+      days: query.days,
+      sort: query.sort,
+      ranking,
+      limit: clamp(Math.floor(query.limit ?? DEFAULT_LIMIT), 1, MAX_LIMIT),
+      offset: Math.max(Math.floor(query.offset ?? 0), 0),
+    },
+  };
+}
+
 export const app = new Elysia()
   .use(cors({ origin: CORS_ORIGINS }))
   /** Writing costs a line on disk, reading costs a scan of the board: the two
@@ -202,35 +240,72 @@ export const app = new Elysia()
       const file = await loadFeed();
       if (!file.ok) return status(503, { error: unavailable(file.error) });
 
-      const levels = parseSet("level", query.level, LEVELS);
-      const workModes = parseSet("remote", query.remote, WORK_MODES);
-      const jobTypes = parseSet("job_type", query.job_type, JOB_TYPES);
-      const invalid = [levels, workModes, jobTypes].find((result) => !result.ok);
-      if (invalid && !invalid.ok) return status(422, { error: invalid.error });
+      const parsed = readQuery(query, query.sort === "match" ? readRanking(query) : undefined);
+      if (!parsed.ok) return status(422, { error: parsed.error });
 
-      const params: JobsQuery = {
-        ids: asSet(splitList(query.ids)),
-        q: query.q?.trim() || undefined,
-        levels: levels.ok ? levels.value : undefined,
-        workModes: workModes.ok ? workModes.value : undefined,
-        categories: asSet(splitList(query.category)),
-        sources: asSet(splitList(query.source)),
-        departments: asSet(splitList(query.department)),
-        hiddenCategories: asSet(splitList(query.hide_category)),
-        hiddenDepartments: asSet(splitList(query.hide_department)),
-        jobTypes: jobTypes.ok ? jobTypes.value : undefined,
-        salary: parseSalary(query.salary_min, query.salary_max, query.salary_unknown),
-        noExperience: query.no_experience || undefined,
-        days: query.days,
-        sort: query.sort,
-        ranking: query.sort === "match" ? readRanking(query) : undefined,
-        limit: clamp(Math.floor(query.limit ?? DEFAULT_LIMIT), 1, MAX_LIMIT),
-        offset: Math.max(Math.floor(query.offset ?? 0), 0),
-      };
-
-      return filterJobs(file.value.jobs, params);
+      return filterJobs(file.value.jobs, parsed.value);
     },
     { query: jobsQuerySchema },
+  )
+  /**
+   * Búsqueda por significado. `q` se embebe y se ordena por coseno; los demás
+   * parámetros son los filtros del feed y, si vienen los `rank_*`, se mezclan
+   * los dos scores (ver search.ts). Sin embedder responde 503 y el resto de la
+   * API sigue igual.
+   */
+  .get(
+    "/api/search",
+    async ({ query, status }) => {
+      const file = await loadFeed();
+      if (!file.ok) return status(503, { error: unavailable(file.error) });
+
+      if (!query.q?.trim()) return status(422, { error: "falta el texto de búsqueda" });
+
+      const parsed = readQuery(query, readRanking(query));
+      if (!parsed.ok) return status(422, { error: parsed.error });
+
+      try {
+        return await searchBoard(file.value.jobs, {
+          query: parsed.value,
+          ranking: parsed.value.ranking,
+          limit: parsed.value.limit,
+          offset: parsed.value.offset,
+        });
+      } catch (cause) {
+        if (cause instanceof EmbedderError) {
+          console.error(`[jobit] búsqueda semántica no disponible: ${cause.message}`);
+          return status(503, { error: "la búsqueda semántica no está disponible en este momento" });
+        }
+        throw cause;
+      }
+    },
+    { query: jobsQuerySchema },
+  )
+  /** Las más parecidas a una oferta, por el vector que ya tiene guardado. */
+  .get(
+    "/api/offers/:id/similar",
+    async ({ params, query, status }) => {
+      const file = await loadFeed();
+      if (!file.ok) return status(503, { error: unavailable(file.error) });
+
+      const result = similarBoard(
+        file.value.jobs,
+        params.id,
+        clamp(Math.floor(query.limit ?? DEFAULT_LIMIT), 1, MAX_LIMIT),
+        Math.max(Math.floor(query.offset ?? 0), 0),
+      );
+
+      if (!result.ok) {
+        return status(404, {
+          error:
+            result.error === "not-found"
+              ? "oferta no encontrada"
+              : "esa oferta todavía no está indexada",
+        });
+      }
+      return result.value;
+    },
+    { query: t.Object({ limit: t.Optional(t.Numeric()), offset: t.Optional(t.Numeric()) }) },
   )
   .get("/api/jobs/:id", async ({ params, status }) => {
     const file = await loadFeed();

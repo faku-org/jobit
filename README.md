@@ -54,6 +54,8 @@ termina donde termina la de verdad.
 | `GET /health` | Estado del servicio. |
 | `GET /api/jobs` | Ofertas filtradas y paginadas. |
 | `GET /api/jobs/:id` | Una oferta completa. |
+| `GET /api/search` | Búsqueda por significado: embebe `q` y ordena por coseno. Acepta los mismos filtros que `/api/jobs`. |
+| `GET /api/offers/:id/similar` | Ofertas parecidas a una, por el vector que ya tiene guardado. |
 | `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
 | `POST /api/stats` | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`. |
 | `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
@@ -80,11 +82,30 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 coma y la oferta matchea con cualquiera de ellos. Una oferta sin teletrabajo
 cuenta como `onsite`.
 
+### Búsqueda semántica
+
+`/api/search` entiende la consulta aunque las palabras no estén en el aviso:
+embebe `q` con el embedder propio (EmbeddingGemma 2) y ordena por coseno contra
+el vector de cada oferta. Acepta los mismos filtros que `/api/jobs`; si además
+llegan los `rank_*`, mezcla el parecido con el ranking del feed (`SEMANTIC_WEIGHT`,
+0.6 por defecto). Compara a fuerza bruta (miles de vectores en milisegundos, ver
+el comentario en `api/src/search.ts`). Sin embedder responde 503 y el resto de la
+API sigue funcionando igual.
+
+Los vectores viven en la tabla `offer_embeddings` y se llenan con:
+
+```
+bun run --cwd api embed          # solo las ofertas nuevas
+bun run --cwd api embed --force  # reembebe todo
+```
+
 Variables de entorno: `PORT` (3000), `HOST` (127.0.0.1), `JOBS_FILE` (ruta al
-JSON del worker), `DB_FILE` (SQLite de empresas y ofertas propias),
+JSON del worker), `DB_FILE` (SQLite de empresas, ofertas propias y vectores),
 `STATS_FILE` y `EVENTS_FILE` (rutas de los `.jsonl`), `CORS_ORIGIN` (origen del
 dev server de Vite), `ADMIN_PASSWORD_HASH_FILE` (archivo con el hash del panel;
-sin él `/api/admin` responde 404).
+sin él `/api/admin` responde 404), `EMBEDDER_URL` (`http://127.0.0.1:8891/v1/embeddings`),
+`EMBEDDER_MODEL` (`embeddinggemma-2`), `EMBEDDER_BATCH` (16) y
+`EMBEDDER_TIMEOUT_MS` (30000).
 
 ## Perfil y estadísticas
 
