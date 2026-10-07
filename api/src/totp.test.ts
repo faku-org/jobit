@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { base32Decode, base32Encode, generateSecret, otpauthUrl, totp, verifyTotp } from "./totp.ts";
 
 /** El secreto de prueba del RFC 6238: el ASCII "12345678901234567890". */
-// nosemgrep: generic.secrets.security.detected-generic-secret -- vector de prueba publico del RFC 6238, no es un secreto real
+// nosemgrep: generic.secrets.security.detected-generic-secret.detected-generic-secret -- vector de prueba publico del RFC 6238, no es un secreto real
 const RFC_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
 
 describe("base32", () => {
