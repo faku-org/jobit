@@ -1,4 +1,4 @@
-import { SlidersHorizontal } from "lucide-react";
+import { HelpCircle, SlidersHorizontal } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { AccountSync } from "../../hooks/useAccountSync.ts";
@@ -49,6 +49,10 @@ interface DynamicIslandProps {
   onChangeProfile: (profile: Profile) => void;
   onEraseEverything: () => void;
   onImportCv: (profile: Profile, preferences: Preferences) => void;
+  /** Abre la ayuda general, que vive en App como capa sobre todo lo demás. */
+  onOpenHelp: () => void;
+  /** Deja la ayuda cargada antes del clic. */
+  onPrefetchHelp: () => void;
 }
 
 type Tab = "search" | "profile" | "account";
@@ -80,6 +84,8 @@ export function DynamicIsland({
   onChangeProfile,
   onEraseEverything,
   onImportCv,
+  onOpenHelp,
+  onPrefetchHelp,
 }: DynamicIslandProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("search");
@@ -141,6 +147,19 @@ export function DynamicIsland({
               )}
             </AnimatePresence>
           </m.div>
+
+          <m.button
+            layout
+            aria-label="Ayuda"
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-onpanel-wash text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+            type="button"
+            onClick={onOpenHelp}
+            onFocus={onPrefetchHelp}
+            onMouseEnter={onPrefetchHelp}
+            onPointerDown={onPrefetchHelp}
+          >
+            <HelpCircle aria-hidden className="size-4" />
+          </m.button>
 
           <m.button
             layout
