@@ -54,9 +54,10 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function fetchEmployers(rubro: string, signal?: AbortSignal): Promise<Facet[]> {
+export function fetchEmployers(rubro: string, query = "", signal?: AbortSignal): Promise<Facet[]> {
   const params = new URLSearchParams();
   if (rubro) params.set("rubro", rubro);
+  if (query) params.set("q", query);
   return getJson<{ employers: Facet[] }>(`/api/empresas?${params}`, signal).then(
     (body) => body.employers,
   );

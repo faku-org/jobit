@@ -29,6 +29,15 @@ function matchesText(job: Job, needle: string): boolean {
     .every((term) => haystack.includes(term));
 }
 
+/** Todos los términos tienen que aparecer en el texto dado. */
+function textIncludes(haystack: string, needle: string): boolean {
+  const folded = normalize(haystack);
+  return normalize(needle)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((term) => folded.includes(term));
+}
+
 function isNewerThan(job: Job, days: number, now: number): boolean {
   const posted = Date.parse(job.date_posted);
   if (Number.isNaN(posted)) return false;
@@ -66,6 +75,10 @@ function matches(job: Job, query: JobsQuery, now: number): boolean {
   if (query.employers) {
     const slug = job.company ? employerSlug(job.company) : "";
     if (!query.employers.has(slug)) return false;
+  }
+  if (query.title && !textIncludes(job.title, query.title)) return false;
+  if (query.place && !textIncludes([job.city ?? "", job.department ?? ""].join(" "), query.place)) {
+    return false;
   }
   if (job.department !== null && query.hiddenDepartments?.has(job.department)) return false;
   if (query.jobTypes && (job.job_type === null || !query.jobTypes.has(job.job_type))) return false;

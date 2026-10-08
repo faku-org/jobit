@@ -28,6 +28,7 @@ import { useSearchTracking, useTracking } from "./hooks/useTracking.ts";
 import { useTheme } from "./hooks/useTheme.ts";
 import { isAbortError, jobsQueryKey } from "./lib/api.ts";
 import { employerSlug } from "./lib/employers.ts";
+import { parseSearch, withoutToken } from "./lib/search.ts";
 import { loadJob, prefetchJobIds, prefetchJobs, readJob } from "./lib/jobsCache.ts";
 import { BOARD_VIEWS, type BoardContext, jobsQuery, keepListView } from "./lib/query.ts";
 import { fadeUpTransition } from "./lib/motion.ts";
@@ -119,6 +120,14 @@ export default function App() {
   const accountSync = useAccountSync(prefs, session.user, session.ready);
   const meta = useMeta();
   const employers = useEmployers(filters.category);
+
+  /**
+   * Los atajos del buscador (`@empresa`, `puesto:`, …) se leen del texto crudo
+   * y pisan al filtro manual de su dimensión. La URL guarda el texto crudo, así
+   * que el enlace compartido reproduce la búsqueda.
+   */
+  const search = parseSearch(filters.q);
+  const effectiveFilters: Filters = { ...filters, ...search.filters, q: search.text };
   /**
    * Read from storage on the first render, so a first visit paints the intro
    * and never the list underneath it. Until it is done the app is not mounted
@@ -170,7 +179,7 @@ export default function App() {
    * que se va a tocar, que se trae de fondo con esta misma consulta.
    */
   const board: BoardContext = {
-    filters,
+    filters: effectiveFilters,
     preferences: prefs.preferences,
     ranking,
     savedIds,
@@ -263,7 +272,7 @@ export default function App() {
       ? []
       : customFeeds.jobs.filter(
           (job) =>
-            matchesFilters(job, filters) &&
+            matchesFilters(job, effectiveFilters) &&
             !prefs.preferences.hiddenCategories.includes(job.category) &&
             (job.department === null ||
               !prefs.preferences.hiddenDepartments.includes(job.department)) &&
@@ -285,7 +294,7 @@ export default function App() {
   const visible =
     isSavedView && savedCategory ? kept.filter((job) => job.category === savedCategory) : kept;
   const discardedHere = jobs.length - kept.length;
-  const isDirty = hasActiveFilters(filters) || similarOnly || savedCategory !== "";
+  const isDirty = hasActiveFilters(effectiveFilters) || similarOnly || savedCategory !== "";
 
   const reset = () => {
     setFilters(EMPTY_FILTERS);
@@ -316,7 +325,7 @@ export default function App() {
 
   useStats(prefs.profile, usage, prefs.statsSentAt, prefs.markStatsSent);
   useTracking(prefs.profile.shareStats);
-  useSearchTracking(filters, total, status === "ready");
+  useSearchTracking(effectiveFilters, total, status === "ready");
 
   /** Abre el stand de la empresa de una oferta, si tiene una. */
   const openEmployerFor = (job: Job) => {
@@ -463,6 +472,10 @@ export default function App() {
                 departments={meta?.departments ?? []}
                 employers={employers}
                 myCompaniesCount={prefs.companies.length}
+                searchTokens={search.tokens}
+                onRemoveToken={(raw) =>
+                  setFilters((current) => ({ ...current, q: withoutToken(current.q, raw) }))
+                }
                 canReviewDiscarded={canReviewDiscarded}
                 discardedCount={prefs.dismissed.size}
                 filters={filters}

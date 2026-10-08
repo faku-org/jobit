@@ -16,7 +16,7 @@ export function useEmployers(rubro: string): Facet[] {
     }
 
     const controller = new AbortController();
-    fetchEmployers(rubro, controller.signal)
+    fetchEmployers(rubro, "", controller.signal)
       .then((list) => {
         cache.set(rubro, list);
         setEmployers(list);

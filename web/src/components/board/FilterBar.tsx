@@ -1,6 +1,7 @@
 import { Bookmark, Building2, EyeOff, Sparkles, Target, X } from "lucide-react";
 import { m } from "motion/react";
 import type { Facet, Filters, JobType, Level, WorkMode } from "../../lib/types.ts";
+import type { SearchToken } from "../../lib/search.ts";
 import { type Option, Select } from "../ui/Select.tsx";
 import { SearchField } from "./SearchField.tsx";
 
@@ -12,6 +13,9 @@ interface FilterBarProps {
   employers: Facet[];
   /** Cuántas empresas guardó la persona como "donde trabajé". */
   myCompaniesCount: number;
+  /** Atajos reconocidos en el buscador, para mostrarlos y poder quitarlos. */
+  searchTokens: SearchToken[];
+  onRemoveToken: (raw: string) => void;
   noExperienceCount: number;
   /** How many offers were discarded, and whether this view can review them.
    * Discarding is meaningless where nothing can be discarded, so the control
@@ -100,6 +104,8 @@ export function FilterBar({
   departments,
   employers,
   myCompaniesCount,
+  searchTokens,
+  onRemoveToken,
   noExperienceCount,
   discardedCount,
   canReviewDiscarded,
@@ -116,7 +122,32 @@ export function FilterBar({
 }: FilterBarProps) {
   return (
     <div className="rounded-2xl border border-sky/50 bg-surface p-3 shadow-[var(--shadow-hairline)]">
-      <SearchField value={filters.q} onChange={(q) => onChange({ ...filters, q })} />
+      <SearchField
+        employers={employers}
+        value={filters.q}
+        onChange={(q) => onChange({ ...filters, q })}
+      />
+
+      {searchTokens.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {searchTokens.map((token) => (
+            <span
+              key={token.raw}
+              className="inline-flex items-center gap-1 rounded-full bg-sky/40 px-2.5 py-1 text-xs font-medium text-ink"
+            >
+              {token.label}
+              <button
+                aria-label={`Quitar ${token.label}`}
+                className="text-muted transition-colors hover:text-ink"
+                type="button"
+                onClick={() => onRemoveToken(token.raw)}
+              >
+                <X aria-hidden className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
         {showCategory ? (
