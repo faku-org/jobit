@@ -1,5 +1,6 @@
 import { CATEGORIES, categoryLabel } from "@jobit/worker/categories";
 import { ROLES, roleOf } from "@jobit/worker/roles";
+import type { ContentItem } from "@jobit/worker/content/types";
 import { type MarketReport, buildMarketReport } from "./market.ts";
 import { loadFeed, lookupJob } from "./feed.ts";
 import type { Job, JobsFile } from "./types.ts";
@@ -201,8 +202,18 @@ function jobChips(job: Job): string {
     job.category_label,
     job.department ?? "",
     job.remote === "remote" ? "Remoto" : job.remote === "hybrid" ? "Híbrido" : "",
-    job.level === "entry" ? "Junior" : job.level === "mid" ? "Semi senior" : job.level === "senior" ? "Senior" : "",
-    job.job_type === "part_time" ? "Medio horario" : job.job_type === "internship" ? "Pasantía" : "",
+    job.level === "entry"
+      ? "Junior"
+      : job.level === "mid"
+        ? "Semi senior"
+        : job.level === "senior"
+          ? "Senior"
+          : "",
+    job.job_type === "part_time"
+      ? "Medio horario"
+      : job.job_type === "internship"
+        ? "Pasantía"
+        : "",
     job.no_experience ? "Sin experiencia" : "",
   ].filter(Boolean);
 
@@ -249,6 +260,15 @@ ${job.requirements ? `<h2>Requisitos</h2>${paragraphs(job.requirements)}` : ""}
   return layout(meta, body);
 }
 
+const jobListHtml = (jobs: Job[]): string =>
+  jobs
+    .slice(0, 100)
+    .map((job) => {
+      const where = [job.city, job.department].filter(Boolean).join(", ") || "Uruguay";
+      return `<li><a href="${escapeHtml(publicOrigin())}/empleo/${encodeURIComponent(job.id)}">${escapeHtml(job.title)}</a><div class="where">${escapeHtml(job.company ?? "JobIt")} · ${escapeHtml(where)}</div></li>`;
+    })
+    .join("");
+
 export function listPageHtml(options: {
   title: string;
   description: string;
@@ -258,13 +278,7 @@ export function listPageHtml(options: {
   appQuery: string;
 }): string {
   const { jobs } = options;
-  const items = jobs
-    .slice(0, 100)
-    .map((job) => {
-      const where = [job.city, job.department].filter(Boolean).join(", ") || "Uruguay";
-      return `<li><a href="${escapeHtml(publicOrigin())}/empleo/${encodeURIComponent(job.id)}">${escapeHtml(job.title)}</a><div class="where">${escapeHtml(job.company ?? "JobIt")} · ${escapeHtml(where)}</div></li>`;
-    })
-    .join("");
+  const items = jobListHtml(jobs);
 
   const body = `
 <h1>${escapeHtml(options.title)}</h1>
@@ -273,7 +287,10 @@ export function listPageHtml(options: {
 <ul class="jobs">${items}</ul>
 <p class="muted">${jobs.length} ofertas${jobs.length > 100 ? " (mostrando las primeras 100)" : ""}.</p>`;
 
-  return layout({ title: options.title, description: options.description, path: options.path }, body);
+  return layout(
+    { title: options.title, description: options.description, path: options.path },
+    body,
+  );
 }
 
 export function marketPageHtml(report: MarketReport): string {
@@ -302,6 +319,67 @@ export function marketPageHtml(report: MarketReport): string {
       description:
         "Totales, puestos, rubros y departamentos con más ofertas en Uruguay, armado con las ofertas publicadas en JobIt.",
       path: "/mercado",
+    },
+    body,
+  );
+}
+
+/**
+ * El `FAQPage` de una página de entrevista. Solo con preguntas reales: una
+ * lista vacía no se marca, porque un marcado sin contenido es justo lo que se
+ * penaliza.
+ */
+export function faqPageLd(items: ContentItem[]): Record<string, unknown> | null {
+  const faqs = items.filter((item) => item.kind === "faq");
+  if (faqs.length === 0) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((item) => ({
+      "@type": "Question",
+      name: item.title,
+      acceptedAnswer: { "@type": "Answer", text: item.body },
+    })),
+  };
+}
+
+/**
+ * La guía de entrevista de un rubro: las preguntas que más se repiten, las
+ * habilidades que importan y las ofertas de ese rubro. Es contenido de
+ * intención alta ("preguntas de entrevista para X en Uruguay"), así que va con
+ * `FAQPage` en JSON-LD y enlace a la vista filtrada de la app.
+ */
+export function interviewPageHtml(slug: string, jobs: Job[], items: ContentItem[]): string {
+  const label = categoryLabel(slug);
+  const questions = items.filter((item) => item.kind === "faq");
+  const topics = items.filter((item) => item.kind === "topic");
+
+  const questionBlocks = questions
+    .map((item) => `<h3>${escapeHtml(item.title)}</h3>${paragraphs(item.body)}`)
+    .join("");
+  const topicBlocks = topics
+    .map((item) => `<h3>${escapeHtml(item.title)}</h3>${paragraphs(item.body)}`)
+    .join("");
+
+  const body = `
+<h1>Preguntas de entrevista de ${escapeHtml(label)} en Uruguay</h1>
+<p>Las preguntas que más se repiten en las entrevistas de ${escapeHtml(label)}, y las habilidades y temas que conviene tener a mano.</p>
+<a class="cta" href="${escapeHtml(publicOrigin())}/?category=${encodeURIComponent(slug)}">Ver las ofertas de ${escapeHtml(label)} en JobIt</a>
+${questionBlocks ? `<h2>Preguntas frecuentes</h2>${questionBlocks}` : ""}
+${topicBlocks ? `<h2>Habilidades y temas</h2>${topicBlocks}` : ""}
+${
+  jobs.length > 0
+    ? `<h2>Ofertas de ${escapeHtml(label)}</h2><ul class="jobs">${jobListHtml(jobs)}</ul><p class="muted">${jobs.length} ofertas${jobs.length > 100 ? " (mostrando las primeras 100)" : ""}.</p>`
+    : ""
+}`;
+
+  return layout(
+    {
+      title: `Preguntas de entrevista de ${label} en Uruguay · JobIt`,
+      description: `Las preguntas más repetidas en entrevistas de ${label} en Uruguay, con respuestas, habilidades que importan y las ofertas del rubro.`,
+      path: `/entrevista/${encodeURIComponent(slug)}`,
+      jsonLd: faqPageLd(items),
     },
     body,
   );
