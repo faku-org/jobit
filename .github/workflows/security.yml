@@ -1,0 +1,14 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main, master, develop, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    uses: faku-org/.github/.github/workflows/security.yml@main
