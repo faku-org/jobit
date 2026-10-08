@@ -1,4 +1,4 @@
-import { Bookmark, ChartColumn, ClipboardList, Landmark, LayoutList } from "lucide-react";
+import { Bell, Bookmark, ChartColumn, ClipboardList, Landmark, LayoutList } from "lucide-react";
 import { m } from "motion/react";
 import { islandTransition } from "../../lib/motion.ts";
 import type { View } from "../../lib/types.ts";
@@ -19,6 +19,7 @@ const TABS: { value: View; label: string; icon: typeof LayoutList }[] = [
   { value: "saved", label: "Guardadas", icon: Bookmark },
   { value: "tracking", label: "Seguimiento", icon: ClipboardList },
   { value: "market", label: "Mercado", icon: ChartColumn },
+  { value: "news", label: "Novedades", icon: Bell },
 ];
 
 /** Switches the main area between the feed, the public-sector calls, the

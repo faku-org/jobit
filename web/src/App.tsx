@@ -22,6 +22,7 @@ import { useViewLink } from "./hooks/useViewLink.ts";
 import { useCustomFeeds } from "./hooks/useCustomFeeds.ts";
 import { useEmployers } from "./hooks/useEmployers.ts";
 import { prefetchMarket, useMarket } from "./hooks/useMarket.ts";
+import { useNews } from "./hooks/useNews.ts";
 import { onIdle, usePrefetchViews } from "./hooks/usePrefetch.ts";
 import { useStats } from "./hooks/useStats.ts";
 import { useSearchTracking, useTracking } from "./hooks/useTracking.ts";
@@ -63,11 +64,17 @@ const loadJobModal = () =>
   import("./components/job/JobModal.tsx").then((module) => ({ default: module.JobModal }));
 const loadTracking = () =>
   import("./components/board/Tracking.tsx").then((module) => ({ default: module.Tracking }));
+const loadNews = () =>
+  import("./components/news/News.tsx").then((module) => ({ default: module.News }));
+const loadHelp = () =>
+  import("./components/help/Help.tsx").then((module) => ({ default: module.Help }));
 
 const Onboarding = lazy(loadOnboarding);
 const Market = lazy(loadMarket);
 const JobModal = lazy(loadJobModal);
 const Tracking = lazy(loadTracking);
+const News = lazy(loadNews);
+const Help = lazy(loadHelp);
 
 /**
  * One line under the tabs saying what each list is for. The shortlist and the
@@ -80,7 +87,11 @@ const VIEW_HINT: Record<View, string> = {
   saved: "Las que marcaste para pensar. Cuando te postulÃ¡s pasan solas a Seguimiento.",
   tracking: "Las que ya mandaste, con el estado de cada una. TocÃ¡ una para ver la oferta.",
   market: "",
+  news: "",
 };
+
+/** La ventana del tablero que mira Novedades para recomendar. */
+const NEWS_DAYS = 30;
 
 export default function App() {
   /** Read once on mount, so a shared link paints its own section on the first
@@ -102,6 +113,8 @@ export default function App() {
   const [openJob, setOpenJob] = useState<Job | null>(null);
   /** La empresa cuyo stand está abierto, si hay alguna. */
   const [openEmployer, setOpenEmployer] = useState<{ slug: string; label: string } | null>(null);
+  /** La ayuda general es una capa sobre todo lo demás, así que vive acá. */
+  const [helpOpen, setHelpOpen] = useState(false);
   /** Opening a tracked application means fetching the offer behind its
    * snapshot; it may be gone, and then the row says so instead. */
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -154,6 +167,7 @@ export default function App() {
   const isSavedView = view === "saved";
   const isStateView = view === "state";
   const isMarketView = view === "market";
+  const isNewsView = view === "news";
   /**
    * The pile is reviewed in one place only. Discarding works anywhere, but the
    * pile is global: offering it inside Estado would show a count of offers most
@@ -161,7 +175,7 @@ export default function App() {
    */
   const canReviewDiscarded = view === "all";
   const reviewing = reviewingDiscarded && canReviewDiscarded && discardedIds.length > 0;
-  const market = useMarket(isMarketView);
+  const market = useMarket(isMarketView || isNewsView);
   const customFeeds = useCustomFeeds(prefs.feeds);
   const hasPreferences = preferenceCount(prefs.preferences) > 0;
   const similarOnly = onlySimilar && hasPreferences;
@@ -223,8 +237,27 @@ export default function App() {
    * suele alcanzar para que la lista ya estÃ© cuando se suelta. */
   const trackedKey = prefs.applications.map((entry) => entry.id).join(",");
 
+  /**
+   * La consulta de Novedades: el tablero reciente ordenado por encaje. Esa
+   * pestaña no tiene filtros manuales propios, así que sale sin ellos; lo que
+   * la persona busca ya vive en Preferencias.
+   */
+  const newsBoard: BoardContext = {
+    ...board,
+    filters: { ...EMPTY_FILTERS, days: NEWS_DAYS },
+    similarOnly: false,
+    reviewing: false,
+  };
+  const newsQuery = jobsQuery("all", newsBoard);
+  /** Lo que la persona sigue: sus guardadas y sus postulaciones. */
+  const followedIds = [...new Set([...savedIds, ...prefs.applications.map((entry) => entry.id)])];
+  const news = useNews(newsQuery, followedIds, isNewsView);
+
   const prefetchView = (next: View) => {
-    if (next === "market") prefetchMarket();
+    if (next === "news") {
+      prefetchMarket();
+      prefetchJobs(jobsQueryKey(newsQuery));
+    } else if (next === "market") prefetchMarket();
     else if (next === "tracking") {
       void loadTracking();
       prefetchJobIds(trackedKey.split(",").filter(Boolean));
@@ -401,6 +434,8 @@ export default function App() {
           prefs.setProfile(nextProfile);
           prefs.setPreferences(nextPreferences);
         }}
+        onOpenHelp={() => setHelpOpen(true)}
+        onPrefetchHelp={() => void loadHelp()}
       />
 
       <main className="mx-auto max-w-3xl px-5 pt-24 pb-16 sm:pt-28">
@@ -463,6 +498,24 @@ export default function App() {
             ) : (
               <JobListSkeleton />
             )}
+          </div>
+        ) : isNewsView ? (
+          <div className="mt-6">
+            <Suspense fallback={<JobListSkeleton />}>
+              <News
+                followed={news.followed}
+                jobs={news.jobs}
+                market={market.report}
+                preferences={prefs.preferences}
+                profile={prefs.profile}
+                status={news.status}
+                onExplore={(category) => {
+                  setView("all");
+                  setFilters({ ...EMPTY_FILTERS, category });
+                }}
+                onOpen={setOpenJob}
+              />
+            </Suspense>
           </div>
         ) : (
           <>
@@ -671,6 +724,13 @@ export default function App() {
           }}
           onClose={() => setOpenEmployer(null)}
         />
+      ) : null}
+
+      {/* La ayuda general, encima de todo: es una capa, igual que la intro. */}
+      {helpOpen ? (
+        <Suspense fallback={null}>
+          <Help onClose={() => setHelpOpen(false)} />
+        </Suspense>
       ) : null}
 
       {practiceJob ? (
