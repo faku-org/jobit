@@ -1,0 +1,51 @@
+[Unit]
+Description=JobIt MCP (la busqueda para agentes)
+Documentation=https://github.com/faku-org/jobit/tree/develop/mcp
+After=network-online.target jobit-api.service
+Wants=network-online.target jobit-api.service
+
+[Service]
+Type=simple
+User=jobit
+Group=jobit
+WorkingDirectory=/srv/jobit
+# Bun propio en /opt/bun: ProtectHome=true aisla /home, donde vive el bun de
+# hermes (ver jobit-api.service).
+ExecStart=/opt/bun/bun run mcp/src/http.ts
+Restart=on-failure
+RestartSec=5
+
+# Loopback: nginx es el unico que llega. El MCP le habla a la API por localhost.
+Environment=HOST=127.0.0.1
+Environment=PORT=3300
+Environment=JOBIT_API_URL=http://127.0.0.1:3200
+
+# Aislamiento. El MCP no escribe nada: solo lee el repo y llama a la API.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+LockPersonality=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Bun compila en caliente: con esto en true el servicio no arranca.
+MemoryDenyWriteExecute=false
+
+LimitNOFILE=4096
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

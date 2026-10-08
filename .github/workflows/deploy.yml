@@ -75,3 +75,21 @@ jobs:
           echo "La API no respondió en /health"
           sudo systemctl status jobit-api --no-pager || true
           exit 1
+
+      # Misma regla de sudoers que la API, con jobit-mcp:
+      #   <runner> ALL=(root) NOPASSWD: /bin/systemctl restart jobit-mcp
+      - name: Restart MCP
+        run: sudo systemctl restart jobit-mcp
+
+      - name: Check MCP
+        run: |
+          for attempt in $(seq 1 10); do
+            if curl -fsS http://127.0.0.1:3300/health > /dev/null; then
+              echo "MCP arriba"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "El MCP no respondió en /health"
+          sudo systemctl status jobit-mcp --no-pager || true
+          exit 1
