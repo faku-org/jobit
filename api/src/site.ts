@@ -3,8 +3,10 @@ import { loadFeed, lookupJob } from "./feed.ts";
 import { buildMarketReport } from "./market.ts";
 import {
   categoryPageHtml,
+  categorySlugs,
   departmentPageHtml,
   htmlResponse,
+  interviewPageHtml,
   jobPageHtml,
   jobsByCategory,
   jobsByDepartment,
@@ -13,6 +15,8 @@ import {
   notFoundPage,
   rolePageHtml,
 } from "./pages.ts";
+import type { ContentKind } from "@jobit/worker/content/types";
+import { loadContent, queryContent } from "./content.ts";
 
 /**
  * Las direcciones con contenido para un buscador, servidas por la API y puestas
@@ -59,4 +63,28 @@ export const site = new Elysia()
     return jobs.length > 0
       ? htmlResponse(rolePageHtml(params.slug, jobs))
       : htmlResponse(notFoundPage(), 404);
+  })
+  /**
+   * La guía de entrevista de un rubro. La página es sobre el contenido, no
+   * sobre las ofertas: si el rubro no tiene preguntas ni temas, es un 404,
+   * aunque haya avisos. Las ofertas son un agregado y van al pie.
+   */
+  .get("/entrevista/:slug", async ({ params, status }) => {
+    const content = await loadContent();
+    if (!content.ok) return status(503, { error: "el contenido no está disponible" });
+
+    const items = queryContent(content.value, {
+      kinds: new Set<ContentKind>(["faq", "topic"]),
+      category: params.slug,
+      limit: 60,
+      offset: 0,
+    }).items;
+
+    if (!categorySlugs().includes(params.slug) || items.length === 0) {
+      return htmlResponse(notFoundPage(), 404);
+    }
+
+    const feed = await loadFeed();
+    const jobs = feed.ok ? jobsByCategory(feed.value, params.slug) : [];
+    return htmlResponse(interviewPageHtml(params.slug, jobs, items));
   });
