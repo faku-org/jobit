@@ -21,6 +21,8 @@ ofertas piden más nivel del que tiene.
 | `worker/` | Scrapers de portales uruguayos y del contenido curado. Escribe `worker/output/`. |
 | `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
 | `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español, panel de empresa en `/empresas` y panel de administración en `/admin`. |
+| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español y panel en `/admin`. |
+| `mcp/` | Servidor MCP: la misma búsqueda, para el agente de alguien. |
 
 ## Uso
 
@@ -232,6 +234,35 @@ empleados ni de la empresa por fuera del tablero.
 En el perfil se pueden marcar **empresas donde trabajé**; con el interruptor "De
 mi experiencia" el tablero se recorta a esas empresas. Esas empresas viven en el
 navegador y viajan por el sync de la cuenta, cifradas.
+## Desde un agente (MCP)
+
+`mcp/` es un servidor MCP que expone la búsqueda para que un agente encuentre
+ofertas contra su propia memoria y de forma automatizada. Está **hosteado** en
+`https://jobs.wefaber.net/mcp` (Streamable HTTP, sin sesión), así que en un
+cliente se agrega con la URL y listo:
+
+```json
+{ "mcpServers": { "jobit": { "url": "https://jobs.wefaber.net/mcp" } } }
+```
+
+También corre por stdio para quien lo prefiera local: es un proceso aparte que
+llama a la API por HTTP con `JOBIT_API_URL` (por defecto
+`https://jobs.wefaber.net`).
+
+| Herramienta | Qué hace |
+|---|---|
+| `search_jobs` | `GET /api/jobs`: ofertas filtradas y paginadas. |
+| `get_job` | `GET /api/jobs/:id`: una oferta completa. |
+| `market_overview` | `GET /api/market`: el tablero resumido. |
+| `list_filters` | `GET /api/meta`: rubros, departamentos y fuentes. |
+
+```bash
+bun run --cwd mcp start        # local, por stdio
+bun run --cwd mcp start:http   # el que corre hosteado
+```
+
+Detrás de nginx (`location = /mcp`) corre como `jobit-mcp.service` en el puerto
+3300. El detalle y los JSON de configuración están en `mcp/README.md`.
 
 ## Perfil y estadísticas
 

@@ -17,6 +17,7 @@ import {
   preferenceCount,
 } from "../../lib/types.ts";
 import { AccountSection } from "../account/AccountSection.tsx";
+import { McpSection } from "../account/McpSection.tsx";
 import { PreferencesPanel } from "../profile/Preferences.tsx";
 import { ProfilePanel } from "../profile/ProfilePanel.tsx";
 
@@ -55,7 +56,7 @@ interface DynamicIslandProps {
   onPrefetchHelp: () => void;
 }
 
-type Tab = "search" | "profile" | "account";
+type Tab = "search" | "profile" | "account" | "agents";
 
 /**
  * A floating header, detached from the top of the page: wide at rest, shrunk
@@ -198,6 +199,7 @@ export function DynamicIsland({
                       ["search", "Búsqueda", count],
                       ["profile", "Perfil", studies],
                       ["account", "Cuenta", 0],
+                      ["agents", "Agentes", 0],
                     ] as const
                   ).map(([value, label, badge]) => (
                     <button
@@ -244,13 +246,15 @@ export function DynamicIsland({
                     onEraseEverything={onEraseEverything}
                     onImportCv={onImportCv}
                   />
-                ) : (
+                ) : tab === "account" ? (
                   <AccountSection
                     ready={session.ready}
                     sync={sync}
                     user={session.user}
                     onUser={session.setUser}
                   />
+                ) : (
+                  <McpSection />
                 )}
               </div>
             </m.div>
