@@ -8,6 +8,8 @@ import { FilterBar } from "./components/board/FilterBar.tsx";
 import { RubroPrep } from "./components/board/RubroPrep.tsx";
 import { JobCard } from "./components/job/JobCard.tsx";
 import { JobList } from "./components/job/JobList.tsx";
+import { ServiceModal } from "./components/service/ServiceModal.tsx";
+import { Services } from "./components/service/Services.tsx";
 import { EmployerModal } from "./components/employer/EmployerModal.tsx";
 import { PracticeDialog } from "./components/job/PracticeDialog.tsx";
 import { EmptyState, ErrorState, JobListSkeleton } from "./components/board/States.tsx";
@@ -18,6 +20,7 @@ import { useJobPrefs } from "./hooks/useJobPrefs.ts";
 import { useJobLink } from "./hooks/useJobLink.ts";
 import { useJobs } from "./hooks/useJobs.ts";
 import { useMeta } from "./hooks/useMeta.ts";
+import { useServiceLink } from "./hooks/useServiceLink.ts";
 import { useSession } from "./hooks/useSession.ts";
 import { useViewLink } from "./hooks/useViewLink.ts";
 import { useCustomFeeds } from "./hooks/useCustomFeeds.ts";
@@ -39,6 +42,7 @@ import { readDevFlags } from "./lib/dev.ts";
 import { isOnboarded } from "./lib/profile.ts";
 import { pickHighlights } from "./lib/match.ts";
 import { toRanking } from "./lib/ranking.ts";
+import type { Service } from "./lib/services.ts";
 import { readViewState } from "./lib/url.ts";
 import {
   EMPTY_FILTERS,
@@ -84,9 +88,11 @@ const Help = lazy(loadHelp);
  */
 const VIEW_HINT: Record<View, string> = {
   all: "",
-  state: "Llamados pÃºblicos de Uruguay Concursa, ordenados por el que cierra primero.",
-  saved: "Las que marcaste para pensar. Cuando te postulÃ¡s pasan solas a Seguimiento.",
-  tracking: "Las que ya mandaste, con el estado de cada una. TocÃ¡ una para ver la oferta.",
+  state: "Llamados públicos de Uruguay Concursa, ordenados por el que cierra primero.",
+  saved: "Las que marcaste para pensar. Cuando te postulás pasan solas a Seguimiento.",
+  tracking: "Las que ya mandaste, con el estado de cada una. Tocá una para ver la oferta.",
+  /** La sección de servicios trae su propia línea, con el botón de publicar. */
+  services: "",
   market: "",
   news: "",
 };
@@ -112,6 +118,7 @@ export default function App() {
   /** The saved view filters by rubro on the client, over its own chips. */
   const [savedCategory, setSavedCategory] = useState("");
   const [openJob, setOpenJob] = useState<Job | null>(null);
+  const [openService, setOpenService] = useState<Service | null>(null);
   /** La empresa cuyo stand está abierto, si hay alguna. */
   const [openEmployer, setOpenEmployer] = useState<{ slug: string; label: string } | null>(null);
   /** La ayuda general es una capa sobre todo lo demás, así que vive acá. */
@@ -151,6 +158,7 @@ export default function App() {
   const showIntro = !isOnboarded(prefs.profile) || replayingIntro;
   useTheme(prefs.theme);
   useJobLink(openJob, setOpenJob);
+  useServiceLink(openService, setOpenService);
   useViewLink(
     view,
     filters,
@@ -168,6 +176,7 @@ export default function App() {
   const isSavedView = view === "saved";
   const isStateView = view === "state";
   const isMarketView = view === "market";
+  const isServicesView = view === "services";
   const isNewsView = view === "news";
   /**
    * The pile is reviewed in one place only. Discarding works anywhere, but the
@@ -262,7 +271,7 @@ export default function App() {
     else if (next === "tracking") {
       void loadTracking();
       prefetchJobIds(trackedKey.split(",").filter(Boolean));
-    } else if (worthPrefetching(next)) {
+    } else if (next !== "services" && worthPrefetching(next)) {
       prefetchJobs(jobsQueryKey(jobsQuery(next, board)));
     }
   };
@@ -302,7 +311,7 @@ export default function App() {
    * being mixed into a ranking computed over a board they are not part of.
    */
   const feedJobs =
-    isSavedView || isStateView || isMarketView || reviewing
+    isSavedView || isStateView || isMarketView || isServicesView || reviewing
       ? []
       : customFeeds.jobs.filter(
           (job) =>
@@ -478,6 +487,8 @@ export default function App() {
               </Suspense>
             </FadeUp>
           </div>
+        ) : isServicesView ? (
+          <Services active={!showIntro} onOpen={setOpenService} />
         ) : isMarketView ? (
           <div className="mt-6">
             {market.status === "error" ? (
@@ -777,6 +788,14 @@ export default function App() {
             onWelcomeSeen={prefs.markIntroSeen}
           />
         </Suspense>
+      ) : null}
+
+      {openService ? (
+        <ServiceModal
+          key={openService.id}
+          service={openService}
+          onClose={() => setOpenService(null)}
+        />
       ) : null}
     </div>
   );

@@ -3,8 +3,11 @@ import { Elysia, t } from "elysia";
 import { account } from "./account.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
-import { empresas } from "./empresas.ts";
+import { catalog } from "./catalog.ts";
 import { ingest, ingestEnabled } from "./ingest.ts";
+import { publish } from "./publish.ts";
+import { ratings } from "./ratings.ts";
+import { empresas } from "./empresas.ts";
 import { contentFilePath, isContentKind, loadContent, queryContent } from "./content.ts";
 import { marketCsv, marketSheets } from "./export.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
@@ -306,6 +309,9 @@ export const app = new Elysia()
   .use(site)
   .use(admin)
   .use(account)
+  .use(publish)
+  .use(ratings)
+  .use(catalog)
   .use(empresas)
   .use(ingest)
   .get(

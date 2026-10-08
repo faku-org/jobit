@@ -16,6 +16,7 @@
   },
   "exports": {
     "./categories": "./src/categories.ts",
+    "./departments": "./src/departments.ts",
     "./content/types": "./src/content/types.ts",
     "./content/seed": "./src/content/seed.ts",
     "./content/sources": "./src/content/sources.ts",
