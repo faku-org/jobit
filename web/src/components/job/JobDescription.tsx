@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Phone } from "lucide-react";
 import { useMemo } from "react";
 import {
   type Block,
@@ -34,6 +34,9 @@ function blockIdentity(block: Block): string {
   if (block.kind === "heading") return `heading:${block.text}`;
   if (block.kind === "paragraph") return `paragraph:${block.text}`;
   if (block.kind === "list") return `list:${block.items.join("\0")}`;
+  if (block.kind === "contact") {
+    return `contact:${block.rows.map((row) => `${row.label}=${row.value}`).join("\0")}`;
+  }
   return `fields:${block.rows.map((row) => `${row.label}=${row.value}`).join("\0")}`;
 }
 
@@ -130,6 +133,27 @@ function BlockView({ block, profile }: { block: Block; profile: Profile }) {
           </li>
         ))}
       </ul>
+    );
+  }
+
+  if (block.kind === "contact") {
+    return (
+      <div className="mt-4 rounded-xl border border-brand/30 bg-brand/5 px-3.5 py-3">
+        <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
+          <Phone aria-hidden className="size-3.5" />
+          Contacto
+        </p>
+        <dl className="mt-2 space-y-1.5">
+          {keyed(block.rows, (row) => `${row.label}:${row.value}`).map(([row, key]) => (
+            <div key={key} className="flex flex-wrap items-baseline gap-x-2">
+              <dt className="text-xs font-medium text-muted">{row.label}</dt>
+              <dd className="text-sm break-words text-ink/85">
+                <Spans marks={findMarks(row.value, profile)} text={row.value} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     );
   }
 

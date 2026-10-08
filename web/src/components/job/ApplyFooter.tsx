@@ -1,7 +1,7 @@
 import { ArrowUpRight, CheckCheck } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { type ReactNode, useState } from "react";
-import { applyEvent } from "../../lib/events.ts";
+import { applyEvent, offerApply } from "../../lib/events.ts";
 import { fadeUpTransition } from "../../lib/motion.ts";
 import { chipClass } from "../../lib/styles.ts";
 import { track } from "../../lib/track.ts";
@@ -79,6 +79,8 @@ export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProp
             whileTap={{ scale: 0.97 }}
             onClick={() => {
               track(applyEvent(job));
+              const own = offerApply(job);
+              if (own) track(own);
               setAsking(!isApplied);
             }}
           >

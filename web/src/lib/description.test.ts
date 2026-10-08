@@ -107,6 +107,50 @@ describe("parseDescription", () => {
     const blocks = parseDescription("¿Cuál será tu desafío?\n\nLiderar el equipo.");
     expect(kinds(blocks)).toEqual(["heading", "paragraph"]);
   });
+
+  test("las líneas gritadas se devuelven a oración", () => {
+    const blocks = parseDescription(
+      "NO SE RECIBIRÁN INSCRIPCIONES FUERA DEL PLAZO ESTABLECIDO BAJO NINGÚN CONCEPTO",
+    );
+    expect(blocks[0]).toEqual({
+      kind: "paragraph",
+      text: "No se recibirán inscripciones fuera del plazo establecido bajo ningún concepto",
+    });
+  });
+
+  test("las siglas quedan en mayúsculas al bajar el tono", () => {
+    expect(parseDescription("SE REQUIERE TÍTULO DE UTU PARA EL CARGO DE ADMINISTRATIVO")[0]).toEqual({
+      kind: "paragraph",
+      text: "Se requiere título de UTU para el cargo de administrativo",
+    });
+  });
+
+  test("teléfono, e-mail y link sueltos se juntan en una sección de contacto", () => {
+    const text = [
+      "Organismo: UdelaR",
+      "Plazo: 2 AÑOS",
+      "Teléfono: 1903 int 2318",
+      "",
+      "Requisitos",
+      "",
+      "https://www.concursos.udelar.edu.uy/index.php?id=1",
+      "",
+      "consultas@udelar.edu.uy",
+    ].join("\n");
+    const blocks = parseDescription(text);
+    expect(blocks.find((block) => block.kind === "contact")).toEqual({
+      kind: "contact",
+      rows: [
+        { label: "Teléfono", value: "1903 int 2318" },
+        { label: "Web", value: "https://www.concursos.udelar.edu.uy/index.php?id=1" },
+        { label: "Email", value: "consultas@udelar.edu.uy" },
+      ],
+    });
+  });
+
+  test("un link suelto sin dato de contacto es parte del texto", () => {
+    expect(kinds(parseDescription("https://acme.com/jobs"))).toEqual(["paragraph"]);
+  });
 });
 
 describe("renderSpans", () => {

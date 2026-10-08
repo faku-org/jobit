@@ -3,6 +3,7 @@ import { appendFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { t } from "elysia";
 import { ROLES } from "@jobit/worker/roles";
+import { bump } from "./metrics.ts";
 
 /**
  * Eventos de uso, al lado del resumen diario de stats.ts. La diferencia con
@@ -29,6 +30,17 @@ export const eventsSchema = t.Object({
         job: t.String({ maxLength: 100 }),
         source: t.String({ maxLength: 40 }),
         category: t.String({ maxLength: 60 }),
+      }),
+      /* Lo que alimenta las métricas de quien publica. Lleva solo el id
+         público de la oferta y sube por el mismo canal anónimo: no hay
+         usuario, ni sesión, ni nada que lo ligue a quien lo mandó. */
+      t.Object({
+        kind: t.Literal("offer_view"),
+        id: t.String({ maxLength: 100 }),
+      }),
+      t.Object({
+        kind: t.Literal("offer_apply"),
+        id: t.String({ maxLength: 100 }),
       }),
     ]),
     { maxItems: 20 },
@@ -66,6 +78,9 @@ const known = (value: string, vocabulary: Set<string>, fallback: string): string
 const JOB_ID = /^[a-z0-9:_-]{1,80}$/i;
 
 function normalise(event: UsageEvent): Record<string, unknown> | null {
+  /** Los de métricas no van al archivo: se suman a los contadores y listo. */
+  if (event.kind === "offer_view" || event.kind === "offer_apply") return null;
+
   if (event.kind === "search") {
     return {
       kind: "search",
@@ -93,13 +108,26 @@ export const eventsFilePath = (): string =>
 /** Un objeto JSON por línea, con el día y nunca la hora: dos eventos del mismo
  * navegador quedan indistinguibles de dos de navegadores distintos. */
 export async function appendEvents(events: UsageEvent[]): Promise<number> {
-  const rows = events.map(normalise).filter((row) => row !== null);
-  if (rows.length === 0) return 0;
+  /** Los de métricas se suman a `offer_daily` y no tocan el archivo. */
+  let bumped = 0;
+  const usage: UsageEvent[] = [];
+  for (const event of events) {
+    if (event.kind === "offer_view" || event.kind === "offer_apply") {
+      if (JOB_ID.test(event.id) && bump(event.id, event.kind === "offer_view" ? "view" : "apply")) {
+        bumped += 1;
+      }
+      continue;
+    }
+    usage.push(event);
+  }
+
+  const rows = usage.map(normalise).filter((row) => row !== null);
+  if (rows.length === 0) return bumped;
 
   const path = eventsFilePath();
   await mkdir(dirname(path), { recursive: true });
   const day = new Date().toISOString().slice(0, 10);
   const lines = rows.map((row) => `${JSON.stringify({ day, ...row })}\n`).join("");
   await appendFile(path, lines, "utf8");
-  return rows.length;
+  return rows.length + bumped;
 }

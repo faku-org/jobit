@@ -19,7 +19,9 @@ const PROXY = Object.fromEntries(
   ]),
 );
 
-const LEGAL = new Set(["/terminos", "/privacidad"]);
+/** Rutas que en producción nginx sirve desde su propio `<archivo>.html` en vez
+ * de dejar que el catch-all devuelva la app. */
+const PAGES = new Set(["/terminos", "/privacidad", "/empresas", "/admin"]);
 
 /** Misma lista que deploy/nginx.conf location = /. curl manda Accept
  * estrella, no text/plain, así que el User-Agent es lo que decide. */
@@ -33,22 +35,22 @@ function wantsCli(req: IncomingMessage): boolean {
 }
 
 /**
- * En producción nginx sirve `/terminos` desde `terminos.html`. Sin esto, el
- * dev server y `vite preview` no saben de esa regla, la ruta cae en el
- * catch-all y devuelven la app entera, con React y el worker de PDF, en lugar
- * de un documento de texto. Se nota como una espera larga y es la diferencia
- * entre local y el servidor, no la página.
+ * En producción nginx sirve `/terminos` desde `terminos.html`, `/empresas`
+ * desde `empresas.html` y `/admin` desde `admin.html`. Sin esto, el dev server
+ * y `vite preview` no saben de esa regla y la ruta cae en el catch-all, que
+ * devuelve la app entera en vez de la página: se nota como una espera larga y
+ * es la diferencia entre local y el servidor, no la página.
  */
-function legalRoutes(): Plugin {
+function pageRoutes(): Plugin {
   const rewrite = (req: IncomingMessage, _res: ServerResponse, next: () => void): void => {
     const url = req.url ?? "";
     const path = url.split("?")[0] ?? "";
-    if (LEGAL.has(path)) req.url = `${path}.html${url.slice(path.length)}`;
+    if (PAGES.has(path)) req.url = `${path}.html${url.slice(path.length)}`;
     next();
   };
 
   return {
-    name: "jobit-legal-routes",
+    name: "jobit-page-routes",
     configureServer: ({ middlewares }) => {
       middlewares.use(rewrite);
     },
@@ -90,7 +92,7 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
-    legalRoutes(),
+    pageRoutes(),
     cliRoutes(),
   ],
   /** El panel es su propia entrada: nadie que entra a buscar trabajo tiene por
@@ -101,6 +103,7 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, "index.html"),
         admin: resolve(import.meta.dirname, "admin.html"),
+        empresas: resolve(import.meta.dirname, "empresas.html"),
         terminos: resolve(import.meta.dirname, "terminos.html"),
         privacidad: resolve(import.meta.dirname, "privacidad.html"),
       },

@@ -18,6 +18,7 @@
     "lint": "oxlint",
     "fmt": "oxfmt .",
     "scrape": "bun run --cwd worker scrape",
+    "content": "bun run --cwd worker content",
     "push": "bun run --cwd worker push",
     "egress": "bun run --cwd worker egress",
     "scrape:push": "bun run --cwd worker scrape && bun run --cwd worker push"

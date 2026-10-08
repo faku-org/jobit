@@ -1,4 +1,14 @@
-import { Bookmark, Building2, EyeOff, MapPin, Target, Undo2, X } from "lucide-react";
+import {
+  Bookmark,
+  Building2,
+  ChevronDown,
+  EyeOff,
+  GraduationCap,
+  MapPin,
+  Target,
+  Undo2,
+  X,
+} from "lucide-react";
 import { m } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -8,12 +18,16 @@ import {
   formatLocation,
 } from "../../lib/format.ts";
 import { islandTransition } from "../../lib/motion.ts";
+import { offerView } from "../../lib/events.ts";
+import { track } from "../../lib/track.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
 import { type Application, type Job, type Tag, relatedApplications } from "../../lib/types.ts";
+import { ALL_PREP_KINDS, usePrep } from "../../hooks/usePrep.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
 import { JobChips, type TagActions } from "./JobChips.tsx";
 import { JobDescription } from "./JobDescription.tsx";
 import { JobFit } from "./JobFit.tsx";
+import { PrepTips } from "./PrepTips.tsx";
 import { ShareMenu } from "../ui/ShareMenu.tsx";
 
 interface JobModalProps {
@@ -77,6 +91,9 @@ export function JobModal({
   onOpenEmployer,
 }: JobModalProps) {
   const related = relatedApplications(job, applications);
+  /** La preparación del rubro: se pide siempre, así las preguntas y los
+   * ejercicios están a mano aunque todavía no te hayas postulado. */
+  const prep = usePrep(job.category, true, ALL_PREP_KINDS);
   /** The sheet plays its own exit and then asks to be unmounted. */
   const [closing, setClosing] = useState(false);
   const close = useCallback(() => setClosing(true), []);
@@ -103,6 +120,13 @@ export function JobModal({
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [close]);
+
+  /** Abrir la ficha de una oferta publicada acá cuenta como una vista para su
+   * empresa; las scrapeadas no tienen a nadie del otro lado. */
+  useEffect(() => {
+    const own = offerView(job);
+    if (own) track(own);
+  }, [job]);
 
   return (
     <div className="fixed inset-0 z-60 flex items-end justify-center sm:items-center sm:p-6">
@@ -217,6 +241,24 @@ export function JobModal({
             <Section title="Requisitos">
               <JobDescription profile={tagActions.profile} text={job.requirements} />
             </Section>
+          ) : null}
+
+          {prep.items.length > 0 ? (
+            <details className="group rounded-2xl border border-sky/50 bg-surface">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                <GraduationCap aria-hidden className="size-4 shrink-0 text-brand" />
+                <span className="text-xs font-semibold tracking-wide text-muted uppercase">
+                  Para prepararte
+                </span>
+                <ChevronDown
+                  aria-hidden
+                  className="ml-auto size-4 shrink-0 text-muted transition-transform group-open:rotate-180"
+                />
+              </summary>
+              <div className="border-t border-sky/40 px-4 py-3">
+                <PrepTips items={prep.items} />
+              </div>
+            </details>
           ) : null}
 
           {related.company.length > 0 || related.category.length > 0 ? (

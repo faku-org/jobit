@@ -120,6 +120,42 @@ CREATE TABLE IF NOT EXISTS user_sync (
   payload_enc TEXT NOT NULL,
   updated_at  TEXT NOT NULL
 );
+
+/* La cuenta de una empresa. Va en su propia tabla y no como columnas de
+   companies para no tener que migrar la que ya existe en producción: la
+   empresa la crea el admin o se autoregistra, y esto es solo lo que la deja
+   entrar. Sin fila acá, la empresa existe pero nadie puede loguearse. */
+CREATE TABLE IF NOT EXISTS company_accounts (
+  company_id    TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  password_hash TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL
+);
+
+/* Misma regla que el resto: solo el sha256 del token, nunca el token. */
+CREATE TABLE IF NOT EXISTS company_sessions (
+  token_hash  TEXT PRIMARY KEY,
+  company_id  TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  created_at  TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  last_seen   TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS company_sessions_expiry ON company_sessions (expires_at);
+CREATE INDEX IF NOT EXISTS company_sessions_company ON company_sessions (company_id);
+
+/* Lo que ve quien publica: contadores agregados por oferta y por día, nunca
+   una fila por visita. Es la única forma de mostrar métricas sin empezar a
+   saber quién miró: el contador dice cuántas veces, no de quién. */
+CREATE TABLE IF NOT EXISTS offer_daily (
+  offer_id  TEXT NOT NULL REFERENCES offers(id) ON DELETE CASCADE,
+  day       TEXT NOT NULL,
+  views     INTEGER NOT NULL DEFAULT 0,
+  applies   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (offer_id, day)
+);
+
+CREATE INDEX IF NOT EXISTS offer_daily_offer ON offer_daily (offer_id);
 `;
 
 let handle: Database | null = null;

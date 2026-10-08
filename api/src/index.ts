@@ -3,7 +3,9 @@ import { Elysia, t } from "elysia";
 import { account } from "./account.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
+import { empresas } from "./empresas.ts";
 import { ingest, ingestEnabled } from "./ingest.ts";
+import { contentFilePath, isContentKind, loadContent, queryContent } from "./content.ts";
 import { marketCsv, marketSheets } from "./export.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
@@ -19,6 +21,7 @@ import { employerFacets, employerProfile } from "./employers.ts";
 import { site } from "./site.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
+import type { ContentKind } from "@jobit/worker/content/types";
 
 const PORT = Number(process.env.PORT ?? 3000);
 /**
@@ -273,12 +276,15 @@ export const app = new Elysia()
    * sesión y con su propio límite en el login. */
   .onBeforeHandle(({ request, server, path, set, status }) => {
     const key = clientKey(request, server?.requestIP(request)?.address ?? null);
+    const isAuth = path.startsWith("/api/auth/") || path.startsWith("/api/empresas/auth/");
     const [bucket, limit] =
       path === "/api/events"
         ? (["e", EVENTS_LIMIT] as const)
-        : path.startsWith("/api/auth/")
+        : isAuth
           ? (["a", AUTH_LIMIT] as const)
-          : request.method === "POST" && !path.startsWith("/api/admin")
+          : request.method === "POST" &&
+              !path.startsWith("/api/admin") &&
+              !path.startsWith("/api/empresas")
             ? (["w", WRITE_LIMIT] as const)
             : (["r", READ_LIMIT] as const);
 
@@ -296,6 +302,7 @@ export const app = new Elysia()
   .use(site)
   .use(admin)
   .use(account)
+  .use(empresas)
   .use(ingest)
   .get(
     "/api/jobs",
@@ -415,6 +422,41 @@ export const app = new Elysia()
     const profile = employerProfile(feed.value.jobs, params.slug);
     return profile ?? status(404, { error: "empresa no encontrada" });
   })
+  /**
+   * El contenido curado por rubro y puesto: preguntas, ejercicios y recursos.
+   * Es público y no lleva nada de nadie; la web lo pide al abrir una oferta con
+   * seguimiento. `kind` acepta varios separados por coma.
+   */
+  .get(
+    "/api/content",
+    async ({ query, status }) => {
+      const content = await loadContent();
+      if (!content.ok) return status(503, { error: content.error });
+
+      const kinds = splitList(query.kind);
+      const unknown = kinds.filter((kind) => !isContentKind(kind));
+      if (unknown.length > 0) return status(422, { error: `kind inválido: ${unknown.join(", ")}` });
+
+      return queryContent(content.value, {
+        kinds: kinds.length > 0 ? new Set(kinds as ContentKind[]) : undefined,
+        category: query.category?.trim() || undefined,
+        role: query.role?.trim() || undefined,
+        q: query.q?.trim() || undefined,
+        limit: clamp(Math.floor(query.limit ?? 20), 1, 60),
+        offset: Math.max(Math.floor(query.offset ?? 0), 0),
+      });
+    },
+    {
+      query: t.Object({
+        kind: t.Optional(t.String()),
+        category: t.Optional(t.String()),
+        role: t.Optional(t.String()),
+        q: t.Optional(t.String()),
+        limit: t.Optional(t.Numeric()),
+        offset: t.Optional(t.Numeric()),
+      }),
+    },
+  )
   /** The board as a whole, with nothing in it about the person asking. */
   .get("/api/market", async ({ status }) => {
     const report = await marketReport();
@@ -465,6 +507,7 @@ if (import.meta.main) {
   app.listen({ port: PORT, hostname: HOST });
   console.log(`jobit api on http://${HOST}:${PORT}`);
   console.log(`reading ${jobsFilePath()}`);
+  console.log(`contenido -> ${contentFilePath()}`);
   console.log(`stats -> ${statsFilePath()}`);
   console.log(`eventos -> ${eventsFilePath()}`);
   console.log(`cors origins: ${CORS_ORIGINS.join(", ")}`);
