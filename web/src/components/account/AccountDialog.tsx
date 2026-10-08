@@ -320,7 +320,7 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
         animate={closing ? { opacity: 0, y: 24, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
         aria-labelledby="account-dialog-title"
         aria-modal
-        className="relative flex max-h-[92svh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] sm:max-h-[85svh] sm:rounded-3xl"
+        className="relative flex h-[100svh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] sm:h-auto sm:max-h-[85svh] sm:rounded-3xl"
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         role="dialog"
         transition={islandTransition}
