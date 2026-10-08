@@ -33,6 +33,7 @@ const PARAM = {
   q: "q",
   category: "category",
   department: "department",
+  company: "company",
   level: "level",
   mode: "remote",
   jobType: "job_type",
@@ -63,6 +64,7 @@ export function readViewState(search: string = window.location.search): ViewStat
       q: params.get(PARAM.q)?.slice(0, MAX_QUERY) ?? "",
       category: params.get(PARAM.category) ?? "",
       department: params.get(PARAM.department) ?? "",
+      company: params.get(PARAM.company) ?? "",
       level: oneOf(params.get(PARAM.level), LEVELS),
       mode: oneOf(params.get(PARAM.mode), MODES),
       jobType: oneOf(params.get(PARAM.jobType), JOB_TYPES),
@@ -94,6 +96,7 @@ export function writeViewState(state: ViewState, push: boolean): void {
   set(PARAM.q, filters.q.trim());
   set(PARAM.category, filters.category);
   set(PARAM.department, filters.department);
+  set(PARAM.company, filters.company);
   set(PARAM.level, filters.level);
   set(PARAM.mode, filters.mode);
   set(PARAM.jobType, filters.jobType);

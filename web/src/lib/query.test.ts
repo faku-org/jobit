@@ -12,6 +12,7 @@ const context = (overrides: Partial<BoardContext> = {}): BoardContext => ({
   savedIds: [],
   discardedIds: [],
   sources: [],
+  myCompanies: [],
   similarOnly: false,
   reviewing: false,
   ...overrides,

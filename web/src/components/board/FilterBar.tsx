@@ -1,4 +1,4 @@
-import { Bookmark, EyeOff, Sparkles, Target, X } from "lucide-react";
+import { Bookmark, Building2, EyeOff, Sparkles, Target, X } from "lucide-react";
 import { m } from "motion/react";
 import type { Facet, Filters, JobType, Level, WorkMode } from "../../lib/types.ts";
 import { type Option, Select } from "../ui/Select.tsx";
@@ -8,6 +8,10 @@ interface FilterBarProps {
   filters: Filters;
   categories: Facet[];
   departments: Facet[];
+  /** Empresas del rubro elegido (o del tablero), para el selector. */
+  employers: Facet[];
+  /** Cuántas empresas guardó la persona como "donde trabajé". */
+  myCompaniesCount: number;
   noExperienceCount: number;
   /** How many offers were discarded, and whether this view can review them.
    * Discarding is meaningless where nothing can be discarded, so the control
@@ -94,6 +98,8 @@ export function FilterBar({
   filters,
   categories,
   departments,
+  employers,
+  myCompaniesCount,
   noExperienceCount,
   discardedCount,
   canReviewDiscarded,
@@ -118,7 +124,7 @@ export function FilterBar({
             label="Rubro"
             options={facetOptions(categories, "Todos los rubros")}
             value={filters.category}
-            onChange={(value) => onChange({ ...filters, category: value })}
+            onChange={(value) => onChange({ ...filters, category: value, company: "" })}
           />
         ) : null}
         <Select
@@ -127,6 +133,14 @@ export function FilterBar({
           value={filters.department}
           onChange={(value) => onChange({ ...filters, department: value })}
         />
+        {employers.length > 0 ? (
+          <Select
+            label="Empresa"
+            options={facetOptions(employers, "Todas las empresas")}
+            value={filters.myCompanies ? "" : filters.company}
+            onChange={(value) => onChange({ ...filters, company: value, myCompanies: false })}
+          />
+        ) : null}
         <Select
           label="Jornada"
           options={JOB_TYPE_OPTIONS}
@@ -167,6 +181,16 @@ export function FilterBar({
         >
           Sin experiencia{noExperienceCount > 0 ? ` (${noExperienceCount})` : ""}
         </Toggle>
+
+        {myCompaniesCount > 0 ? (
+          <Toggle
+            active={filters.myCompanies}
+            icon={Building2}
+            onClick={() => onChange({ ...filters, myCompanies: !filters.myCompanies, company: "" })}
+          >
+            De mi experiencia ({myCompaniesCount})
+          </Toggle>
+        ) : null}
 
         {canReviewDiscarded && discardedCount > 0 ? (
           <Toggle active={reviewingDiscarded} icon={EyeOff} onClick={onToggleReviewDiscarded}>

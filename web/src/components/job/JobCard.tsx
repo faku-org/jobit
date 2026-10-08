@@ -18,6 +18,8 @@ interface JobCardProps {
   /** What the chips of this card can do to the list. */
   tagActions: TagActions;
   onOpen: (job: Job) => void;
+  /** Abre el stand de la empresa de esta oferta. */
+  onOpenEmployer?: () => void;
   onToggleSaved: (id: string) => void;
   onToggleDismissed: (id: string) => void;
   onApplied: (job: Job) => void;
@@ -47,6 +49,7 @@ export function JobCard({
   isApplied,
   tagActions,
   onOpen,
+  onOpenEmployer,
   onToggleSaved,
   onToggleDismissed,
   onApplied,
@@ -110,10 +113,14 @@ export function JobCard({
 
         <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-soft">
           {job.company ? (
-            <span className="inline-flex items-center gap-1.5">
+            <button
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-ink"
+              type="button"
+              onClick={onOpenEmployer}
+            >
               <Building2 aria-hidden className="size-3.5 shrink-0 text-brand" />
               {job.company}
-            </span>
+            </button>
           ) : null}
           <span className="inline-flex items-center gap-1.5">
             <MapPin aria-hidden className="size-3.5 shrink-0 text-brand" />

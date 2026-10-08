@@ -16,6 +16,7 @@ const base = (over: Partial<SyncedState> = {}): SyncedState => ({
   applications: [],
   sources: [],
   feeds: [],
+  companies: [],
   profile: profile(),
   ...over,
 });

@@ -1,4 +1,5 @@
 import { type Ranking, scoreJob } from "./rank.ts";
+import { employerSlug } from "./employers.ts";
 import type { Facet, Job, JobsQuery, JobsResponse, SalaryRange } from "./types.ts";
 
 const DAY_MS = 86_400_000;
@@ -61,6 +62,10 @@ function matches(job: Job, query: JobsQuery, now: number): boolean {
   if (query.sources && !query.sources.has(job.source)) return false;
   if (query.departments && (job.department === null || !query.departments.has(job.department))) {
     return false;
+  }
+  if (query.employers) {
+    const slug = job.company ? employerSlug(job.company) : "";
+    if (!query.employers.has(slug)) return false;
   }
   if (job.department !== null && query.hiddenDepartments?.has(job.department)) return false;
   if (query.jobTypes && (job.job_type === null || !query.jobTypes.has(job.job_type))) return false;
