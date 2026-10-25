@@ -22,7 +22,9 @@
     "./content/sources": "./src/content/sources.ts",
     "./content/adapters": "./src/content/adapters.ts",
     "./labels": "./src/labels.ts",
+    "./history": "./src/history.ts",
     "./roles": "./src/roles.ts",
+    "./salary": "./src/salary.ts",
     "./skills": "./src/skills.ts"
   }
 }

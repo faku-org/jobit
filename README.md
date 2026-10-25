@@ -196,6 +196,11 @@ sin ella, el alta sin email sigue andando pero el email y el 2FA quedan
 apagados) y `PUBLIC_ORIGIN` (origen que va en los canonical y og:url de las
 páginas server-rendered; por defecto el de producción).
 
+El scrapeo (worker) además guarda una fila por día con agregados del mercado en
+`data/market-history.jsonl` (`MARKET_HISTORY_FILE` para cambiarla): totales,
+puesto, rubro, departamento y sueldo, nunca ofertas ni personas. Correr el
+scrapeo dos veces el mismo día reemplaza la fila de ese día.
+
 ## Búsqueda con atajos
 
 Además de los filtros manuales, el buscador entiende atajos para quien los
