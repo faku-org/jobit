@@ -2,10 +2,12 @@ import { describe, expect, test } from "bun:test";
 import {
   type EventLine,
   type StatsLine,
+  buildServicesUsage,
   buildUsageReport,
   parseEventLine,
   parseStatsLine,
 } from "./usage.ts";
+import type { ServiceDailyRow } from "./metrics.ts";
 import type { Job } from "./types.ts";
 
 const TODAY = new Date("2026-09-04T12:00:00Z");
@@ -240,5 +242,100 @@ describe("buildUsageReport", () => {
     /** El rubro sale de los clicks en postular y no de las búsquedas: es el
      * rubro que alguien eligió, no el que estaba filtrando. */
     expect(report.categories).toEqual([{ value: "tecnologia", label: "Tecnología", count: 2 }]);
+  });
+});
+
+describe("servicios", () => {
+  const service = (over: Partial<ServiceDailyRow> = {}): ServiceDailyRow => ({
+    service_id: "s1",
+    title: "Instalaciones eléctricas",
+    category: "oficios",
+    views: 0,
+    contacts: 0,
+    ...over,
+  });
+
+  const serviceSearch = (
+    over: Partial<Extract<EventLine, { kind: "service_search" }>> = {},
+  ): EventLine => ({
+    day: "2026-09-04",
+    kind: "service_search",
+    category: "oficios",
+    filters: ["q"],
+    results: 1,
+    ...over,
+  });
+
+  test("parseEventLine entiende los dos eventos nuevos", () => {
+    const base = { day: "2026-09-04", category: "oficios" };
+    expect(parseEventLine({ ...base, kind: "service_search", filters: ["q"], results: 2 })).toEqual(
+      { ...base, kind: "service_search", filters: ["q"], results: 2 },
+    );
+    expect(parseEventLine({ ...base, kind: "service_contact", channel: "email" })).toEqual({
+      ...base,
+      kind: "service_contact",
+      channel: "email",
+    });
+  });
+
+  test("cuenta publicados, vistos y contactados en la ventana", () => {
+    const report = buildServicesUsage(
+      [],
+      [
+        service({ service_id: "a", views: 5, contacts: 2 }),
+        service({ service_id: "b", views: 3 }),
+        service({ service_id: "c" }),
+      ],
+    );
+
+    expect(report.published).toBe(3);
+    expect(report.viewed).toBe(2);
+    expect(report.contacted).toBe(1);
+    expect(report.views).toBe(8);
+    expect(report.contacts).toBe(2);
+    expect(report.top.map((row) => row.id)).toEqual(["a", "b"]);
+  });
+
+  test("los rubros buscados sin ningún servicio publicado salen aparte", () => {
+    const report = buildServicesUsage(
+      [
+        serviceSearch({ category: "oficios" }),
+        serviceSearch({ category: "salud" }),
+        serviceSearch({ category: "salud" }),
+        serviceSearch({ category: "" }),
+      ],
+      [service({ category: "oficios", views: 1 })],
+    );
+
+    expect(report.searches).toBe(4);
+    expect(report.unmet).toEqual([{ value: "salud", label: "Salud", count: 2 }]);
+  });
+
+  test("la demanda junta búsquedas, vistas y contactos por rubro", () => {
+    const report = buildServicesUsage(
+      [serviceSearch({ category: "oficios" })],
+      [
+        service({ category: "oficios", views: 4, contacts: 1 }),
+        service({ service_id: "t", category: "tecnologia", views: 2 }),
+      ],
+    );
+
+    expect(report.demand.map((row) => [row.value, row.count])).toEqual([
+      ["oficios", 6],
+      ["tecnologia", 2],
+    ]);
+  });
+
+  test("buildUsageReport suma el corte sin mezclarlo con las búsquedas de ofertas", () => {
+    const report = buildUsageReport([], [search(), serviceSearch()], [], {
+      days: 30,
+      today: TODAY,
+      services: [service({ views: 1 })],
+    });
+
+    expect(report.searches).toBe(1);
+    expect(report.services.searches).toBe(1);
+    expect(report.services.published).toBe(1);
+    expect(report.daily.reduce((sum, day) => sum + day.searches, 0)).toBe(1);
   });
 });

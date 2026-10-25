@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import { serviceMetrics } from "./metrics.ts";
 import * as queue from "./queue.ts";
 import * as services from "./services.ts";
 import {
@@ -115,6 +116,14 @@ export const publish = new Elysia()
         : status(422, { error: updated.error });
     },
     { body: t.Partial(serviceBody) },
+  )
+  /** Lo que ve quien publica: contadores por día, no eventos. */
+  .get(
+    "/api/services/mine/:id/metrics",
+    ({ me, params, query, status }) =>
+      serviceMetrics(params.id, me.id, query.days ?? 30) ??
+      status(404, { error: "ese servicio no existe" }),
+    { query: t.Object({ days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })) }) },
   )
   .delete("/api/services/:id", ({ me, params, status }) =>
     services.remove(params.id, me.id)
