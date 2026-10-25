@@ -149,3 +149,106 @@ export function companyMetrics(
     most_applied: mostApplied.slice(0, 5),
   };
 }
+
+/**
+ * Lo mismo para servicios. `service_daily` suma por servicio y por día; no hay
+ * columna de persona y el servidor no la recibe, así que no hay nada que cruzar
+ * ni siquiera si mañana existe la sesión.
+ */
+export type ServiceStatKind = "view" | "contact";
+
+/**
+ * Devuelve el rubro del servicio, que sale de su fila y no del navegador. Solo
+ * cuentan los publicados: uno en borrador o suspendido no lo ve
+ * nadie, y un id que no existe se ignora en vez de romper el lote.
+ */
+export function bumpService(
+  serviceId: string,
+  kind: ServiceStatKind,
+  now: Date = new Date(),
+): string | null {
+  const column = kind === "view" ? "views" : "contacts";
+  const exists = db()
+    .query<{ category: string }, [string]>(
+      "SELECT category FROM services WHERE id = ? AND status = 'published'",
+    )
+    .get(serviceId);
+  if (!exists) return null;
+
+  db().run(
+    `INSERT INTO service_daily (service_id, day, ${column}) VALUES (?, ?, 1)
+     ON CONFLICT(service_id, day) DO UPDATE SET ${column} = ${column} + 1`,
+    [serviceId, today(now)],
+  );
+  return exists.category;
+}
+
+export interface ServiceMetrics {
+  id: string;
+  title: string;
+  views: number;
+  contacts: number;
+  daily: DailyServiceMetrics[];
+}
+
+export interface DailyServiceMetrics {
+  day: string;
+  views: number;
+  contacts: number;
+}
+
+/** Las métricas de un servicio de esa persona, o null si no es suyo: el ajeno y
+ * el que no existe contestan lo mismo. */
+export function serviceMetrics(
+  serviceId: string,
+  userId: string,
+  days = 30,
+  now: Date = new Date(),
+): ServiceMetrics | null {
+  const service = db()
+    .query<{ id: string; title: string }, [string, string]>(
+      "SELECT id, title FROM services WHERE id = ? AND user_id = ?",
+    )
+    .get(serviceId, userId);
+  if (!service) return null;
+
+  const daily = db()
+    .query<DailyServiceMetrics, [string, string, string]>(
+      `SELECT day, views, contacts FROM service_daily
+        WHERE service_id = ? AND day >= ? AND day <= ?
+        ORDER BY day`,
+    )
+    .all(serviceId, windowStart(days, now), today(now));
+
+  return {
+    id: service.id,
+    title: service.title,
+    views: daily.reduce((sum, row) => sum + row.views, 0),
+    contacts: daily.reduce((sum, row) => sum + row.contacts, 0),
+    daily,
+  };
+}
+
+/** Una fila por servicio publicado, con lo que sumó en la ventana. */
+export interface ServiceDailyRow {
+  service_id: string;
+  title: string;
+  category: string;
+  views: number;
+  contacts: number;
+}
+
+export function serviceUsageRows(from: string, to: string): ServiceDailyRow[] {
+  return db()
+    .query<ServiceDailyRow, [string, string]>(
+      `SELECT s.id AS service_id, s.title, s.category,
+              COALESCE(SUM(d.views), 0)    AS views,
+              COALESCE(SUM(d.contacts), 0) AS contacts
+         FROM services s
+         LEFT JOIN service_daily d
+                ON d.service_id = s.id AND d.day >= ? AND d.day <= ?
+        WHERE s.status = 'published'
+        GROUP BY s.id`,
+    )
+    .all(from, to);
+}

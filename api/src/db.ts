@@ -304,6 +304,19 @@ CREATE TABLE IF NOT EXISTS offer_daily (
 );
 
 CREATE INDEX IF NOT EXISTS offer_daily_offer ON offer_daily (offer_id);
+
+/* Lo mismo para servicios: "este servicio se vio N veces el 12 de marzo y lo
+   contactaron M". Sin user_id, sin sesión y sin hora: el dueño ve cuántas
+   veces, el sistema no sabe de quién. */
+CREATE TABLE IF NOT EXISTS service_daily (
+  service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  day        TEXT NOT NULL,
+  views      INTEGER NOT NULL DEFAULT 0,
+  contacts   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (service_id, day)
+);
+
+CREATE INDEX IF NOT EXISTS service_daily_service ON service_daily (service_id);
 `;
 
 let handle: Database | null = null;

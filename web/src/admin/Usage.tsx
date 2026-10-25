@@ -180,7 +180,8 @@ export function Usage({ onFail }: { onFail: (cause: unknown) => void }) {
 
   if (!report) return <p className="text-xs text-muted">{loading ? "Cargando…" : ""}</p>;
 
-  const quiet = report.summaries + report.searches + report.applies === 0;
+  const quiet =
+    report.summaries + report.searches + report.applies + report.services.published === 0;
 
   return (
     <>
@@ -278,6 +279,55 @@ export function Usage({ onFail }: { onFail: (cause: unknown) => void }) {
           <Bars
             empty="Nadie guardó ofertas todavía."
             rows={toRows(report.sources, (value) => SOURCE_LABEL[value] ?? value)}
+          />
+        </Card>
+      </div>
+
+      <h2 className="mt-6 text-xs font-semibold tracking-tight text-ink">Servicios</h2>
+
+      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat label="Publicados" value={report.services.published} />
+        <Stat
+          label="Vistos"
+          note={`${counter.format(report.services.views)} vistas`}
+          value={report.services.viewed}
+        />
+        <Stat
+          label="Contactados"
+          note={`${counter.format(report.services.contacts)} contactos`}
+          value={report.services.contacted}
+        />
+        <Stat label="Búsquedas de servicios" value={report.services.searches} />
+      </div>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <Card note="Búsquedas, vistas y contactos por rubro." title="Rubros con más demanda">
+          <Bars empty="Nada todavía." rows={namedRows(report.services.demand)} />
+        </Card>
+
+        <Card note="Se buscaron y no hay ni un servicio publicado." title="Rubros sin servicios">
+          <Bars
+            empty="Todo rubro buscado tiene servicios."
+            rows={namedRows(report.services.unmet)}
+          />
+        </Card>
+
+        <Card note="Por contactos y después por vistas." title="Servicios más vistos">
+          <Bars
+            empty="Ninguno recibió visitas."
+            rows={report.services.top.map((service) => ({
+              key: service.id,
+              label: service.title,
+              count: service.contacts,
+              note: `${counter.format(service.views)} vistas`,
+            }))}
+          />
+        </Card>
+
+        <Card note="Por dónde se contacta, nunca quién." title="Medios de contacto">
+          <Bars
+            empty="Ningún contacto."
+            rows={toRows(report.services.channels, (value) => value)}
           />
         </Card>
       </div>
