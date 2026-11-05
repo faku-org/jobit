@@ -63,7 +63,7 @@ export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProp
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {left ?? <span />}
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
           {isApplied ? (
             <span className={`${chipClass} bg-brand/15 text-ink`}>
               <CheckCheck aria-hidden className="size-3.5" />
@@ -72,7 +72,7 @@ export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProp
           ) : null}
 
           <m.a
-            className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-panel px-3.5 py-2 text-sm font-medium text-onpanel transition-colors hover:bg-brand focus:ring-4 focus:ring-brand/25 focus:outline-none"
+            className="inline-flex flex-1 shrink-0 items-center justify-center gap-1 rounded-xl bg-panel px-3.5 py-2.5 text-sm font-medium text-onpanel transition-colors hover:bg-brand sm:flex-none sm:py-2 focus:ring-4 focus:ring-brand/25 focus:outline-none"
             href={job.apply_url}
             rel="noreferrer noopener"
             target="_blank"
