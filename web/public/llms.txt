@@ -5,6 +5,7 @@
 ## Sitio
 
 - [Tablero de ofertas](https://jobs.wefaber.net/): filtros, guardadas y seguimiento
+- [Publicar ofertas (empresas)](https://jobs.wefaber.net/publicar): qué hace el panel de empresa
 - [Términos del servicio](https://jobs.wefaber.net/terminos)
 - [Política de privacidad](https://jobs.wefaber.net/privacidad)
 

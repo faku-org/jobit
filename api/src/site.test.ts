@@ -138,6 +138,16 @@ describe("páginas indexables", () => {
     expect(html).toContain('rel="canonical" href="https://jobs.test/entrevista/tecnologia"');
   });
 
+  test("la puerta de quien publica sale en HTML y no da 404", async () => {
+    const response = await call("/publicar");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+
+    const html = await response.text();
+    expect(html).toContain("Publicá tus ofertas de trabajo en Uruguay");
+    expect(html).toContain('rel="canonical" href="https://jobs.test/publicar"');
+  });
+
   test("un rubro que no existe da 404 en la guía de entrevista", async () => {
     expect((await call("/entrevista/no-existe")).status).toBe(404);
   });
@@ -186,6 +196,7 @@ describe("fichas de servicios", () => {
     const xml = await response.text();
     expect(xml).toContain("<loc>https://jobs.test/</loc>");
     expect(xml).toContain("<loc>https://jobs.test/mercado</loc>");
+    expect(xml).toContain("<loc>https://jobs.test/publicar</loc>");
     expect(xml).toContain(`<loc>https://jobs.test/servicios/${slug}</loc>`);
   });
 });
