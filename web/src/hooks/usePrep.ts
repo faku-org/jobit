@@ -72,7 +72,9 @@ export function usePrep(
     const controller = new AbortController();
     setState((current) => (current.items.length > 0 ? current : { items: [], status: "loading" }));
 
-    fetchContent({ kinds: selected, category, limit: LIMIT }, controller.signal)
+    /** `scope: "rubro"`: las guías de un puesto viven bajo su rubro, pero no
+     * son "del rubro" y no deben desplazar a las preguntas generales. */
+    fetchContent({ kinds: selected, category, scope: "rubro", limit: LIMIT }, controller.signal)
       .then((page) => {
         cache.set(keyOf(category, selected), { at: Date.now(), items: page.items });
         setState({ items: page.items, status: "ready" });

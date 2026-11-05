@@ -21,6 +21,7 @@ import {
 import * as services from "./services.ts";
 import type { ContentKind } from "@jobit/worker/content/types";
 import { loadContent, queryContent } from "./content.ts";
+import { roleGuides, roleInterviewPageHtml } from "./interview.ts";
 
 /**
  * Las direcciones con contenido para un buscador, servidas por la API y puestas
@@ -83,7 +84,8 @@ export const site = new Elysia()
    * El sitemap se arma con lo que hay hoy: las direcciones fijas y una entrada
    * por servicio publicado. Es lo que el estático no podía hacer.
    */
-  .get("/sitemap.xml", () => {
+  .get("/sitemap.xml", async () => {
+    const content = await loadContent();
     const entries: SitemapEntry[] = [
       { path: "/", changefreq: "daily", priority: 1 },
       { path: "/mercado", changefreq: "daily", priority: 0.8 },
@@ -97,6 +99,11 @@ export const site = new Elysia()
       })),
       ...categorySlugs().map((slug) => ({
         path: `/entrevista/${encodeURIComponent(slug)}`,
+        changefreq: "weekly" as const,
+        priority: 0.5,
+      })),
+      ...(content.ok ? roleGuides(content.value) : []).map((guide) => ({
+        path: `/entrevista/${encodeURIComponent(guide.category)}/${encodeURIComponent(guide.role)}`,
         changefreq: "weekly" as const,
         priority: 0.5,
       })),
@@ -118,6 +125,7 @@ export const site = new Elysia()
     const items = queryContent(content.value, {
       kinds: new Set<ContentKind>(["faq", "topic"]),
       category: params.slug,
+      rubroOnly: true,
       limit: 60,
       offset: 0,
     }).items;
@@ -128,5 +136,33 @@ export const site = new Elysia()
 
     const feed = await loadFeed();
     const jobs = feed.ok ? jobsByCategory(feed.value, params.slug) : [];
-    return htmlResponse(interviewPageHtml(params.slug, jobs, items));
+    const guides = roleGuides(content.value).filter((guide) => guide.category === params.slug);
+    return htmlResponse(interviewPageHtml(params.slug, jobs, items, guides));
+  })
+  /**
+   * La guía de un puesto, un nivel debajo de la del rubro. Existe solo para un
+   * par rubro/puesto con contenido propio: el puesto se valida contra el
+   * catálogo de roles y el 404 cubre tanto un puesto inventado como uno real
+   * que todavía no tiene preguntas.
+   */
+  .get("/entrevista/:slug/:role", async ({ params, status }) => {
+    const content = await loadContent();
+    if (!content.ok) return status(503, { error: "el contenido no está disponible" });
+
+    const items = queryContent(content.value, {
+      kinds: new Set<ContentKind>(["faq", "topic"]),
+      category: params.slug,
+      role: params.role,
+      limit: 60,
+      offset: 0,
+    }).items;
+
+    const known = roleGuides(content.value).some(
+      (guide) => guide.category === params.slug && guide.role === params.role,
+    );
+    if (!known || items.length === 0) return htmlResponse(notFoundPage(), 404);
+
+    const feed = await loadFeed();
+    const jobs = feed.ok ? jobsByRole(feed.value, params.role) : [];
+    return htmlResponse(roleInterviewPageHtml(params.slug, params.role, jobs, items));
   });
