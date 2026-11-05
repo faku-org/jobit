@@ -19,8 +19,14 @@ import {
   sitemapXml,
 } from "./pages.ts";
 import * as services from "./services.ts";
-import type { ContentKind } from "@jobit/worker/content/types";
+import type { ContentItem, ContentKind } from "@jobit/worker/content/types";
 import { loadContent, queryContent } from "./content.ts";
+import {
+  resourceCategories,
+  resourcesIndexHtml,
+  resourcesOf,
+  resourcesPageHtml,
+} from "./resources.ts";
 
 /**
  * Las direcciones con contenido para un buscador, servidas por la API y puestas
@@ -83,7 +89,8 @@ export const site = new Elysia()
    * El sitemap se arma con lo que hay hoy: las direcciones fijas y una entrada
    * por servicio publicado. Es lo que el estático no podía hacer.
    */
-  .get("/sitemap.xml", () => {
+  .get("/sitemap.xml", async () => {
+    const content = await loadContent();
     const entries: SitemapEntry[] = [
       { path: "/", changefreq: "daily", priority: 1 },
       { path: "/mercado", changefreq: "daily", priority: 0.8 },
@@ -100,6 +107,7 @@ export const site = new Elysia()
         changefreq: "weekly" as const,
         priority: 0.5,
       })),
+      ...(content.ok ? resourceSitemapEntries(content.value) : []),
     ];
 
     return new Response(sitemapXml(entries), {
@@ -129,4 +137,43 @@ export const site = new Elysia()
     const feed = await loadFeed();
     const jobs = feed.ok ? jobsByCategory(feed.value, params.slug) : [];
     return htmlResponse(interviewPageHtml(params.slug, jobs, items));
+  })
+  /**
+   * Los recursos por rubro. Como la guía de entrevista: sin recursos, 404.
+   * Los enlaces salen con `rel` según `sponsored` (ver `resources.ts`).
+   */
+  .get("/recursos", async ({ status }) => {
+    const content = await loadContent();
+    if (!content.ok) return status(503, { error: "el contenido no está disponible" });
+    return htmlResponse(resourcesIndexHtml(content.value));
+  })
+  .get("/recursos/:slug", async ({ params, status }) => {
+    const content = await loadContent();
+    if (!content.ok) return status(503, { error: "el contenido no está disponible" });
+
+    const items = resourcesOf(content.value, params.slug);
+    if (!categorySlugs().includes(params.slug) || items.length === 0) {
+      return htmlResponse(notFoundPage(), 404);
+    }
+
+    const hasInterview =
+      queryContent(content.value, {
+        kinds: new Set<ContentKind>(["faq", "topic"]),
+        category: params.slug,
+        limit: 1,
+        offset: 0,
+      }).total > 0;
+    return htmlResponse(resourcesPageHtml(params.slug, items, hasInterview));
   });
+
+/** El índice de recursos y una entrada por rubro que tenga recursos. */
+function resourceSitemapEntries(items: ContentItem[]): SitemapEntry[] {
+  return [
+    { path: "/recursos", changefreq: "weekly", priority: 0.5 },
+    ...resourceCategories(items).map((slug) => ({
+      path: `/recursos/${encodeURIComponent(slug)}`,
+      changefreq: "weekly" as const,
+      priority: 0.5,
+    })),
+  ];
+}
