@@ -21,8 +21,16 @@ ofertas piden más nivel del que tiene.
 | `worker/` | Scrapers de portales uruguayos y del contenido curado. Escribe `worker/output/`. |
 | `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
 | `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español, panel de empresa en `/empresas` y panel de administración en `/admin`. |
-| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español y panel en `/admin`. |
 | `mcp/` | Servidor MCP: la misma búsqueda, para el agente de alguien. |
+| `docs/` | Documentación por sección, con pasos y FAQ. |
+
+## Documentación
+
+| Documento | Qué cubre |
+|---|---|
+| [`Architecture.md`](Architecture.md) | Cómo está armado el sistema y por qué. |
+| [`DESIGN.md`](DESIGN.md) | Principios, tokens y convenciones de interfaz. |
+| [`docs/`](docs/) | API, web, worker, base de datos, panel de empresa, deploy, FAQ y [roadmap](docs/roadmap.md). |
 
 ## Uso
 
@@ -87,14 +95,29 @@ termina donde termina la de verdad.
 | `GET` / `PATCH` / `DELETE /api/me` | Quién soy, editar la cuenta y borrarla de verdad. |
 | `POST` / `DELETE /api/me/totp` | Activar y desactivar el segundo paso. |
 | `GET` / `PUT` / `DELETE /api/me/sync` | Bajar, guardar o borrar lo que la cuenta sincroniza entre navegadores. |
-| `POST /api/empresas/auth/register` | Alta autogestionada de una empresa. Nace pendiente y con la sesión puesta. |
-| `POST /api/empresas/auth/login` | Entra con el correo o con el slug. |
+| `POST /api/empresas/auth/register` | Alta autogestionada. Nace pendiente y pide el segundo paso antes de abrir sesión. |
+| `POST /api/empresas/auth/login` | Entra con el correo o con el slug; el paso siguiente es el TOTP, que es obligatorio. |
+| `POST /api/empresas/auth/totp/setup` | Sin `code` genera la clave; con `code` la confirma, abre sesión y devuelve los códigos de respaldo. |
+| `POST /api/empresas/auth/totp` | El segundo paso del ingreso, con el código de seis dígitos. |
+| `POST /api/empresas/auth/recover` | Entra con un código de respaldo. |
+| `POST /api/empresas/auth/recover/email` | Manda el enlace de recuperación al correo alterno verificado. |
+| `POST /api/empresas/auth/recover/reset` | Cambia la contraseña con el token del enlace y vuelve a pedir el segundo paso. |
 | `POST /api/empresas/auth/logout` | Cierra la sesión de la empresa. |
-| `GET /api/empresas/session` | Qué empresa está detrás de la sesión. |
-| `PATCH /api/empresas/me` | Editar los datos de la empresa y la contraseña. |
+| `GET /api/empresas/session` | Qué empresa está detrás de la sesión, con perfil, correos y miembros. |
+| `PATCH /api/empresas/me` | Perfil (nombre, teléfono con país, sitio, redes, privacidad) y contraseña, que pide 2FA + código por correo. |
+| `POST /api/empresas/me/password/email` | Manda el código de 6 dígitos para cambiar la contraseña. |
+| `POST /api/empresas/me/totp/setup` | Cambiar el segundo paso: sin `code` genera el secreto nuevo, con `code` lo confirma y renueva los códigos de respaldo. |
+| `POST /api/empresas/me/lockdown` | Cierra la sesión en todos los dispositivos y renueva los códigos de respaldo (emergencia). |
+| `POST /api/empresas/me/deactivate` | Desactiva la cuenta y manda el enlace de recuperación; para desactivarla el correo de recuperación tiene que estar verificado. |
+| `POST /api/empresas/me/website/verify` | Consulta el TXT del dominio; sin registro, la URL deja de estar vigente. |
+| `GET` / `PUT` / `DELETE /api/empresas/emails/:kind` | Correos de facturación, contacto, soporte y recuperación, con su verificación. |
+| `POST /api/empresas/emails/:kind/resend` | Reenvía el enlace de verificación de ese correo. |
+| `GET /api/empresas/verify` | El enlace que llega por mail; confirma y vuelve al panel. |
+| `POST` / `DELETE /api/empresas/media/:kind` | Sube o quita el logo o el banner. `GET` público sirve el archivo. |
+| `GET` / `POST` / `DELETE /api/empresas/members[/:userId]` | Designa como miembros a usuarios de JobIt, o los quita. |
 | `GET /api/empresas/offers` | Las publicaciones propias, con su estado. |
 | `POST` / `PATCH` / `DELETE /api/empresas/offers[/:id]` | CRUD de sus publicaciones, acotado a la empresa de la sesión. |
-| `GET /api/empresas/metrics` | Vistas y postulaciones por publicación, agregadas por día. |
+| `GET /api/empresas/metrics` | Visitas, postulaciones, serie diaria, palabras clave y puestos más buscados, agregados y anónimos. |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -539,26 +562,89 @@ con la del panel ni con la de quien publica un servicio, y en la base solo queda
 el sha256 del token. Todo lo de la API está acotado a la empresa de la sesión:
 una oferta ajena responde 404 igual que una que no existe.
 
+**El segundo paso es obligatorio.** El alta y el ingreso no abren sesión: dejan
+un desafío firmado de diez minutos y piden el código de seis dígitos. Quien
+todavía no activó el TOTP pasa primero por el QR; al confirmarlo se generan los
+códigos de respaldo, que se muestran una sola vez. Sin clave de cifrado
+(`JOBIT_SECRET_KEY`) no hay alta de empresa: falla cerrado, porque el secreto
+del segundo paso no tiene dónde guardarse cifrado.
+
+La contraseña, igual que la de las cuentas de usuario, pide un mínimo de
+seguridad: diez caracteres y al menos dos tipos entre mayúsculas, minúsculas,
+números y símbolos. La misma política se aplica en el navegador, para mostrarla
+mientras se escribe, y en la API, que es la que decide. El alta pide repetirla, y
+cambiarla pide, además, el código del segundo paso y un código de seis dígitos
+que se manda al primer correo verificado.
+
+En **Seguridad** cada trámite tiene su tarjeta y su propio pedido: **cambiar el
+2FA** (se pide la contraseña, se muestra el QR nuevo y el código lo confirma; el
+viejo sigue andando hasta ese momento), **cambiar la contraseña**, **lockdown**
+—cerrar la sesión en todos los dispositivos y renovar los códigos de respaldo,
+para cuando sospechás que alguien más entró— y **desactivar la cuenta**, que
+apaga todo hasta recuperarla con el enlace que va al correo de recuperación
+verificado. Las cuentas desactivadas no entran ni con el código de respaldo: la
+única puerta de vuelta es ese enlace.
+
+El panel está **dividido en áreas** —Imagen, Identidad, Redes, Correos,
+Privacidad, Miembros y Seguridad—, una por vez y cada una con su propio
+guardado, así nada es un scroll largo. En **Identidad** el teléfono se elige con
+el país de un menú con banderas (el prefijo lo pone el sistema) que se puede
+filtrar escribiendo el nombre —"argentina" deja Argentina primera— y el sitio se
+verifica con un registro DNS TXT (`_jobit.<dominio>`): la URL queda vigente
+mientras el registro exista y se vuelve a comprobar cada 24 horas. En **Redes**
+se carga el usuario o el enlace completo y da igual: el servidor normaliza
+(`acme` en Instagram es `instagram.com/acme`; `acme` en LinkedIn es la página de
+empresa). En **Privacidad** se elige qué se muestra en la ficha pública. En
+**Imagen** el logo va arriba, con la previsualización a los tamaños a los que se
+dibuja en el tablero, y el banner abajo a lo ancho.
+
+La empresa administra sus **correos** —facturación, contacto, soporte y
+recuperación— y su perfil, con **logo y banner** (imágenes a disco, servidas por
+una ruta propia). Cada correo se confirma con un enlace de un solo uso que vence
+a las 24 horas; hasta entonces el panel lo marca como sin verificar. El correo de
+recuperación es el alterno al de contacto y es la salida para recuperar la
+cuenta: pide un enlace, lo recibe, elige una contraseña nueva y vuelve a activar
+el segundo paso. Sin proveedor de correo configurado los envíos quedan en el
+log, con el enlace adentro, para poder probar el recorrido en local.
+
+También puede **designar miembros**: usuarios de JobIt, por handle, que figuran
+como parte de la empresa. Es solo la designación; no entran al panel ni publican
+por estar ahí.
+
+Los envíos salen por **Resend** (`RESEND_API_KEY` y `MAIL_FROM`): una API HTTP,
+sin dependencia nueva, con dominio e IP propios firmando SPF/DKIM, que es lo que
+separa la bandeja de entrada del spam. Con SMTP casero la entrega queda a cargo
+de una IP que nadie conoce.
+
 **Las métricas no saben de nadie.** `offer_daily` suma por oferta y por día
 (vistas y postulaciones): dice cuántas veces, nunca quién. Suben por el mismo
 canal anónimo de `/api/events` (`offer_view`, `offer_apply`, que llevan solo el
 id público de la oferta) y solo para las publicadas acá; si la persona apagó el
 envío de estadísticas, no suben, y son entonces una muestra de quien lo tiene
-prendido. El panel muestra publicadas, vistas y postulaciones, y los puestos
-más vistos y más postulados en una ventana de 7, 30 o 90 días.
+prendido. El **Resumen** muestra las visitas a la empresa, las publicaciones y las
+postulaciones, una gráfica de la actividad por día (con los días en cero
+incluidos), las **palabras clave** que nombran sus avisos —extraídas con el mismo
+catálogo de habilidades que el informe de mercado, y que después alimentan al
+recomendador—, los **puestos más buscados** en JobIt (un corte agregado de las
+búsquedas anónimas: qué se busca, nunca quién) y los rankings de más vistas y más
+postuladas, todo en una ventana de 7, 30 o 90 días. Ninguna de esas lecturas
+agrega una fila por persona.
 
 ### Probar en local
 
 ```bash
 bun install
-cp api/.env.example api/.env   # descomentá ADMIN_PASSWORD_HASH_FILE y ADMIN_INSECURE_COOKIES
+cp api/.env.example api/.env   # descomentá ADMIN_PASSWORD_HASH_FILE, ADMIN_INSECURE_COOKIES y JOBIT_SECRET_KEY_FILE
 bun -e 'await Bun.write("data/admin.hash", await Bun.password.hash(prompt("clave: ")))'
+bun -e 'await Bun.write("data/secret.key", Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url"))'
 bun run dev
 ```
 
 El dev server resuelve `/empresas` y `/admin` igual que producción, así que se
-prueba el recorrido entero: se crea la empresa en `/empresas`, se aprueba en
-`/admin` (que sin nginx de por medio no filtra por IP) y recién ahí publica.
+prueba el recorrido entero: se crea la empresa en `/empresas` (con su segundo
+paso), se aprueba en `/admin` (que sin nginx de por medio no filtra por IP) y
+recién ahí publica. Sin `RESEND_API_KEY` los correos de verificación no salen:
+quedan en la consola de la API con el enlace para abrirlos a mano.
 
 El **admin solo se alcanza desde la VPN interna (Tailscale)**: nginx deja
 `/admin` y `/api/admin` a `100.64.0.0/10` (y `fd7a:115c:a1e0::/48` en IPv6), con
@@ -566,7 +652,9 @@ la clave como segunda cerradura. `/empresas` es público porque es autoservicio.
 
 Queda para la próxima tanda el material complementario por publicación, los
 extras (path de LearnIt, llaves de acceso, conectores de calendario) y el feed
-de la empresa; el modelo y el panel ya están armados para colgar eso.
+de la empresa; el modelo y el panel ya están armados para colgar eso. Los planes
+más grandes —recomendación personalizada, postulaciones con preguntas y
+herramientas de IA— están en [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Fuentes
 

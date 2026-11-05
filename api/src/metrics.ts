@@ -1,3 +1,4 @@
+import { skillsOf } from "@jobit/worker/skills";
 import { db } from "./db.ts";
 import type { OfferStatus } from "./offers.ts";
 
@@ -52,6 +53,15 @@ export interface DailyMetrics {
   applies: number;
 }
 
+/** Una habilidad que nombran las ofertas de la empresa. Es lo que después va a
+ * alimentar el recomendador: hoy se muestra para que la empresa sepa con qué
+ * palabras la encuentra quien busca. */
+export interface KeywordCount {
+  slug: string;
+  label: string;
+  count: number;
+}
+
 export interface CompanyMetrics {
   days: number;
   from: string;
@@ -64,6 +74,7 @@ export interface CompanyMetrics {
   most_viewed: OfferMetrics[];
   /** Las que más postulaciones juntan, que no siempre son las mismas. */
   most_applied: OfferMetrics[];
+  keywords: KeywordCount[];
 }
 
 /** El primer día que entra en una ventana de N días contada desde hoy. */
@@ -110,12 +121,37 @@ function offerRows(companyId: string, from: string, to: string): OfferMetrics[] 
     .all(from, to, companyId);
 }
 
+/** Cuenta, por habilidad, en cuántas ofertas de la empresa se nombra. Una
+ * habilidad cuenta una vez por oferta, aunque la mencione tres veces. */
+function keywordCounts(companyId: string): KeywordCount[] {
+  const rows = db()
+    .query<{ text: string }, [string]>(
+      `SELECT title || ' ' || description || ' ' || requirements AS text
+         FROM offers WHERE company_id = ?`,
+    )
+    .all(companyId);
+
+  const counts = new Map<string, KeywordCount>();
+  for (const row of rows) {
+    for (const skill of skillsOf(row.text)) {
+      const entry = counts.get(skill.slug) ?? { slug: skill.slug, label: skill.label, count: 0 };
+      entry.count += 1;
+      counts.set(skill.slug, entry);
+    }
+  }
+
+  return [...counts.values()]
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, 12);
+}
+
 export function companyMetrics(
   companyId: string,
   days = 30,
   now: Date = new Date(),
 ): CompanyMetrics {
-  const from = windowStart(days, now);
+  const count = Math.max(Math.floor(days), 1);
+  const from = windowStart(count, now);
   const to = today(now);
 
   const rows = offerRows(companyId, from, to);
@@ -124,7 +160,14 @@ export function companyMetrics(
     { views: 0, applies: 0 },
   );
 
-  const daily = db()
+  /** La serie trae también los días sin nada: un día en cero es un dato y, si
+   * se omite, la gráfica lo dibuja como si nunca hubiera pasado. */
+  const series = new Map<string, DailyMetrics>();
+  for (let index = 0; index < count; index += 1) {
+    const day = new Date(now.getTime() - (count - 1 - index) * 86_400_000).toISOString().slice(0, 10);
+    series.set(day, { day, views: 0, applies: 0 });
+  }
+  const spent = db()
     .query<DailyMetrics, [string, string, string]>(
       `SELECT d.day, SUM(d.views) AS views, SUM(d.applies) AS applies
          FROM offer_daily d JOIN offers o ON o.id = d.offer_id
@@ -133,19 +176,27 @@ export function companyMetrics(
         ORDER BY d.day`,
     )
     .all(companyId, from, to);
+  for (const row of spent) {
+    const point = series.get(row.day);
+    if (point) {
+      point.views = row.views;
+      point.applies = row.applies;
+    }
+  }
 
   const mostViewed = [...rows].sort((a, b) => b.views - a.views || b.applies - a.applies);
   const mostApplied = [...rows].sort((a, b) => b.applies - a.applies || b.views - a.views);
 
   return {
-    days,
+    days: count,
     from,
     to,
     offers: countByStatus(companyId),
     views: totals.views,
     applies: totals.applies,
-    daily,
+    daily: [...series.values()],
     most_viewed: mostViewed.slice(0, 5),
     most_applied: mostApplied.slice(0, 5),
+    keywords: keywordCounts(companyId),
   };
 }

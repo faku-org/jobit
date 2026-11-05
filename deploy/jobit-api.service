@@ -16,6 +16,12 @@ ExecStart=/opt/bun/bun run api/src/index.ts
 Restart=on-failure
 RestartSec=5
 
+# Configuración extra que no vive en el repo: si existe /srv/jobit/api/.env lo
+# carga. De ahí salen RESEND_API_KEY y MAIL_FROM, que son los que mandan los
+# correos de verificación y de recuperación. Las variables de abajo pisan a las
+# del archivo, así que las críticas siguen viviendo acá.
+EnvironmentFile=-/srv/jobit/api/.env
+
 # Solo escucha en loopback: nginx es el único que llega, y por eso el
 # x-forwarded-for que el limitador usa para contar es confiable.
 Environment=HOST=127.0.0.1
@@ -41,6 +47,13 @@ Environment=ADMIN_PASSWORD_HASH_FILE=/srv/jobit/data/admin.hash
 #   bun -e 'await Bun.write("/srv/jobit/data/ingest.token", crypto.randomUUID() + crypto.randomUUID())'
 #   chown jobit:jobit /srv/jobit/data/ingest.token && chmod 600 /srv/jobit/data/ingest.token
 Environment=INGEST_TOKEN_FILE=/srv/jobit/data/ingest.token
+
+# La clave de 32 bytes que cifra el email y el secreto TOTP, tanto de las
+# cuentas de usuario como de las empresas. Sin esto el alta de empresa falla
+# cerrado: el segundo paso es obligatorio y no tiene dónde guardarse cifrado.
+#   bun -e 'await Bun.write("/srv/jobit/data/secret.key", Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url"))'
+#   chown jobit:jobit /srv/jobit/data/secret.key && chmod 600 /srv/jobit/data/secret.key
+Environment=JOBIT_SECRET_KEY_FILE=/srv/jobit/data/secret.key
 
 # Aislamiento. ProtectSystem=strict deja todo el disco de solo lectura salvo
 # lo que se liste abajo: donde se escriben las estadísticas, y desde que la
