@@ -5,8 +5,13 @@ import {
   deleteService,
   fetchMyServices,
 } from "../../lib/account.ts";
-import { SERVICE_STATUS_LABEL, type Service } from "../../lib/services.ts";
-import { mutedChip } from "../../lib/styles.ts";
+import {
+  FEATURED_LABEL,
+  SERVICE_STATUS_LABEL,
+  type Service,
+  formatServiceDay,
+} from "../../lib/services.ts";
+import { chipClass, mutedChip } from "../../lib/styles.ts";
 
 interface MyServicesProps {
   /** Sube cada vez que algo se guarda, para volver a pedir la lista. */
@@ -91,6 +96,11 @@ export function MyServices({ reload, onEdit, onNew }: MyServicesProps) {
             >
               <span className="min-w-0 flex-1 truncate text-sm text-ink">{service.title}</span>
               <span className={mutedChip}>{SERVICE_STATUS_LABEL[service.status]}</span>
+              {service.featured && service.boost_until ? (
+                <span className={`${chipClass} bg-mist text-brand`}>
+                  {FEATURED_LABEL} hasta el {formatServiceDay(service.boost_until)}
+                </span>
+              ) : null}
               <button
                 aria-label={`Editar ${service.title}`}
                 className="rounded-lg p-2 text-muted transition-colors hover:text-ink"

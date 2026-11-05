@@ -22,6 +22,7 @@ import {
 import { serviceShare } from "../../lib/share.ts";
 import { chipClass, iconButtonClass, menuItemClass, mutedChip } from "../../lib/styles.ts";
 import { ShareMenu } from "../ui/ShareMenu.tsx";
+import { FeaturedBadge } from "./FeaturedBadge.tsx";
 import { Reviews } from "./Reviews.tsx";
 
 interface ServiceModalProps {
@@ -167,6 +168,11 @@ export function ServiceModal({ service, onClose }: ServiceModalProps) {
             ancho y las acciones bajan a su propia fila. */}
         <header className="flex flex-col gap-3 border-b border-sky/40 px-4 py-4 sm:flex-row sm:items-start sm:px-5">
           <div className="min-w-0 flex-1">
+            {service.featured ? (
+              <div className="mb-2">
+                <FeaturedBadge />
+              </div>
+            ) : null}
             <h2
               className="text-[19px] leading-snug font-semibold tracking-tight text-ink"
               id="service-modal-title"
