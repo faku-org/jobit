@@ -6,6 +6,7 @@ import { jobShare } from "../../lib/share.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
 import type { Job } from "../../lib/types.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
+import { WorkedBadge } from "./WorkedBadge.tsx";
 import { JobChips, type TagActions } from "./JobChips.tsx";
 import { ShareMenu } from "../ui/ShareMenu.tsx";
 
@@ -16,6 +17,8 @@ interface JobCardProps {
   /** Matches the saved preferences, so it gets pulled forward visually. */
   isMatch: boolean;
   isApplied: boolean;
+  /** La empresa es una que la persona cargó como suya; solo una marca. */
+  worked?: boolean;
   /** What the chips of this card can do to the list. */
   tagActions: TagActions;
   onOpen: (job: Job) => void;
@@ -48,6 +51,7 @@ export function JobCard({
   isDismissed,
   isMatch,
   isApplied,
+  worked = false,
   tagActions,
   onOpen,
   onOpenEmployer,
@@ -127,6 +131,7 @@ export function JobCard({
             <MapPin aria-hidden className="size-3.5 shrink-0 text-brand" />
             {formatLocation(job.city, job.department)}
           </span>
+          {worked ? <WorkedBadge /> : null}
         </div>
 
         <div className="mt-4">
