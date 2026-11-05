@@ -13,6 +13,7 @@ una sección y arranca con los pasos para ejecutarla.
 | [`deploy.md`](deploy.md) | Puesta en producción (resumen; el detalle está en `deploy/`). |
 | [`faq.md`](faq.md) | Preguntas frecuentes. |
 | [`plan-implementacion.md`](plan-implementacion.md) | Orden de lo pendiente (roadmap, issues, PRs) y la revisión de UX/accesibilidad. |
+| [`estado-y-expansion.md`](estado-y-expansion.md) | Qué está construido hoy, qué fases siguen y qué implica cada una. |
 
 Para el panorama general ver [`../Architecture.md`](../Architecture.md) y para
 las convenciones de interfaz [`../DESIGN.md`](../DESIGN.md).
