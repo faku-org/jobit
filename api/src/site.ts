@@ -1,4 +1,7 @@
 import { Elysia } from "elysia";
+import * as companies from "./companies.ts";
+import { employerPageHtml, employerSitemapEntries, sameEmployerName } from "./employer-page.ts";
+import { employerJobs, employerProfile } from "./employers.ts";
 import { loadFeed, lookupJob } from "./feed.ts";
 import { buildMarketReport } from "./market.ts";
 import {
@@ -80,10 +83,28 @@ export const site = new Elysia()
       : htmlResponse(notFoundPage(), 404);
   })
   /**
+   * El stand de una empresa como página: sale de las mismas ofertas que el
+   * de la app. Una empresa que no existe, o sin ofertas, es un 404.
+   */
+  .get("/empresa/:slug", async ({ params, status }) => {
+    const feed = await loadFeed();
+    if (!feed.ok) return status(503, { error: "las ofertas no están disponibles" });
+
+    const profile = employerProfile(feed.value.jobs, params.slug);
+    const jobs = employerJobs(feed.value.jobs, params.slug);
+    if (!profile || jobs.length === 0) return htmlResponse(notFoundPage(), 404);
+
+    const account = companies
+      .list({ status: "approved" })
+      .find((company) => sameEmployerName(company.name, params.slug));
+    return htmlResponse(employerPageHtml(profile, jobs, account?.website));
+  })
+  /**
    * El sitemap se arma con lo que hay hoy: las direcciones fijas y una entrada
    * por servicio publicado. Es lo que el estático no podía hacer.
    */
-  .get("/sitemap.xml", () => {
+  .get("/sitemap.xml", async () => {
+    const feed = await loadFeed();
     const entries: SitemapEntry[] = [
       { path: "/", changefreq: "daily", priority: 1 },
       { path: "/mercado", changefreq: "daily", priority: 0.8 },
@@ -100,6 +121,7 @@ export const site = new Elysia()
         changefreq: "weekly" as const,
         priority: 0.5,
       })),
+      ...(feed.ok ? employerSitemapEntries(feed.value.jobs) : []),
     ];
 
     return new Response(sitemapXml(entries), {

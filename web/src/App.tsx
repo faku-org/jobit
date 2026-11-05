@@ -32,7 +32,7 @@ import { useStats } from "./hooks/useStats.ts";
 import { useSearchTracking, useTracking } from "./hooks/useTracking.ts";
 import { useTheme } from "./hooks/useTheme.ts";
 import { isAbortError, jobsQueryKey } from "./lib/api.ts";
-import { employerSlug } from "./lib/employers.ts";
+import { employerSlug, isWorkedAt } from "./lib/employers.ts";
 import { parseSearch, withoutToken } from "./lib/search.ts";
 import { loadJob, prefetchJobIds, prefetchJobs, readJob } from "./lib/jobsCache.ts";
 import { BOARD_VIEWS, type BoardContext, jobsQuery, keepListView } from "./lib/query.ts";
@@ -370,6 +370,10 @@ export default function App() {
   useTracking(prefs.profile.shareStats);
   useSearchTracking(effectiveFilters, total, status === "ready");
 
+  /** Las empresas que la persona cargó como suyas: solo marcan la oferta. */
+  const workedSlugs = new Set(prefs.companies);
+  const workedAt = (job: Job) => isWorkedAt(job.company, workedSlugs);
+
   /** Abre el stand de la empresa de una oferta, si tiene una. */
   const openEmployerFor = (job: Job) => {
     if (job.company) setOpenEmployer({ slug: employerSlug(job.company), label: job.company });
@@ -643,6 +647,7 @@ export default function App() {
                         onOpenEmployer={() => openEmployerFor(job)}
                         onToggleDismissed={prefs.toggleDismissed}
                         onToggleSaved={prefs.toggleSaved}
+                        worked={workedAt(job)}
                       />
                     ))}
                   </div>
@@ -683,6 +688,7 @@ export default function App() {
                         onOpenEmployer={() => openEmployerFor(job)}
                         onToggleDismissed={prefs.toggleDismissed}
                         onToggleSaved={prefs.toggleSaved}
+                        worked={workedAt(job)}
                       />
                     )}
                   />
@@ -726,6 +732,7 @@ export default function App() {
             onOpenEmployer={() => openEmployerFor(openJob)}
             onToggleDismissed={prefs.toggleDismissed}
             onToggleSaved={prefs.toggleSaved}
+            worked={workedAt(openJob)}
           />
         </Suspense>
       ) : null}
