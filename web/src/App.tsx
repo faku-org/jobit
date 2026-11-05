@@ -6,6 +6,7 @@ import { DynamicIsland } from "./components/board/DynamicIsland.tsx";
 import { FadeUp } from "./components/ui/FadeUp.tsx";
 import { FilterBar } from "./components/board/FilterBar.tsx";
 import { RubroPrep } from "./components/board/RubroPrep.tsx";
+import { RubroResources } from "./components/board/RubroResources.tsx";
 import { JobCard } from "./components/job/JobCard.tsx";
 import { JobList } from "./components/job/JobList.tsx";
 import { ServiceModal } from "./components/service/ServiceModal.tsx";
@@ -572,6 +573,20 @@ export default function App() {
               <div className="mt-3">
                 <FadeUp>
                   <RubroPrep
+                    category={filters.category}
+                    label={
+                      meta.categories.find((entry) => entry.value === filters.category)?.label ??
+                      filters.category
+                    }
+                  />
+                </FadeUp>
+              </div>
+            ) : null}
+
+            {filters.category && meta ? (
+              <div className="mt-2">
+                <FadeUp>
+                  <RubroResources
                     category={filters.category}
                     label={
                       meta.categories.find((entry) => entry.value === filters.category)?.label ??
