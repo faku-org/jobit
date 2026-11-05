@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { DetailCache } from "./cache.ts";
 import { dedupe } from "./dedupe.ts";
 import { proxyDescription } from "./http.ts";
+import { buildMarketDay, historyFilePath, recordDay } from "./history.ts";
 import { keepIfEmpty } from "./keep.ts";
 import { toJob } from "./normalize.ts";
 import { buscojobs } from "./sources/buscojobs.ts";
@@ -99,6 +100,18 @@ async function heartbeat(total: number): Promise<void> {
   }
 }
 
+/** El histórico es un extra: si no se puede escribir (el sandbox del servicio
+ * no deja, el disco está lleno) el scrapeo igual terminó, y no se rompe por eso. */
+async function saveHistory(jobs: Job[], scrapedAt: string): Promise<void> {
+  if (jobs.length === 0) return;
+  try {
+    await recordDay(buildMarketDay(jobs, scrapedAt));
+    log(`histórico de mercado actualizado: ${historyFilePath()}`);
+  } catch (cause) {
+    console.warn(`no se pudo guardar el histórico de mercado: ${String(cause)}`);
+  }
+}
+
 async function run(): Promise<void> {
   const options = parseArgs(Bun.argv.slice(2));
   const startedAt = Date.now();
@@ -149,6 +162,7 @@ async function run(): Promise<void> {
   };
 
   await Bun.write(OUTPUT_PATH, `${JSON.stringify(payload, null, 2)}\n`);
+  await saveHistory(merged, payload.scraped_at);
 
   if (fresh.has("buscojobs")) await heartbeat(merged.length);
   else log("\nBuscoJobs no vino fresco: no se manda heartbeat");

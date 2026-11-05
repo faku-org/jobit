@@ -1,4 +1,14 @@
-import { Bookmark, Building2, EyeOff, MapPin, Target, Undo2, X } from "lucide-react";
+import {
+  Bookmark,
+  Building2,
+  ChevronDown,
+  EyeOff,
+  GraduationCap,
+  MapPin,
+  Target,
+  Undo2,
+  X,
+} from "lucide-react";
 import { m } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -8,14 +18,17 @@ import {
   formatLocation,
 } from "../../lib/format.ts";
 import { islandTransition } from "../../lib/motion.ts";
+import { jobShare } from "../../lib/share.ts";
 import { offerView } from "../../lib/events.ts";
 import { track } from "../../lib/track.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
 import { type Application, type Job, type Tag, relatedApplications } from "../../lib/types.ts";
+import { ALL_PREP_KINDS, usePrep } from "../../hooks/usePrep.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
 import { JobChips, type TagActions } from "./JobChips.tsx";
 import { JobDescription } from "./JobDescription.tsx";
 import { JobFit } from "./JobFit.tsx";
+import { PrepTips } from "./PrepTips.tsx";
 import { ShareMenu } from "../ui/ShareMenu.tsx";
 
 interface JobModalProps {
@@ -31,6 +44,8 @@ interface JobModalProps {
   onToggleDismissed: (id: string) => void;
   onApplied: (job: Job) => void;
   onClose: () => void;
+  /** Abre el stand de la empresa de esta oferta. */
+  onOpenEmployer?: () => void;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -74,8 +89,12 @@ export function JobModal({
   onToggleDismissed,
   onApplied,
   onClose,
+  onOpenEmployer,
 }: JobModalProps) {
   const related = relatedApplications(job, applications);
+  /** La preparación del rubro: se pide siempre, así las preguntas y los
+   * ejercicios están a mano aunque todavía no te hayas postulado. */
+  const prep = usePrep(job.category, true, ALL_PREP_KINDS);
   /** The sheet plays its own exit and then asks to be unmounted. */
   const [closing, setClosing] = useState(false);
   const close = useCallback(() => setClosing(true), []);
@@ -124,7 +143,7 @@ export function JobModal({
         animate={closing ? { opacity: 0, y: 24, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
         aria-labelledby="job-modal-title"
         aria-modal
-        className="relative flex max-h-[92svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] sm:max-h-[85svh] sm:rounded-3xl"
+        className="relative flex h-[92svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] supports-[height:1dvh]:h-[92dvh] sm:h-auto sm:max-h-[85svh] sm:rounded-3xl"
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         role="dialog"
         transition={islandTransition}
@@ -132,7 +151,10 @@ export function JobModal({
           if (closing) onClose();
         }}
       >
-        <header className="flex items-start gap-3 border-b border-sky/40 px-5 py-4">
+        {/* En el teléfono el título va a lo ancho y las acciones bajan a su
+            propia fila: es lo que evita que el nombre de la empresa se parta
+            en dos y que la cabecera se sienta apretada. */}
+        <header className="flex flex-col gap-2.5 border-b border-sky/40 px-4 py-3 sm:flex-row sm:items-start sm:gap-3 sm:px-5 sm:py-4">
           <div className="min-w-0 flex-1">
             {isMatch ? (
               <span className={`${chipClass} mb-2 bg-panel text-onpanel`}>
@@ -148,10 +170,14 @@ export function JobModal({
             </h2>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-soft">
               {job.company ? (
-                <span className="inline-flex items-center gap-1.5">
+                <button
+                  className="inline-flex items-center gap-1.5 transition-colors hover:text-ink"
+                  type="button"
+                  onClick={onOpenEmployer}
+                >
                   <Building2 aria-hidden className="size-3.5 shrink-0 text-brand" />
                   {job.company}
-                </span>
+                </button>
               ) : null}
               <span className="inline-flex items-center gap-1.5">
                 <MapPin aria-hidden className="size-3.5 shrink-0 text-brand" />
@@ -160,8 +186,8 @@ export function JobModal({
             </div>
           </div>
 
-          <div className="flex shrink-0 gap-1.5">
-            <ShareMenu job={job} />
+          <div className="flex shrink-0 items-center justify-end gap-1.5">
+            <ShareMenu target={jobShare(job)} />
             <m.button
               aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
               aria-pressed={isSaved}
@@ -199,7 +225,7 @@ export function JobModal({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4 sm:space-y-6 sm:px-5 sm:py-5">
           <JobChips actions={chipActions} job={job} />
 
           <JobFit job={job} profile={tagActions.profile} />
@@ -219,6 +245,24 @@ export function JobModal({
             <Section title="Requisitos">
               <JobDescription profile={tagActions.profile} text={job.requirements} />
             </Section>
+          ) : null}
+
+          {prep.items.length > 0 ? (
+            <details className="group rounded-2xl border border-sky/50 bg-surface">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                <GraduationCap aria-hidden className="size-4 shrink-0 text-brand" />
+                <span className="text-xs font-semibold tracking-wide text-muted uppercase">
+                  Para prepararte
+                </span>
+                <ChevronDown
+                  aria-hidden
+                  className="ml-auto size-4 shrink-0 text-muted transition-transform group-open:rotate-180"
+                />
+              </summary>
+              <div className="border-t border-sky/40 px-4 py-3">
+                <PrepTips items={prep.items} />
+              </div>
+            </details>
           ) : null}
 
           {related.company.length > 0 || related.category.length > 0 ? (
@@ -259,12 +303,12 @@ export function JobModal({
           </p>
         </div>
 
-        <div className="border-t border-sky/40 bg-surface px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+        <div className="border-t border-sky/40 bg-surface px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-4 sm:pb-4">
           <ApplyFooter
             isApplied={isApplied}
             job={job}
             left={
-              <p className="text-xs text-muted">
+              <p className="hidden text-xs text-muted sm:block">
                 {isApplied
                   ? "Está en tu lista de seguimiento."
                   : "Te pregunto si te postulaste al volver."}

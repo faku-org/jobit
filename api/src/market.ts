@@ -1,28 +1,12 @@
-import { type Role, roleOf } from "@jobit/worker/roles";
+﻿import { type Role, roleOf } from "@jobit/worker/roles";
+import { type SalarySummary, monthlyPayOf, summarize } from "@jobit/worker/salary";
 import { skillsOf } from "@jobit/worker/skills";
 import type { Job, JobType, Level, WorkMode } from "./types.ts";
 
 const DAY_MS = 86_400_000;
 
-/**
- * Pay is typed by hand into each job board, and it shows: a monthly salary of
- * 1 and one of 11.111.111 are both in the data. Anything outside this window
- * is a typo rather than an offer, and one of them is enough to wreck an
- * average, so they are dropped before anything is computed.
- */
-const MIN_CREDIBLE_SALARY = 8_000;
-const MAX_CREDIBLE_SALARY = 900_000;
-
-/** A distribution said with quartiles: an average would be dragged by the tail. */
-export interface SalarySummary {
-  /** How many offers this was computed from; the rest publish no pay. */
-  count: number;
-  min: number;
-  p25: number;
-  median: number;
-  p75: number;
-  max: number;
-}
+/** Se reexportan: el resto de la API los importa desde acá. */
+export { type SalarySummary, monthlyPayOf, summarize };
 
 export interface RoleStat {
   slug: string;
@@ -87,34 +71,6 @@ export interface MarketReport {
   entryFriendly: { value: string; label: string; count: number; share: number }[];
 }
 
-/** The monthly figure an offer publishes, once it is believable. */
-function monthlyPay(job: Job): number | null {
-  if (!job.salary) return null;
-  /** Ranges are read at their floor: it is the number the person is promised. */
-  const value = job.salary.min ?? job.salary.max;
-  if (value === null) return null;
-  if (value < MIN_CREDIBLE_SALARY || value > MAX_CREDIBLE_SALARY) return null;
-  return value;
-}
-
-const quantile = (sorted: number[], fraction: number): number =>
-  sorted[Math.min(Math.floor(sorted.length * fraction), sorted.length - 1)] ?? 0;
-
-/** Null under a handful of offers: three salaries are an anecdote, not a range. */
-export function summarize(values: number[], minimum = 5): SalarySummary | null {
-  if (values.length < minimum) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-
-  return {
-    count: sorted.length,
-    min: sorted[0] ?? 0,
-    p25: quantile(sorted, 0.25),
-    median: quantile(sorted, 0.5),
-    p75: quantile(sorted, 0.75),
-    max: sorted[sorted.length - 1] ?? 0,
-  };
-}
-
 function tally<T extends string>(jobs: Job[], pick: (job: Job) => T | null): Breakdown[] {
   const counts = new Map<string, number>();
   for (const job of jobs) {
@@ -142,7 +98,7 @@ function groupBy<K>(jobs: Job[], key: (job: Job) => K | null): Map<K, Job[]> {
 function salaryOf(jobs: Job[]): SalarySummary | null {
   const values: number[] = [];
   for (const job of jobs) {
-    const pay = monthlyPay(job);
+    const pay = monthlyPayOf(job);
     if (pay !== null) values.push(pay);
   }
   return summarize(values);
@@ -203,11 +159,11 @@ function departmentStats(jobs: Job[]): DepartmentStat[] {
     .sort((a, b) => b.count - a.count);
 }
 
-/** Una habilidad mencionada en una sola oferta es anécdota, no demanda. */
+/** Una habilidad mencionada en una sola oferta es anÃ©cdota, no demanda. */
 const MIN_SKILL_OFFERS = 5;
 
 /**
- * Las habilidades que más se piden. Se mira título, descripción y requisitos:
+ * Las habilidades que mÃ¡s se piden. Se mira tÃ­tulo, descripciÃ³n y requisitos:
  * una empresa puede nombrar "Excel" en cualquiera de los tres, y todas cuentan.
  */
 function skillStats(jobs: Job[]): SkillStat[] {
@@ -271,7 +227,7 @@ export function buildMarketReport(
     fresh7: jobs.filter((job) => isNewerThan(job, 7, now)).length,
     fresh30: jobs.filter((job) => isNewerThan(job, 30, now)).length,
     noExperience: countNoExperience(jobs),
-    withSalary: jobs.filter((job) => monthlyPay(job) !== null).length,
+    withSalary: jobs.filter((job) => monthlyPayOf(job) !== null).length,
     salary: salaryOf(jobs),
     sources: tally(jobs, (job) => job.source || null),
     roles: roleStats(jobs),

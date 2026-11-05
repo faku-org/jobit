@@ -1,10 +1,6 @@
 import { type CustomFeed, MAX_FEEDS } from "./feed.ts";
 import type { Profile } from "./profile.ts";
-import {
-  type Application,
-  type Preferences,
-  type SalaryPreference,
-} from "./types.ts";
+import { type Application, type Preferences, type SalaryPreference } from "./types.ts";
 
 /**
  * Lo que viaja entre navegadores cuando el sync está prendido.
@@ -21,6 +17,8 @@ export interface SyncedState {
   applications: Application[];
   sources: string[];
   feeds: CustomFeed[];
+  /** Empresas donde trabajó la persona, por slug. */
+  companies: string[];
   profile: Profile;
 }
 
@@ -130,6 +128,7 @@ export function mergeSynced(local: SyncedState, remote: SyncedState): SyncedStat
     dismissed: union(local.dismissed, remote.dismissed).filter((id) => !savedSet.has(id)),
     applications: mergeApplications(local.applications, remote.applications),
     feeds: mergeFeeds(local.feeds, remote.feeds),
+    companies: [...new Set([...local.companies, ...remote.companies])],
     sources: local.sources.length > 0 ? local.sources : remote.sources,
     preferences: mergePreferences(local.preferences, remote.preferences),
     profile: mergeProfile(local.profile, remote.profile),

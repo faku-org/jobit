@@ -74,6 +74,12 @@ export interface JobsQuery {
   sources?: Set<string>;
   jobTypes?: Set<JobType>;
   departments?: Set<string>;
+  /** Empresas por slug; una oferta matchea si es de alguna. */
+  employers?: Set<string>;
+  /** Solo el título (atajo `puesto:`). */
+  title?: string;
+  /** Ciudad o departamento (atajo `ubicacion:`). */
+  place?: string;
   /** Rubros the person never wants to see again. */
   hiddenCategories?: Set<string>;
   hiddenDepartments?: Set<string>;

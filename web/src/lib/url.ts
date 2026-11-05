@@ -22,7 +22,7 @@ export interface ViewState {
   filters: Filters;
 }
 
-const VIEWS: View[] = ["all", "saved", "tracking", "state", "market"];
+const VIEWS: View[] = ["all", "saved", "tracking", "state", "services", "market", "news"];
 const LEVELS: Level[] = ["entry", "mid", "senior"];
 const MODES: WorkMode[] = ["onsite", "remote", "hybrid"];
 const JOB_TYPES: JobType[] = ["full_time", "part_time", "internship"];
@@ -33,6 +33,7 @@ const PARAM = {
   q: "q",
   category: "category",
   department: "department",
+  company: "company",
   level: "level",
   mode: "remote",
   jobType: "job_type",
@@ -56,13 +57,19 @@ const positiveInteger = (raw: string | null): number | null => {
 export function readViewState(search: string = window.location.search): ViewState {
   const params = new URLSearchParams(search);
 
+  /** Un enlace a un servicio no trae pestaña, pero sí dice cuál: abrir la
+   * ficha sobre el tablero de ofertas dejaría atrás una lista que no tiene
+   * nada que ver con lo que la persona vino a mirar. */
+  const linkedService = params.get("service") ? "services" : "all";
+
   return {
-    view: VIEWS.find((value) => value === params.get(PARAM.view)) ?? "all",
+    view: VIEWS.find((value) => value === params.get(PARAM.view)) ?? linkedService,
     filters: {
       ...EMPTY_FILTERS,
       q: params.get(PARAM.q)?.slice(0, MAX_QUERY) ?? "",
       category: params.get(PARAM.category) ?? "",
       department: params.get(PARAM.department) ?? "",
+      company: params.get(PARAM.company) ?? "",
       level: oneOf(params.get(PARAM.level), LEVELS),
       mode: oneOf(params.get(PARAM.mode), MODES),
       jobType: oneOf(params.get(PARAM.jobType), JOB_TYPES),
@@ -94,6 +101,7 @@ export function writeViewState(state: ViewState, push: boolean): void {
   set(PARAM.q, filters.q.trim());
   set(PARAM.category, filters.category);
   set(PARAM.department, filters.department);
+  set(PARAM.company, filters.company);
   set(PARAM.level, filters.level);
   set(PARAM.mode, filters.mode);
   set(PARAM.jobType, filters.jobType);

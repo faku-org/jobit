@@ -1,4 +1,5 @@
 import { type Ranking, scoreJob } from "./rank.ts";
+import { employerSlug } from "./employers.ts";
 import type { Facet, Job, JobsQuery, JobsResponse, SalaryRange } from "./types.ts";
 
 const DAY_MS = 86_400_000;
@@ -26,6 +27,15 @@ function matchesText(job: Job, needle: string): boolean {
     .split(/\s+/)
     .filter(Boolean)
     .every((term) => haystack.includes(term));
+}
+
+/** Todos los términos tienen que aparecer en el texto dado. */
+function textIncludes(haystack: string, needle: string): boolean {
+  const folded = normalize(haystack);
+  return normalize(needle)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((term) => folded.includes(term));
 }
 
 function isNewerThan(job: Job, days: number, now: number): boolean {
@@ -60,6 +70,14 @@ function matches(job: Job, query: JobsQuery, now: number): boolean {
   if (query.hiddenCategories?.has(job.category)) return false;
   if (query.sources && !query.sources.has(job.source)) return false;
   if (query.departments && (job.department === null || !query.departments.has(job.department))) {
+    return false;
+  }
+  if (query.employers) {
+    const slug = job.company ? employerSlug(job.company) : "";
+    if (!query.employers.has(slug)) return false;
+  }
+  if (query.title && !textIncludes(job.title, query.title)) return false;
+  if (query.place && !textIncludes([job.city ?? "", job.department ?? ""].join(" "), query.place)) {
     return false;
   }
   if (job.department !== null && query.hiddenDepartments?.has(job.department)) return false;

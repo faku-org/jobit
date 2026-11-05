@@ -1,15 +1,21 @@
 import { describe, expect, test } from "bun:test";
+import type { ContentItem } from "@jobit/worker/content/types";
 import type { Job } from "./types.ts";
 import {
   escapeHtml,
+  faqPageLd,
+  interviewPageHtml,
   isNativeOffer,
   jobPageHtml,
   jobPostingLd,
   jobsByCategory,
   marketPageHtml,
   notFoundPage,
+  serviceJsonLd,
+  servicePageHtml,
 } from "./pages.ts";
 import type { JobsFile } from "./types.ts";
+import type { Service } from "./services.ts";
 import { buildMarketReport } from "./market.ts";
 
 process.env.PUBLIC_ORIGIN = "https://jobs.test";
@@ -41,6 +47,72 @@ const job = (overrides: Partial<Job> = {}): Job => ({
   apply_url: "",
   duplicates: [],
   ...overrides,
+});
+
+const service = (overrides: Partial<Service> = {}): Service => ({
+  id: "svc-1",
+  user_id: "user-1",
+  title: "Electricista a domicilio",
+  slug: "electricista-a-domicilio",
+  summary: "Tableros, tomas y luces",
+  description: "Instalaciones en casas y locales.",
+  category: "oficios",
+  department: "Canelones",
+  city: "Las Piedras",
+  remote: "onsite",
+  fixed_price: false,
+  work_style: "individual",
+  experience_years: 8,
+  availability_note: "",
+  response_time: "48-horas",
+  status: "published",
+  rating_avg: 0,
+  rating_count: 0,
+  created_at: "2026-08-01",
+  updated_at: "2026-09-01",
+  published_at: "2026-08-02",
+  skills: ["Tableros", "Domótica"],
+  prices: [{ kind: "base", label: "Hora", amount: 1200, currency: "UYU", unit: "hora", notes: "" }],
+  hours: [],
+  owner_handle: "juana",
+  owner_name: "Juana Pérez",
+  ...overrides,
+});
+
+describe("serviceJsonLd", () => {
+  test("marca el servicio y el perfil de quien está atrás", () => {
+    const blocks = serviceJsonLd(service());
+    const marked = blocks[0]!;
+    const profile = blocks[1]!;
+    expect(marked["@type"]).toBe("Service");
+    expect(profile["@type"]).toBe("ProfilePage");
+    expect(marked.provider).toMatchObject({ name: "Juana Pérez", alternateName: "juana" });
+    expect(marked.offers).toMatchObject({ price: 1200, priceCurrency: "UYU" });
+  });
+
+  test("no marca AggregateRating con cero ni con un voto", () => {
+    expect(serviceJsonLd(service({ rating_count: 0 }))[0]!.aggregateRating).toBeUndefined();
+    expect(
+      serviceJsonLd(service({ rating_count: 1, rating_avg: 5 }))[0]!.aggregateRating,
+    ).toBeUndefined();
+  });
+
+  test("con dos votos reales sí", () => {
+    expect(
+      serviceJsonLd(service({ rating_count: 2, rating_avg: 4.5 }))[0]!.aggregateRating,
+    ).toMatchObject({ ratingValue: 4.5, ratingCount: 2 });
+  });
+});
+
+describe("servicePageHtml", () => {
+  test("trae el contenido, el canonical y dice que no hay notas", () => {
+    const html = servicePageHtml(service());
+    expect(html).toContain("<h1>Electricista a domicilio</h1>");
+    expect(html).toContain(
+      'rel="canonical" href="https://jobs.test/servicios/electricista-a-domicilio"',
+    );
+    expect(html).toContain("Todavía sin calificaciones");
+  });
 });
 
 describe("escapeHtml", () => {
@@ -110,7 +182,12 @@ describe("jobPageHtml", () => {
 
 describe("marketPageHtml", () => {
   test("resume el tablero", () => {
-    const file: JobsFile = { scraped_at: "2026-09-01", sources: ["jobit"], count: 1, jobs: [job()] };
+    const file: JobsFile = {
+      scraped_at: "2026-09-01",
+      sources: ["jobit"],
+      count: 1,
+      jobs: [job()],
+    };
     const html = marketPageHtml(buildMarketReport(file.jobs, file.scraped_at));
     expect(html).toContain("<h1>El mercado laboral uruguayo, ahora</h1>");
     expect(html).toContain("Ventas y comercial");
@@ -134,5 +211,68 @@ describe("notFoundPage", () => {
     const html = notFoundPage();
     expect(html).toContain("No encontramos eso");
     expect(html).toContain("https://jobs.test/");
+  });
+});
+
+const content = (overrides: Partial<ContentItem> = {}): ContentItem => ({
+  id: "c1",
+  kind: "faq",
+  title: "¿Qué es una API?",
+  body: "Una forma de que dos programas se hablen.",
+  url: null,
+  source: "jobit",
+  source_label: "JobIt",
+  license: null,
+  sponsored: false,
+  categories: ["tecnologia"],
+  roles: [],
+  level: null,
+  tags: [],
+  fetched_at: "2026-09-01",
+  ...overrides,
+});
+
+describe("faqPageLd", () => {
+  test("arma un FAQPage solo con las preguntas", () => {
+    const ld = faqPageLd([
+      content(),
+      content({ id: "c2", kind: "topic", title: "Trabajo en equipo" }),
+    ]);
+    expect(ld?.["@type"]).toBe("FAQPage");
+    const entities = ld?.mainEntity as { name: string; acceptedAnswer: { text: string } }[];
+    expect(entities).toHaveLength(1);
+    expect(entities[0]?.name).toBe("¿Qué es una API?");
+    expect(entities[0]?.acceptedAnswer.text).toContain("dos programas");
+  });
+
+  test("sin preguntas no marca nada", () => {
+    expect(faqPageLd([content({ kind: "topic" })])).toBeNull();
+  });
+});
+
+describe("interviewPageHtml", () => {
+  test("trae preguntas, temas, FAQPage y enlace a la app", () => {
+    const html = interviewPageHtml(
+      "tecnologia",
+      [job({ category: "tecnologia" })],
+      [
+        content(),
+        content({ id: "c2", kind: "topic", title: "Trabajo en equipo", body: "Importa." }),
+      ],
+    );
+
+    expect(html).toContain("Preguntas de entrevista de Tecnología en Uruguay");
+    expect(html).toContain("¿Qué es una API?");
+    expect(html).toContain("Trabajo en equipo");
+    expect(html).toContain('"@type":"FAQPage"');
+    expect(html).toContain('rel="canonical" href="https://jobs.test/entrevista/tecnologia"');
+    expect(html).toContain("https://jobs.test/?category=tecnologia");
+    expect(html).toContain("Vendedor de mostrador");
+  });
+
+  test("sin ofertas igual sale, sin la sección de avisos", () => {
+    const html = interviewPageHtml("tecnologia", [], [content()]);
+    expect(html).toContain("Preguntas de entrevista de Tecnología");
+    expect(html).not.toContain("Ofertas de Tecnología");
   });
 });

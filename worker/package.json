@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "scrape": "bun run src/index.ts",
+    "content": "bun run src/content/ingest.ts",
     "push": "bun run src/push.ts",
     "egress": "bun run src/egress.ts",
     "typecheck": "tsc --noEmit"
@@ -15,8 +16,15 @@
   },
   "exports": {
     "./categories": "./src/categories.ts",
+    "./departments": "./src/departments.ts",
+    "./content/types": "./src/content/types.ts",
+    "./content/seed": "./src/content/seed.ts",
+    "./content/sources": "./src/content/sources.ts",
+    "./content/adapters": "./src/content/adapters.ts",
     "./labels": "./src/labels.ts",
+    "./history": "./src/history.ts",
     "./roles": "./src/roles.ts",
+    "./salary": "./src/salary.ts",
     "./skills": "./src/skills.ts"
   }
 }

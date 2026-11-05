@@ -1,4 +1,11 @@
-import { ArrowUpRight, ClipboardList, Loader2, Maximize2, Trash2 } from "lucide-react";
+import {
+  ArrowUpRight,
+  ClipboardList,
+  GraduationCap,
+  Loader2,
+  Maximize2,
+  Trash2,
+} from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { APPLICATION_STATUS_LABEL, formatDay } from "../../lib/format.ts";
 import { fadeUpTransition, stagger } from "../../lib/motion.ts";
@@ -11,6 +18,8 @@ interface TrackingProps {
   /** Offers that are no longer published, so the row stops offering to open. */
   goneIds: Set<string>;
   onOpen: (application: Application) => void;
+  /** Abre el contenido de práctica del rubro de esa postulación. */
+  onPractice: (application: Application) => void;
   onSetStatus: (id: string, status: ApplicationStatus) => void;
   onRemove: (id: string) => void;
 }
@@ -58,6 +67,7 @@ export function Tracking({
   openingId,
   goneIds,
   onOpen,
+  onPractice,
   onSetStatus,
   onRemove,
 }: TrackingProps) {
@@ -178,11 +188,19 @@ export function Tracking({
                     </div>
                   </div>
 
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                     <StatusPicker
                       status={entry.status}
                       onSetStatus={(status) => onSetStatus(entry.id, status)}
                     />
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-full bg-mist px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-sky/40 hover:text-ink"
+                      type="button"
+                      onClick={() => onPractice(entry)}
+                    >
+                      <GraduationCap aria-hidden className="size-3.5" />
+                      Practicar
+                    </button>
                   </div>
                 </m.article>
               ))}

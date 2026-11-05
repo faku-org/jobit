@@ -1,4 +1,4 @@
-import { SlidersHorizontal } from "lucide-react";
+import { HelpCircle, SlidersHorizontal } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { AccountSync } from "../../hooks/useAccountSync.ts";
@@ -17,6 +17,7 @@ import {
   preferenceCount,
 } from "../../lib/types.ts";
 import { AccountSection } from "../account/AccountSection.tsx";
+import { McpSection } from "../account/McpSection.tsx";
 import { PreferencesPanel } from "../profile/Preferences.tsx";
 import { ProfilePanel } from "../profile/ProfilePanel.tsx";
 
@@ -49,9 +50,13 @@ interface DynamicIslandProps {
   onChangeProfile: (profile: Profile) => void;
   onEraseEverything: () => void;
   onImportCv: (profile: Profile, preferences: Preferences) => void;
+  /** Abre la ayuda general, que vive en App como capa sobre todo lo demás. */
+  onOpenHelp: () => void;
+  /** Deja la ayuda cargada antes del clic. */
+  onPrefetchHelp: () => void;
 }
 
-type Tab = "search" | "profile" | "account";
+type Tab = "search" | "profile" | "account" | "agents";
 
 /**
  * A floating header, detached from the top of the page: wide at rest, shrunk
@@ -80,6 +85,8 @@ export function DynamicIsland({
   onChangeProfile,
   onEraseEverything,
   onImportCv,
+  onOpenHelp,
+  onPrefetchHelp,
 }: DynamicIslandProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("search");
@@ -144,6 +151,19 @@ export function DynamicIsland({
 
           <m.button
             layout
+            aria-label="Ayuda"
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-onpanel-wash text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+            type="button"
+            onClick={onOpenHelp}
+            onFocus={onPrefetchHelp}
+            onMouseEnter={onPrefetchHelp}
+            onPointerDown={onPrefetchHelp}
+          >
+            <HelpCircle aria-hidden className="size-4" />
+          </m.button>
+
+          <m.button
+            layout
             aria-expanded={open}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               open || count > 0
@@ -179,6 +199,7 @@ export function DynamicIsland({
                       ["search", "Búsqueda", count],
                       ["profile", "Perfil", studies],
                       ["account", "Cuenta", 0],
+                      ["agents", "Agentes", 0],
                     ] as const
                   ).map(([value, label, badge]) => (
                     <button
@@ -225,13 +246,15 @@ export function DynamicIsland({
                     onEraseEverything={onEraseEverything}
                     onImportCv={onImportCv}
                   />
-                ) : (
+                ) : tab === "account" ? (
                   <AccountSection
                     ready={session.ready}
                     sync={sync}
                     user={session.user}
                     onUser={session.setUser}
                   />
+                ) : (
+                  <McpSection />
                 )}
               </div>
             </m.div>

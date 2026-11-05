@@ -3,19 +3,13 @@ import { AnimatePresence, m } from "motion/react";
 import { useEffect, useState } from "react";
 import { useDismissable } from "../../hooks/useDismissable.ts";
 import { fadeUpTransition } from "../../lib/motion.ts";
-import {
-  canShare,
-  copyText,
-  embedSnippet,
-  shareJob,
-  shareLink,
-  whatsappLink,
-} from "../../lib/share.ts";
+import { type ShareTarget, canShare, copyText, share } from "../../lib/share.ts";
 import { iconButtonClass, menuItemClass, popoverClass } from "../../lib/styles.ts";
-import type { Job } from "../../lib/types.ts";
 
 interface ShareMenuProps {
-  job: Job;
+  /** Lo que se comparte, ya armado por quien lo comparte: el menú es el mismo
+   * para una oferta y para un servicio. */
+  target: ShareTarget;
   /** Where the menu hangs from, so it never runs off the right edge. */
   align?: "left" | "right";
 }
@@ -44,7 +38,7 @@ const NOTE_MS = 1400;
  * Passes the offer along: the system share sheet, a plain link, WhatsApp, or
  * the iframe snippet for whoever wants it on their own page.
  */
-export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
+export function ShareMenu({ target, align = "right" }: ShareMenuProps) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const [failed, setFailed] = useState(false);
@@ -67,9 +61,9 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
     });
   };
 
-  const share = () => {
-    void shareJob(job).then((result) => {
-      if (result === "unsupported") copy(shareLink(job.id), "Enlace copiado");
+  const hand = () => {
+    void share(target).then((result) => {
+      if (result === "unsupported") copy(target.url, "Enlace copiado");
       else setOpen(false);
     });
   };
@@ -79,7 +73,7 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
       <m.button
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label="Compartir oferta"
+        aria-label={target.label}
         className={`${iconButtonClass} ${open ? "border-brand text-ink" : ""}`}
         type="button"
         whileTap={{ scale: 0.9 }}
@@ -99,18 +93,18 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
             transition={fadeUpTransition}
           >
             {native ? (
-              <MenuItem icon={Upload} onClick={share}>
+              <MenuItem icon={Upload} onClick={hand}>
                 Compartir…
               </MenuItem>
             ) : null}
 
-            <MenuItem icon={Link2} onClick={() => copy(shareLink(job.id), "Enlace copiado")}>
+            <MenuItem icon={Link2} onClick={() => copy(target.url, "Enlace copiado")}>
               Copiar enlace
             </MenuItem>
 
             <a
               className={menuItemClass}
-              href={whatsappLink(job)}
+              href={target.whatsapp}
               rel="noreferrer noopener"
               role="menuitem"
               target="_blank"
@@ -120,7 +114,7 @@ export function ShareMenu({ job, align = "right" }: ShareMenuProps) {
               Mandar por WhatsApp
             </a>
 
-            <MenuItem icon={Code2} onClick={() => copy(embedSnippet(job), "Código copiado")}>
+            <MenuItem icon={Code2} onClick={() => copy(target.embed, "Código copiado")}>
               Copiar código para embeber
             </MenuItem>
 

@@ -3,11 +3,13 @@ import { useCallback, useState } from "react";
 import { Unauthorized, logout } from "./api.ts";
 import { Companies } from "./Companies.tsx";
 import { Offers } from "./Offers.tsx";
+import { Services } from "./Services.tsx";
 import { Usage } from "./Usage.tsx";
 
 const TABS = [
   { id: "companies", label: "Empresas" },
   { id: "offers", label: "Ofertas" },
+  { id: "services", label: "Servicios" },
   { id: "usage", label: "Uso" },
 ] as const;
 
@@ -81,6 +83,8 @@ export function Admin({ onLeft }: { onLeft: () => void }) {
           <Companies onCount={setTotal} onFail={handle} />
         ) : tab === "offers" ? (
           <Offers onFail={handle} />
+        ) : tab === "services" ? (
+          <Services onFail={handle} />
         ) : (
           <Usage onFail={handle} />
         )}

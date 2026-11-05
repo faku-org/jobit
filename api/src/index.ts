@@ -3,8 +3,12 @@ import { Elysia, t } from "elysia";
 import { account } from "./account.ts";
 import { admin } from "./admin.ts";
 import { adminEnabled } from "./auth.ts";
-import { empresas } from "./empresas.ts";
+import { catalog } from "./catalog.ts";
 import { ingest, ingestEnabled } from "./ingest.ts";
+import { publish } from "./publish.ts";
+import { ratings } from "./ratings.ts";
+import { empresas } from "./empresas.ts";
+import { contentFilePath, isContentKind, loadContent, queryContent } from "./content.ts";
 import { marketCsv, marketSheets } from "./export.ts";
 import { categoryFacets, departmentFacets, filterJobs } from "./filter.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
@@ -16,9 +20,11 @@ import { type Ranking, isEmptyRanking, isMix } from "./rank.ts";
 import { appendEvents, eventsFilePath, eventsSchema } from "./events.ts";
 import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed, lookupJob } from "./feed.ts";
+import { employerFacets, employerProfile } from "./employers.ts";
 import { site } from "./site.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
+import type { ContentKind } from "@jobit/worker/content/types";
 
 const PORT = Number(process.env.PORT ?? 3000);
 /**
@@ -134,6 +140,9 @@ const jobsQuerySchema = t.Object({
   category: t.Optional(t.String()),
   source: t.Optional(t.String()),
   department: t.Optional(t.String()),
+  company: t.Optional(t.String()),
+  title: t.Optional(t.String()),
+  place: t.Optional(t.String()),
   job_type: t.Optional(t.String()),
   hide_category: t.Optional(t.String()),
   hide_department: t.Optional(t.String()),
@@ -205,6 +214,9 @@ function jobsQueryFrom(query: JobsQueryParams): Result<JobsQuery> {
       categories: asSet(splitList(query.category)),
       sources: asSet(splitList(query.source)),
       departments: asSet(splitList(query.department)),
+      employers: asSet(splitList(query.company)),
+      title: query.title?.trim() || undefined,
+      place: query.place?.trim() || undefined,
       hiddenCategories: asSet(splitList(query.hide_category)),
       hiddenDepartments: asSet(splitList(query.hide_department)),
       jobTypes: jobTypes.ok ? jobTypes.value : undefined,
@@ -297,6 +309,9 @@ export const app = new Elysia()
   .use(site)
   .use(admin)
   .use(account)
+  .use(publish)
+  .use(ratings)
+  .use(catalog)
   .use(empresas)
   .use(ingest)
   .get(
@@ -385,6 +400,75 @@ export const app = new Elysia()
       no_experience_count: jobs.filter((job) => job.no_experience).length,
     };
   })
+  /**
+   * Las empresas del tablero, para el filtro. Con `rubro` devuelve solo las
+   * que publicaron en ese rubro; sin él, las primeras de todo el tablero.
+   */
+  .get(
+    "/api/empresas",
+    async ({ query, status }) => {
+      const feed = await loadFeed();
+      if (!feed.ok) return status(503, { error: unavailable(feed.error) });
+
+      const employers = employerFacets(
+        feed.value.jobs,
+        query.rubro?.trim() || undefined,
+        clamp(Math.floor(query.limit ?? 100), 1, 300),
+        query.q?.trim() ?? "",
+      );
+      return { employers };
+    },
+    {
+      query: t.Object({
+        rubro: t.Optional(t.String()),
+        q: t.Optional(t.String()),
+        limit: t.Optional(t.Numeric()),
+      }),
+    },
+  )
+  /** La ficha de una empresa: su foto y sus últimas ofertas. */
+  .get("/api/empresas/:slug", async ({ params, status }) => {
+    const feed = await loadFeed();
+    if (!feed.ok) return status(503, { error: unavailable(feed.error) });
+
+    const profile = employerProfile(feed.value.jobs, params.slug);
+    return profile ?? status(404, { error: "empresa no encontrada" });
+  })
+  /**
+   * El contenido curado por rubro y puesto: preguntas, ejercicios y recursos.
+   * Es público y no lleva nada de nadie; la web lo pide al abrir una oferta con
+   * seguimiento. `kind` acepta varios separados por coma.
+   */
+  .get(
+    "/api/content",
+    async ({ query, status }) => {
+      const content = await loadContent();
+      if (!content.ok) return status(503, { error: content.error });
+
+      const kinds = splitList(query.kind);
+      const unknown = kinds.filter((kind) => !isContentKind(kind));
+      if (unknown.length > 0) return status(422, { error: `kind inválido: ${unknown.join(", ")}` });
+
+      return queryContent(content.value, {
+        kinds: kinds.length > 0 ? new Set(kinds as ContentKind[]) : undefined,
+        category: query.category?.trim() || undefined,
+        role: query.role?.trim() || undefined,
+        q: query.q?.trim() || undefined,
+        limit: clamp(Math.floor(query.limit ?? 20), 1, 60),
+        offset: Math.max(Math.floor(query.offset ?? 0), 0),
+      });
+    },
+    {
+      query: t.Object({
+        kind: t.Optional(t.String()),
+        category: t.Optional(t.String()),
+        role: t.Optional(t.String()),
+        q: t.Optional(t.String()),
+        limit: t.Optional(t.Numeric()),
+        offset: t.Optional(t.Numeric()),
+      }),
+    },
+  )
   /** The board as a whole, with nothing in it about the person asking. */
   .get("/api/market", async ({ status }) => {
     const report = await marketReport();
@@ -435,6 +519,7 @@ if (import.meta.main) {
   app.listen({ port: PORT, hostname: HOST });
   console.log(`jobit api on http://${HOST}:${PORT}`);
   console.log(`reading ${jobsFilePath()}`);
+  console.log(`contenido -> ${contentFilePath()}`);
   console.log(`stats -> ${statsFilePath()}`);
   console.log(`eventos -> ${eventsFilePath()}`);
   console.log(`cors origins: ${CORS_ORIGINS.join(", ")}`);

@@ -17,6 +17,8 @@ export interface BoardContext {
   discardedIds: string[];
   /** Los portales elegidos; Estado ignora esto y va a su propia fuente. */
   sources: string[];
+  /** Empresas donde trabajó la persona, para el filtro "De mi experiencia". */
+  myCompanies: string[];
   /** "Solo similares": la lista se recorta a lo que coincide. */
   similarOnly: boolean;
   /** Solo en Ofertas: mirar la pila de descartadas es una pasada aparte. */
@@ -60,6 +62,7 @@ export function jobsQuery(view: View, context: BoardContext): JobsQueryOptions {
     hiddenDepartments: isSaved ? undefined : preferences.hiddenDepartments,
     salary: !isSaved && hasSalaryPreference(preferences.salary) ? preferences.salary : undefined,
     sources: isState ? [STATE_SOURCE] : reviewing ? undefined : sources,
+    myCompanies: filters.myCompanies ? context.myCompanies : undefined,
     sort,
     ranking: sort === "match" ? ranking : undefined,
   };

@@ -18,9 +18,10 @@ ofertas piden más nivel del que tiene.
 
 | Carpeta | Qué hace |
 |---|---|
-| `worker/` | Scrapers de portales uruguayos. Escribe `worker/output/jobs.json`. |
+| `worker/` | Scrapers de portales uruguayos y del contenido curado. Escribe `worker/output/`. |
 | `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
 | `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español, panel de empresa en `/empresas` y panel de administración en `/admin`. |
+| `mcp/` | Servidor MCP: la misma búsqueda, para el agente de alguien. |
 | `docs/` | Documentación por sección, con pasos y FAQ. |
 
 ## Documentación
@@ -76,9 +77,12 @@ termina donde termina la de verdad.
 | `GET /api/cli` | La URL del tablero en texto: entiende `view` y `job` además de los filtros. |
 | `GET /api/jobs/:id` | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción. |
 | `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
+| `GET /api/empresas` | Las empresas del tablero (con `rubro`, solo las de ese rubro), para el selector. |
+| `GET /api/empresas/:slug` | La ficha de una empresa: conteo, sueldo medio, puestos, zonas y últimas ofertas. |
 | `GET /api/market` | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos. |
 | `GET /api/market.csv` | Ese mismo informe como CSV, todas las tablas bajo un encabezado. |
 | `GET /api/market.xlsx` | Ese mismo informe como planilla, una pestaña por tabla. |
+| `GET /api/content` | El contenido curado por rubro y puesto (FAQ, ejercicios, recursos). |
 | `POST /api/stats` | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`. |
 | `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
 | `GET /api/admin/usage` | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión. |
@@ -122,6 +126,9 @@ Parámetros de `/api/jobs`, todos opcionales y combinables:
 | `q` | Texto libre sobre título, empresa, ubicación, rubro y descripción. |
 | `category` | Slug de rubro (`ventas`, `oficios`, `salud`, ...). |
 | `department` | Departamento tal cual lo publica la fuente. |
+| `company` | Slug de empresa (o varios separados por coma); sale de `/api/empresas`. |
+| `title` | Solo el título del puesto (atajo `puesto:`). |
+| `place` | Ciudad o departamento (atajo `ubicacion:`). |
 | `level` | `entry`, `mid`, `senior`. |
 | `remote` | `onsite`, `remote`, `hybrid`. |
 | `job_type` | `full_time`, `part_time`, `internship`. |
@@ -157,6 +164,33 @@ curl -s http://localhost:3000/api/market.csv | head -3
 curl -s "http://localhost:3000/api/jobs.txt?q=cajero&limit=5"
 ```
 
+## Contenido
+
+Aparte de las ofertas, JobIt muestra contenido curado por rubro y puesto:
+preguntas frecuentes de entrevista, ejercicios de práctica y recursos. No se
+calcula: se trae y se mantiene.
+
+- El **seed** vive versionado en `worker/src/content/seed.ts` y es lo que hace
+  que la función ande desde el primer día y sin red.
+- La **ingesta** (`worker/src/content/sources.ts` + `adapters.ts`) suma lo que
+  hay en las fuentes base (documentación, práctica) y escribe
+  `worker/output/content.json`. La API mezcla ese archivo con el seed, así que
+  una corrida fallida nunca vacía una sección: conserva lo que esa fuente había
+  dejado.
+
+```bash
+bun run content          # regenera worker/output/content.json
+curl -s "http://localhost:3000/api/content?category=tecnologia&kind=faq,exercise"
+```
+
+El momento que lo activa es confirmar una postulación: cuando la persona dice
+que sí, la ficha de la oferta muestra, ahí mismo, los ejercicios y las preguntas
+de su rubro. Un rubro sin contenido no dibuja nada.
+
+Cada ítem lleva su fuente y, si es un enlace pago, `sponsored: true`: la web lo
+enlaza con `rel="sponsored"` desde el primer día, porque marcar un enlace pago
+tarde es justo lo que Google penaliza.
+
 ## Desde la CLI
 
 Los filtros viajan en la URL de la web. `curl` de esa misma dirección
@@ -174,7 +208,8 @@ devolver. El atajo estable, sin negociación de User-Agent, es `GET /api/cli`
 con los mismos parámetros.
 
 Variables de entorno: `PORT` (3000), `HOST` (127.0.0.1), `JOBS_FILE` (ruta al
-JSON del worker), `DB_FILE` (SQLite de empresas, ofertas propias y cuentas),
+JSON del worker), `CONTENT_FILE` (ruta al `content.json` del worker), `DB_FILE`
+(SQLite de empresas, ofertas propias y cuentas),
 `STATS_FILE` y `EVENTS_FILE` (rutas de los `.jsonl`), `CORS_ORIGIN` (origen del
 dev server de Vite), `ADMIN_PASSWORD_HASH_FILE` (archivo con el hash del panel;
 sin él `/api/admin` responde 404), `INGEST_TOKEN_FILE` (archivo con el token de
@@ -183,6 +218,79 @@ con la clave de 32 bytes que cifra el email y el secreto TOTP de las cuentas;
 sin ella, el alta sin email sigue andando pero el email y el 2FA quedan
 apagados) y `PUBLIC_ORIGIN` (origen que va en los canonical y og:url de las
 páginas server-rendered; por defecto el de producción).
+
+El scrapeo (worker) además guarda una fila por día con agregados del mercado en
+`data/market-history.jsonl` (`MARKET_HISTORY_FILE` para cambiarla): totales,
+puesto, rubro, departamento y sueldo, nunca ofertas ni personas. Correr el
+scrapeo dos veces el mismo día reemplaza la fila de ese día.
+
+## Búsqueda con atajos
+
+Además de los filtros manuales, el buscador entiende atajos para quien los
+conoce. Se combinan con el texto libre y entre sí; si un atajo y un filtro
+manual dicen algo de la misma dimensión, gana el atajo. Los atajos que se
+reconocen se muestran como chips debajo del buscador y se pueden quitar.
+
+| Atajo | Qué filtra |
+|---|---|
+| `@empresa` | La empresa (una o varias); el `@` despliega las que coinciden. |
+| `puesto:soporte` | Solo el título. |
+| `ubicacion:montevideo` | Ciudad o departamento. |
+| `rubro:tecnologia` | El rubro. |
+| `nivel:junior` | `junior`, `semi` o `senior`. |
+| `modalidad:remoto` | `presencial`, `remoto` o `híbrido`. |
+| `jornada:completa` | `completa`, `medio` o `pasantía`. |
+| `sueldo:30000` | Desde ese sueldo. |
+| `sin-experiencia` | Que no pidan experiencia. |
+| `dias:7` | Publicadas en los últimos N días. |
+
+El **?** del buscador muestra la tabla. La URL guarda el texto tal cual, así el
+enlace reproduce la búsqueda.
+
+## Empresas
+
+Las empresas no son una tabla: son una vista sobre las ofertas que junta el
+worker. El nombre viene sucio (mayúsculas, espacios dobles), así que se agrupa
+sin acentos ni mayúsculas y se le da un slug estable.
+
+Elegido un rubro, el selector de **Empresa** ofrece solo las que publicaron ahí
+(`GET /api/empresas?rubro=…`). El nombre de la empresa en una tarjeta abre su
+**stand** (`GET /api/empresas/<slug>`): cuánto publica, sueldo medio, puestos más
+pedidos, zonas y modalidad. Es lo que JobIt ve en sus ofertas; no hay dato de
+empleados ni de la empresa por fuera del tablero.
+
+En el perfil se pueden marcar **empresas donde trabajé**; con el interruptor "De
+mi experiencia" el tablero se recorta a esas empresas. Esas empresas viven en el
+navegador y viajan por el sync de la cuenta, cifradas.
+## Desde un agente (MCP)
+
+`mcp/` es un servidor MCP que expone la búsqueda para que un agente encuentre
+ofertas contra su propia memoria y de forma automatizada. Está **hosteado** en
+`https://jobs.wefaber.net/mcp` (Streamable HTTP, sin sesión), así que en un
+cliente se agrega con la URL y listo:
+
+```json
+{ "mcpServers": { "jobit": { "url": "https://jobs.wefaber.net/mcp" } } }
+```
+
+También corre por stdio para quien lo prefiera local: es un proceso aparte que
+llama a la API por HTTP con `JOBIT_API_URL` (por defecto
+`https://jobs.wefaber.net`).
+
+| Herramienta | Qué hace |
+|---|---|
+| `search_jobs` | `GET /api/jobs`: ofertas filtradas y paginadas. |
+| `get_job` | `GET /api/jobs/:id`: una oferta completa. |
+| `market_overview` | `GET /api/market`: el tablero resumido. |
+| `list_filters` | `GET /api/meta`: rubros, departamentos y fuentes. |
+
+```bash
+bun run --cwd mcp start        # local, por stdio
+bun run --cwd mcp start:http   # el que corre hosteado
+```
+
+Detrás de nginx (`location = /mcp`) corre como `jobit-mcp.service` en el puerto
+3300. El detalle y los JSON de configuración están en `mcp/README.md`.
 
 ## Perfil y estadísticas
 
@@ -269,9 +377,11 @@ nada de lo guardado en el navegador de quien la ve.
 ## Indexado y previsualizaciones
 
 El dominio de producción es `https://jobs.wefaber.net`. Está escrito a mano en
-cuatro lugares, así que un cambio de dominio los toca a los cuatro:
-`web/index.html` (canonical, `og:url`, `og:image`), `web/public/robots.txt` y
-`web/public/sitemap.xml`.
+tres lugares, así que un cambio de dominio los toca a los tres:
+`web/index.html` (canonical, `og:url`, `og:image`) y `web/public/robots.txt`.
+El sitemap ya no es un archivo: lo arma la API (`/sitemap.xml`) con las
+direcciones fijas y una entrada por servicio publicado, así que nunca queda
+viejo.
 
 La cáscara que se sirve trae el título, la descripción, el canonical, las
 etiquetas Open Graph y Twitter, el manifiesto y un JSON-LD con `WebSite` y
@@ -293,6 +403,9 @@ servida por la API y puesta delante de la app por nginx (`api/src/site.ts`):
 | `/rubro/<slug>` | Las ofertas de un rubro. |
 | `/departamento/<nombre>` | Las ofertas de un departamento. |
 | `/puesto/<slug>` | Las ofertas de un puesto. |
+| `/servicios/<slug>` | La ficha de un servicio publicado, con `Service` y `ProfilePage` en JSON-LD. |
+| `/sitemap.xml` | El sitemap, armado al vuelo con las fichas publicadas. |
+| `/entrevista/<rubro>` | La guía de entrevista de un rubro: preguntas frecuentes, habilidades y sus ofertas, con `FAQPage`. |
 
 Son documentos HTML sueltos, sin React: el mismo patrón que `/terminos`. Un
 scraper los lee enteros, así que un enlace compartido ya no previsualiza como la
@@ -307,6 +420,15 @@ acá de verdad: `source` igual a `jobit` y sin enlace de postulación externo
 original, porque marcarlas como propias es lo que Google penaliza en los
 agregadores. El canonical de cada página apunta a sí misma; el `?embed=` se marca
 `noindex` en tiempo de ejecución.
+
+La ficha de un **servicio** es el caso contrario: el servicio vive acá, así que
+`/servicios/<slug>` sí lleva marcado, `Service` y `ProfilePage`, con quien lo
+ofrece como `Person`. El `AggregateRating` entra solo con dos votos o más: con
+cero o con uno solo es justamente lo que se penaliza.
+Las guías de entrevista (`/entrevista/<rubro>`, una por rubro) llevan `FAQPage`
+solo con las preguntas: una lista vacía no se marca. Adentro de la app, filtrar
+por un rubro despliega la misma guía como "Prepará tu entrevista", con el mismo
+contenido curado que sirve la API.
 
 ## Cuentas
 
@@ -345,6 +467,32 @@ sesiones, códigos y, cuando existan, los servicios publicados.
 Better Auth quedó descartado a propósito: exige email para todo usuario, guarda
 el token de sesión sin hashear y no cifra el secreto TOTP, las tres cosas que la
 Zero Data Policy evita.
+
+## Ayuda y novedades
+
+Dos cosas para no perderse. La **ayuda** es un botón **?** en la barra de
+arriba, siempre visible: qué hace JobIt, cómo se busca, la tabla de atajos del
+buscador (la misma del `?` que tiene el campo) y qué se guarda y dónde —el
+navegador, y la cuenta solo si se prende la sincronización—. Es la referencia
+corta; el tutorial paso a paso no está todavía a propósito, hasta que el resto
+deje de moverse.
+
+La pestaña **Novedades** junta cuatro bloques, todos calculados en el navegador
+sobre datos que ya existen, sin contenido redactado ni pedidos por persona:
+
+- **Para vos**: ofertas recientes que cumplen las preferencias, cada una con el
+  motivo (el rubro, la zona, la modalidad, el nivel).
+- **Para arrancar**: pasantías y ofertas que no piden experiencia, para quien
+  recién empieza.
+- **Cierres próximos**: lo que la persona sigue —guardadas y postulaciones— con
+  fecha de cierre cerca.
+- **Del mercado**: la foto del informe público, con un aviso explícito de que
+  todavía no hay serie histórica y, por lo tanto, ninguna tendencia inventada.
+
+La lista reciente sale de la misma consulta del tablero (`sort=match`, últimos
+30 días), así que se cachea igual que las demás vistas: abrir la pestaña no
+vuelve a pedir lo que ya estaba. Sin informe de mercado, ese último bloque no se
+dibuja, y un rubro sin ofertas que encajen no deja una caja vacía.
 
 ## Panel de administración
 

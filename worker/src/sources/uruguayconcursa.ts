@@ -1,4 +1,5 @@
 import { uruguayconcursaCategory } from "../categories.ts";
+import { singleDepartment } from "../departments.ts";
 import { fetchJson } from "../http.ts";
 import type { JobDetail, JobStub, JobType, Salary, Source } from "../types.ts";
 
@@ -64,45 +65,6 @@ interface RawListing {
 
 /** Kept from collect so the mapping never costs a second request. */
 const collected = new Map<string, RawLlamado>();
-
-const DEPARTMENTS = [
-  "Montevideo",
-  "Canelones",
-  "Maldonado",
-  "Rocha",
-  "Treinta y Tres",
-  "Cerro Largo",
-  "Rivera",
-  "Artigas",
-  "Salto",
-  "Paysandú",
-  "Río negro",
-  "Soriano",
-  "Colonia",
-  "San José",
-  "Flores",
-  "Florida",
-  "Durazno",
-  "Tacuarembó",
-  "Lavalleja",
-];
-
-const fold = (value: string): string =>
-  value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
-
-/**
- * A call names every place it covers. One department is a location; several
- * mean it is nationwide, and the list is better off without a wrong guess.
- */
-function singleDepartment(place: string | undefined): string | null {
-  if (!place) return null;
-  const haystack = fold(place);
-  const found = DEPARTMENTS.filter((name) => haystack.includes(fold(name)));
-  return found.length === 1 ? (found[0] ?? null) : null;
-}
 
 /** The listing leaves every text field empty on these; the detail fills them. */
 const isSparse = (llamado: RawLlamado): boolean =>
