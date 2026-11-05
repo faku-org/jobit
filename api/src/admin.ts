@@ -7,6 +7,7 @@ import {
   sessionValid,
   verifyPassword,
 } from "./auth.ts";
+import * as boosts from "./boosts.ts";
 import * as companies from "./companies.ts";
 import { COMPANY_STATUSES } from "./companies.ts";
 import { type Limit, clientKey, take } from "./limit.ts";
@@ -210,4 +211,26 @@ export const admin = new Elysia({ prefix: "/api/admin" })
         ? { status: "ok", review: reviewsById(params.id) }
         : status(404, { error: "esa calificación no existe" }),
     { body: t.Object({ status: t.Union(REVIEW_STATUSES.map((value) => t.Literal(value))) }) },
+  )
+  /** Destacados (#33). Todavía no hay cobro: los otorga el admin a mano. Un
+   * servicio ajeno o inexistente contesta lo mismo. */
+  .get("/services/boosts", () => ({ boosts: boosts.active() }))
+  .post(
+    "/services/:id/boost",
+    ({ body, params, status }) => {
+      const granted = boosts.grant(params.id, body.kind, body.days);
+      if (granted.ok) return granted.value;
+      return granted.error === "ese servicio no existe"
+        ? status(404, { error: granted.error })
+        : status(422, { error: granted.error });
+    },
+    {
+      body: t.Object({
+        kind: t.Union(boosts.BOOST_KINDS.map((value) => t.Literal(value))),
+        days: t.Integer({ minimum: 1, maximum: boosts.MAX_GRANT_DAYS }),
+      }),
+    },
+  )
+  .delete("/services/:id/boost", ({ params, status }) =>
+    boosts.revoke(params.id) ? { status: "ok" } : status(404, { error: "ese servicio no existe" }),
   );
