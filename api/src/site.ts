@@ -14,6 +14,7 @@ import {
   jobsByRole,
   marketPageHtml,
   notFoundPage,
+  publishPageHtml,
   rolePageHtml,
   servicePageHtml,
   sitemapXml,
@@ -41,6 +42,8 @@ export const site = new Elysia()
 
     return htmlResponse(marketPageHtml(buildMarketReport(feed.value.jobs, feed.value.scraped_at)));
   })
+  /** La puerta indexable para quien publica; el panel vive en /empresas. */
+  .get("/publicar", () => htmlResponse(publishPageHtml()))
   .get("/rubro/:slug", async ({ params, status }) => {
     const feed = await loadFeed();
     if (!feed.ok) return status(503, { error: "las ofertas no están disponibles" });
@@ -87,6 +90,7 @@ export const site = new Elysia()
     const entries: SitemapEntry[] = [
       { path: "/", changefreq: "daily", priority: 1 },
       { path: "/mercado", changefreq: "daily", priority: 0.8 },
+      { path: "/publicar", changefreq: "monthly", priority: 0.6 },
       { path: "/terminos", changefreq: "yearly", priority: 0.2 },
       { path: "/privacidad", changefreq: "yearly", priority: 0.2 },
       ...services.list({ status: "published" }).map((service) => ({

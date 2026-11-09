@@ -24,6 +24,8 @@ export interface Job {
   source_id: string;
   title: string;
   company: string | null;
+  /** Sitio de la empresa, solo en las ofertas propias (viene del panel). */
+  company_url?: string | null;
   department: string | null;
   city: string | null;
   category: string;
