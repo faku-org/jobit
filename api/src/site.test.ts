@@ -153,6 +153,32 @@ describe("páginas indexables", () => {
   });
 });
 
+describe("recursos por rubro", () => {
+  test("la página de un rubro sale con canonical y enlaces rotulados", async () => {
+    const response = await call("/recursos/tecnologia");
+    expect(response.status).toBe(200);
+
+    const html = await response.text();
+    expect(html).toContain("Recursos para aprender y practicar en Tecnología");
+    expect(html).toContain('rel="canonical" href="https://jobs.test/recursos/tecnologia"');
+    expect(html).toContain('rel="noopener noreferrer"');
+  });
+
+  test("un rubro sin recursos o inexistente da 404", async () => {
+    expect((await call("/recursos/otros")).status).toBe(404);
+    expect((await call("/recursos/no-existe")).status).toBe(404);
+  });
+
+  test("el índice sale y el sitemap lo incluye con los rubros", async () => {
+    expect((await call("/recursos")).status).toBe(200);
+
+    const sitemap = await (await call("/sitemap.xml")).text();
+    expect(sitemap).toContain("<loc>https://jobs.test/recursos</loc>");
+    expect(sitemap).toContain("<loc>https://jobs.test/recursos/tecnologia</loc>");
+    expect(sitemap).not.toContain("/recursos/otros");
+  });
+});
+
 describe("fichas de servicios", () => {
   test("un servicio publicado sale en HTML, con Service y ProfilePage", async () => {
     const slug = await publish();

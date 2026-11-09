@@ -61,8 +61,7 @@ export function roleGuideHref(role: string, items: ContentItem[]): string | null
 
 /**
  * El `rel` de un enlace saliente. Los enlaces pagos llevan `sponsored` desde el
- * primer día: es lo que Google penaliza si falta, y retrofitearlo sobre un
- * directorio ya monetizado es caro.
+ * primer día. Una sola definición, compartida con la página `/recursos/<rubro>`
+ * de la API, para que web y SEO nunca difieran.
  */
-export const externalRel = (sponsored: boolean): string =>
-  sponsored ? "sponsored noopener noreferrer" : "noopener noreferrer";
+export { externalRel } from "@jobit/worker/content/resources";
