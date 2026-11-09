@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS services (
   created_at        TEXT NOT NULL,
   updated_at        TEXT NOT NULL,
   published_at      TEXT NOT NULL DEFAULT ''
+  /* boost_until y boost_kind no están acá: las agrega ADDITIVE_COLUMNS, que
+     también cubre las bases que ya existen. */
 );
 
 CREATE INDEX IF NOT EXISTS services_feed ON services (status, published_at DESC);
@@ -393,6 +395,28 @@ CREATE TABLE IF NOT EXISTS service_daily (
 CREATE INDEX IF NOT EXISTS service_daily_service ON service_daily (service_id);
 `;
 
+/**
+ * `CREATE TABLE IF NOT EXISTS` no agrega columnas a una tabla que ya existe, y
+ * `services` ya está en producción. Esta lista es el único mecanismo de
+ * migración: solo suma columnas con valor por defecto, nunca cambia ni borra.
+ */
+const ADDITIVE_COLUMNS: readonly { table: string; column: string; definition: string }[] = [
+  /* Visibilidad destacada (#33): hasta qué día (inclusive) y de qué clase.
+     Vacío es "no destacado". */
+  { table: "services", column: "boost_until", definition: "TEXT NOT NULL DEFAULT ''" },
+  { table: "services", column: "boost_kind", definition: "TEXT NOT NULL DEFAULT ''" },
+];
+
+function addMissingColumns(database: Database): void {
+  for (const { table, column, definition } of ADDITIVE_COLUMNS) {
+    const present = database
+      .query<{ name: string }, []>(`PRAGMA table_info(${table})`)
+      .all()
+      .some((existing) => existing.name === column);
+    if (!present) database.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 let handle: Database | null = null;
 
 /**
@@ -445,6 +469,7 @@ export function db(): Database {
   database.run("PRAGMA foreign_keys = ON");
   database.run("PRAGMA busy_timeout = 5000");
   database.run(SCHEMA);
+  addMissingColumns(database);
   migrate(database);
 
   handle = database;

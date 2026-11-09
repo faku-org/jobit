@@ -11,6 +11,7 @@ import {
 import { serviceShare } from "../../lib/share.ts";
 import { chipClass, mutedChip } from "../../lib/styles.ts";
 import { ShareMenu } from "../ui/ShareMenu.tsx";
+import { FeaturedBadge } from "./FeaturedBadge.tsx";
 import { Rating } from "./Rating.tsx";
 
 interface ServiceCardProps {
@@ -27,7 +28,16 @@ export function ServiceCard({ service, onOpen }: ServiceCardProps) {
 
   return (
     <article className="rounded-2xl [contain-intrinsic-size:auto_260px] [content-visibility:auto]">
-      <div className="relative z-[1] rounded-2xl border border-sky/50 bg-surface p-5 transition-[border-color,box-shadow] hover:border-brand hover:shadow-[var(--shadow-card)]">
+      <div
+        className={`relative z-[1] rounded-2xl border bg-surface p-5 transition-[border-color,box-shadow] hover:border-brand hover:shadow-[var(--shadow-card)] ${
+          service.featured ? "border-brand/50" : "border-sky/50"
+        }`}
+      >
+        {service.featured ? (
+          <div className="mb-3">
+            <FeaturedBadge />
+          </div>
+        ) : null}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-[17px] leading-snug font-medium tracking-tight text-ink">

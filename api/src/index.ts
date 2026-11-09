@@ -22,6 +22,7 @@ import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed, lookupJob } from "./feed.ts";
 import { employerFacets, employerProfile } from "./employers.ts";
 import { site } from "./site.ts";
+import { support } from "./support.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 import type { ContentKind } from "@jobit/worker/content/types";
@@ -312,6 +313,7 @@ export const app = new Elysia()
   .use(publish)
   .use(ratings)
   .use(catalog)
+  .use(support)
   .use(empresas)
   .use(ingest)
   .get(

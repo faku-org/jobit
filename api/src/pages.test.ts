@@ -77,6 +77,9 @@ const service = (overrides: Partial<Service> = {}): Service => ({
   hours: [],
   owner_handle: "juana",
   owner_name: "Juana Pérez",
+  boost_until: "",
+  boost_kind: "",
+  featured: false,
   ...overrides,
 });
 

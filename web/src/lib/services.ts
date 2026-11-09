@@ -55,7 +55,18 @@ export interface Service {
   /** Quién está atrás. Nunca el correo: para contratar alcanza con el nombre. */
   owner_handle: string;
   owner_name: string;
+  /** Hoy aparece como destacado, o sea, pagó (o se le otorgó) aparecer antes.
+   * Siempre se dice: ver `FEATURED_LABEL`. */
+  featured: boolean;
+  /** Hasta qué día está destacado. Solo lo ve quien publica, en lo suyo. */
+  boost_until?: string;
 }
+
+/** El destacado nunca va camuflado: la palabra se ve en la tarjeta y en la
+ * ficha, y la explicación está a un toque. */
+export const FEATURED_LABEL = "Destacado";
+export const FEATURED_HINT =
+  "Este servicio aparece primero porque está destacado. Dentro de cada grupo, el orden es el de siempre.";
 
 /** La tasa con la que la API pudo comparar precios entre monedas. */
 export interface Rate {
@@ -217,6 +228,16 @@ export const fetchServicesMeta = (signal?: AbortSignal): Promise<ServicesMeta> =
 
 export const fetchService = (slug: string, signal?: AbortSignal): Promise<Service> =>
   getJson<Service>(`/api/services/${encodeURIComponent(slug)}`, signal);
+
+/**
+ * El enlace de apoyo voluntario, o null si no hay. Es un pedido común y
+ * corriente: no manda nada de quien mira, y abrir el enlace no registra nada ni
+ * acá ni en la API.
+ */
+export async function fetchSupportUrl(signal?: AbortSignal): Promise<string | null> {
+  const { url } = await getJson<{ url: string | null }>("/api/support", signal);
+  return url;
+}
 
 /** Denunciar no pide cuenta y no manda quién fue: un motivo y nada más. */
 export async function reportService(slug: string, reason: ReportReason): Promise<void> {

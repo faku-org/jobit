@@ -1,5 +1,6 @@
 import { CATEGORIES } from "@jobit/worker/categories";
 import { departmentOf } from "@jobit/worker/departments";
+import { isBoosted } from "./boosts.ts";
 import { slugify } from "./companies.ts";
 import { db } from "./db.ts";
 import type { Result } from "./types.ts";
@@ -76,10 +77,15 @@ interface ServiceRow {
   created_at: string;
   updated_at: string;
   published_at: string;
+  /** Hasta qué día (inclusive) está destacado, o vacío. Ver boosts.ts. */
+  boost_until: string;
+  boost_kind: string;
 }
 
 export interface Service extends Omit<ServiceRow, "fixed_price"> {
   fixed_price: boolean;
+  /** Si hoy aparece como destacado. Se calcula, no se guarda: vence solo. */
+  featured: boolean;
   skills: string[];
   prices: ServicePrice[];
   hours: ServiceHour[];
@@ -251,7 +257,7 @@ const SELECT = `
 
 type JoinedRow = ServiceRow & { owner_handle: string; owner_name: string };
 
-function hydrate(row: JoinedRow): Service {
+function hydrate(row: JoinedRow, now: Date = new Date()): Service {
   const skills = db()
     .query<{ skill: string }, [string]>(
       "SELECT skill FROM service_skills WHERE service_id = ? ORDER BY position",
@@ -273,7 +279,14 @@ function hydrate(row: JoinedRow): Service {
     )
     .all(row.id);
 
-  return { ...row, fixed_price: row.fixed_price === 1, skills, prices, hours };
+  return {
+    ...row,
+    fixed_price: row.fixed_price === 1,
+    featured: isBoosted(row, now),
+    skills,
+    prices,
+    hours,
+  };
 }
 
 export interface ServiceQuery {
@@ -298,7 +311,7 @@ export function list(query: ServiceQuery = {}): Service[] {
   return db()
     .query<JoinedRow, string[]>(`${SELECT} ${clause} ORDER BY s.updated_at DESC, s.title`)
     .all(...params)
-    .map(hydrate);
+    .map((row) => hydrate(row));
 }
 
 export function byId(id: string): Service | null {
@@ -628,7 +641,11 @@ const priceInPesos = (rate: number | null): string => `
 type QueryParam = string | number | null;
 
 /** Lo público: solo `published`, y con los filtros de la sección. */
-export function search(query: PublicQuery, usdRate: number | null = null): ServicesPage {
+export function search(
+  query: PublicQuery,
+  usdRate: number | null = null,
+  now: Date = new Date(),
+): ServicesPage {
   const rate = Number.isFinite(usdRate) ? usdRate : null;
   const price = priceInPesos(rate);
 
@@ -681,30 +698,35 @@ export function search(query: PublicQuery, usdRate: number | null = null): Servi
       .get(...params)?.n ?? 0;
 
   const priceSort = rate !== null;
-  const order =
+  const within =
     query.sort === "rating"
       ? "s.rating_avg DESC, s.rating_count DESC, s.published_at DESC"
       : query.sort === "price" && priceSort
         ? `${price} IS NULL, ${price} ASC, s.published_at DESC`
         : "s.published_at DESC, s.title";
 
+  /** Los destacados primero, y adentro de cada grupo el mismo orden de
+   * siempre: pagar cambia de grupo, no mejora la posición adentro del grupo. */
+  const order = `(s.boost_until >= ?) DESC, ${within}`;
+
   const services = db()
     .query<JoinedRow, QueryParam[]>(`${SELECT} ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`)
-    .all(...params, query.limit, query.offset)
-    .map(hydrate);
+    .all(...params, day(now), query.limit, query.offset)
+    .map((row) => hydrate(row, now));
 
   return { total, offset: query.offset, limit: query.limit, services, price_sort: priceSort };
 }
 
-export type PublicService = Omit<Service, "user_id">;
+export type PublicService = Omit<Service, "user_id" | "boost_until" | "boost_kind">;
 
 /**
  * Lo que sale a la calle. Va sin el id de la cuenta: quién publica ya viaja
  * como handle y nombre, y el id interno solo serviría para atar entre sí cosas
- * que nadie de afuera tiene por qué atar.
+ * que nadie de afuera tiene por qué atar. Tampoco va la fecha del destacado:
+ * a quien mira le alcanza con saber que lo es, y eso viaja en `featured`.
  */
 export const publicView = (service: Service): PublicService => {
-  const { user_id: _ownerId, ...rest } = service;
+  const { user_id: _ownerId, boost_until: _until, boost_kind: _kind, ...rest } = service;
   return rest;
 };
 
