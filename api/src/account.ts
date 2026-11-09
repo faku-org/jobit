@@ -67,7 +67,7 @@ const publicUser = (user: users.User) => users.publicUser(user);
 const registerBody = t.Object({
   handle: t.String({ maxLength: 60 }),
   display_name: t.String({ maxLength: 120 }),
-  password: t.String({ minLength: 8, maxLength: 200 }),
+  password: t.String({ minLength: 10, maxLength: 200 }),
   email: t.Optional(t.String({ maxLength: 300 })),
 });
 
@@ -87,7 +87,7 @@ const patchMeBody = t.Object({
   display_name: t.Optional(t.String({ maxLength: 120 })),
   email: t.Optional(t.String({ maxLength: 300 })),
   current_password: t.Optional(t.String({ maxLength: 200 })),
-  new_password: t.Optional(t.String({ minLength: 8, maxLength: 200 })),
+  new_password: t.Optional(t.String({ minLength: 10, maxLength: 200 })),
 });
 const syncBody = t.Object({ payload: t.Any() });
 

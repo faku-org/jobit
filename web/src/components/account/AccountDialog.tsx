@@ -3,6 +3,7 @@ import { m } from "motion/react";
 import { type FormEvent, Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { islandTransition } from "../../lib/motion.ts";
+import { MIN_PASSWORD, passwordOk, passwordRules } from "../../lib/password.ts";
 import { iconButtonClass } from "../../lib/styles.ts";
 import {
   type SessionUser,
@@ -284,7 +285,10 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
 
   const ready =
     view === "register"
-      ? handle !== "" && displayName !== "" && password !== "" && repeat === password
+      ? handle !== "" &&
+        displayName !== "" &&
+        passwordOk(password) &&
+        repeat === password
       : view === "login"
         ? handle !== "" && password !== ""
         : view === "totp"
@@ -292,7 +296,7 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
           : view === "recover"
             ? handle !== "" && code !== ""
             : view === "password"
-              ? password !== "" && next !== ""
+              ? password !== "" && next !== "" && passwordOk(next)
               : view === "email"
                 ? email !== ""
                 : view === "totp-on"
@@ -384,6 +388,7 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
+                <PasswordRules value={password} />
                 <input
                   autoComplete="new-password"
                   className={field}
@@ -502,6 +507,7 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
                   value={next}
                   onChange={(event) => setNext(event.target.value)}
                 />
+                <PasswordRules value={next} />
               </>
             ) : null}
 
@@ -646,5 +652,25 @@ export function AccountDialog({ action, user, onClose, onUser, onRefresh }: Acco
       </m.div>
     </div>,
     document.body,
+  );
+}
+
+/** Las reglas en vivo, mientras se escribe. La API las vuelve a exigir igual. */
+function PasswordRules({ value }: { value: string }) {
+  return (
+    <ul className="space-y-1">
+      {passwordRules(value).map((rule) => (
+        <li
+          key={rule.label}
+          className={`flex items-center gap-1.5 text-[11px] leading-relaxed ${rule.ok ? "text-emerald-600" : "text-onpanel-faint"}`}
+        >
+          <span aria-hidden>{rule.ok ? "✓" : "•"}</span>
+          {rule.label}
+        </li>
+      ))}
+      <li className="text-[11px] leading-relaxed text-onpanel-faint">
+        Mínimo {MIN_PASSWORD} caracteres.
+      </li>
+    </ul>
   );
 }
