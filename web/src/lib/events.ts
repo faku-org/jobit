@@ -41,7 +41,38 @@ export interface OfferApplyEvent {
   id: string;
 }
 
-export type UsageEvent = SearchEvent | ApplyEvent | OfferViewEvent | OfferApplyEvent;
+/**
+ * La sección de servicios. Llevan el id público del servicio, su rubro y, al
+ * contactar, el medio: nunca texto libre, usuario ni sesión.
+ */
+export interface ServiceSearchEvent {
+  kind: "service_search";
+  category: string;
+  filters: string[];
+  results: number;
+}
+
+export interface ServiceViewEvent {
+  kind: "service_view";
+  id: string;
+  category: string;
+}
+
+export interface ServiceContactEvent {
+  kind: "service_contact";
+  id: string;
+  category: string;
+  channel: string;
+}
+
+export type UsageEvent =
+  | SearchEvent
+  | ApplyEvent
+  | OfferViewEvent
+  | OfferApplyEvent
+  | ServiceSearchEvent
+  | ServiceViewEvent
+  | ServiceContactEvent;
 
 /** Los nombres de los filtros puestos, sin sus valores: sirve para saber cuáles
  * se usan, no qué buscó nadie en particular. */

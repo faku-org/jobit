@@ -16,6 +16,8 @@ export interface ContentRequest {
   kinds?: ContentKind[];
   category?: string;
   role?: string;
+  /** "rubro": solo lo del rubro entero, sin las guías de un puesto concreto. */
+  scope?: "rubro";
   q?: string;
   limit?: number;
   offset?: number;
@@ -28,6 +30,7 @@ export function contentQuery(request: ContentRequest): string {
   if (request.kinds?.length) params.set("kind", request.kinds.join(","));
   if (request.category) params.set("category", request.category);
   if (request.role) params.set("role", request.role);
+  if (request.scope) params.set("scope", request.scope);
   if (request.q) params.set("q", request.q);
   params.set("limit", String(request.limit ?? DEFAULT_CONTENT_LIMIT));
   if (request.offset) params.set("offset", String(request.offset));
@@ -44,9 +47,21 @@ export async function fetchContent(
 }
 
 /**
- * El `rel` de un enlace saliente. Los enlaces pagos llevan `sponsored` desde el
- * primer día: es lo que Google penaliza si falta, y retrofitearlo sobre un
- * directorio ya monetizado es caro.
+ * La dirección de la guía de entrevista de un puesto, o null si no tiene. Sale
+ * del propio contenido: el primer ítem dice bajo qué rubro vive la guía, así
+ * que la web no necesita saber qué puestos tienen contenido.
  */
-export const externalRel = (sponsored: boolean): string =>
-  sponsored ? "sponsored noopener noreferrer" : "noopener noreferrer";
+export function roleGuideHref(role: string, items: ContentItem[]): string | null {
+  const item = items.find((entry) => entry.roles.includes(role) && entry.categories.length > 0);
+  const category = item?.categories[0];
+  return category
+    ? `/entrevista/${encodeURIComponent(category)}/${encodeURIComponent(role)}`
+    : null;
+}
+
+/**
+ * El `rel` de un enlace saliente. Los enlaces pagos llevan `sponsored` desde el
+ * primer día. Una sola definición, compartida con la página `/recursos/<rubro>`
+ * de la API, para que web y SEO nunca difieran.
+ */
+export { externalRel } from "@jobit/worker/content/resources";

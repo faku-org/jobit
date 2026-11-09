@@ -17,13 +17,21 @@ import {
   jobsByRole,
   marketPageHtml,
   notFoundPage,
+  publishPageHtml,
   rolePageHtml,
   servicePageHtml,
   sitemapXml,
 } from "./pages.ts";
 import * as services from "./services.ts";
-import type { ContentKind } from "@jobit/worker/content/types";
+import type { ContentItem, ContentKind } from "@jobit/worker/content/types";
 import { loadContent, queryContent } from "./content.ts";
+import {
+  resourceCategories,
+  resourcesIndexHtml,
+  resourcesOf,
+  resourcesPageHtml,
+} from "./resources.ts";
+import { roleGuides, roleInterviewPageHtml } from "./interview.ts";
 
 /**
  * Las direcciones con contenido para un buscador, servidas por la API y puestas
@@ -44,6 +52,8 @@ export const site = new Elysia()
 
     return htmlResponse(marketPageHtml(buildMarketReport(feed.value.jobs, feed.value.scraped_at)));
   })
+  /** La puerta indexable para quien publica; el panel vive en /empresas. */
+  .get("/publicar", () => htmlResponse(publishPageHtml()))
   .get("/rubro/:slug", async ({ params, status }) => {
     const feed = await loadFeed();
     if (!feed.ok) return status(503, { error: "las ofertas no están disponibles" });
@@ -105,9 +115,11 @@ export const site = new Elysia()
    */
   .get("/sitemap.xml", async () => {
     const feed = await loadFeed();
+    const content = await loadContent();
     const entries: SitemapEntry[] = [
       { path: "/", changefreq: "daily", priority: 1 },
       { path: "/mercado", changefreq: "daily", priority: 0.8 },
+      { path: "/publicar", changefreq: "monthly", priority: 0.6 },
       { path: "/terminos", changefreq: "yearly", priority: 0.2 },
       { path: "/privacidad", changefreq: "yearly", priority: 0.2 },
       ...services.list({ status: "published" }).map((service) => ({
@@ -122,6 +134,12 @@ export const site = new Elysia()
         priority: 0.5,
       })),
       ...(feed.ok ? employerSitemapEntries(feed.value.jobs) : []),
+      ...(content.ok ? resourceSitemapEntries(content.value) : []),
+      ...(content.ok ? roleGuides(content.value) : []).map((guide) => ({
+        path: `/entrevista/${encodeURIComponent(guide.category)}/${encodeURIComponent(guide.role)}`,
+        changefreq: "weekly" as const,
+        priority: 0.5,
+      })),
     ];
 
     return new Response(sitemapXml(entries), {
@@ -140,6 +158,7 @@ export const site = new Elysia()
     const items = queryContent(content.value, {
       kinds: new Set<ContentKind>(["faq", "topic"]),
       category: params.slug,
+      rubroOnly: true,
       limit: 60,
       offset: 0,
     }).items;
@@ -150,5 +169,72 @@ export const site = new Elysia()
 
     const feed = await loadFeed();
     const jobs = feed.ok ? jobsByCategory(feed.value, params.slug) : [];
-    return htmlResponse(interviewPageHtml(params.slug, jobs, items));
+    const guides = roleGuides(content.value).filter((guide) => guide.category === params.slug);
+    return htmlResponse(interviewPageHtml(params.slug, jobs, items, guides));
+  })
+  /**
+   * La guía de un puesto, un nivel debajo de la del rubro. Existe solo para un
+   * par rubro/puesto con contenido propio: el puesto se valida contra el
+   * catálogo de roles y el 404 cubre tanto un puesto inventado como uno real
+   * que todavía no tiene preguntas.
+   */
+  .get("/entrevista/:slug/:role", async ({ params, status }) => {
+    const content = await loadContent();
+    if (!content.ok) return status(503, { error: "el contenido no está disponible" });
+
+    const items = queryContent(content.value, {
+      kinds: new Set<ContentKind>(["faq", "topic"]),
+      category: params.slug,
+      role: params.role,
+      limit: 60,
+      offset: 0,
+    }).items;
+
+    const known = roleGuides(content.value).some(
+      (guide) => guide.category === params.slug && guide.role === params.role,
+    );
+    if (!known || items.length === 0) return htmlResponse(notFoundPage(), 404);
+
+    const feed = await loadFeed();
+    const jobs = feed.ok ? jobsByRole(feed.value, params.role) : [];
+    return htmlResponse(roleInterviewPageHtml(params.slug, params.role, jobs, items));
+  })
+  /**
+   * Los recursos por rubro. Como la guía de entrevista: sin recursos, 404.
+   * Los enlaces salen con `rel` según `sponsored` (ver `resources.ts`).
+   */
+  .get("/recursos", async ({ status }) => {
+    const content = await loadContent();
+    if (!content.ok) return status(503, { error: "el contenido no está disponible" });
+    return htmlResponse(resourcesIndexHtml(content.value));
+  })
+  .get("/recursos/:slug", async ({ params, status }) => {
+    const content = await loadContent();
+    if (!content.ok) return status(503, { error: "el contenido no está disponible" });
+
+    const items = resourcesOf(content.value, params.slug);
+    if (!categorySlugs().includes(params.slug) || items.length === 0) {
+      return htmlResponse(notFoundPage(), 404);
+    }
+
+    const hasInterview =
+      queryContent(content.value, {
+        kinds: new Set<ContentKind>(["faq", "topic"]),
+        category: params.slug,
+        limit: 1,
+        offset: 0,
+      }).total > 0;
+    return htmlResponse(resourcesPageHtml(params.slug, items, hasInterview));
   });
+
+/** El índice de recursos y una entrada por rubro que tenga recursos. */
+function resourceSitemapEntries(items: ContentItem[]): SitemapEntry[] {
+  return [
+    { path: "/recursos", changefreq: "weekly", priority: 0.5 },
+    ...resourceCategories(items).map((slug) => ({
+      path: `/recursos/${encodeURIComponent(slug)}`,
+      changefreq: "weekly" as const,
+      priority: 0.5,
+    })),
+  ];
+}

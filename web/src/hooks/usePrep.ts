@@ -17,6 +17,8 @@ export const PRACTICE_KINDS: ContentKind[] = ["faq", "exercise"];
 export const INTERVIEW_KINDS: ContentKind[] = ["faq", "topic"];
 /** Todo lo de preparación: preguntas, habilidades y ejercicios. */
 export const ALL_PREP_KINDS: ContentKind[] = ["faq", "topic", "exercise"];
+/** Recursos del rubro: plataformas, documentación, cursos, videos y podcasts. */
+export const RESOURCE_KINDS: ContentKind[] = ["resource"];
 
 const LIMIT = 12;
 const FRESH_MS = 30 * 60_000;
@@ -33,17 +35,23 @@ export interface PrepState {
   status: "idle" | "loading" | "ready" | "error";
 }
 
-const keyOf = (category: string, kinds: ContentKind[]): string => `${kinds.join(",")}:${category}`;
+const keyOf = (category: string, kinds: ContentKind[], limit: number): string =>
+  `${kinds.join(",")}:${limit}:${category}`;
 
-function fresh(category: string, kinds: ContentKind[]): ContentItem[] | null {
-  const hit = cache.get(keyOf(category, kinds));
+function fresh(category: string, kinds: ContentKind[], limit: number): ContentItem[] | null {
+  const hit = cache.get(keyOf(category, kinds, limit));
   if (hit && Date.now() - hit.at < FRESH_MS) return hit.items;
   return null;
 }
 
-function initial(category: string, enabled: boolean, kinds: ContentKind[]): PrepState {
+function initial(
+  category: string,
+  enabled: boolean,
+  kinds: ContentKind[],
+  limit: number,
+): PrepState {
   if (!enabled || category === "") return { items: [], status: "idle" };
-  const hit = fresh(category, kinds);
+  const hit = fresh(category, kinds, limit);
   return hit ? { items: hit, status: "ready" } : { items: [], status: "loading" };
 }
 
@@ -51,9 +59,10 @@ export function usePrep(
   category: string,
   enabled: boolean,
   kinds: ContentKind[] = PRACTICE_KINDS,
+  limit: number = LIMIT,
 ): PrepState {
   const kindsKey = kinds.join(",");
-  const [state, setState] = useState<PrepState>(() => initial(category, enabled, kinds));
+  const [state, setState] = useState<PrepState>(() => initial(category, enabled, kinds, limit));
 
   useEffect(() => {
     const selected = kindsKey.split(",") as ContentKind[];
@@ -63,7 +72,7 @@ export function usePrep(
       return;
     }
 
-    const hit = fresh(category, selected);
+    const hit = fresh(category, selected, limit);
     if (hit) {
       setState({ items: hit, status: "ready" });
       return;
@@ -72,9 +81,11 @@ export function usePrep(
     const controller = new AbortController();
     setState((current) => (current.items.length > 0 ? current : { items: [], status: "loading" }));
 
-    fetchContent({ kinds: selected, category, limit: LIMIT }, controller.signal)
+    /** `scope: "rubro"`: las guías de un puesto viven bajo su rubro, pero no
+     * son "del rubro" y no deben desplazar a las preguntas generales. */
+    fetchContent({ kinds: selected, category, scope: "rubro", limit }, controller.signal)
       .then((page) => {
-        cache.set(keyOf(category, selected), { at: Date.now(), items: page.items });
+        cache.set(keyOf(category, selected, limit), { at: Date.now(), items: page.items });
         setState({ items: page.items, status: "ready" });
       })
       .catch((cause: unknown) => {
@@ -85,7 +96,7 @@ export function usePrep(
       });
 
     return () => controller.abort();
-  }, [category, enabled, kindsKey]);
+  }, [category, enabled, kindsKey, limit]);
 
   return state;
 }

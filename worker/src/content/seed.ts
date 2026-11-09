@@ -1,3 +1,4 @@
+import { RESOURCE_ITEMS } from "./resources.ts";
 import { contentId, type ContentItem, type ContentKind, type ContentLevel } from "./types.ts";
 
 /**
@@ -47,6 +48,7 @@ const exercise = (category: string, title: string, body: string): ContentItem =>
   seed({ kind: "exercise", category, title, body, tags: ["practica"] });
 
 export const SEED_ITEMS: ContentItem[] = [
+  ...RESOURCE_ITEMS,
   /* ---------- Tecnología ---------- */
   faq(
     "tecnologia",

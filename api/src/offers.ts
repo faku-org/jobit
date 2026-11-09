@@ -43,7 +43,14 @@ export interface Offer extends Omit<OfferRow, "no_experience"> {
   no_experience: boolean;
   company_name: string;
   company_status: string;
+  company_website: string;
 }
+
+type OfferJoined = OfferRow & {
+  company_name: string;
+  company_status: string;
+  company_website: string;
+};
 
 export interface OfferInput {
   company_id: string;
@@ -108,12 +115,12 @@ function cleanClosesAt(value: string | undefined): Result<string> {
 }
 
 const SELECT = `
-  SELECT o.*, c.name AS company_name, c.status AS company_status
+  SELECT o.*, c.name AS company_name, c.status AS company_status, c.website AS company_website
     FROM offers o
     JOIN companies c ON c.id = o.company_id
 `;
 
-const hydrate = (row: OfferRow & { company_name: string; company_status: string }): Offer => ({
+const hydrate = (row: OfferJoined): Offer => ({
   ...row,
   no_experience: row.no_experience === 1,
 });
@@ -138,7 +145,7 @@ export function list(query: OfferQuery = {}): Offer[] {
 
   const clause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
   return db()
-    .query<OfferRow & { company_name: string; company_status: string }, string[]>(
+    .query<OfferJoined, string[]>(
       `${SELECT} ${clause} ORDER BY o.updated_at DESC`,
     )
     .all(...params)
@@ -147,7 +154,7 @@ export function list(query: OfferQuery = {}): Offer[] {
 
 export function byId(id: string): Offer | null {
   const row = db()
-    .query<OfferRow & { company_name: string; company_status: string }, [string]>(
+    .query<OfferJoined, [string]>(
       `${SELECT} WHERE o.id = ?`,
     )
     .get(id);
@@ -378,6 +385,7 @@ export function publishedJobs(): Job[] {
       source_id: offer.id,
       title: offer.title,
       company: offer.company_name,
+      company_url: offer.company_website || null,
       department: offer.department || null,
       city: offer.city || null,
       category: offer.category,

@@ -55,26 +55,27 @@
   --shadow-hairline: 0 1px 2px rgba(13, 71, 161, 0.06);
   --scrim: rgba(13, 71, 161, 0.35);
 
-  /* Tonos del aura: siempre más claros que ink, para que el hilo se lea
-     contra la tarjeta, la página y el panel. El conic gira con --aura-angle.
-
-     La vuelta cierra donde empezó: un cónico que termina en otro color que el
-     del arranque tiene una costura en el ángulo cero. Abajo del desenfoque del
-     halo no se veía, pero en un hilo de un píxel es un tajo. */
+  /* Tonos del aura: siempre más claros que ink, para que la luz se lea
+     contra la tarjeta, la página y el panel. Es el mismo haz del Beam del
+     design system de Ad Astra: un cometa que recorre el borde (200° de nada,
+     cola que sube y cabeza clara) en vez de un anillo entero, así el color
+     queda localizado y no baña el contenido. Gira con --aura-angle.
+     --aura-hair es el pelo quieto que mantiene el filo cuando el cometa está
+     del otro lado. */
   --aura-1: var(--color-brand);
   --aura-2: var(--color-brand-300);
   --aura-3: color-mix(in srgb, var(--color-sky) 35%, #fff);
   --aura-4: var(--color-brand-400);
+  --aura-hair: color-mix(in srgb, var(--color-brand) 22%, transparent);
   --aura-gradient: conic-gradient(
     from var(--aura-angle),
-    var(--aura-1),
-    var(--aura-4),
-    var(--aura-3),
-    var(--aura-2),
-    var(--aura-1),
-    var(--aura-4),
-    var(--aura-3),
-    var(--aura-1)
+    transparent 0deg,
+    transparent 200deg,
+    var(--aura-1) 250deg,
+    var(--aura-4) 290deg,
+    var(--aura-2) 325deg,
+    var(--aura-3) 350deg,
+    transparent 360deg
   );
 }
 
@@ -154,80 +155,101 @@ span {
 }
 
 /* Lo que la página deduce sola (la lectura de un CV, el calce de una oferta
-   contra el perfil) lleva un aura: un resplandor que nace en el borde y un
-   vidrio que entra desde el filo, sin tapar lo de adentro. Es la única marca
-   de "esto lo escribió el sitio, no vos", así que no se usa en ningún otro
-   lado.
+   contra el perfil) lleva un aura: una luz que recorre el borde y se derrama
+   un poco hacia adentro. Es la única marca de "esto lo escribió el sitio, no
+   vos", así que no se usa en ningún otro lado.
 
-   El hilo es un pelo en el filo, no un recuadro: el gradiente vive en
-   `border-box` y el relleno opaco en `padding-box`, así el contenido no puede
-   quedar debajo del color. El resplandor se derrama para afuera. El vidrio
-   es un marco enmascarado, solo en el filo. */
+   Se arma como el Beam de Ad Astra y por la misma razón: nada desenfoca lo
+   que está debajo del texto. El desenfoque es solo de la luz misma (un
+   marco de 7px, borroso, recortado a la caja) y va por detrás del contenido,
+   así que el texto siempre pinta sobre superficie lisa. Antes un
+   `backdrop-filter` empañaba el filo y los renglones que caían ahí no se
+   leían.
+
+   El hilo es un pelo en el filo: el cometa vive en el `border-box` de la
+   caja y el relleno opaco en `::after`, recortado al `padding-box`, así el
+   contenido no puede quedar debajo del color. Debajo del cometa va
+   `--aura-hair`, para que el filo no desaparezca. El relleno no puede ser el
+   `background` de la caja: dentro de un contexto de apilado los hijos con
+   z-index negativo pintan SOBRE ese fondo, y el halo terminaba lavando el
+   interior en vez de quedar detrás. */
 .aura {
   --aura-fill: color-mix(in srgb, var(--color-brand) 6%, var(--aura-base, var(--color-surface)));
   position: relative;
   isolation: isolate;
   overflow: visible;
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
   background:
-    linear-gradient(var(--aura-fill), var(--aura-fill)) padding-box,
-    var(--aura-gradient) border-box;
-  background-origin: padding-box, border-box;
-  background-clip: padding-box, border-box;
+    var(--aura-gradient) border-box,
+    linear-gradient(var(--aura-hair), var(--aura-hair)) border-box;
   animation: aura-spin 8s linear infinite;
 }
 
-/* El halo: detrás de la superficie, borroso, solo se ve lo que sobresale
-   del filo. Pegado al borde para que no quede una banda de gradiente entero
-   al costado de la tarjeta. */
+/* El halo de afuera: el mismo cometa, borroso, detrás de la superficie. Solo
+   se ve lo que sobresale del filo, y como el cometa es un arco el resplandor
+   también lo es. */
 .aura::before {
   content: "";
   position: absolute;
-  inset: -6px;
-  z-index: -1;
+  inset: 0;
+  z-index: -2;
   border-radius: inherit;
   pointer-events: none;
   background: var(--aura-gradient);
   opacity: 0.55;
-  filter: blur(18px);
+  filter: blur(12px);
   /* Entre trabajando y en calma hay un salto de brillo. Sin esto se lee como
      un flash al montar la tarjeta; con esto, como que el halo se asienta. */
-  transition:
-    opacity 420ms ease,
-    filter 420ms ease,
-    inset 420ms ease;
+  transition: opacity 420ms ease;
 }
 
-/* El vidrio del filo. Absoluto, sin pointer, enmascarado al marco: el centro
-   queda limpio y el texto pinta arriba. `--aura-tone` carga más o menos
-   color en el borde (una tarjeta que confirma algo puede pedir más que una
-   que no sabe). `--aura-base` ya pintó la superficie. */
+/* La superficie, encima del halo y debajo de todo lo demás. */
+.aura::after {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  z-index: -1;
+  border: 1.5px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--aura-fill);
+  background-clip: padding-box;
+}
+
+/* La luz de adentro: tres capas como en el Beam. `.aura-glass` recorta a la
+   caja, `.aura-glass-blur` desenfoca, `.aura-glass-light` es el marco con el
+   cometa. `--aura-tone` dice cuánto pesa (una tarjeta que confirma algo pide
+   más que una que no sabe). Va por debajo de `.aura-body`: el texto nunca
+   queda bajo el color. */
 .aura-glass {
   position: absolute;
   inset: 0;
   z-index: 1;
   border-radius: inherit;
+  overflow: hidden;
   pointer-events: none;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--aura-3) var(--aura-tone, 28%), transparent) 0%,
-      transparent 34%
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--aura-2) var(--aura-tone, 28%), transparent) 0%,
-      transparent 20%,
-      transparent 80%,
-      color-mix(in srgb, var(--aura-2) var(--aura-tone, 28%), transparent) 100%
-    );
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
-    inset 0 0 22px color-mix(in srgb, var(--aura-1) 20%, transparent);
-  mask-image: radial-gradient(ellipse 76% 70% at 50% 50%, transparent 46%, #000 100%);
-  -webkit-mask-image: radial-gradient(ellipse 76% 70% at 50% 50%, transparent 46%, #000 100%);
+  opacity: calc(var(--aura-tone, 28%) * 1.4);
+}
+
+.aura-glass-blur {
+  position: absolute;
+  inset: 0;
+  filter: blur(8px);
+}
+
+.aura-glass-light {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 7px;
+  background: var(--aura-gradient);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
 }
 
 .aura-body {
@@ -242,12 +264,10 @@ span {
 }
 
 .aura-busy::before {
-  inset: -8px;
-  opacity: 0.72;
-  filter: blur(22px);
+  opacity: 0.75;
 }
 
-/* Match cards: spinning thread on the rim, bloom behind. No isolation
+/* Match cards: el cometa en el filo y el resplandor detrás. No isolation
    here: the bloom's z-index: -1 has to live in the list, so neighboring
    cards paint over it instead of the glow covering them. */
 .aura-edge {
@@ -259,10 +279,12 @@ span {
   content: "";
   position: absolute;
   inset: 0;
-  padding: 1px;
+  padding: 1.5px;
   border-radius: inherit;
   pointer-events: none;
-  background: var(--aura-gradient);
+  background:
+    var(--aura-gradient),
+    linear-gradient(var(--aura-hair), var(--aura-hair));
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -277,13 +299,13 @@ span {
 .aura-edge::after {
   content: "";
   position: absolute;
-  inset: 8px;
+  inset: 2px;
   z-index: -1;
   border-radius: inherit;
   pointer-events: none;
   background: var(--aura-gradient);
   opacity: 0.5;
-  filter: blur(24px);
+  filter: blur(12px);
   animation: aura-spin 8s linear infinite;
 }
 
