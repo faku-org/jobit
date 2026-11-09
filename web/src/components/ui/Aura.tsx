@@ -18,9 +18,10 @@ interface AuraProps {
 
 /**
  * The mark of something the page worked out on its own: what it read in a CV,
- * how an offer measures against the profile. A gradient of the app's own
- * palette glows from the rim and frosts inward, leaving the centre clear, so
- * an answer nobody typed never passes for one that somebody did.
+ * how an offer measures against the profile. A light of the app's own palette
+ * rides the rim and bleeds a little inward (the Ad Astra Beam, same recipe),
+ * leaving the centre clear and the text on plain surface, so an answer nobody
+ * typed never passes for one that somebody did.
  *
  * The surface lives on the box itself. What goes inside should be padding and
  * content, no background of its own. The whole effect lives in `.aura`.
@@ -38,7 +39,11 @@ export function Aura({
 
   return (
     <div className={`aura ${shownBusy ? "aura-busy" : ""} ${className}`.trim()}>
-      <div aria-hidden className="aura-glass" />
+      <div aria-hidden className="aura-glass">
+        <div className="aura-glass-blur">
+          <div className="aura-glass-light" />
+        </div>
+      </div>
       <div className="aura-body">{children}</div>
     </div>
   );
