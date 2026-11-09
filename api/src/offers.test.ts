@@ -145,6 +145,21 @@ describe("publishedJobs: la forma de Job", () => {
     expect(job?.company).toBe("Acme");
   });
 
+  test("lleva el sitio de la empresa, y null si no lo cargó", () => {
+    const withSite = companies.create({
+      name: "Con Sitio",
+      website: "https://consitio.uy",
+      status: "approved",
+    });
+    if (!withSite.ok) throw new Error("no se creó");
+    create({ company_id: withSite.value.id, title: "Cajero", status: "published" });
+    create({ company_id: company(), title: "Repositor", status: "published" });
+
+    const byTitle = new Map(publishedJobs().map((job) => [job.title, job]));
+    expect(byTitle.get("Cajero")?.company_url).toBe("https://consitio.uy/");
+    expect(byTitle.get("Repositor")?.company_url).toBeNull();
+  });
+
   test("traduce la categoría a su etiqueta", () => {
     create({ company_id: company(), title: "Enfermero", category: "salud", status: "published" });
     expect(publishedJobs()[0]?.category_label).toBe("Salud");

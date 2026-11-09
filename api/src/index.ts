@@ -22,6 +22,7 @@ import { appendStats, statsFilePath, statsSchema } from "./stats.ts";
 import { loadFeed, lookupJob } from "./feed.ts";
 import { employerFacets, employerProfile } from "./employers.ts";
 import { site } from "./site.ts";
+import { support } from "./support.ts";
 import { jobsFilePath } from "./store.ts";
 import type { JobType, JobsQuery, Level, Result, SalaryRange, WorkMode } from "./types.ts";
 import type { ContentKind } from "@jobit/worker/content/types";
@@ -312,6 +313,7 @@ export const app = new Elysia()
   .use(publish)
   .use(ratings)
   .use(catalog)
+  .use(support)
   .use(empresas)
   .use(ingest)
   .get(
@@ -453,6 +455,7 @@ export const app = new Elysia()
         kinds: kinds.length > 0 ? new Set(kinds as ContentKind[]) : undefined,
         category: query.category?.trim() || undefined,
         role: query.role?.trim() || undefined,
+        rubroOnly: query.scope === "rubro",
         q: query.q?.trim() || undefined,
         limit: clamp(Math.floor(query.limit ?? 20), 1, 60),
         offset: Math.max(Math.floor(query.offset ?? 0), 0),
@@ -463,6 +466,7 @@ export const app = new Elysia()
         kind: t.Optional(t.String()),
         category: t.Optional(t.String()),
         role: t.Optional(t.String()),
+        scope: t.Optional(t.Literal("rubro")),
         q: t.Optional(t.String()),
         limit: t.Optional(t.Numeric()),
         offset: t.Optional(t.Numeric()),

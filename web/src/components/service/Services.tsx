@@ -18,6 +18,7 @@ import { MyServices } from "./MyServices.tsx";
 import { ServiceCard } from "./ServiceCard.tsx";
 import { ServiceFilters } from "./ServiceFilters.tsx";
 import { ServiceForm } from "./ServiceForm.tsx";
+import { SupportLink } from "./SupportLink.tsx";
 
 interface ServicesProps {
   /** La sección está a la vista: nada se pide de fondo desde otra pestaña. */
@@ -277,6 +278,8 @@ export function Services({ active, onOpen }: ServicesProps) {
           </m.button>
         </div>
       ) : null}
+
+      <SupportLink />
     </div>
   );
 }

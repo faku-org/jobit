@@ -179,6 +179,26 @@ export interface UsageDay {
   applies: number;
 }
 
+export interface UsageService {
+  id: string;
+  title: string;
+  views: number;
+  contacts: number;
+}
+
+export interface UsageServices {
+  published: number;
+  viewed: number;
+  contacted: number;
+  views: number;
+  contacts: number;
+  searches: number;
+  demand: UsageLabelled[];
+  unmet: UsageLabelled[];
+  channels: UsageCount[];
+  top: UsageService[];
+}
+
 export interface UsageReport {
   days: number;
   from: string;
@@ -199,6 +219,7 @@ export interface UsageReport {
   categories: UsageLabelled[];
   jobs: UsageJob[];
   daily: UsageDay[];
+  services: UsageServices;
 }
 
 export const getUsage = (days: number): Promise<UsageReport> => send(`/usage?days=${days}`);

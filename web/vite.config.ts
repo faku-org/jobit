@@ -17,6 +17,7 @@ const PROXY = Object.fromEntries(
     "/api",
     "/empleo",
     "/mercado",
+    "/publicar",
     "/rubro",
     "/departamento",
     "/puesto",

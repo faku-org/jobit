@@ -112,6 +112,7 @@ ${body}
 <nav>
 <a href="${escapeHtml(origin)}/">Buscar ofertas</a>
 <a href="${escapeHtml(origin)}/mercado">Mercado</a>
+<a href="${escapeHtml(origin)}/publicar">Publicar ofertas</a>
 <a href="${escapeHtml(origin)}/terminos">Términos</a>
 <a href="${escapeHtml(origin)}/privacidad">Privacidad</a>
 </nav>
@@ -179,7 +180,11 @@ export function jobPostingLd(job: Job): Record<string, unknown> | null {
     title: job.title,
     description: job.description || job.requirements || job.title,
     datePosted: job.date_posted.slice(0, 10),
-    hiringOrganization: { "@type": "Organization", name: job.company ?? "JobIt" },
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company ?? "JobIt",
+      ...(job.company_url ? { sameAs: job.company_url } : {}),
+    },
     jobLocation: { "@type": "Place", address },
     directApply: true,
     url: `${publicOrigin()}/empleo/${encodeURIComponent(job.id)}`,
@@ -230,7 +235,7 @@ function jobChips(job: Job): string {
     .join("")}</div>`;
 }
 
-const paragraphs = (text: string): string =>
+export const paragraphs = (text: string): string =>
   text
     .split(/\n{2,}/)
     .map((block) => block.trim())
@@ -468,7 +473,7 @@ export function sitemapXml(entries: SitemapEntry[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
 }
 
-const jobListHtml = (jobs: Job[]): string =>
+export const jobListHtml = (jobs: Job[]): string =>
   jobs
     .slice(0, 100)
     .map((job) => {
@@ -552,13 +557,24 @@ export function faqPageLd(items: ContentItem[]): Record<string, unknown> | null 
   };
 }
 
+/** Un puesto con guía propia, para enlazarlo desde la guía de su rubro. */
+export interface RoleGuideLink {
+  role: string;
+  name: string;
+}
+
 /**
  * La guía de entrevista de un rubro: las preguntas que más se repiten, las
  * habilidades que importan y las ofertas de ese rubro. Es contenido de
  * intención alta ("preguntas de entrevista para X en Uruguay"), así que va con
  * `FAQPage` en JSON-LD y enlace a la vista filtrada de la app.
  */
-export function interviewPageHtml(slug: string, jobs: Job[], items: ContentItem[]): string {
+export function interviewPageHtml(
+  slug: string,
+  jobs: Job[],
+  items: ContentItem[],
+  guides: RoleGuideLink[] = [],
+): string {
   const label = categoryLabel(slug);
   const questions = items.filter((item) => item.kind === "faq");
   const topics = items.filter((item) => item.kind === "topic");
@@ -577,6 +593,16 @@ export function interviewPageHtml(slug: string, jobs: Job[], items: ContentItem[
 ${questionBlocks ? `<h2>Preguntas frecuentes</h2>${questionBlocks}` : ""}
 ${topicBlocks ? `<h2>Habilidades y temas</h2>${topicBlocks}` : ""}
 ${
+  guides.length > 0
+    ? `<h2>Guías por puesto</h2><ul>${guides
+        .map(
+          (guide) =>
+            `<li><a href="${escapeHtml(publicOrigin())}/entrevista/${encodeURIComponent(slug)}/${encodeURIComponent(guide.role)}">Entrevista de ${escapeHtml(guide.name)}</a></li>`,
+        )
+        .join("")}</ul>`
+    : ""
+}
+${
   jobs.length > 0
     ? `<h2>Ofertas de ${escapeHtml(label)}</h2><ul class="jobs">${jobListHtml(jobs)}</ul><p class="muted">${jobs.length} ofertas${jobs.length > 100 ? " (mostrando las primeras 100)" : ""}.</p>`
     : ""
@@ -588,6 +614,58 @@ ${
       description: `Las preguntas más repetidas en entrevistas de ${label} en Uruguay, con respuestas, habilidades que importan y las ofertas del rubro.`,
       path: `/entrevista/${encodeURIComponent(slug)}`,
       jsonLd: faqPageLd(items),
+    },
+    body,
+  );
+}
+
+/**
+ * La puerta indexable para quien quiere publicar. Quien busca trabajo y quien
+ * contrata buscan cosas distintas ("ofertas de cajero" contra "dónde publicar
+ * una oferta de trabajo en Uruguay"), y hasta acá había una sola dirección para
+ * los dos. El panel (`/empresas`) es una app: no tiene texto que un buscador
+ * pueda leer, así que esta página dice qué es y manda al panel.
+ *
+ * Solo promete lo que el panel hace hoy.
+ */
+export function publishPageHtml(): string {
+  const origin = publicOrigin();
+  const title = "Publicá ofertas de trabajo en Uruguay · JobIt";
+  const description =
+    "Publicá las ofertas de tu empresa en JobIt, un buscador de trabajo de Uruguay pensado para quien busca su primer empleo. Sin costo y sin datos de quien mira.";
+
+  const body = `
+<h1>Publicá tus ofertas de trabajo en Uruguay</h1>
+<p>JobIt es un buscador de ofertas pensado para quien busca su primer empleo o un puesto que no pide experiencia previa. Si tu empresa contrata, podés publicar acá tus ofertas, sin costo, y llegar a esas personas.</p>
+<a class="cta" href="${escapeHtml(origin)}/empresas">Crear la cuenta de empresa</a>
+<a class="cta ghost" href="${escapeHtml(origin)}/">Ver cómo se ve el tablero</a>
+<h2>Qué hacés desde el panel</h2>
+<ul>
+<li>Publicás y editás tus ofertas: título, descripción, requisitos, rubro, departamento, jornada, sueldo y fecha de cierre.</li>
+<li>Cada oferta sale en el tablero y tiene su propia página, con el marcado que usan los buscadores para mostrarla como oferta de empleo.</li>
+<li>Ves las vistas y las postulaciones de cada oferta, día por día, y las palabras clave con las que te encuentran.</li>
+</ul>
+<h2>Cómo se cuida a quien busca</h2>
+<ul>
+<li>Cada empresa se revisa antes de que sus ofertas salgan al tablero.</li>
+<li>JobIt no registra quién mira una oferta ni quién se postula: las métricas son contadores por oferta y por día, nunca por persona.</li>
+<li>Los avisos de otros portales siguen enlazando al original; las ofertas publicadas acá son las de las empresas que las cargan.</li>
+</ul>
+<p class="muted">Más sobre qué se guarda y qué no en la <a href="${escapeHtml(origin)}/privacidad">política de privacidad</a>.</p>`;
+
+  return layout(
+    {
+      title,
+      description,
+      path: "/publicar",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: title,
+        description,
+        url: `${origin}/publicar`,
+        inLanguage: "es-UY",
+      },
     },
     body,
   );

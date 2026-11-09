@@ -25,6 +25,15 @@ CREATE TABLE IF NOT EXISTS companies (
   slug        TEXT NOT NULL UNIQUE,
   email       TEXT NOT NULL DEFAULT '',
   website     TEXT NOT NULL DEFAULT '',
+  phone       TEXT NOT NULL DEFAULT '',
+  phone_country TEXT NOT NULL DEFAULT '',
+  logo        TEXT NOT NULL DEFAULT '',
+  banner      TEXT NOT NULL DEFAULT '',
+  socials     TEXT NOT NULL DEFAULT '{}',
+  privacy     TEXT NOT NULL DEFAULT '{}',
+  website_token      TEXT NOT NULL DEFAULT '',
+  website_verified   INTEGER NOT NULL DEFAULT 0,
+  website_checked_at TEXT NOT NULL DEFAULT '',
   status      TEXT NOT NULL DEFAULT 'pending',
   notes       TEXT NOT NULL DEFAULT '',
   created_at  TEXT NOT NULL,
@@ -149,6 +158,8 @@ CREATE TABLE IF NOT EXISTS services (
   created_at        TEXT NOT NULL,
   updated_at        TEXT NOT NULL,
   published_at      TEXT NOT NULL DEFAULT ''
+  /* boost_until y boost_kind no están acá: las agrega ADDITIVE_COLUMNS, que
+     también cubre las bases que ya existen. */
 );
 
 CREATE INDEX IF NOT EXISTS services_feed ON services (status, published_at DESC);
@@ -272,12 +283,77 @@ CREATE INDEX IF NOT EXISTS review_reports_service ON review_reports (service_id,
 /* La cuenta de una empresa. Va en su propia tabla y no como columnas de
    companies para no tener que migrar la que ya existe en producción: la
    empresa la crea el admin o se autoregistra, y esto es solo lo que la deja
-   entrar. Sin fila acá, la empresa existe pero nadie puede loguearse. */
+   entrar. Sin fila acá, la empresa existe pero nadie puede loguearse.
+
+   El segundo paso (TOTP) es obligatorio para las empresas, así que el secreto
+   va cifrado igual que el de las cuentas de usuario. */
 CREATE TABLE IF NOT EXISTS company_accounts (
   company_id    TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
   password_hash TEXT NOT NULL,
+  totp_secret_enc TEXT,
+  /** El secreto de un cambio de 2FA, mientras espera el código que lo confirma:
+   * así el segundo paso viejo sigue activo hasta que el nuevo anda. */
+  totp_pending_enc TEXT,
+  totp_enabled  INTEGER NOT NULL DEFAULT 0,
+  /** Vacío es activa. Con fecha, la cuenta está desactivada y se vuelve por el
+   * correo de recuperación. */
+  deactivated_at TEXT NOT NULL DEFAULT '',
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
+);
+
+/* El enlace de recuperación por correo. Uno solo por empresa y de un rato: el
+   token se guarda hasheado, igual que todos los demás. */
+CREATE TABLE IF NOT EXISTS company_resets (
+  company_id TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+/* El código de seis dígitos que confirma un cambio de contraseña, además del
+   segundo paso. Va hasheado y vence rápido. */
+CREATE TABLE IF NOT EXISTS company_password_codes (
+  company_id TEXT PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  code_hash  TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+/* Los correos de la empresa —facturación, contacto y soporte—, cada uno con su
+   verificación. kind es uno de los tipos y la fila se pisa al cambiarlo: una
+   empresa tiene uno de cada. El token se guarda hasheado y se manda una sola
+   vez por correo. */
+CREATE TABLE IF NOT EXISTS company_emails (
+  company_id    TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  kind          TEXT NOT NULL,
+  email         TEXT NOT NULL DEFAULT '',
+  verified      INTEGER NOT NULL DEFAULT 0,
+  token_hash    TEXT NOT NULL DEFAULT '',
+  token_expires TEXT NOT NULL DEFAULT '',
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  PRIMARY KEY (company_id, kind)
+);
+
+/* Quiénes de JobIt forman parte de la empresa. Es solo la designación: la
+   persona no entra al panel ni publica por estar acá. */
+CREATE TABLE IF NOT EXISTS company_members (
+  company_id TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (company_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS company_members_user ON company_members (user_id);
+
+/* El respaldo del segundo paso de la empresa, igual que el de las cuentas de
+   usuario: hasheado y de un solo uso. */
+CREATE TABLE IF NOT EXISTS company_recovery_codes (
+  company_id TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  code_hash  TEXT NOT NULL,
+  used_at    TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (company_id, code_hash)
 );
 
 /* Misma regla que el resto: solo el sha256 del token, nunca el token. */
@@ -304,9 +380,82 @@ CREATE TABLE IF NOT EXISTS offer_daily (
 );
 
 CREATE INDEX IF NOT EXISTS offer_daily_offer ON offer_daily (offer_id);
+
+/* Lo mismo para servicios: "este servicio se vio N veces el 12 de marzo y lo
+   contactaron M". Sin user_id, sin sesión y sin hora: el dueño ve cuántas
+   veces, el sistema no sabe de quién. */
+CREATE TABLE IF NOT EXISTS service_daily (
+  service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  day        TEXT NOT NULL,
+  views      INTEGER NOT NULL DEFAULT 0,
+  contacts   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (service_id, day)
+);
+
+CREATE INDEX IF NOT EXISTS service_daily_service ON service_daily (service_id);
 `;
 
+/**
+ * `CREATE TABLE IF NOT EXISTS` no agrega columnas a una tabla que ya existe, y
+ * `services` ya está en producción. Esta lista es el único mecanismo de
+ * migración: solo suma columnas con valor por defecto, nunca cambia ni borra.
+ */
+const ADDITIVE_COLUMNS: readonly { table: string; column: string; definition: string }[] = [
+  /* Visibilidad destacada (#33): hasta qué día (inclusive) y de qué clase.
+     Vacío es "no destacado". */
+  { table: "services", column: "boost_until", definition: "TEXT NOT NULL DEFAULT ''" },
+  { table: "services", column: "boost_kind", definition: "TEXT NOT NULL DEFAULT ''" },
+];
+
+function addMissingColumns(database: Database): void {
+  for (const { table, column, definition } of ADDITIVE_COLUMNS) {
+    const present = database
+      .query<{ name: string }, []>(`PRAGMA table_info(${table})`)
+      .all()
+      .some((existing) => existing.name === column);
+    if (!present) database.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 let handle: Database | null = null;
+
+/**
+ * SQLite no agrega columnas con `CREATE TABLE IF NOT EXISTS` sobre una tabla
+ * que ya existe. Las que se suman después de que la tabla está en producción
+ * van por acá: se agregan una sola vez y sin perder las filas.
+ */
+function migrate(database: Database): void {
+  const columns = (table: string): Set<string> =>
+    new Set(
+      database
+        .query<{ name: string }, []>(`PRAGMA table_info(${table})`)
+        .all()
+        .map((row) => row.name),
+    );
+
+  const add = (table: string, name: string, definition: string): void => {
+    if (columns(table).has(name)) return;
+    database.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+  };
+
+  const profileColumns: [string, string][] = [
+    ["phone", "TEXT NOT NULL DEFAULT ''"],
+    ["phone_country", "TEXT NOT NULL DEFAULT ''"],
+    ["logo", "TEXT NOT NULL DEFAULT ''"],
+    ["banner", "TEXT NOT NULL DEFAULT ''"],
+    ["socials", "TEXT NOT NULL DEFAULT '{}'"],
+    ["privacy", "TEXT NOT NULL DEFAULT '{}'"],
+    ["website_token", "TEXT NOT NULL DEFAULT ''"],
+    ["website_verified", "INTEGER NOT NULL DEFAULT 0"],
+    ["website_checked_at", "TEXT NOT NULL DEFAULT ''"],
+  ];
+  for (const [name, definition] of profileColumns) add("companies", name, definition);
+
+  add("company_accounts", "totp_secret_enc", "TEXT");
+  add("company_accounts", "totp_enabled", "INTEGER NOT NULL DEFAULT 0");
+  add("company_accounts", "totp_pending_enc", "TEXT");
+  add("company_accounts", "deactivated_at", "TEXT NOT NULL DEFAULT ''");
+}
 
 export function db(): Database {
   if (handle) return handle;
@@ -320,6 +469,8 @@ export function db(): Database {
   database.run("PRAGMA foreign_keys = ON");
   database.run("PRAGMA busy_timeout = 5000");
   database.run(SCHEMA);
+  addMissingColumns(database);
+  migrate(database);
 
   handle = database;
   return database;
