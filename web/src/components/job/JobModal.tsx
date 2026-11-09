@@ -24,6 +24,7 @@ import { track } from "../../lib/track.ts";
 import { chipClass, iconButtonClass } from "../../lib/styles.ts";
 import { type Application, type Job, type Tag, relatedApplications } from "../../lib/types.ts";
 import { ALL_PREP_KINDS, usePrep } from "../../hooks/usePrep.ts";
+import { useRoleGuide } from "../../hooks/useRoleGuide.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
 import { JobChips, type TagActions } from "./JobChips.tsx";
 import { JobDescription } from "./JobDescription.tsx";
@@ -95,6 +96,8 @@ export function JobModal({
   /** La preparación del rubro: se pide siempre, así las preguntas y los
    * ejercicios están a mano aunque todavía no te hayas postulado. */
   const prep = usePrep(job.category, true, ALL_PREP_KINDS);
+  /** La guía del puesto concreto (Cajero/a, Enfermería…), cuando existe. */
+  const roleGuide = useRoleGuide(job.title);
   /** The sheet plays its own exit and then asks to be unmounted. */
   const [closing, setClosing] = useState(false);
   const close = useCallback(() => setClosing(true), []);
@@ -247,7 +250,7 @@ export function JobModal({
             </Section>
           ) : null}
 
-          {prep.items.length > 0 ? (
+          {prep.items.length > 0 || roleGuide ? (
             <details className="group rounded-2xl border border-sky/50 bg-surface">
               <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
                 <GraduationCap aria-hidden className="size-4 shrink-0 text-brand" />
@@ -261,6 +264,14 @@ export function JobModal({
               </summary>
               <div className="border-t border-sky/40 px-4 py-3">
                 <PrepTips items={prep.items} />
+                {roleGuide ? (
+                  <a
+                    className={`inline-block text-xs font-medium text-brand transition-colors hover:text-ink ${prep.items.length > 0 ? "mt-4" : ""}`}
+                    href={roleGuide}
+                  >
+                    Ver la guía de entrevista para este puesto
+                  </a>
+                ) : null}
               </div>
             </details>
           ) : null}

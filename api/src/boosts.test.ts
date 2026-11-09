@@ -79,7 +79,7 @@ describe("grant y vencimiento", () => {
     const id = publish("Electricista");
     boosts.grant(id, "featured", 2, NOW);
 
-    expect(services.byId(id)?.featured).toBe(true);
+    expect(services.search({ limit: 10, offset: 0 }, null, NOW).services[0]?.featured).toBe(true);
     expect(
       services.search({ limit: 10, offset: 0 }, null, new Date("2026-12-01T00:00:00Z")).services[0]
         ?.featured,

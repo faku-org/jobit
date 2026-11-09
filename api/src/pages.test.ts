@@ -11,6 +11,7 @@ import {
   jobsByCategory,
   marketPageHtml,
   notFoundPage,
+  publishPageHtml,
   serviceJsonLd,
   servicePageHtml,
 } from "./pages.ts";
@@ -118,6 +119,26 @@ describe("servicePageHtml", () => {
   });
 });
 
+describe("publishPageHtml", () => {
+  test("es la puerta de quien publica: título, canonical y salto al panel", () => {
+    const html = publishPageHtml();
+    expect(html).toContain("<h1>Publicá tus ofertas de trabajo en Uruguay</h1>");
+    expect(html).toContain('rel="canonical" href="https://jobs.test/publicar"');
+    expect(html).toContain('href="https://jobs.test/empresas"');
+    expect(html).toContain("nunca por persona");
+  });
+
+  test("marca la página como WebPage y no inventa un JobPosting", () => {
+    const html = publishPageHtml();
+    expect(html).toContain('"@type":"WebPage"');
+    expect(html).not.toContain("JobPosting");
+  });
+
+  test("el pie de toda página enlaza a publicar", () => {
+    expect(notFoundPage()).toContain("https://jobs.test/publicar");
+  });
+});
+
 describe("escapeHtml", () => {
   test("neutraliza lo que rompería el documento", () => {
     expect(escapeHtml('<a href="x">&')).toBe("&lt;a href=&quot;x&quot;&gt;&amp;");
@@ -157,6 +178,16 @@ describe("jobPostingLd", () => {
   test("la fecha de cierre entra como validThrough", () => {
     const ld = jobPostingLd(job({ closes_at: "2026-10-15" }));
     expect(ld?.validThrough).toBe("2026-10-15T23:59:59-03:00");
+  });
+
+  test("el sitio de la empresa entra como sameAs de quien contrata", () => {
+    const ld = jobPostingLd(job({ company_url: "https://acme.uy" }));
+    expect(ld?.hiringOrganization).toMatchObject({ name: "Acme", sameAs: "https://acme.uy" });
+  });
+
+  test("sin sitio no inventa un sameAs", () => {
+    const ld = jobPostingLd(job());
+    expect(ld?.hiringOrganization).toEqual({ "@type": "Organization", name: "Acme" });
   });
 
   test("sin sueldo no inventa un baseSalary", () => {

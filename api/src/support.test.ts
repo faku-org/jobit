@@ -58,7 +58,7 @@ describe("sin contraprestación y sin seguimiento", () => {
 
   test("el archivo no depende de servicios, cuentas ni destacados", () => {
     const source = readFileSync(join(import.meta.dir, "support.ts"), "utf8");
-    const imports = source.split("\n").filter((line) => line.startsWith("import"));
+    const imports = source.split(/\r?\n/).filter((line) => line.startsWith("import"));
 
     expect(imports).toEqual(['import { Elysia } from "elysia";']);
   });

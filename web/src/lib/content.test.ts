@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { contentQuery, externalRel, fetchContent } from "./content.ts";
+import { contentQuery, externalRel, fetchContent, roleGuideHref } from "./content.ts";
 
 describe("contentQuery", () => {
   test("arma los parámetros con tipos, rubro y paginado", () => {
@@ -51,5 +51,31 @@ describe("fetchContent", () => {
     } finally {
       globalThis.fetch = original;
     }
+  });
+});
+
+describe("scope y guía de puesto", () => {
+  test("el scope viaja en la query solo cuando se pide", () => {
+    expect(
+      new URLSearchParams(contentQuery({ category: "ventas", scope: "rubro" })).get("scope"),
+    ).toBe("rubro");
+    expect(new URLSearchParams(contentQuery({ category: "ventas" })).has("scope")).toBe(false);
+  });
+
+  test("roleGuideHref arma la dirección con el rubro del contenido", () => {
+    const item = (roles: string[], categories: string[]) =>
+      ({ roles, categories }) as Parameters<typeof roleGuideHref>[1][number];
+
+    expect(roleGuideHref("cajero", [item(["cajero"], ["ventas"])])).toBe(
+      "/entrevista/ventas/cajero",
+    );
+  });
+
+  test("sin contenido de ese puesto no hay enlace", () => {
+    const other = { roles: ["vendedor"], categories: ["ventas"] } as Parameters<
+      typeof roleGuideHref
+    >[1][number];
+    expect(roleGuideHref("cajero", [])).toBeNull();
+    expect(roleGuideHref("cajero", [other])).toBeNull();
   });
 });
