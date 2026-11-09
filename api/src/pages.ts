@@ -235,7 +235,7 @@ function jobChips(job: Job): string {
     .join("")}</div>`;
 }
 
-const paragraphs = (text: string): string =>
+export const paragraphs = (text: string): string =>
   text
     .split(/\n{2,}/)
     .map((block) => block.trim())
@@ -473,7 +473,7 @@ export function sitemapXml(entries: SitemapEntry[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
 }
 
-const jobListHtml = (jobs: Job[]): string =>
+export const jobListHtml = (jobs: Job[]): string =>
   jobs
     .slice(0, 100)
     .map((job) => {
@@ -557,13 +557,24 @@ export function faqPageLd(items: ContentItem[]): Record<string, unknown> | null 
   };
 }
 
+/** Un puesto con guía propia, para enlazarlo desde la guía de su rubro. */
+export interface RoleGuideLink {
+  role: string;
+  name: string;
+}
+
 /**
  * La guía de entrevista de un rubro: las preguntas que más se repiten, las
  * habilidades que importan y las ofertas de ese rubro. Es contenido de
  * intención alta ("preguntas de entrevista para X en Uruguay"), así que va con
  * `FAQPage` en JSON-LD y enlace a la vista filtrada de la app.
  */
-export function interviewPageHtml(slug: string, jobs: Job[], items: ContentItem[]): string {
+export function interviewPageHtml(
+  slug: string,
+  jobs: Job[],
+  items: ContentItem[],
+  guides: RoleGuideLink[] = [],
+): string {
   const label = categoryLabel(slug);
   const questions = items.filter((item) => item.kind === "faq");
   const topics = items.filter((item) => item.kind === "topic");
@@ -581,6 +592,16 @@ export function interviewPageHtml(slug: string, jobs: Job[], items: ContentItem[
 <a class="cta" href="${escapeHtml(publicOrigin())}/?category=${encodeURIComponent(slug)}">Ver las ofertas de ${escapeHtml(label)} en JobIt</a>
 ${questionBlocks ? `<h2>Preguntas frecuentes</h2>${questionBlocks}` : ""}
 ${topicBlocks ? `<h2>Habilidades y temas</h2>${topicBlocks}` : ""}
+${
+  guides.length > 0
+    ? `<h2>Guías por puesto</h2><ul>${guides
+        .map(
+          (guide) =>
+            `<li><a href="${escapeHtml(publicOrigin())}/entrevista/${encodeURIComponent(slug)}/${encodeURIComponent(guide.role)}">Entrevista de ${escapeHtml(guide.name)}</a></li>`,
+        )
+        .join("")}</ul>`
+    : ""
+}
 ${
   jobs.length > 0
     ? `<h2>Ofertas de ${escapeHtml(label)}</h2><ul class="jobs">${jobListHtml(jobs)}</ul><p class="muted">${jobs.length} ofertas${jobs.length > 100 ? " (mostrando las primeras 100)" : ""}.</p>`

@@ -16,6 +16,8 @@ export interface ContentRequest {
   kinds?: ContentKind[];
   category?: string;
   role?: string;
+  /** "rubro": solo lo del rubro entero, sin las guías de un puesto concreto. */
+  scope?: "rubro";
   q?: string;
   limit?: number;
   offset?: number;
@@ -28,6 +30,7 @@ export function contentQuery(request: ContentRequest): string {
   if (request.kinds?.length) params.set("kind", request.kinds.join(","));
   if (request.category) params.set("category", request.category);
   if (request.role) params.set("role", request.role);
+  if (request.scope) params.set("scope", request.scope);
   if (request.q) params.set("q", request.q);
   params.set("limit", String(request.limit ?? DEFAULT_CONTENT_LIMIT));
   if (request.offset) params.set("offset", String(request.offset));
@@ -41,6 +44,19 @@ export async function fetchContent(
   const response = await fetch(`/api/content?${contentQuery(request)}`, { signal });
   if (!response.ok) throw new Error(`La API respondió ${response.status}`);
   return (await response.json()) as ContentPage;
+}
+
+/**
+ * La dirección de la guía de entrevista de un puesto, o null si no tiene. Sale
+ * del propio contenido: el primer ítem dice bajo qué rubro vive la guía, así
+ * que la web no necesita saber qué puestos tienen contenido.
+ */
+export function roleGuideHref(role: string, items: ContentItem[]): string | null {
+  const item = items.find((entry) => entry.roles.includes(role) && entry.categories.length > 0);
+  const category = item?.categories[0];
+  return category
+    ? `/entrevista/${encodeURIComponent(category)}/${encodeURIComponent(role)}`
+    : null;
 }
 
 /**

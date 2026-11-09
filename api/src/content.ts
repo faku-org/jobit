@@ -1,5 +1,6 @@
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import { ROLE_GUIDE_ITEMS } from "@jobit/worker/content/role-guides";
 import { SEED_ITEMS } from "@jobit/worker/content/seed";
 import {
   CONTENT_KINDS,
@@ -54,7 +55,7 @@ function seedOnly(cause: unknown): Result<ContentItem[]> {
     warned = true;
     console.error(`[jobit] sin contenido traído, sirviendo solo el seed: ${String(cause)}`);
   }
-  return { ok: true, value: mergeContent(SEED_ITEMS) };
+  return { ok: true, value: mergeContent(SEED_ITEMS, ROLE_GUIDE_ITEMS) };
 }
 
 export async function loadContent(): Promise<Result<ContentItem[]>> {
@@ -65,7 +66,7 @@ export async function loadContent(): Promise<Result<ContentItem[]>> {
     mtimeMs = (await stat(path)).mtimeMs;
   } catch {
     /** No hay archivo traído: el seed alcanza para que la función ande. */
-    return { ok: true, value: mergeContent(SEED_ITEMS) };
+    return { ok: true, value: mergeContent(SEED_ITEMS, ROLE_GUIDE_ITEMS) };
   }
 
   if (cache && cache.mtimeMs === mtimeMs) return { ok: true, value: cache.items };
@@ -80,7 +81,7 @@ export async function loadContent(): Promise<Result<ContentItem[]>> {
   const parsed = parseContentFile(raw);
   if (!parsed.ok) return seedOnly(parsed.error);
 
-  const items = mergeContent(SEED_ITEMS, parsed.value);
+  const items = mergeContent(SEED_ITEMS, ROLE_GUIDE_ITEMS, parsed.value);
   cache = { mtimeMs, items };
   return { ok: true, value: items };
 }
@@ -117,6 +118,12 @@ export interface ContentQuery {
   kinds?: Set<ContentKind>;
   category?: string;
   role?: string;
+  /**
+   * Solo lo del rubro entero, sin lo que es de un puesto concreto. Una guía de
+   * puesto vive bajo su rubro pero no es "del rubro": sin esto las preguntas de
+   * Cajero/a desplazarían a las generales de Ventas en la ficha y el tablero.
+   */
+  rubroOnly?: boolean;
   q?: string;
   limit: number;
   offset: number;
@@ -134,6 +141,7 @@ export function queryContent(items: ContentItem[], query: ContentQuery): Content
     if (query.kinds && !query.kinds.has(item.kind)) return false;
     if (query.category && !item.categories.includes(query.category)) return false;
     if (query.role && !item.roles.includes(query.role)) return false;
+    if (query.rubroOnly && item.roles.length > 0) return false;
     if (query.q && !matchesText(item, query.q)) return false;
     return true;
   });

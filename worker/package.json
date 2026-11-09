@@ -19,6 +19,7 @@
     "./departments": "./src/departments.ts",
     "./content/types": "./src/content/types.ts",
     "./content/seed": "./src/content/seed.ts",
+    "./content/role-guides": "./src/content/role-guides.ts",
     "./content/sources": "./src/content/sources.ts",
     "./content/adapters": "./src/content/adapters.ts",
     "./labels": "./src/labels.ts",
