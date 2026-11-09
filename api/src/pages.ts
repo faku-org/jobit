@@ -77,7 +77,11 @@ export function layout(meta: PageMeta, body: string): string {
       : [meta.jsonLd]
     : [];
   const jsonLd = blocks
-    .map((block) => `<script type="application/ld+json">${JSON.stringify(block)}</script>`)
+    // `<` escapado: un nombre con `</script>` no puede cerrar el bloque.
+    .map(
+      (block) =>
+        `<script type="application/ld+json">${JSON.stringify(block).replace(/</g, "\\u003c")}</script>`,
+    )
     .join("");
 
   return `<!doctype html>

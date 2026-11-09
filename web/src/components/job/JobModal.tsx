@@ -26,6 +26,7 @@ import { type Application, type Job, type Tag, relatedApplications } from "../..
 import { ALL_PREP_KINDS, usePrep } from "../../hooks/usePrep.ts";
 import { useRoleGuide } from "../../hooks/useRoleGuide.ts";
 import { ApplyFooter } from "./ApplyFooter.tsx";
+import { WorkedBadge } from "./WorkedBadge.tsx";
 import { JobChips, type TagActions } from "./JobChips.tsx";
 import { JobDescription } from "./JobDescription.tsx";
 import { JobFit } from "./JobFit.tsx";
@@ -38,6 +39,8 @@ interface JobModalProps {
   isDismissed: boolean;
   isMatch: boolean;
   isApplied: boolean;
+  /** La empresa es una que la persona cargó como suya; solo una marca. */
+  worked?: boolean;
   applications: Application[];
   /** What the chips of the sheet can do to the list behind it. */
   tagActions: TagActions;
@@ -84,6 +87,7 @@ export function JobModal({
   isDismissed,
   isMatch,
   isApplied,
+  worked = false,
   applications,
   tagActions,
   onToggleSaved,
@@ -186,6 +190,7 @@ export function JobModal({
                 <MapPin aria-hidden className="size-3.5 shrink-0 text-brand" />
                 {formatLocation(job.city, job.department)}
               </span>
+              {worked ? <WorkedBadge /> : null}
             </div>
           </div>
 

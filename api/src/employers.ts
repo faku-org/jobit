@@ -132,6 +132,13 @@ function tally(jobs: Job[], pick: (job: Job) => string | null): EmployerTally[] 
     .sort((a, b) => b.count - a.count);
 }
 
+/** Las ofertas del mismo grupo que arma `employerProfile`, así el listado y el
+ * conteo de la ficha no se desfasan. Vacío si la empresa no existe. */
+export function employerJobs(jobs: Job[], slug: string): Job[] {
+  const entry = groupEmployers(jobs).find((candidate) => candidate.slug === slug);
+  return entry ? [...entry.jobs].sort((a, b) => b.date_posted.localeCompare(a.date_posted)) : [];
+}
+
 const LATEST_LIMIT = 12;
 
 /** La ficha de una empresa: su foto y sus últimas ofertas. */

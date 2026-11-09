@@ -69,3 +69,20 @@ export const fetchEmployer = (slug: string, signal?: AbortSignal): Promise<Emplo
 /** "ACME S.A." y "acme s a" son la misma empresa. */
 export const sameEmployer = (one: string, other: string): boolean =>
   employerSlug(one) !== "" && employerSlug(one) === employerSlug(other);
+
+/**
+ * Si el aviso es de una empresa que la persona cargó como suya. `slugs` son los
+ * de `prefs.companies`: el mismo slug que usa el filtro "De mi experiencia",
+ * así "ACME S.A." del aviso y "acme s a" del perfil son la misma.
+ */
+export function isWorkedAt(
+  company: string | null | undefined,
+  slugs: ReadonlySet<string>,
+): boolean {
+  if (!company || slugs.size === 0) return false;
+  const slug = employerSlug(company);
+  return slug !== "" && slugs.has(slug);
+}
+
+/** La página indexable de la empresa, servida por la API (`/empresa/<slug>`). */
+export const employerPagePath = (slug: string): string => `/empresa/${encodeURIComponent(slug)}`;

@@ -24,6 +24,7 @@ const PROXY = Object.fromEntries(
     "/servicios",
     "/sitemap.xml",
     "/entrevista",
+    "/empresa/",
     "/recursos",
   ].map((route) => [route, { target: API_TARGET, changeOrigin: true }]),
 );

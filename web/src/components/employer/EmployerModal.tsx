@@ -1,7 +1,7 @@
-import { Briefcase, Check, MapPin, Target, X } from "lucide-react";
+import { Briefcase, Check, ExternalLink, MapPin, Target, X } from "lucide-react";
 import { m } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
-import { type EmployerProfile, fetchEmployer } from "../../lib/employers.ts";
+import { type EmployerProfile, employerPagePath, fetchEmployer } from "../../lib/employers.ts";
 import { islandTransition } from "../../lib/motion.ts";
 import { chipClass, iconButtonClass, mutedChip } from "../../lib/styles.ts";
 
@@ -206,6 +206,16 @@ export function EmployerModal({
                 Es lo que JobIt ve en sus ofertas; no hay dato de empleados ni de la empresa por
                 fuera del tablero.
               </p>
+
+              <a
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+                href={employerPagePath(slug)}
+                rel="noopener"
+                target="_blank"
+              >
+                <ExternalLink aria-hidden className="size-3.5" />
+                Página pública de la empresa
+              </a>
             </>
           ) : (
             <p className="text-sm text-muted">Buscando las ofertas de esta empresa…</p>
