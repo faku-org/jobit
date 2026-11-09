@@ -5,6 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
+    "test": "bun test",
     "scrape": "bun run src/index.ts",
     "content": "bun run src/content/ingest.ts",
     "content:verify": "bun run src/content/verify-resources.ts",

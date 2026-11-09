@@ -1,6 +1,6 @@
 {
   "name": "jobit",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
   "workspaces": [
@@ -17,7 +17,10 @@
     "build": "bun run --cwd web build",
     "typecheck": "bun run --cwd api typecheck && bun run --cwd web typecheck && bun run --cwd worker typecheck && bun run --cwd mcp typecheck",
     "lint": "oxlint",
-    "fmt": "oxfmt .",
+    "test": "bun run --cwd api test && bun run --cwd web test && bun run --cwd worker test && bun run --cwd mcp test",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run test",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "scrape": "bun run --cwd worker scrape",
     "content": "bun run --cwd worker content",
     "push": "bun run --cwd worker push",

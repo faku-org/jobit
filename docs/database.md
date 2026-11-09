@@ -6,21 +6,21 @@ foráneas en cascada.
 
 ## Tablas
 
-| Tabla | Qué guarda |
-|---|---|
-| `companies` | Empresas: nombre, slug, contacto, perfil, privacidad y estado del dominio. |
-| `company_accounts` | La contraseña (argon2id), el secreto TOTP (el activo y el pendiente de un cambio), y si la cuenta está desactivada. |
-| `company_sessions` | Sesiones de empresa (solo el sha256 del token). |
-| `company_emails` | Correos de facturación, contacto, soporte y recuperación, con su token de verificación. |
-| `company_members` | Usuarios de JobIt designados como parte de una empresa. |
-| `company_recovery_codes` | Códigos de respaldo del 2FA de empresa (hasheados). |
-| `company_resets` | El enlace de recuperación por correo (token hasheado). |
-| `company_password_codes` | El código de correo del cambio de contraseña. |
-| `offers` | Ofertas propias de las empresas. |
-| `offer_daily` | Vistas y postulaciones por oferta y por día. |
-| `users` | Cuentas de usuario (quien publica servicios). |
-| `user_sessions`, `user_recovery_codes`, `user_sync` | Sesiones, códigos y sync de esas cuentas. |
-| `admin_sessions` | Sesiones del panel de administración. |
+| Tabla                                               | Qué guarda                                                                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `companies`                                         | Empresas: nombre, slug, contacto, perfil, privacidad y estado del dominio.                                          |
+| `company_accounts`                                  | La contraseña (argon2id), el secreto TOTP (el activo y el pendiente de un cambio), y si la cuenta está desactivada. |
+| `company_sessions`                                  | Sesiones de empresa (solo el sha256 del token).                                                                     |
+| `company_emails`                                    | Correos de facturación, contacto, soporte y recuperación, con su token de verificación.                             |
+| `company_members`                                   | Usuarios de JobIt designados como parte de una empresa.                                                             |
+| `company_recovery_codes`                            | Códigos de respaldo del 2FA de empresa (hasheados).                                                                 |
+| `company_resets`                                    | El enlace de recuperación por correo (token hasheado).                                                              |
+| `company_password_codes`                            | El código de correo del cambio de contraseña.                                                                       |
+| `offers`                                            | Ofertas propias de las empresas.                                                                                    |
+| `offer_daily`                                       | Vistas y postulaciones por oferta y por día.                                                                        |
+| `users`                                             | Cuentas de usuario (quien publica servicios).                                                                       |
+| `user_sessions`, `user_recovery_codes`, `user_sync` | Sesiones, códigos y sync de esas cuentas.                                                                           |
+| `admin_sessions`                                    | Sesiones del panel de administración.                                                                               |
 
 El JSON del scraper **no** está acá: se reescribe entero en cada corrida y no
 tiene transacciones, así que vive aparte.

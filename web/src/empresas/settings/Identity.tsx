@@ -1,56 +1,64 @@
-import { BadgeCheck, Check, Copy, Loader2, ShieldAlert } from "lucide-react";
-import { useState } from "react";
-import { splitPhone, composePhone } from "../../lib/countries.ts";
-import type { Company } from "../api.ts";
-import { updateCompany, verifyWebsite } from "../api.ts";
-import { PhoneField } from "../PhoneField.tsx";
-import { AreaCard, Saved, inputClass, labelClass, primaryButton, quietButton } from "./shared.tsx";
+import { BadgeCheck, Check, Copy, Loader2, ShieldAlert } from 'lucide-react'
+import { useState } from 'react'
+import { splitPhone, composePhone } from '../../lib/countries.ts'
+import type { Company } from '../api.ts'
+import { updateCompany, verifyWebsite } from '../api.ts'
+import { PhoneField } from '../PhoneField.tsx'
+import {
+  AreaCard,
+  Saved,
+  inputClass,
+  labelClass,
+  primaryButton,
+  quietButton,
+} from './shared.tsx'
 
 interface AreaProps {
-  company: Company;
-  onUpdated: (company: Company) => void;
-  onFail: (cause: unknown) => void;
+  company: Company
+  onUpdated: (company: Company) => void
+  onFail: (cause: unknown) => void
 }
 
 const isHttpUrl = (value: string): boolean => {
   try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
   } catch {
-    return false;
+    return false
   }
-};
+}
 
 export function AreaIdentity({ company, onUpdated, onFail }: AreaProps) {
-  const seed = splitPhone(company.phone, company.phone_country);
-  const [name, setName] = useState(company.name);
-  const [iso, setIso] = useState(seed.iso);
-  const [national, setNational] = useState(seed.national);
-  const [website, setWebsite] = useState(company.website);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const seed = splitPhone(company.phone, company.phone_country)
+  const [name, setName] = useState(company.name)
+  const [iso, setIso] = useState(seed.iso)
+  const [national, setNational] = useState(seed.national)
+  const [website, setWebsite] = useState(company.website)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
-  const nameError = name.trim().length < 2 ? "Poné el nombre de la empresa." : "";
+  const nameError =
+    name.trim().length < 2 ? 'Poné el nombre de la empresa.' : ''
   const websiteError =
-    website.trim() !== "" && !isHttpUrl(website.trim())
-      ? "Tiene que ser una dirección completa, con https://."
-      : "";
+    website.trim() !== '' && !isHttpUrl(website.trim())
+      ? 'Tiene que ser una dirección completa, con https://.'
+      : ''
   const phoneError =
-    national.trim() !== "" && !/^[\d\s()+-]+$/.test(national)
-      ? "El número solo lleva dígitos y separadores."
-      : "";
-  const ready = !nameError && !websiteError && !phoneError && !saving;
+    national.trim() !== '' && !/^[\d\s()+-]+$/.test(national)
+      ? 'El número solo lleva dígitos y separadores.'
+      : ''
+  const ready = !nameError && !websiteError && !phoneError && !saving
 
   const save = (event: React.FormEvent) => {
-    event.preventDefault();
+    event.preventDefault()
     if (!ready) {
-      setTouched({ name: true, website: true, phone: true });
-      return;
+      setTouched({ name: true, website: true, phone: true })
+      return
     }
 
-    setSaving(true);
-    setSaved(false);
+    setSaving(true)
+    setSaved(false)
     updateCompany({
       name: name.trim(),
       phone: composePhone(iso, national),
@@ -58,12 +66,12 @@ export function AreaIdentity({ company, onUpdated, onFail }: AreaProps) {
       website: website.trim(),
     })
       .then((result) => {
-        onUpdated(result.company);
-        setSaved(true);
+        onUpdated(result.company)
+        setSaved(true)
       })
       .catch(onFail)
-      .finally(() => setSaving(false));
-  };
+      .finally(() => setSaving(false))
+  }
 
   return (
     <AreaCard
@@ -89,13 +97,13 @@ export function AreaIdentity({ company, onUpdated, onFail }: AreaProps) {
 
         <span className={`${labelClass} mt-4 block`}>Teléfono</span>
         <PhoneField
-          error={touched.phone ? phoneError : ""}
+          error={touched.phone ? phoneError : ''}
           iso={iso}
           national={national}
           onIso={setIso}
           onNational={(value) => {
-            setNational(value);
-            setTouched((current) => ({ ...current, phone: true }));
+            setNational(value)
+            setTouched((current) => ({ ...current, phone: true }))
           }}
         />
 
@@ -109,10 +117,12 @@ export function AreaIdentity({ company, onUpdated, onFail }: AreaProps) {
           placeholder="https://…"
           type="url"
           value={website}
-          onBlur={() => setTouched((current) => ({ ...current, website: true }))}
+          onBlur={() =>
+            setTouched((current) => ({ ...current, website: true }))
+          }
           onChange={(event) => {
-            setWebsite(event.target.value);
-            setTouched((current) => ({ ...current, website: true }));
+            setWebsite(event.target.value)
+            setTouched((current) => ({ ...current, website: true }))
           }}
         />
         {touched.website && websiteError ? (
@@ -121,7 +131,9 @@ export function AreaIdentity({ company, onUpdated, onFail }: AreaProps) {
 
         <div className="mt-4 flex items-center gap-3">
           <button className={primaryButton} disabled={!ready} type="submit">
-            {saving ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
+            {saving ? (
+              <Loader2 aria-hidden className="size-4 animate-spin" />
+            ) : null}
             Guardar
           </button>
           <Saved show={saved} />
@@ -129,42 +141,46 @@ export function AreaIdentity({ company, onUpdated, onFail }: AreaProps) {
       </form>
 
       {company.website ? (
-        <WebsiteVerification company={company} onUpdated={onUpdated} onFail={onFail} />
+        <WebsiteVerification
+          company={company}
+          onUpdated={onUpdated}
+          onFail={onFail}
+        />
       ) : null}
     </AreaCard>
-  );
+  )
 }
 
 function WebsiteVerification({ company, onUpdated, onFail }: AreaProps) {
-  const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [message, setMessage] = useState("");
-  const verification = company.website_verification;
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [message, setMessage] = useState('')
+  const verification = company.website_verification
 
-  if (!verification) return null;
+  if (!verification) return null
 
   const check = () => {
-    setBusy(true);
-    setMessage("");
+    setBusy(true)
+    setMessage('')
     verifyWebsite()
       .then((result) => {
-        onUpdated(result.company);
+        onUpdated(result.company)
         setMessage(
           result.verified
-            ? "Listo: el dominio quedó verificado."
-            : (result.error ?? "No encontramos el registro."),
-        );
+            ? 'Listo: el dominio quedó verificado.'
+            : (result.error ?? 'No encontramos el registro.'),
+        )
       })
       .catch(onFail)
-      .finally(() => setBusy(false));
-  };
+      .finally(() => setBusy(false))
+  }
 
   const copy = () => {
     void navigator.clipboard.writeText(verification.record_value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  };
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
 
   return (
     <div className="mt-5 rounded-xl border border-sky/60 bg-mist p-3.5">
@@ -183,17 +199,25 @@ function WebsiteVerification({ company, onUpdated, onFail }: AreaProps) {
       </div>
 
       <p className="mt-2 text-[11px] leading-relaxed text-soft">
-        Cargá este registro TXT en el DNS de <strong className="font-medium">{verification.host}</strong>.
-        El sitio queda verificado mientras el registro exista; se vuelve a comprobar cada 24 horas.
+        Cargá este registro TXT en el DNS de{' '}
+        <strong className="font-medium">{verification.host}</strong>. El sitio
+        queda verificado mientras el registro exista; se vuelve a comprobar cada
+        24 horas.
       </p>
 
       <dl className="mt-2 space-y-1.5">
         <div>
-          <dt className="text-[10px] font-semibold tracking-wide text-faint uppercase">Nombre</dt>
-          <dd className="font-mono text-[11px] break-all text-ink">{verification.record_name}</dd>
+          <dt className="text-[10px] font-semibold tracking-wide text-faint uppercase">
+            Nombre
+          </dt>
+          <dd className="font-mono text-[11px] break-all text-ink">
+            {verification.record_name}
+          </dd>
         </div>
         <div>
-          <dt className="text-[10px] font-semibold tracking-wide text-faint uppercase">Valor</dt>
+          <dt className="text-[10px] font-semibold tracking-wide text-faint uppercase">
+            Valor
+          </dt>
           <dd className="flex items-start gap-2">
             <code className="min-w-0 flex-1 font-mono text-[11px] break-all text-ink">
               {verification.record_value}
@@ -203,18 +227,31 @@ function WebsiteVerification({ company, onUpdated, onFail }: AreaProps) {
               type="button"
               onClick={copy}
             >
-              {copied ? <Check aria-hidden className="size-3.5" /> : <Copy aria-hidden className="size-3.5" />}
+              {copied ? (
+                <Check aria-hidden className="size-3.5" />
+              ) : (
+                <Copy aria-hidden className="size-3.5" />
+              )}
             </button>
           </dd>
         </div>
       </dl>
 
-      {message ? <p className="mt-2 text-[11px] leading-relaxed text-soft">{message}</p> : null}
+      {message ? (
+        <p className="mt-2 text-[11px] leading-relaxed text-soft">{message}</p>
+      ) : null}
 
-      <button className={`${quietButton} mt-3`} disabled={busy} type="button" onClick={check}>
-        {busy ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : null}
+      <button
+        className={`${quietButton} mt-3`}
+        disabled={busy}
+        type="button"
+        onClick={check}
+      >
+        {busy ? (
+          <Loader2 aria-hidden className="size-3.5 animate-spin" />
+        ) : null}
         Verificar ahora
       </button>
     </div>
-  );
+  )
 }

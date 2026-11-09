@@ -25,16 +25,16 @@ cambian entre temas**: cambian los valores.
 
 ### Color
 
-| Token | Claro | Rol |
-|---|---|---|
-| `mist` | `#e3f2fd` | Fondo de la página y de los campos. |
-| `surface` | `#ffffff` | Tarjetas y superficies elevadas. |
-| `sky` | `#90caf9` | Bordes y acentos suaves. |
-| `brand` | `#2196f3` | Foco, enlaces, realce. |
-| `ink` | `#0d47a1` | Texto principal y bordes fuertes. |
-| `panel` / `onpanel` | `#0d47a1` / `#ffffff` | La isla y los botones llenos. |
-| `muted` / `soft` / `faint` | derivados de `ink` | Jerarquía de texto. |
-| `line` | `ink` al 10% | Un pelo, no un recuadro. |
+| Token                      | Claro                 | Rol                                 |
+| -------------------------- | --------------------- | ----------------------------------- |
+| `mist`                     | `#e3f2fd`             | Fondo de la página y de los campos. |
+| `surface`                  | `#ffffff`             | Tarjetas y superficies elevadas.    |
+| `sky`                      | `#90caf9`             | Bordes y acentos suaves.            |
+| `brand`                    | `#2196f3`             | Foco, enlaces, realce.              |
+| `ink`                      | `#0d47a1`             | Texto principal y bordes fuertes.   |
+| `panel` / `onpanel`        | `#0d47a1` / `#ffffff` | La isla y los botones llenos.       |
+| `muted` / `soft` / `faint` | derivados de `ink`    | Jerarquía de texto.                 |
+| `line`                     | `ink` al 10%          | Un pelo, no un recuadro.            |
 
 Reglas:
 

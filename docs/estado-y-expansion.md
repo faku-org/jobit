@@ -23,16 +23,16 @@ métricas de una empresa son contadores por oferta y por día, nunca por persona
 
 ### Construido y en uso
 
-| Pieza | Dónde | Estado |
-|---|---|---|
-| Tablero público de ofertas | `web/` | Funciona sin cuenta. |
-| Scrapers de portales | `worker/` | Escribe `worker/output/jobs.json`. |
-| API | `api/` (Bun + Elysia, loopback) | Sirve tablero, cuentas, empresas y páginas indexables. |
-| Cuentas de quien publica | `jobit_session` | Handle + contraseña; 2FA opcional. |
-| Panel de empresa | `jobit_company` | Alta, perfil, redes, correos verificados, miembros, verificación de dominio por DNS TXT. **2FA obligatorio.** |
-| Panel de administración | `jobit_admin` | Clave argon2id en archivo de entorno. |
-| Analítica propia | `api/src/events.ts`, `usage.ts` | Eventos anónimos, sin identificador, con día y sin hora. |
-| Correo transaccional | Resend | Sin `RESEND_API_KEY` no envía: el contenido queda en el log. |
+| Pieza                      | Dónde                           | Estado                                                                                                        |
+| -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Tablero público de ofertas | `web/`                          | Funciona sin cuenta.                                                                                          |
+| Scrapers de portales       | `worker/`                       | Escribe `worker/output/jobs.json`.                                                                            |
+| API                        | `api/` (Bun + Elysia, loopback) | Sirve tablero, cuentas, empresas y páginas indexables.                                                        |
+| Cuentas de quien publica   | `jobit_session`                 | Handle + contraseña; 2FA opcional.                                                                            |
+| Panel de empresa           | `jobit_company`                 | Alta, perfil, redes, correos verificados, miembros, verificación de dominio por DNS TXT. **2FA obligatorio.** |
+| Panel de administración    | `jobit_admin`                   | Clave argon2id en archivo de entorno.                                                                         |
+| Analítica propia           | `api/src/events.ts`, `usage.ts` | Eventos anónimos, sin identificador, con día y sin hora.                                                      |
+| Correo transaccional       | Resend                          | Sin `RESEND_API_KEY` no envía: el contenido queda en el log.                                                  |
 
 ### En curso (rama `feat/empresa-perfil`)
 
@@ -49,11 +49,11 @@ seguridad y #54 búsqueda semántica. La fase 1 del plan quedó hecha salvo lo d
 
 ### PRs abiertos
 
-| PR | Qué | Nota |
-|---|---|---|
-| #56 | `feat/mercado-historico` | Foto diaria del mercado. Mergeable. |
-| #57 | `fix/modal-mobile` | Ficha de oferta en el teléfono (#37). Mergeable. |
-| #58 | `feat/metricas-servicios` | Métricas de servicios (#32). Mergeable. |
+| PR  | Qué                       | Nota                                             |
+| --- | ------------------------- | ------------------------------------------------ |
+| #56 | `feat/mercado-historico`  | Foto diaria del mercado. Mergeable.              |
+| #57 | `fix/modal-mobile`        | Ficha de oferta en el teléfono (#37). Mergeable. |
+| #58 | `feat/metricas-servicios` | Métricas de servicios (#32). Mergeable.          |
 
 ### Issues abiertos con código ya en `develop`
 
@@ -75,19 +75,19 @@ El orden sale del plan (`plan-implementacion.md`, sección "Fase"). Criterios, e
 de peso: destrabar lo que ya está hecho, respetar dependencias, priorizar a quien busca
 trabajo, y dejar para el final todo lo que cuesta dinero por uso.
 
-| Fase | Qué | Tamaño | Depende de |
-|---|---|---|---|
-| 1 | Integrar los PRs listos | M | Nada. Es el paso inmediato. |
-| 2 | Base de accesibilidad, UX y navegación | L | 1 |
-| 3 | Privacidad y legales (#34) | S | Paralela a 2 y 4 |
-| 4 | Alta de empresa y emprendimientos | M | Paralela a 2 y 3 |
-| 5 | Servicios (#26, #38, #32, #33) | L | 1 |
-| 6 | Recomendador personalizado | L | Perfil y catálogo de skills |
-| 7 | Métricas de empresa (ventanas, embudo, alertas, exportes) | M | Contadores existentes |
-| 8 | Postulaciones con preguntas y conversación | L | Cifrado local, decisión de retención |
-| 9 | Contenido (#3, #5, #7) | L | Ninguna |
-| 10 | Plataforma: analítica propia exportable a LearnIt, API, self-hosting | L | 7 |
-| 11 | IA para empresas, plan de pago (video por puesto, FAQ con IA) | L | Pagos, claves y caché |
+| Fase | Qué                                                                  | Tamaño | Depende de                           |
+| ---- | -------------------------------------------------------------------- | ------ | ------------------------------------ |
+| 1    | Integrar los PRs listos                                              | M      | Nada. Es el paso inmediato.          |
+| 2    | Base de accesibilidad, UX y navegación                               | L      | 1                                    |
+| 3    | Privacidad y legales (#34)                                           | S      | Paralela a 2 y 4                     |
+| 4    | Alta de empresa y emprendimientos                                    | M      | Paralela a 2 y 3                     |
+| 5    | Servicios (#26, #38, #32, #33)                                       | L      | 1                                    |
+| 6    | Recomendador personalizado                                           | L      | Perfil y catálogo de skills          |
+| 7    | Métricas de empresa (ventanas, embudo, alertas, exportes)            | M      | Contadores existentes                |
+| 8    | Postulaciones con preguntas y conversación                           | L      | Cifrado local, decisión de retención |
+| 9    | Contenido (#3, #5, #7)                                               | L      | Ninguna                              |
+| 10   | Plataforma: analítica propia exportable a LearnIt, API, self-hosting | L      | 7                                    |
+| 11   | IA para empresas, plan de pago (video por puesto, FAQ con IA)        | L      | Pagos, claves y caché                |
 
 Fuente de cada fase: [`roadmap.md`](roadmap.md) para 6, 7, 8 y 11; el plan para el resto.
 

@@ -1,35 +1,35 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { beforeEach, describe, expect, test } from 'bun:test'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
-process.env.DB_FILE = ":memory:";
-process.env.PUBLIC_ORIGIN = "https://jobs.test";
+process.env.DB_FILE = ':memory:'
+process.env.PUBLIC_ORIGIN = 'https://jobs.test'
 
-const FIXTURES = join(import.meta.dir, "../../data/test-site");
-mkdirSync(FIXTURES, { recursive: true });
+const FIXTURES = join(import.meta.dir, '../../data/test-site')
+mkdirSync(FIXTURES, { recursive: true })
 
-const JOBS_FILE = join(FIXTURES, "jobs.json");
-process.env.JOBS_FILE = JOBS_FILE;
+const JOBS_FILE = join(FIXTURES, 'jobs.json')
+process.env.JOBS_FILE = JOBS_FILE
 
 writeFileSync(
   JOBS_FILE,
   JSON.stringify({
-    scraped_at: "2026-09-01T00:00:00.000Z",
-    sources: ["buscojobs"],
+    scraped_at: '2026-09-01T00:00:00.000Z',
+    sources: ['buscojobs'],
     count: 1,
     jobs: [
       {
-        id: "s1",
-        source: "buscojobs",
-        source_id: "s1",
-        title: "Cajero para supermercado",
-        company: "Super",
-        department: "Montevideo",
-        city: "Montevideo",
-        category: "ventas",
-        category_label: "Ventas y comercial",
-        category_raw: "ventas",
-        date_posted: "2026-09-01T00:00:00.000Z",
+        id: 's1',
+        source: 'buscojobs',
+        source_id: 's1',
+        title: 'Cajero para supermercado',
+        company: 'Super',
+        department: 'Montevideo',
+        city: 'Montevideo',
+        category: 'ventas',
+        category_label: 'Ventas y comercial',
+        category_raw: 'ventas',
+        date_posted: '2026-09-01T00:00:00.000Z',
         level: null,
         remote: null,
         job_type: null,
@@ -40,189 +40,204 @@ writeFileSync(
         schedule: null,
         vacancies: null,
         closes_at: null,
-        description: "Atender la caja.",
+        description: 'Atender la caja.',
         requirements: null,
-        apply_url: "https://ejemplo.com/aviso",
+        apply_url: 'https://ejemplo.com/aviso',
         duplicates: [],
       },
     ],
   }),
-  "utf8",
-);
+  'utf8',
+)
 
-const { closeDb } = await import("./db.ts");
-const { resetLimits } = await import("./limit.ts");
-const { clearFeedCache } = await import("./feed.ts");
-const { app } = await import("./index.ts");
-const users = await import("./users.ts");
-const services = await import("./services.ts");
+const { closeDb } = await import('./db.ts')
+const { resetLimits } = await import('./limit.ts')
+const { clearFeedCache } = await import('./feed.ts')
+const { app } = await import('./index.ts')
+const users = await import('./users.ts')
+const services = await import('./services.ts')
 
 /** Publica un servicio y devuelve su slug; sin esto solo hay borradores. */
 async function publish(): Promise<string> {
   const owner = await users.create({
-    handle: "juana",
-    display_name: "Juana Pérez",
-    password: "una clave larga",
-  });
-  if (!owner.ok) throw new Error(owner.error);
+    handle: 'juana',
+    display_name: 'Juana Pérez',
+    password: 'una clave larga',
+  })
+  if (!owner.ok) throw new Error(owner.error)
 
   const created = services.create(owner.value.user.id, {
-    title: "Electricista a domicilio",
-    summary: "Tableros, tomas y luces",
-    description: "Instalaciones en casas y locales.",
-    category: "oficios",
-    department: "Canelones",
-    city: "Las Piedras",
-    remote: "onsite",
-    skills: ["Tableros", "Domótica"],
+    title: 'Electricista a domicilio',
+    summary: 'Tableros, tomas y luces',
+    description: 'Instalaciones en casas y locales.',
+    category: 'oficios',
+    department: 'Canelones',
+    city: 'Las Piedras',
+    remote: 'onsite',
+    skills: ['Tableros', 'Domótica'],
     prices: [
-      { kind: "base", label: "Hora", amount: 1200, currency: "UYU", unit: "hora", notes: "" },
+      {
+        kind: 'base',
+        label: 'Hora',
+        amount: 1200,
+        currency: 'UYU',
+        unit: 'hora',
+        notes: '',
+      },
     ],
-  });
-  if (!created.ok) throw new Error(created.error);
+  })
+  if (!created.ok) throw new Error(created.error)
 
-  services.setStatus(created.value.id, "published");
-  return created.value.slug;
+  services.setStatus(created.value.id, 'published')
+  return created.value.slug
 }
 
 beforeEach(() => {
-  closeDb();
-  clearFeedCache();
-  resetLimits();
-});
+  closeDb()
+  clearFeedCache()
+  resetLimits()
+})
 
 const call = (path: string): Promise<Response> =>
-  app.handle(new Request(`http://localhost${path}`));
+  app.handle(new Request(`http://localhost${path}`))
 
-describe("páginas indexables", () => {
-  test("la ficha de una oferta sale en HTML con su canonical", async () => {
-    const response = await call("/empleo/s1");
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("text/html");
+describe('páginas indexables', () => {
+  test('la ficha de una oferta sale en HTML con su canonical', async () => {
+    const response = await call('/empleo/s1')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('text/html')
 
-    const html = await response.text();
-    expect(html).toContain("<h1>Cajero para supermercado</h1>");
-    expect(html).toContain('rel="canonical" href="https://jobs.test/empleo/s1"');
-  });
+    const html = await response.text()
+    expect(html).toContain('<h1>Cajero para supermercado</h1>')
+    expect(html).toContain('rel="canonical" href="https://jobs.test/empleo/s1"')
+  })
 
-  test("una oferta que no está da 404 en HTML", async () => {
-    const response = await call("/empleo/no-existe");
-    expect(response.status).toBe(404);
-    expect(await response.text()).toContain("No encontramos eso");
-  });
+  test('una oferta que no está da 404 en HTML', async () => {
+    const response = await call('/empleo/no-existe')
+    expect(response.status).toBe(404)
+    expect(await response.text()).toContain('No encontramos eso')
+  })
 
-  test("el mercado sale en HTML", async () => {
-    const response = await call("/mercado");
-    expect(response.status).toBe(200);
-    expect(await response.text()).toContain("El mercado laboral uruguayo");
-  });
+  test('el mercado sale en HTML', async () => {
+    const response = await call('/mercado')
+    expect(response.status).toBe(200)
+    expect(await response.text()).toContain('El mercado laboral uruguayo')
+  })
 
-  test("un rubro con ofertas sale, uno vacío da 404", async () => {
-    expect((await call("/rubro/ventas")).status).toBe(200);
-    expect((await call("/rubro/salud")).status).toBe(404);
-  });
+  test('un rubro con ofertas sale, uno vacío da 404', async () => {
+    expect((await call('/rubro/ventas')).status).toBe(200)
+    expect((await call('/rubro/salud')).status).toBe(404)
+  })
 
-  test("un departamento con ofertas sale", async () => {
-    const response = await call("/departamento/Montevideo");
-    expect(response.status).toBe(200);
-    expect(await response.text()).toContain("Ofertas de trabajo en Montevideo");
-  });
+  test('un departamento con ofertas sale', async () => {
+    const response = await call('/departamento/Montevideo')
+    expect(response.status).toBe(200)
+    expect(await response.text()).toContain('Ofertas de trabajo en Montevideo')
+  })
 
-  test("la guía de entrevista de un rubro sale con su FAQPage", async () => {
-    const response = await call("/entrevista/tecnologia");
-    expect(response.status).toBe(200);
+  test('la guía de entrevista de un rubro sale con su FAQPage', async () => {
+    const response = await call('/entrevista/tecnologia')
+    expect(response.status).toBe(200)
 
-    const html = await response.text();
-    expect(html).toContain("Preguntas de entrevista de Tecnología");
-    expect(html).toContain('"@type":"FAQPage"');
-    expect(html).toContain('rel="canonical" href="https://jobs.test/entrevista/tecnologia"');
-  });
+    const html = await response.text()
+    expect(html).toContain('Preguntas de entrevista de Tecnología')
+    expect(html).toContain('"@type":"FAQPage"')
+    expect(html).toContain(
+      'rel="canonical" href="https://jobs.test/entrevista/tecnologia"',
+    )
+  })
 
-  test("la puerta de quien publica sale en HTML y no da 404", async () => {
-    const response = await call("/publicar");
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("text/html");
+  test('la puerta de quien publica sale en HTML y no da 404', async () => {
+    const response = await call('/publicar')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('text/html')
 
-    const html = await response.text();
-    expect(html).toContain("Publicá tus ofertas de trabajo en Uruguay");
-    expect(html).toContain('rel="canonical" href="https://jobs.test/publicar"');
-  });
+    const html = await response.text()
+    expect(html).toContain('Publicá tus ofertas de trabajo en Uruguay')
+    expect(html).toContain('rel="canonical" href="https://jobs.test/publicar"')
+  })
 
-  test("un rubro que no existe da 404 en la guía de entrevista", async () => {
-    expect((await call("/entrevista/no-existe")).status).toBe(404);
-  });
-});
+  test('un rubro que no existe da 404 en la guía de entrevista', async () => {
+    expect((await call('/entrevista/no-existe')).status).toBe(404)
+  })
+})
 
-describe("recursos por rubro", () => {
-  test("la página de un rubro sale con canonical y enlaces rotulados", async () => {
-    const response = await call("/recursos/tecnologia");
-    expect(response.status).toBe(200);
+describe('recursos por rubro', () => {
+  test('la página de un rubro sale con canonical y enlaces rotulados', async () => {
+    const response = await call('/recursos/tecnologia')
+    expect(response.status).toBe(200)
 
-    const html = await response.text();
-    expect(html).toContain("Recursos para aprender y practicar en Tecnología");
-    expect(html).toContain('rel="canonical" href="https://jobs.test/recursos/tecnologia"');
-    expect(html).toContain('rel="noopener noreferrer"');
-  });
+    const html = await response.text()
+    expect(html).toContain('Recursos para aprender y practicar en Tecnología')
+    expect(html).toContain(
+      'rel="canonical" href="https://jobs.test/recursos/tecnologia"',
+    )
+    expect(html).toContain('rel="noopener noreferrer"')
+  })
 
-  test("un rubro sin recursos o inexistente da 404", async () => {
-    expect((await call("/recursos/otros")).status).toBe(404);
-    expect((await call("/recursos/no-existe")).status).toBe(404);
-  });
+  test('un rubro sin recursos o inexistente da 404', async () => {
+    expect((await call('/recursos/otros')).status).toBe(404)
+    expect((await call('/recursos/no-existe')).status).toBe(404)
+  })
 
-  test("el índice sale y el sitemap lo incluye con los rubros", async () => {
-    expect((await call("/recursos")).status).toBe(200);
+  test('el índice sale y el sitemap lo incluye con los rubros', async () => {
+    expect((await call('/recursos')).status).toBe(200)
 
-    const sitemap = await (await call("/sitemap.xml")).text();
-    expect(sitemap).toContain("<loc>https://jobs.test/recursos</loc>");
-    expect(sitemap).toContain("<loc>https://jobs.test/recursos/tecnologia</loc>");
-    expect(sitemap).not.toContain("/recursos/otros");
-  });
-});
+    const sitemap = await (await call('/sitemap.xml')).text()
+    expect(sitemap).toContain('<loc>https://jobs.test/recursos</loc>')
+    expect(sitemap).toContain(
+      '<loc>https://jobs.test/recursos/tecnologia</loc>',
+    )
+    expect(sitemap).not.toContain('/recursos/otros')
+  })
+})
 
-describe("fichas de servicios", () => {
-  test("un servicio publicado sale en HTML, con Service y ProfilePage", async () => {
-    const slug = await publish();
-    const response = await call(`/servicios/${slug}`);
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("text/html");
+describe('fichas de servicios', () => {
+  test('un servicio publicado sale en HTML, con Service y ProfilePage', async () => {
+    const slug = await publish()
+    const response = await call(`/servicios/${slug}`)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('text/html')
 
-    const html = await response.text();
-    expect(html).toContain("<h1>Electricista a domicilio</h1>");
-    expect(html).toContain(`rel="canonical" href="https://jobs.test/servicios/${slug}"`);
-    expect(html).toContain('"@type":"Service"');
-    expect(html).toContain('"@type":"ProfilePage"');
+    const html = await response.text()
+    expect(html).toContain('<h1>Electricista a domicilio</h1>')
+    expect(html).toContain(
+      `rel="canonical" href="https://jobs.test/servicios/${slug}"`,
+    )
+    expect(html).toContain('"@type":"Service"')
+    expect(html).toContain('"@type":"ProfilePage"')
     /** Sin votos no hay nota que marcar: marcarla es lo que se penaliza. */
-    expect(html).not.toContain("AggregateRating");
-  });
+    expect(html).not.toContain('AggregateRating')
+  })
 
-  test("un servicio que no está o no está publicado da 404", async () => {
-    expect((await call("/servicios/no-existe")).status).toBe(404);
+  test('un servicio que no está o no está publicado da 404', async () => {
+    expect((await call('/servicios/no-existe')).status).toBe(404)
 
     const owner = await users.create({
-      handle: "pedro",
-      display_name: "Pedro",
-      password: "una clave larga",
-    });
-    if (!owner.ok) throw new Error(owner.error);
+      handle: 'pedro',
+      display_name: 'Pedro',
+      password: 'una clave larga',
+    })
+    if (!owner.ok) throw new Error(owner.error)
     const draft = services.create(owner.value.user.id, {
-      title: "Clases de guitarra",
-      category: "otros",
-    });
-    if (!draft.ok) throw new Error(draft.error);
+      title: 'Clases de guitarra',
+      category: 'otros',
+    })
+    if (!draft.ok) throw new Error(draft.error)
 
-    expect((await call(`/servicios/${draft.value.slug}`)).status).toBe(404);
-  });
+    expect((await call(`/servicios/${draft.value.slug}`)).status).toBe(404)
+  })
 
-  test("el sitemap se arma con las fichas publicadas", async () => {
-    const slug = await publish();
-    const response = await call("/sitemap.xml");
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("application/xml");
+  test('el sitemap se arma con las fichas publicadas', async () => {
+    const slug = await publish()
+    const response = await call('/sitemap.xml')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('application/xml')
 
-    const xml = await response.text();
-    expect(xml).toContain("<loc>https://jobs.test/</loc>");
-    expect(xml).toContain("<loc>https://jobs.test/mercado</loc>");
-    expect(xml).toContain("<loc>https://jobs.test/publicar</loc>");
-    expect(xml).toContain(`<loc>https://jobs.test/servicios/${slug}</loc>`);
-  });
-});
+    const xml = await response.text()
+    expect(xml).toContain('<loc>https://jobs.test/</loc>')
+    expect(xml).toContain('<loc>https://jobs.test/mercado</loc>')
+    expect(xml).toContain('<loc>https://jobs.test/publicar</loc>')
+    expect(xml).toContain(`<loc>https://jobs.test/servicios/${slug}</loc>`)
+  })
+})

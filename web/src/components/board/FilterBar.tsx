@@ -1,73 +1,82 @@
-import { Bookmark, Building2, EyeOff, Sparkles, Target, X } from "lucide-react";
-import { m } from "motion/react";
-import type { Facet, Filters, JobType, Level, WorkMode } from "../../lib/types.ts";
-import type { SearchToken } from "../../lib/search.ts";
-import { type Option, Select } from "../ui/Select.tsx";
-import { SearchField } from "./SearchField.tsx";
+import { Bookmark, Building2, EyeOff, Sparkles, Target, X } from 'lucide-react'
+import { m } from 'motion/react'
+import type {
+  Facet,
+  Filters,
+  JobType,
+  Level,
+  WorkMode,
+} from '../../lib/types.ts'
+import type { SearchToken } from '../../lib/search.ts'
+import { type Option, Select } from '../ui/Select.tsx'
+import { SearchField } from './SearchField.tsx'
 
 interface FilterBarProps {
-  filters: Filters;
-  categories: Facet[];
-  departments: Facet[];
+  filters: Filters
+  categories: Facet[]
+  departments: Facet[]
   /** Empresas del rubro elegido (o del tablero), para el selector. */
-  employers: Facet[];
+  employers: Facet[]
   /** Cuántas empresas guardó la persona como "donde trabajé". */
-  myCompaniesCount: number;
+  myCompaniesCount: number
   /** Atajos reconocidos en el buscador, para mostrarlos y poder quitarlos. */
-  searchTokens: SearchToken[];
-  onRemoveToken: (raw: string) => void;
-  noExperienceCount: number;
+  searchTokens: SearchToken[]
+  onRemoveToken: (raw: string) => void
+  noExperienceCount: number
   /** How many offers were discarded, and whether this view can review them.
    * Discarding is meaningless where nothing can be discarded, so the control
    * is absent there instead of present and inert. */
-  discardedCount: number;
-  canReviewDiscarded: boolean;
-  reviewingDiscarded: boolean;
-  matchCount: number;
-  hasPreferences: boolean;
-  onlySimilar: boolean;
-  isDirty: boolean;
+  discardedCount: number
+  canReviewDiscarded: boolean
+  reviewingDiscarded: boolean
+  matchCount: number
+  hasPreferences: boolean
+  onlySimilar: boolean
+  isDirty: boolean
   /** The saved view filters by rubro with its own chips, so it hides this one. */
-  showCategory: boolean;
-  onChange: (filters: Filters) => void;
-  onToggleReviewDiscarded: () => void;
-  onToggleSimilar: () => void;
-  onReset: () => void;
+  showCategory: boolean
+  onChange: (filters: Filters) => void
+  onToggleReviewDiscarded: () => void
+  onToggleSimilar: () => void
+  onReset: () => void
 }
 
 const LEVEL_OPTIONS: Option[] = [
-  { value: "", label: "Cualquier nivel" },
-  { value: "entry", label: "Junior" },
-  { value: "mid", label: "Semi senior" },
-  { value: "senior", label: "Senior" },
-];
+  { value: '', label: 'Cualquier nivel' },
+  { value: 'entry', label: 'Junior' },
+  { value: 'mid', label: 'Semi senior' },
+  { value: 'senior', label: 'Senior' },
+]
 
 const MODE_OPTIONS: Option[] = [
-  { value: "", label: "Cualquier modalidad" },
-  { value: "onsite", label: "Presencial" },
-  { value: "remote", label: "Remoto" },
-  { value: "hybrid", label: "Híbrido" },
-];
+  { value: '', label: 'Cualquier modalidad' },
+  { value: 'onsite', label: 'Presencial' },
+  { value: 'remote', label: 'Remoto' },
+  { value: 'hybrid', label: 'Híbrido' },
+]
 
 const JOB_TYPE_OPTIONS: Option[] = [
-  { value: "", label: "Cualquier jornada" },
-  { value: "full_time", label: "Jornada completa" },
-  { value: "part_time", label: "Medio horario" },
-  { value: "internship", label: "Pasantía" },
-];
+  { value: '', label: 'Cualquier jornada' },
+  { value: 'full_time', label: 'Jornada completa' },
+  { value: 'part_time', label: 'Medio horario' },
+  { value: 'internship', label: 'Pasantía' },
+]
 
 const DAYS_OPTIONS: Option[] = [
-  { value: "", label: "Cualquier fecha" },
-  { value: "3", label: "Últimos 3 días" },
-  { value: "7", label: "Últimos 7 días" },
-  { value: "14", label: "Últimos 14 días" },
-  { value: "30", label: "Últimos 30 días" },
-];
+  { value: '', label: 'Cualquier fecha' },
+  { value: '3', label: 'Últimos 3 días' },
+  { value: '7', label: 'Últimos 7 días' },
+  { value: '14', label: 'Últimos 14 días' },
+  { value: '30', label: 'Últimos 30 días' },
+]
 
 const facetOptions = (facets: Facet[], allLabel: string): Option[] => [
-  { value: "", label: allLabel },
-  ...facets.map((facet) => ({ value: facet.value, label: `${facet.label} (${facet.count})` })),
-];
+  { value: '', label: allLabel },
+  ...facets.map((facet) => ({
+    value: facet.value,
+    label: `${facet.label} (${facet.count})`,
+  })),
+]
 
 function Toggle({
   active,
@@ -75,18 +84,18 @@ function Toggle({
   children,
   onClick,
 }: {
-  active: boolean;
-  icon: typeof Bookmark;
-  children: React.ReactNode;
-  onClick: () => void;
+  active: boolean
+  icon: typeof Bookmark
+  children: React.ReactNode
+  onClick: () => void
 }) {
   return (
     <m.button
       aria-pressed={active}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
         active
-          ? "border-panel bg-panel text-onpanel"
-          : "border-sky/60 bg-surface text-muted hover:border-brand hover:text-ink"
+          ? 'border-panel bg-panel text-onpanel'
+          : 'border-sky/60 bg-surface text-muted hover:border-brand hover:text-ink'
       }`}
       type="button"
       whileTap={{ scale: 0.95 }}
@@ -95,7 +104,7 @@ function Toggle({
       <Icon aria-hidden className="size-3.5" />
       {children}
     </m.button>
-  );
+  )
 }
 
 export function FilterBar({
@@ -153,80 +162,105 @@ export function FilterBar({
         {showCategory ? (
           <Select
             label="Rubro"
-            options={facetOptions(categories, "Todos los rubros")}
+            options={facetOptions(categories, 'Todos los rubros')}
             value={filters.category}
-            onChange={(value) => onChange({ ...filters, category: value, company: "" })}
+            onChange={(value) =>
+              onChange({ ...filters, category: value, company: '' })
+            }
           />
         ) : null}
         <Select
           label="Departamento"
-          options={facetOptions(departments, "Todo el país")}
+          options={facetOptions(departments, 'Todo el país')}
           value={filters.department}
           onChange={(value) => onChange({ ...filters, department: value })}
         />
         {employers.length > 0 ? (
           <Select
             label="Empresa"
-            options={facetOptions(employers, "Todas las empresas")}
-            value={filters.myCompanies ? "" : filters.company}
-            onChange={(value) => onChange({ ...filters, company: value, myCompanies: false })}
+            options={facetOptions(employers, 'Todas las empresas')}
+            value={filters.myCompanies ? '' : filters.company}
+            onChange={(value) =>
+              onChange({ ...filters, company: value, myCompanies: false })
+            }
           />
         ) : null}
         <Select
           label="Jornada"
           options={JOB_TYPE_OPTIONS}
           value={filters.jobType}
-          onChange={(value) => onChange({ ...filters, jobType: value as JobType | "" })}
+          onChange={(value) =>
+            onChange({ ...filters, jobType: value as JobType | '' })
+          }
         />
         <Select
           label="Nivel"
           options={LEVEL_OPTIONS}
           value={filters.level}
-          onChange={(value) => onChange({ ...filters, level: value as Level | "" })}
+          onChange={(value) =>
+            onChange({ ...filters, level: value as Level | '' })
+          }
         />
         <Select
           label="Modalidad"
           options={MODE_OPTIONS}
           value={filters.mode}
-          onChange={(value) => onChange({ ...filters, mode: value as WorkMode | "" })}
+          onChange={(value) =>
+            onChange({ ...filters, mode: value as WorkMode | '' })
+          }
         />
         <Select
           label="Publicadas"
           options={DAYS_OPTIONS}
-          value={filters.days === null ? "" : String(filters.days)}
-          onChange={(value) => onChange({ ...filters, days: value ? Number(value) : null })}
+          value={filters.days === null ? '' : String(filters.days)}
+          onChange={(value) =>
+            onChange({ ...filters, days: value ? Number(value) : null })
+          }
         />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {hasPreferences ? (
           <Toggle active={onlySimilar} icon={Target} onClick={onToggleSimilar}>
-            Solo similares{matchCount > 0 ? ` (${matchCount})` : ""}
+            Solo similares{matchCount > 0 ? ` (${matchCount})` : ''}
           </Toggle>
         ) : null}
 
         <Toggle
           active={filters.noExperience}
           icon={Sparkles}
-          onClick={() => onChange({ ...filters, noExperience: !filters.noExperience })}
+          onClick={() =>
+            onChange({ ...filters, noExperience: !filters.noExperience })
+          }
         >
-          Sin experiencia{noExperienceCount > 0 ? ` (${noExperienceCount})` : ""}
+          Sin experiencia
+          {noExperienceCount > 0 ? ` (${noExperienceCount})` : ''}
         </Toggle>
 
         {myCompaniesCount > 0 ? (
           <Toggle
             active={filters.myCompanies}
             icon={Building2}
-            onClick={() => onChange({ ...filters, myCompanies: !filters.myCompanies, company: "" })}
+            onClick={() =>
+              onChange({
+                ...filters,
+                myCompanies: !filters.myCompanies,
+                company: '',
+              })
+            }
           >
             De mi experiencia ({myCompaniesCount})
           </Toggle>
         ) : null}
 
         {canReviewDiscarded && discardedCount > 0 ? (
-          <Toggle active={reviewingDiscarded} icon={EyeOff} onClick={onToggleReviewDiscarded}>
+          <Toggle
+            active={reviewingDiscarded}
+            icon={EyeOff}
+            onClick={onToggleReviewDiscarded}
+          >
             {reviewingDiscarded
-              ? "Volver a las ofertas"
+              ? 'Volver a las ofertas'
               : `Ver las que descartaste (${discardedCount})`}
           </Toggle>
         ) : null}
@@ -243,5 +277,5 @@ export function FilterBar({
         ) : null}
       </div>
     </div>
-  );
+  )
 }

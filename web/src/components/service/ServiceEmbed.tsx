@@ -1,7 +1,7 @@
-import { ArrowUpRight, Laptop, MapPin, UserRound, Wallet } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useTheme } from "../../hooks/useTheme.ts";
-import { isAbortError } from "../../lib/api.ts";
+import { ArrowUpRight, Laptop, MapPin, UserRound, Wallet } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useTheme } from '../../hooks/useTheme.ts'
+import { isAbortError } from '../../lib/api.ts'
 import {
   type Service,
   basePrice,
@@ -10,15 +10,15 @@ import {
   serviceCategoryLabel,
   serviceLocation,
   serviceModeLabel,
-} from "../../lib/services.ts";
-import { serviceLink } from "../../lib/share.ts";
-import { chipClass, mutedChip } from "../../lib/styles.ts";
-import type { Theme } from "../../lib/types.ts";
-import { Rating } from "./Rating.tsx";
+} from '../../lib/services.ts'
+import { serviceLink } from '../../lib/share.ts'
+import { chipClass, mutedChip } from '../../lib/styles.ts'
+import type { Theme } from '../../lib/types.ts'
+import { Rating } from './Rating.tsx'
 
 interface ServiceEmbedProps {
-  slug: string;
-  theme: Theme;
+  slug: string
+  theme: Theme
 }
 
 function Frame({ children }: { children: React.ReactNode }) {
@@ -26,12 +26,12 @@ function Frame({ children }: { children: React.ReactNode }) {
     <div className="mx-auto max-w-[560px] rounded-2xl border border-sky/50 bg-surface p-4 text-ink">
       {children}
     </div>
-  );
+  )
 }
 
 function Card({ service }: { service: Service }) {
-  const price = basePrice(service);
-  const link = serviceLink(service.slug);
+  const price = basePrice(service)
+  const link = serviceLink(service.slug)
 
   return (
     <Frame>
@@ -88,7 +88,7 @@ function Card({ service }: { service: Service }) {
         </a>
       </div>
     </Frame>
-  );
+  )
 }
 
 /**
@@ -96,26 +96,28 @@ function Card({ service }: { service: Service }) {
  * Solo enlaza hacia afuera: no toca nada de lo guardado en el navegador.
  */
 export function ServiceEmbed({ slug, theme }: ServiceEmbedProps) {
-  const [service, setService] = useState<Service | null>(null);
-  const [error, setError] = useState(false);
+  const [service, setService] = useState<Service | null>(null)
+  const [error, setError] = useState(false)
 
-  useTheme(theme);
+  useTheme(theme)
 
   useEffect(() => {
-    const controller = new AbortController();
+    const controller = new AbortController()
     fetchService(slug, controller.signal)
       .then(setService)
       .catch((cause: unknown) => {
-        if (isAbortError(cause)) return;
-        setError(true);
-      });
-    return () => controller.abort();
-  }, [slug]);
+        if (isAbortError(cause)) return
+        setError(true)
+      })
+    return () => controller.abort()
+  }, [slug])
 
   if (error) {
     return (
       <Frame>
-        <p className="text-sm text-soft">Este servicio ya no está disponible.</p>
+        <p className="text-sm text-soft">
+          Este servicio ya no está disponible.
+        </p>
         <a
           className="mt-1 inline-block text-sm font-medium text-brand"
           href={serviceLink(slug)}
@@ -125,7 +127,7 @@ export function ServiceEmbed({ slug, theme }: ServiceEmbedProps) {
           Buscar en JobIt
         </a>
       </Frame>
-    );
+    )
   }
 
   if (!service) {
@@ -140,8 +142,8 @@ export function ServiceEmbed({ slug, theme }: ServiceEmbedProps) {
           </div>
         </div>
       </Frame>
-    );
+    )
   }
 
-  return <Card service={service} />;
+  return <Card service={service} />
 }

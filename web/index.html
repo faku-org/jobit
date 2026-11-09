@@ -10,15 +10,26 @@
       content="Buscador de ofertas de trabajo de todo Uruguay en un solo lugar: filtrá por rubro, departamento y jornada, y encontrá los puestos que no piden experiencia previa."
     />
     <link rel="canonical" href="https://jobs.wefaber.net/" />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1"
+    />
 
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="describedby" href="/llms.txt" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e3f2fd" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a1220" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#e3f2fd"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#0a1220"
+    />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="JobIt" />
@@ -35,7 +46,10 @@
     <meta property="og:image:alt" content="JobIt · Te ayudamos a progresar" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="JobIt · Ofertas de trabajo en Uruguay" />
+    <meta
+      name="twitter:title"
+      content="JobIt · Ofertas de trabajo en Uruguay"
+    />
     <meta
       name="twitter:description"
       content="Las ofertas de trabajo de Uruguay en un solo lugar, con filtro para los puestos que no piden experiencia previa."
@@ -85,14 +99,16 @@
     <script>
       /* Paints the stored theme before first render so there is no flash. */
       try {
-        const stored = JSON.parse(localStorage.getItem("jobit.prefs.v1") || "{}");
+        const stored = JSON.parse(
+          localStorage.getItem('jobit.prefs.v1') || '{}',
+        )
         const theme =
-          stored.theme === "light" || stored.theme === "dark"
+          stored.theme === 'light' || stored.theme === 'dark'
             ? stored.theme
-            : matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-        document.documentElement.dataset.theme = theme;
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+        document.documentElement.dataset.theme = theme
       } catch {}
     </script>
   </head>
@@ -101,14 +117,17 @@
     <noscript>
       <h1>JobIt · Ofertas de trabajo en Uruguay</h1>
       <p>
-        JobIt junta en un solo lugar las ofertas de trabajo publicadas en portales uruguayos y los
-        llamados del Estado en Uruguay Concursa. Se filtran por rubro, departamento, jornada y
-        modalidad, y las que no piden experiencia previa quedan marcadas, para que encontrar el
-        primer empleo no dependa de revisar cinco sitios distintos.
+        JobIt junta en un solo lugar las ofertas de trabajo publicadas en
+        portales uruguayos y los llamados del Estado en Uruguay Concursa. Se
+        filtran por rubro, departamento, jornada y modalidad, y las que no piden
+        experiencia previa quedan marcadas, para que encontrar el primer empleo
+        no dependa de revisar cinco sitios distintos.
       </p>
       <p>
-        La aplicación necesita JavaScript para funcionar. El listado en texto está en
-        <a href="/api/jobs.txt">/api/jobs.txt</a>. Las fuentes que consulta están abiertas:
+        La aplicación necesita JavaScript para funcionar. El listado en texto
+        está en
+        <a href="/api/jobs.txt">/api/jobs.txt</a>. Las fuentes que consulta
+        están abiertas:
         <a href="https://www.buscojobs.com.uy/">BuscoJobs Uruguay</a> y
         <a href="https://www.uruguayconcursa.gub.uy/">Uruguay Concursa</a>.
       </p>

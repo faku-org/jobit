@@ -1,11 +1,11 @@
-import { MAX_PAGE, fetchJob, fetchJobs, fetchJobsQuery } from "./api.ts";
-import { EMPTY_FILTERS, type Job } from "./types.ts";
+import { MAX_PAGE, fetchJob, fetchJobs, fetchJobsQuery } from './api.ts'
+import { EMPTY_FILTERS, type Job } from './types.ts'
 
 export interface CachedJobs {
-  jobs: Job[];
-  total: number;
+  jobs: Job[]
+  total: number
   /** Cuándo se trajo, para saber si todavía sirve sin volver a preguntar. */
-  at: number;
+  at: number
 }
 
 /**
@@ -14,43 +14,45 @@ export interface CachedJobs {
  * fondo. Vive en memoria y muere con la pestaña, que es lo que se quiere: no
  * es un dato del navegador, es lo que se está mirando ahora.
  */
-const entries = new Map<string, CachedJobs>();
+const entries = new Map<string, CachedJobs>()
 
 /** La tanda de ofertas cambia cuando corre el scraper, una vez por día: cinco
  * minutos alcanza de sobra para que ir y volver de una pestaña sea gratis. */
-const FRESH_MS = 5 * 60_000;
+const FRESH_MS = 5 * 60_000
 
 /** Cada combinación de filtros deja una entrada; un rato de tocar chips llena
  * esto, así que se tiran las más viejas primero. */
-const MAX_ENTRIES = 24;
+const MAX_ENTRIES = 24
 
-export const isStale = (entry: CachedJobs): boolean => Date.now() - entry.at > FRESH_MS;
+export const isStale = (entry: CachedJobs): boolean =>
+  Date.now() - entry.at > FRESH_MS
 
-export const readJobs = (key: string): CachedJobs | undefined => entries.get(key);
+export const readJobs = (key: string): CachedJobs | undefined =>
+  entries.get(key)
 
 /** Ofertas ya vistas, por id. Sobrevive a que se tire una consulta: abrir una
  * ficha o una fila de seguimiento no tiene por qué volver a la red si esa
  * oferta ya pasó por una lista. */
-const byId = new Map<string, Job>();
-const jobFlight = new Map<string, Promise<Job>>();
+const byId = new Map<string, Job>()
+const jobFlight = new Map<string, Promise<Job>>()
 
 export function rememberJobs(jobs: Job[]): void {
-  for (const job of jobs) byId.set(job.id, job);
+  for (const job of jobs) byId.set(job.id, job)
 }
 
-export const readJob = (id: string): Job | undefined => byId.get(id);
+export const readJob = (id: string): Job | undefined => byId.get(id)
 
 export function writeJobs(key: string, jobs: Job[], total: number): void {
   /** Reinsertar la deja última en el orden del Map, que es orden de llegada:
    * así la que se descarta es siempre la que hace más que no se usa. */
-  entries.delete(key);
-  entries.set(key, { jobs, total, at: Date.now() });
-  rememberJobs(jobs);
+  entries.delete(key)
+  entries.set(key, { jobs, total, at: Date.now() })
+  rememberJobs(jobs)
 
   while (entries.size > MAX_ENTRIES) {
-    const oldest = entries.keys().next();
-    if (oldest.done) break;
-    entries.delete(oldest.value);
+    const oldest = entries.keys().next()
+    if (oldest.done) break
+    entries.delete(oldest.value)
   }
 }
 
@@ -66,9 +68,9 @@ export function writeJobs(key: string, jobs: Job[], total: number): void {
  * traer la versión nueva, no la que estaba guardada.
  */
 export function expireJobs(): void {
-  for (const entry of entries.values()) entry.at = 0;
-  byId.clear();
-  jobFlight.clear();
+  for (const entry of entries.values()) entry.at = 0
+  byId.clear()
+  jobFlight.clear()
 }
 
 /**
@@ -77,20 +79,20 @@ export function expireJobs(): void {
  * cada clic espera el round-trip entero.
  */
 export function loadJob(id: string, signal?: AbortSignal): Promise<Job> {
-  const hit = byId.get(id);
-  if (hit) return Promise.resolve(hit);
+  const hit = byId.get(id)
+  if (hit) return Promise.resolve(hit)
 
-  const pending = jobFlight.get(id);
-  if (pending) return pending;
+  const pending = jobFlight.get(id)
+  if (pending) return pending
 
   const request = fetchJob(id, signal)
     .then((job) => {
-      byId.set(job.id, job);
-      return job;
+      byId.set(job.id, job)
+      return job
     })
-    .finally(() => jobFlight.delete(id));
-  jobFlight.set(id, request);
-  return request;
+    .finally(() => jobFlight.delete(id))
+  jobFlight.set(id, request)
+  return request
 }
 
 /**
@@ -98,13 +100,13 @@ export function loadJob(id: string, signal?: AbortSignal): Promise<Job> {
  * apuntar la pestaña ya están, y tocar una fila no espera.
  */
 export function prefetchJobIds(ids: readonly string[]): void {
-  const missing = [...new Set(ids.filter((id) => id !== "" && !byId.has(id)))];
-  if (missing.length === 0) return;
+  const missing = [...new Set(ids.filter((id) => id !== '' && !byId.has(id)))]
+  if (missing.length === 0) return
 
-  const key = `ids:${missing.slice().sort().join(",")}`;
-  if (inFlight.has(key)) return;
+  const key = `ids:${missing.slice().sort().join(',')}`
+  if (inFlight.has(key)) return
 
-  inFlight.add(key);
+  inFlight.add(key)
   fetchJobs({
     filters: EMPTY_FILTERS,
     ids: missing,
@@ -113,11 +115,11 @@ export function prefetchJobIds(ids: readonly string[]): void {
   })
     .then((response) => rememberJobs(response.jobs))
     .catch(() => {})
-    .finally(() => inFlight.delete(key));
+    .finally(() => inFlight.delete(key))
 }
 
 /** Lo que ya se está pidiendo, para que dos prefetch de lo mismo sean uno. */
-const inFlight = new Set<string>();
+const inFlight = new Set<string>()
 
 /**
  * Trae la primera página de una consulta antes de que alguien la mire: al
@@ -129,13 +131,13 @@ const inFlight = new Set<string>();
  * recortando la lista a la primera página sin que nadie lo pidiera.
  */
 export function prefetchJobs(key: string): void {
-  if (key === "" || inFlight.has(key) || entries.has(key)) return;
+  if (key === '' || inFlight.has(key) || entries.has(key)) return
 
-  inFlight.add(key);
+  inFlight.add(key)
   fetchJobsQuery(key)
     .then((response) => writeJobs(key, response.jobs, response.total))
     /** Un prefetch que falla no es un error de nadie: la vista lo va a pedir
      * de nuevo cuando se abra, y ahí sí hay a quién avisarle. */
     .catch(() => {})
-    .finally(() => inFlight.delete(key));
+    .finally(() => inFlight.delete(key))
 }

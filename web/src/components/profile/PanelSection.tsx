@@ -1,15 +1,15 @@
-import { ChevronDown } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import type { ReactNode } from "react";
-import { fadeUpTransition, revealPresence } from "../../lib/motion.ts";
+import { ChevronDown } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
+import type { ReactNode } from 'react'
+import { fadeUpTransition, revealPresence } from '../../lib/motion.ts'
 
 interface PanelSectionProps {
-  title: string;
+  title: string
   /** What is set inside, shown while it is closed so nothing hides silently. */
-  summary: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
+  summary: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
 }
 
 /**
@@ -18,7 +18,13 @@ interface PanelSectionProps {
  * where to go, and the summary is what makes a closed one honest about holding
  * something.
  */
-export function PanelSection({ title, summary, open, onToggle, children }: PanelSectionProps) {
+export function PanelSection({
+  title,
+  summary,
+  open,
+  onToggle,
+  children,
+}: PanelSectionProps) {
   return (
     <div className="border-t border-onpanel/10 pt-3 first:border-t-0 first:pt-0">
       <button
@@ -30,13 +36,13 @@ export function PanelSection({ title, summary, open, onToggle, children }: Panel
         <ChevronDown
           aria-hidden
           className={`size-3.5 shrink-0 text-onpanel-muted transition-transform ${
-            open ? "" : "-rotate-90"
+            open ? '' : '-rotate-90'
           }`}
         />
         <span className="text-[11px] font-semibold tracking-wide text-onpanel/60 uppercase">
           {title}
         </span>
-        {!open && summary !== "" ? (
+        {!open && summary !== '' ? (
           <span className="min-w-0 flex-1 truncate text-right text-[11px] text-onpanel-faint">
             {summary}
           </span>
@@ -45,11 +51,17 @@ export function PanelSection({ title, summary, open, onToggle, children }: Panel
 
       <AnimatePresence initial={false}>
         {open ? (
-          <m.div {...revealPresence} className="grid overflow-hidden" transition={fadeUpTransition}>
-            <div className="min-h-0 space-y-5 overflow-hidden px-1 pt-3 pb-1">{children}</div>
+          <m.div
+            {...revealPresence}
+            className="grid overflow-hidden"
+            transition={fadeUpTransition}
+          >
+            <div className="min-h-0 space-y-5 overflow-hidden px-1 pt-3 pb-1">
+              {children}
+            </div>
           </m.div>
         ) : null}
       </AnimatePresence>
     </div>
-  );
+  )
 }

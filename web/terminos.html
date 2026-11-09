@@ -15,20 +15,30 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e3f2fd" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a1220" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#e3f2fd"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#0a1220"
+    />
 
     <script>
       /* Mismo criterio que la app: el tema se pinta antes del primer render. */
       try {
-        const stored = JSON.parse(localStorage.getItem("jobit.prefs.v1") || "{}");
+        const stored = JSON.parse(
+          localStorage.getItem('jobit.prefs.v1') || '{}',
+        )
         const theme =
-          stored.theme === "light" || stored.theme === "dark"
+          stored.theme === 'light' || stored.theme === 'dark'
             ? stored.theme
-            : matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-        document.documentElement.dataset.theme = theme;
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+        document.documentElement.dataset.theme = theme
       } catch {}
     </script>
 
@@ -101,53 +111,59 @@
         <div class="legal-doc">
           <div class="legal-lead">
             <p>
-              <strong>JobIt junta avisos de trabajo que publican otros.</strong> No somos una
-              agencia de empleo: no seleccionamos, no recibimos postulaciones y no tenemos contacto
-              con las empresas por vos. Cada oferta enlaza al aviso original y ahí termina lo
-              nuestro.
+              <strong>JobIt junta avisos de trabajo que publican otros.</strong>
+              No somos una agencia de empleo: no seleccionamos, no recibimos
+              postulaciones y no tenemos contacto con las empresas por vos. Cada
+              oferta enlaza al aviso original y ahí termina lo nuestro.
             </p>
             <p>
-              Es gratis, no pide cuenta y <strong>nunca vas a tener que pagar nada</strong> para ver
-              una oferta o postularte.
+              Es gratis, no pide cuenta y
+              <strong>nunca vas a tener que pagar nada</strong> para ver una
+              oferta o postularte.
             </p>
           </div>
 
           <section id="quienes-somos">
             <h2>1. Quiénes somos</h2>
             <p>
-              JobIt es un buscador de ofertas de trabajo de Uruguay operado por Faber
-              (<a href="https://wefaber.net">wefaber.net</a>) en
-              <a href="https://jobs.wefaber.net/">jobs.wefaber.net</a>. Para cualquier consulta
-              sobre estos términos escribinos a
+              JobIt es un buscador de ofertas de trabajo de Uruguay operado por
+              Faber (<a href="https://wefaber.net">wefaber.net</a>) en
+              <a href="https://jobs.wefaber.net/">jobs.wefaber.net</a>. Para
+              cualquier consulta sobre estos términos escribinos a
               <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>.
             </p>
             <p>
-              Usar el sitio significa aceptar lo que sigue. Si algo de esto no te cierra, el uso del
-              servicio no es obligatorio para nadie.
+              Usar el sitio significa aceptar lo que sigue. Si algo de esto no
+              te cierra, el uso del servicio no es obligatorio para nadie.
             </p>
           </section>
 
           <section id="que-es">
             <h2>2. Qué es JobIt y qué no es</h2>
             <p>
-              JobIt reúne en un solo lugar avisos de trabajo publicados en portales uruguayos, los
-              llamados del Estado en Uruguay Concursa y las ofertas que las empresas cargan directo
-              en nuestro panel. Los filtra, los ordena y te lleva al aviso original.
+              JobIt reúne en un solo lugar avisos de trabajo publicados en
+              portales uruguayos, los llamados del Estado en Uruguay Concursa y
+              las ofertas que las empresas cargan directo en nuestro panel. Los
+              filtra, los ordena y te lleva al aviso original.
             </p>
             <p>Lo que no es, para que quede escrito:</p>
             <ul>
               <li>
-                <strong>No es una agencia de empleo ni una consultora de selección.</strong> No
-                participamos del proceso, no evaluamos candidatos y no recomendamos a nadie.
+                <strong
+                  >No es una agencia de empleo ni una consultora de
+                  selección.</strong
+                >
+                No participamos del proceso, no evaluamos candidatos y no
+                recomendamos a nadie.
               </li>
               <li>
-                <strong>No recibimos ni enviamos postulaciones.</strong> Cuando tocás "Postularme"
-                salís al sitio de la fuente o de la empresa, y la postulación ocurre allá, con sus
-                reglas.
+                <strong>No recibimos ni enviamos postulaciones.</strong> Cuando
+                tocás "Postularme" salís al sitio de la fuente o de la empresa,
+                y la postulación ocurre allá, con sus reglas.
               </li>
               <li>
-                <strong>No cobramos nada.</strong> Ni a quien busca trabajo ni por destacar un aviso
-                por encima de otro.
+                <strong>No cobramos nada.</strong> Ni a quien busca trabajo ni
+                por destacar un aviso por encima de otro.
               </li>
             </ul>
           </section>
@@ -155,44 +171,49 @@
           <section id="quien-puede">
             <h2>3. Quién puede usarlo</h2>
             <p>
-              No hace falta registrarse ni dar ningún dato. Alcanza con un navegador con JavaScript
-              habilitado.
+              No hace falta registrarse ni dar ningún dato. Alcanza con un
+              navegador con JavaScript habilitado.
             </p>
             <p>
-              En Uruguay la edad mínima para trabajar es 15 años y quien tiene menos de 18 necesita
-              la autorización del INAU, un trámite que corresponde al adolescente y al empleador y
-              en el que JobIt no interviene. Si sos menor de edad, lo razonable es que uses el sitio
-              con conocimiento de quien te tiene a cargo.
+              En Uruguay la edad mínima para trabajar es 15 años y quien tiene
+              menos de 18 necesita la autorización del INAU, un trámite que
+              corresponde al adolescente y al empleador y en el que JobIt no
+              interviene. Si sos menor de edad, lo razonable es que uses el
+              sitio con conocimiento de quien te tiene a cargo.
             </p>
           </section>
 
           <section id="terceros">
             <h2>4. Las ofertas son de terceros</h2>
             <p>
-              El texto de cada aviso, el sueldo, los requisitos, la fecha de cierre y los datos de
-              contacto los publica la fuente, no nosotros. Los tomamos como están y los enlazamos.
+              El texto de cada aviso, el sueldo, los requisitos, la fecha de
+              cierre y los datos de contacto los publica la fuente, no nosotros.
+              Los tomamos como están y los enlazamos.
             </p>
             <ul>
               <li>
-                No verificamos que una oferta sea real, que siga vigente, que las condiciones sean
-                las que dice ni que la empresa exista.
+                No verificamos que una oferta sea real, que siga vigente, que
+                las condiciones sean las que dice ni que la empresa exista.
               </li>
               <li>
-                Una oferta puede haberse cerrado o cambiado después de que la leímos. La lista se
-                actualiza cuando corre el scraper, no en tiempo real.
+                Una oferta puede haberse cerrado o cambiado después de que la
+                leímos. La lista se actualiza cuando corre el scraper, no en
+                tiempo real.
               </li>
               <li>
-                Si un aviso está mal, desactualizado o es falso, escribinos y lo sacamos, pero la
-                responsabilidad por lo publicado es de quien lo publicó.
+                Si un aviso está mal, desactualizado o es falso, escribinos y lo
+                sacamos, pero la responsabilidad por lo publicado es de quien lo
+                publicó.
               </li>
             </ul>
 
             <div class="legal-note">
               <p>
-                <strong>Cuidado con las estafas.</strong> Ninguna búsqueda laboral legítima te va a
-                pedir plata por adelantado, un depósito, tus datos de tarjeta, tus claves ni una
-                copia de tu documento antes de una entrevista. Verificá siempre en el aviso original
-                y en la página de la empresa antes de mandar nada.
+                <strong>Cuidado con las estafas.</strong> Ninguna búsqueda
+                laboral legítima te va a pedir plata por adelantado, un
+                depósito, tus datos de tarjeta, tus claves ni una copia de tu
+                documento antes de una entrevista. Verificá siempre en el aviso
+                original y en la página de la empresa antes de mandar nada.
               </p>
             </div>
           </section>
@@ -200,12 +221,13 @@
           <section id="navegador">
             <h2>5. Lo tuyo vive en tu navegador</h2>
             <p>
-              Tu perfil, tus guardadas, los descartes, el seguimiento de postulaciones y todas tus
-              preferencias se guardan en tu navegador y no tienen copia en ningún servidor nuestro.
-              Eso es lo que permite usar JobIt sin cuenta, y también significa que
+              Tu perfil, tus guardadas, los descartes, el seguimiento de
+              postulaciones y todas tus preferencias se guardan en tu navegador
+              y no tienen copia en ningún servidor nuestro. Eso es lo que
+              permite usar JobIt sin cuenta, y también significa que
               <strong
-                >si limpiás los datos del sitio, cambiás de navegador o de dispositivo, o navegás en
-                modo incógnito, eso se pierde</strong
+                >si limpiás los datos del sitio, cambiás de navegador o de
+                dispositivo, o navegás en modo incógnito, eso se pierde</strong
               >
               y no lo podemos recuperar. El detalle completo está en la
               <a href="/privacidad">Política de privacidad</a>.
@@ -215,25 +237,32 @@
           <section id="uso">
             <h2>6. Uso permitido</h2>
             <p>
-              JobIt está pensado para que una persona busque trabajo. Sobre esa base, no se puede:
+              JobIt está pensado para que una persona busque trabajo. Sobre esa
+              base, no se puede:
             </p>
             <ul>
               <li>
-                Bajar el catálogo de forma automatizada o masiva, ni copiarlo para armar otro
-                servicio.
-              </li>
-              <li>Republicar las ofertas como propias o sin enlazar al aviso original.</li>
-              <li>Revender el acceso, los datos o cualquier parte del servicio.</li>
-              <li>
-                Saltear los límites de peticiones, intentar entrar al panel de administración o
-                probar claves.
+                Bajar el catálogo de forma automatizada o masiva, ni copiarlo
+                para armar otro servicio.
               </li>
               <li>
-                Usar los datos de contacto que aparecen en los avisos para publicidad, spam o
-                cualquier fin ajeno a postularse.
+                Republicar las ofertas como propias o sin enlazar al aviso
+                original.
               </li>
               <li>
-                Interferir con el funcionamiento del servicio o de la infraestructura que lo corre.
+                Revender el acceso, los datos o cualquier parte del servicio.
+              </li>
+              <li>
+                Saltear los límites de peticiones, intentar entrar al panel de
+                administración o probar claves.
+              </li>
+              <li>
+                Usar los datos de contacto que aparecen en los avisos para
+                publicidad, spam o cualquier fin ajeno a postularse.
+              </li>
+              <li>
+                Interferir con el funcionamiento del servicio o de la
+                infraestructura que lo corre.
               </li>
             </ul>
           </section>
@@ -241,9 +270,10 @@
           <section id="fuentes">
             <h2>7. Las fuentes que agregás vos</h2>
             <p>
-              JobIt te deja sumar tus propias URLs de feeds. Esas direcciones las pide tu navegador
-              directo al sitio de destino: no pasan por nuestro servidor y no las guardamos. Sos
-              responsable de tener derecho a consumir ese feed y de cumplir con los términos del
+              JobIt te deja sumar tus propias URLs de feeds. Esas direcciones
+              las pide tu navegador directo al sitio de destino: no pasan por
+              nuestro servidor y no las guardamos. Sos responsable de tener
+              derecho a consumir ese feed y de cumplir con los términos del
               sitio que lo publica.
             </p>
           </section>
@@ -251,50 +281,58 @@
           <section id="embed">
             <h2>8. Embeber una oferta</h2>
             <p>
-              Cada aviso se puede embeber en otra página con <code>?embed=&lt;id&gt;</code>. Está
-              permitido mientras no se altere el contenido, se mantenga el enlace al aviso original
-              y no se presente como propio ni dentro de un contexto engañoso, discriminatorio o
-              ilegal. Podemos pedir que se baje un embed que no cumpla.
+              Cada aviso se puede embeber en otra página con
+              <code>?embed=&lt;id&gt;</code>. Está permitido mientras no se
+              altere el contenido, se mantenga el enlace al aviso original y no
+              se presente como propio ni dentro de un contexto engañoso,
+              discriminatorio o ilegal. Podemos pedir que se baje un embed que
+              no cumpla.
             </p>
           </section>
 
           <section id="empresas">
             <h2>9. Empresas que publican</h2>
             <p>
-              Quien carga una oferta en el panel declara que el puesto es real, que está autorizado
-              a publicarlo y que el aviso no discrimina por sexo, raza, religión, orientación, edad,
-              discapacidad, situación sindical ni ninguna otra condición ajena a la idoneidad para
-              el cargo, en línea con las leyes 16.045 y 17.677. Podemos editar o dar de baja
-              cualquier aviso que no cumpla, sin aviso previo.
+              Quien carga una oferta en el panel declara que el puesto es real,
+              que está autorizado a publicarlo y que el aviso no discrimina por
+              sexo, raza, religión, orientación, edad, discapacidad, situación
+              sindical ni ninguna otra condición ajena a la idoneidad para el
+              cargo, en línea con las leyes 16.045 y 17.677. Podemos editar o
+              dar de baja cualquier aviso que no cumpla, sin aviso previo.
             </p>
           </section>
 
           <section id="marca">
             <h2>10. Marca, código y contenidos</h2>
             <p>
-              El nombre JobIt, el logo y el diseño del sitio son de Faber y no se licencian. El
-              código se publica bajo la
-              <a href="https://www.apache.org/licenses/LICENSE-2.0">licencia Apache 2.0</a>: se
-              puede usar, modificar y redistribuir, siempre que se conserve la atribución al
-              proyecto original (JobIt,
-              <a href="https://github.com/faku-org/jobit">github.com/faku-org/jobit</a>,
-              <a href="https://jobs.wefaber.net/">jobs.wefaber.net</a>) que está en el archivo
-              <code>NOTICE</code> del repositorio. El contenido de cada aviso es de quien lo
-              publicó: lo mostramos citado y enlazado a su fuente, sin apropiárnoslo.
+              El nombre JobIt, el logo y el diseño del sitio son de Faber y no
+              se licencian. El código se publica bajo la
+              <a href="https://www.apache.org/licenses/LICENSE-2.0"
+                >licencia Apache 2.0</a
+              >: se puede usar, modificar y redistribuir, siempre que se
+              conserve la atribución al proyecto original (JobIt,
+              <a href="https://github.com/faku-org/jobit"
+                >github.com/faku-org/jobit</a
+              >, <a href="https://jobs.wefaber.net/">jobs.wefaber.net</a>) que
+              está en el archivo <code>NOTICE</code> del repositorio. El
+              contenido de cada aviso es de quien lo publicó: lo mostramos
+              citado y enlazado a su fuente, sin apropiárnoslo.
             </p>
           </section>
 
           <section id="garantias">
             <h2>11. El servicio se ofrece como está</h2>
             <p>
-              JobIt se presta tal cual está y según disponibilidad. Puede cortarse, cambiar o dejar
-              de existir. No garantizamos que consigas trabajo, que la información esté completa o
-              exacta, ni que el sitio esté siempre disponible.
+              JobIt se presta tal cual está y según disponibilidad. Puede
+              cortarse, cambiar o dejar de existir. No garantizamos que consigas
+              trabajo, que la información esté completa o exacta, ni que el
+              sitio esté siempre disponible.
             </p>
             <p>
-              Dentro de lo que permite la ley, no respondemos por los daños que puedan derivarse del
-              uso del sitio, de una oferta falsa, vencida o incorrecta, ni de lo que pase en el
-              sitio de un tercero al que hayas llegado desde acá. Nada de esto recorta los derechos
+              Dentro de lo que permite la ley, no respondemos por los daños que
+              puedan derivarse del uso del sitio, de una oferta falsa, vencida o
+              incorrecta, ni de lo que pase en el sitio de un tercero al que
+              hayas llegado desde acá. Nada de esto recorta los derechos
               irrenunciables que te da la ley 17.250 de relaciones de consumo.
             </p>
           </section>
@@ -302,23 +340,25 @@
           <section id="cambios">
             <h2>12. Cambios en estos términos</h2>
             <p>
-              Si cambian, la versión nueva se publica en esta misma página con su fecha. Seguir
-              usando el sitio después de un cambio significa aceptarlo.
+              Si cambian, la versión nueva se publica en esta misma página con
+              su fecha. Seguir usando el sitio después de un cambio significa
+              aceptarlo.
             </p>
           </section>
 
           <section id="ley">
             <h2>13. Ley aplicable</h2>
             <p>
-              Se aplica la ley uruguaya y cualquier conflicto se resuelve ante los tribunales de
-              Montevideo, Uruguay.
+              Se aplica la ley uruguaya y cualquier conflicto se resuelve ante
+              los tribunales de Montevideo, Uruguay.
             </p>
           </section>
 
           <section id="contacto">
             <h2>14. Contacto</h2>
             <p>
-              Dudas, reclamos, un aviso que hay que bajar o una empresa que quiere publicar:
+              Dudas, reclamos, un aviso que hay que bajar o una empresa que
+              quiere publicar:
               <a href="mailto:hola@wefaber.net">hola@wefaber.net</a>.
             </p>
           </section>

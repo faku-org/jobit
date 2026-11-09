@@ -1,4 +1,4 @@
-import { Elysia, t } from "elysia";
+import { Elysia, t } from 'elysia'
 import {
   SESSION_COOKIE,
   adminEnabled,
@@ -6,35 +6,37 @@ import {
   destroySession,
   sessionValid,
   verifyPassword,
-} from "./auth.ts";
-import * as boosts from "./boosts.ts";
-import * as companies from "./companies.ts";
-import { COMPANY_STATUSES } from "./companies.ts";
-import { type Limit, clientKey, take } from "./limit.ts";
-import * as offers from "./offers.ts";
-import { OFFER_STATUSES } from "./offers.ts";
-import * as queue from "./queue.ts";
-import { DECISIONS } from "./queue.ts";
-import { REVIEW_STATUSES, byId as reviewsById } from "./reviews.ts";
-import { byId as servicesById } from "./services.ts";
-import { loadUsage } from "./usage.ts";
+} from './auth.ts'
+import * as boosts from './boosts.ts'
+import * as companies from './companies.ts'
+import { COMPANY_STATUSES } from './companies.ts'
+import { type Limit, clientKey, take } from './limit.ts'
+import * as offers from './offers.ts'
+import { OFFER_STATUSES } from './offers.ts'
+import * as queue from './queue.ts'
+import { DECISIONS } from './queue.ts'
+import { REVIEW_STATUSES, byId as reviewsById } from './reviews.ts'
+import { byId as servicesById } from './services.ts'
+import { loadUsage } from './usage.ts'
 
 /**
  * Probar claves es lo único que se puede atacar sin estar adentro, así que
  * tiene su propio presupuesto y es mucho más chico que el del resto.
  */
-const LOGIN_LIMIT: Limit = { windowMs: 15 * 60_000, max: 10 };
+const LOGIN_LIMIT: Limit = { windowMs: 15 * 60_000, max: 10 }
 
-const SECURE_COOKIES = process.env.ADMIN_INSECURE_COOKIES !== "true";
+const SECURE_COOKIES = process.env.ADMIN_INSECURE_COOKIES !== 'true'
 
-const statusSchema = t.Union(COMPANY_STATUSES.map((value) => t.Literal(value)));
+const statusSchema = t.Union(COMPANY_STATUSES.map((value) => t.Literal(value)))
 
 /** Elysia entrega el valor de la cookie como unknown mientras no se le declare
  * un esquema; acá alcanza con quedarse solo con lo que sea texto. */
 const tokenOf = (value: unknown): string | undefined =>
-  typeof value === "string" && value.length > 0 ? value : undefined;
+  typeof value === 'string' && value.length > 0 ? value : undefined
 
-const offerStatusSchema = t.Union(OFFER_STATUSES.map((value) => t.Literal(value)));
+const offerStatusSchema = t.Union(
+  OFFER_STATUSES.map((value) => t.Literal(value)),
+)
 
 /** Los enums viajan como texto libre y offers.ts descarta lo que no reconoce:
  * un valor raro deja el campo vacío en vez de rechazar la oferta entera. */
@@ -55,7 +57,7 @@ const offerBody = t.Object({
   closes_at: t.Optional(t.String({ maxLength: 10 })),
   apply_url: t.Optional(t.String({ maxLength: 500 })),
   status: t.Optional(offerStatusSchema),
-});
+})
 
 const companyBody = t.Object({
   name: t.String({ maxLength: 200 }),
@@ -63,103 +65,118 @@ const companyBody = t.Object({
   website: t.Optional(t.String({ maxLength: 300 })),
   status: t.Optional(statusSchema),
   notes: t.Optional(t.String({ maxLength: 4000 })),
-});
+})
 
 /**
  * Todo cuelga de /api/admin y nada de acá se sirve si falta la credencial en
  * el entorno: sin ADMIN_PASSWORD_HASH las rutas contestan 404, de modo que un
  * despliegue sin configurar no expone ni siquiera que el panel existe.
  */
-export const admin = new Elysia({ prefix: "/api/admin" })
+export const admin = new Elysia({ prefix: '/api/admin' })
   .guard({
     beforeHandle({ status }) {
-      if (!adminEnabled()) return status(404, { error: "no encontrado" });
+      if (!adminEnabled()) return status(404, { error: 'no encontrado' })
     },
   })
   .post(
-    "/login",
+    '/login',
     async ({ body, cookie, request, server, status }) => {
-      const key = clientKey(request, server?.requestIP(request)?.address ?? null);
-      const allowance = take(`login:${key}`, LOGIN_LIMIT);
+      const key = clientKey(
+        request,
+        server?.requestIP(request)?.address ?? null,
+      )
+      const allowance = take(`login:${key}`, LOGIN_LIMIT)
       if (!allowance.ok) {
-        return status(429, { error: "demasiados intentos, probá más tarde" });
+        return status(429, { error: 'demasiados intentos, probá más tarde' })
       }
 
       if (!(await verifyPassword(body.password))) {
-        return status(401, { error: "clave incorrecta" });
+        return status(401, { error: 'clave incorrecta' })
       }
 
-      const session = createSession();
+      const session = createSession()
       cookie[SESSION_COOKIE]?.set({
         value: session.token,
         httpOnly: true,
         secure: SECURE_COOKIES,
         /** strict: ningún sitio ajeno puede disparar una acción del panel
          * llevando la cookie puesta, que es el vector de CSRF acá. */
-        sameSite: "strict",
-        path: "/api/admin",
+        sameSite: 'strict',
+        path: '/api/admin',
         expires: new Date(session.expiresAt),
-      });
+      })
 
-      return { status: "ok" };
+      return { status: 'ok' }
     },
     { body: t.Object({ password: t.String({ maxLength: 200 }) }) },
   )
-  .post("/logout", ({ cookie }) => {
-    destroySession(tokenOf(cookie[SESSION_COOKIE]?.value));
-    cookie[SESSION_COOKIE]?.remove();
-    return { status: "ok" };
+  .post('/logout', ({ cookie }) => {
+    destroySession(tokenOf(cookie[SESSION_COOKIE]?.value))
+    cookie[SESSION_COOKIE]?.remove()
+    return { status: 'ok' }
   })
   /** De acá para abajo hay que estar adentro. */
   .guard({
     beforeHandle({ cookie, status }) {
       if (!sessionValid(tokenOf(cookie[SESSION_COOKIE]?.value))) {
-        return status(401, { error: "sesión vencida" });
+        return status(401, { error: 'sesión vencida' })
       }
     },
   })
-  .get("/session", () => ({ status: "ok" }))
+  .get('/session', () => ({ status: 'ok' }))
   /** Lo que ya llegó a stats.jsonl y events.jsonl, sumado. Vive acá y no en
    * /api porque es lo único del sistema que mira el uso de todos juntos. */
-  .get("/usage", ({ query }) => loadUsage(query.days ?? 30), {
-    query: t.Object({ days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })) }),
+  .get('/usage', ({ query }) => loadUsage(query.days ?? 30), {
+    query: t.Object({
+      days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })),
+    }),
   })
   .get(
-    "/companies",
+    '/companies',
     ({ query }) => ({
       companies: companies.list({ status: query.status, q: query.q }),
       counts: companies.counts(),
     }),
-    { query: t.Object({ status: t.Optional(statusSchema), q: t.Optional(t.String()) }) },
+    {
+      query: t.Object({
+        status: t.Optional(statusSchema),
+        q: t.Optional(t.String()),
+      }),
+    },
   )
   .post(
-    "/companies",
+    '/companies',
     ({ body, status }) => {
-      const created = companies.create(body);
-      return created.ok ? status(201, created.value) : status(422, { error: created.error });
+      const created = companies.create(body)
+      return created.ok
+        ? status(201, created.value)
+        : status(422, { error: created.error })
     },
     { body: companyBody },
   )
   .patch(
-    "/companies/:id",
+    '/companies/:id',
     ({ params, body, status }) => {
-      const updated = companies.update(params.id, body);
-      if (updated.ok) return updated.value;
-      return updated.error === "esa empresa no existe"
+      const updated = companies.update(params.id, body)
+      if (updated.ok) return updated.value
+      return updated.error === 'esa empresa no existe'
         ? status(404, { error: updated.error })
-        : status(422, { error: updated.error });
+        : status(422, { error: updated.error })
     },
     { body: t.Partial(companyBody) },
   )
-  .delete("/companies/:id", ({ params, status }) =>
+  .delete('/companies/:id', ({ params, status }) =>
     companies.remove(params.id)
-      ? { status: "ok" }
-      : status(404, { error: "esa empresa no existe" }),
+      ? { status: 'ok' }
+      : status(404, { error: 'esa empresa no existe' }),
   )
   .get(
-    "/offers",
+    '/offers',
     ({ query }) => ({
-      offers: offers.list({ company_id: query.company_id, status: query.status }),
+      offers: offers.list({
+        company_id: query.company_id,
+        status: query.status,
+      }),
       counts: offers.counts(),
     }),
     {
@@ -170,59 +187,71 @@ export const admin = new Elysia({ prefix: "/api/admin" })
     },
   )
   .post(
-    "/offers",
+    '/offers',
     ({ body, status }) => {
-      const created = offers.create(body);
-      return created.ok ? status(201, created.value) : status(422, { error: created.error });
+      const created = offers.create(body)
+      return created.ok
+        ? status(201, created.value)
+        : status(422, { error: created.error })
     },
     { body: offerBody },
   )
   .patch(
-    "/offers/:id",
+    '/offers/:id',
     ({ params, body, status }) => {
-      const updated = offers.update(params.id, body);
-      if (updated.ok) return updated.value;
-      return updated.error === "esa oferta no existe"
+      const updated = offers.update(params.id, body)
+      if (updated.ok) return updated.value
+      return updated.error === 'esa oferta no existe'
         ? status(404, { error: updated.error })
-        : status(422, { error: updated.error });
+        : status(422, { error: updated.error })
     },
     { body: t.Partial(offerBody) },
   )
-  .delete("/offers/:id", ({ params, status }) =>
-    offers.remove(params.id) ? { status: "ok" } : status(404, { error: "esa oferta no existe" }),
+  .delete('/offers/:id', ({ params, status }) =>
+    offers.remove(params.id)
+      ? { status: 'ok' }
+      : status(404, { error: 'esa oferta no existe' }),
   )
   /** La cola de moderación, ordenada por lo denunciado y por el puntaje del
    * filtro: el motivo viaja al lado para que la decisión no sea a ciegas. */
-  .get("/services", () => ({ queue: queue.pending(), counts: queue.counts() }))
+  .get('/services', () => ({ queue: queue.pending(), counts: queue.counts() }))
   .post(
-    "/services/:id/decision",
+    '/services/:id/decision',
     ({ body, params, status }) =>
       queue.decide(params.id, body.decision)
-        ? { status: "ok", service: servicesById(params.id) }
-        : status(404, { error: "ese servicio no existe" }),
-    { body: t.Object({ decision: t.Union(DECISIONS.map((value) => t.Literal(value))) }) },
+        ? { status: 'ok', service: servicesById(params.id) }
+        : status(404, { error: 'ese servicio no existe' }),
+    {
+      body: t.Object({
+        decision: t.Union(DECISIONS.map((value) => t.Literal(value))),
+      }),
+    },
   )
   /** Lo denunciado adentro de un servicio: la calificación se baja o se deja,
    * y en las dos la denuncia queda atendida. */
   .post(
-    "/services/reviews/:id/decision",
+    '/services/reviews/:id/decision',
     ({ body, params, status }) =>
       queue.decideReview(params.id, body.status)
-        ? { status: "ok", review: reviewsById(params.id) }
-        : status(404, { error: "esa calificación no existe" }),
-    { body: t.Object({ status: t.Union(REVIEW_STATUSES.map((value) => t.Literal(value))) }) },
+        ? { status: 'ok', review: reviewsById(params.id) }
+        : status(404, { error: 'esa calificación no existe' }),
+    {
+      body: t.Object({
+        status: t.Union(REVIEW_STATUSES.map((value) => t.Literal(value))),
+      }),
+    },
   )
   /** Destacados (#33). Todavía no hay cobro: los otorga el admin a mano. Un
    * servicio ajeno o inexistente contesta lo mismo. */
-  .get("/services/boosts", () => ({ boosts: boosts.active() }))
+  .get('/services/boosts', () => ({ boosts: boosts.active() }))
   .post(
-    "/services/:id/boost",
+    '/services/:id/boost',
     ({ body, params, status }) => {
-      const granted = boosts.grant(params.id, body.kind, body.days);
-      if (granted.ok) return granted.value;
-      return granted.error === "ese servicio no existe"
+      const granted = boosts.grant(params.id, body.kind, body.days)
+      if (granted.ok) return granted.value
+      return granted.error === 'ese servicio no existe'
         ? status(404, { error: granted.error })
-        : status(422, { error: granted.error });
+        : status(422, { error: granted.error })
     },
     {
       body: t.Object({
@@ -231,6 +260,8 @@ export const admin = new Elysia({ prefix: "/api/admin" })
       }),
     },
   )
-  .delete("/services/:id/boost", ({ params, status }) =>
-    boosts.revoke(params.id) ? { status: "ok" } : status(404, { error: "ese servicio no existe" }),
-  );
+  .delete('/services/:id/boost', ({ params, status }) =>
+    boosts.revoke(params.id)
+      ? { status: 'ok' }
+      : status(404, { error: 'ese servicio no existe' }),
+  )

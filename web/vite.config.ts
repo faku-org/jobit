@@ -1,47 +1,48 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import { resolve } from "node:path";
-import babel from "@rolldown/plugin-babel";
-import tailwindcss from "@tailwindcss/vite";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { type Plugin, defineConfig } from "vite";
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import { resolve } from 'node:path'
+import babel from '@rolldown/plugin-babel'
+import tailwindcss from '@tailwindcss/vite'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import { type Plugin, defineConfig } from 'vite'
 
 /** 127.0.0.1 y no "localhost": la API escucha en IPv4 (HOST por defecto es
  * 127.0.0.1) y macOS resuelve "localhost" a ::1 primero, así que el proxy
  * terminaba en cualquier otro proceso que tuviera el puerto en IPv6. */
-const API_TARGET = process.env.API_URL ?? "http://127.0.0.1:3000";
+const API_TARGET = process.env.API_URL ?? 'http://127.0.0.1:3000'
 
 /** Las rutas con contenido indexable las sirve la API (ver api/src/site.ts),
  * así que en desarrollo también van para allá. En producción las pone nginx. */
 const PROXY = Object.fromEntries(
   [
-    "/api",
-    "/empleo",
-    "/mercado",
-    "/publicar",
-    "/rubro",
-    "/departamento",
-    "/puesto",
-    "/servicios",
-    "/sitemap.xml",
-    "/entrevista",
-    "/empresa/",
-    "/recursos",
+    '/api',
+    '/empleo',
+    '/mercado',
+    '/publicar',
+    '/rubro',
+    '/departamento',
+    '/puesto',
+    '/servicios',
+    '/sitemap.xml',
+    '/entrevista',
+    '/empresa/',
+    '/recursos',
   ].map((route) => [route, { target: API_TARGET, changeOrigin: true }]),
-);
+)
 
 /** Rutas que en producción nginx sirve desde su propio `<archivo>.html` en vez
  * de dejar que el catch-all devuelva la app. */
-const PAGES = new Set(["/terminos", "/privacidad", "/empresas", "/admin"]);
+const PAGES = new Set(['/terminos', '/privacidad', '/empresas', '/admin'])
 
 /** Misma lista que deploy/nginx.conf location = /. curl manda Accept
  * estrella, no text/plain, así que el User-Agent es lo que decide. */
 const CLI_UA =
-  /(curl|Wget|HTTPie|aria2|Go-http-client|python-requests|Python-urllib|libwww-perl|axios\/|Lynx|w3m)/i;
+  /(curl|Wget|HTTPie|aria2|Go-http-client|python-requests|Python-urllib|libwww-perl|axios\/|Lynx|w3m)/i
 
 function wantsCli(req: IncomingMessage): boolean {
-  const accept = req.headers.accept ?? "";
-  if (/\btext\/plain\b/i.test(accept) && !/\btext\/html\b/i.test(accept)) return true;
-  return CLI_UA.test(req.headers["user-agent"] ?? "");
+  const accept = req.headers.accept ?? ''
+  if (/\btext\/plain\b/i.test(accept) && !/\btext\/html\b/i.test(accept))
+    return true
+  return CLI_UA.test(req.headers['user-agent'] ?? '')
 }
 
 /**
@@ -52,22 +53,26 @@ function wantsCli(req: IncomingMessage): boolean {
  * es la diferencia entre local y el servidor, no la página.
  */
 function pageRoutes(): Plugin {
-  const rewrite = (req: IncomingMessage, _res: ServerResponse, next: () => void): void => {
-    const url = req.url ?? "";
-    const path = url.split("?")[0] ?? "";
-    if (PAGES.has(path)) req.url = `${path}.html${url.slice(path.length)}`;
-    next();
-  };
+  const rewrite = (
+    req: IncomingMessage,
+    _res: ServerResponse,
+    next: () => void,
+  ): void => {
+    const url = req.url ?? ''
+    const path = url.split('?')[0] ?? ''
+    if (PAGES.has(path)) req.url = `${path}.html${url.slice(path.length)}`
+    next()
+  }
 
   return {
-    name: "jobit-page-routes",
+    name: 'jobit-page-routes',
     configureServer: ({ middlewares }) => {
-      middlewares.use(rewrite);
+      middlewares.use(rewrite)
     },
     configurePreviewServer: ({ middlewares }) => {
-      middlewares.use(rewrite);
+      middlewares.use(rewrite)
     },
-  };
+  }
 }
 
 /**
@@ -75,26 +80,31 @@ function pageRoutes(): Plugin {
  * Sin esto, el dev server y `vite preview` devuelven el HTML de la app.
  */
 function cliRoutes(): Plugin {
-  const rewrite = (req: IncomingMessage, _res: ServerResponse, next: () => void): void => {
+  const rewrite = (
+    req: IncomingMessage,
+    _res: ServerResponse,
+    next: () => void,
+  ): void => {
     if (!wantsCli(req)) {
-      next();
-      return;
+      next()
+      return
     }
-    const url = req.url ?? "/";
-    const path = url.split("?")[0] ?? "";
-    if (path === "/" || path === "") req.url = `/api/cli${url.slice(path.length)}`;
-    next();
-  };
+    const url = req.url ?? '/'
+    const path = url.split('?')[0] ?? ''
+    if (path === '/' || path === '')
+      req.url = `/api/cli${url.slice(path.length)}`
+    next()
+  }
 
   return {
-    name: "jobit-cli-routes",
+    name: 'jobit-cli-routes',
     configureServer: ({ middlewares }) => {
-      middlewares.use(rewrite);
+      middlewares.use(rewrite)
     },
     configurePreviewServer: ({ middlewares }) => {
-      middlewares.use(rewrite);
+      middlewares.use(rewrite)
     },
-  };
+  }
 }
 
 export default defineConfig({
@@ -111,11 +121,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(import.meta.dirname, "index.html"),
-        admin: resolve(import.meta.dirname, "admin.html"),
-        empresas: resolve(import.meta.dirname, "empresas.html"),
-        terminos: resolve(import.meta.dirname, "terminos.html"),
-        privacidad: resolve(import.meta.dirname, "privacidad.html"),
+        main: resolve(import.meta.dirname, 'index.html'),
+        admin: resolve(import.meta.dirname, 'admin.html'),
+        empresas: resolve(import.meta.dirname, 'empresas.html'),
+        terminos: resolve(import.meta.dirname, 'terminos.html'),
+        privacidad: resolve(import.meta.dirname, 'privacidad.html'),
       },
     },
   },
@@ -127,4 +137,4 @@ export default defineConfig({
   preview: {
     proxy: PROXY,
   },
-});
+})

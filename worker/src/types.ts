@@ -1,97 +1,97 @@
-export type Level = "entry" | "mid" | "senior";
-export type Remote = "remote" | "hybrid";
-export type JobType = "full_time" | "part_time" | "internship";
-export type SourceId = "buscojobs" | "gallito" | "uruguayconcursa";
+export type Level = 'entry' | 'mid' | 'senior'
+export type Remote = 'remote' | 'hybrid'
+export type JobType = 'full_time' | 'part_time' | 'internship'
+export type SourceId = 'buscojobs' | 'gallito' | 'uruguayconcursa'
 
 export interface Salary {
-  min: number | null;
-  max: number | null;
-  currency: string;
+  min: number | null
+  max: number | null
+  currency: string
 }
 
 export interface DuplicateRef {
-  source: SourceId;
-  apply_url: string;
+  source: SourceId
+  apply_url: string
 }
 
 export interface Job {
-  id: string;
-  source: SourceId;
-  source_id: string;
-  title: string;
-  company: string | null;
-  department: string | null;
-  city: string | null;
-  category: string;
-  category_label: string;
-  category_raw: string;
-  date_posted: string;
-  level: Level | null;
-  remote: Remote | null;
-  job_type: JobType | null;
-  salary: Salary | null;
-  experience_years_min: number | null;
-  no_experience: boolean;
-  education_level: string | null;
-  schedule: string | null;
-  vacancies: number | null;
+  id: string
+  source: SourceId
+  source_id: string
+  title: string
+  company: string | null
+  department: string | null
+  city: string | null
+  category: string
+  category_label: string
+  category_raw: string
+  date_posted: string
+  level: Level | null
+  remote: Remote | null
+  job_type: JobType | null
+  salary: Salary | null
+  experience_years_min: number | null
+  no_experience: boolean
+  education_level: string | null
+  schedule: string | null
+  vacancies: number | null
   /** Deadline to apply, only published by the public-sector source. */
-  closes_at: string | null;
-  description: string;
-  requirements: string | null;
-  apply_url: string;
-  duplicates: DuplicateRef[];
+  closes_at: string | null
+  description: string
+  requirements: string | null
+  apply_url: string
+  duplicates: DuplicateRef[]
 }
 
 export interface JobsFile {
-  scraped_at: string;
-  sources: SourceId[];
-  count: number;
-  jobs: Job[];
+  scraped_at: string
+  sources: SourceId[]
+  count: number
+  jobs: Job[]
 }
 
 /** A listing hit, before the detail request enriches it. */
 export interface JobStub {
-  source: SourceId;
-  source_id: string;
-  title: string;
-  company: string | null;
-  department: string | null;
-  city: string | null;
-  category_raw: string;
-  date_posted: string;
-  remote: Remote | null;
-  job_type: JobType | null;
-  no_experience: boolean;
-  apply_url: string;
+  source: SourceId
+  source_id: string
+  title: string
+  company: string | null
+  department: string | null
+  city: string | null
+  category_raw: string
+  date_posted: string
+  remote: Remote | null
+  job_type: JobType | null
+  no_experience: boolean
+  apply_url: string
 }
 
 /** The extra fields only the detail page carries. */
 export interface JobDetail {
-  description: string;
+  description: string
   /** Set when the detail knows the location better than the listing did. */
-  department?: string | null;
-  requirements: string | null;
-  salary: Salary | null;
-  experience_years_min: number | null;
-  education_level: string | null;
-  schedule: string | null;
-  vacancies: number | null;
-  closes_at: string | null;
-  no_experience: boolean;
-  job_type: JobType | null;
+  department?: string | null
+  requirements: string | null
+  salary: Salary | null
+  experience_years_min: number | null
+  education_level: string | null
+  schedule: string | null
+  vacancies: number | null
+  closes_at: string | null
+  no_experience: boolean
+  job_type: JobType | null
 }
 
 export interface Source {
-  id: SourceId;
+  id: SourceId
   /** Every listing hit the source publishes, already rubro-tagged. */
-  collect: (onProgress: (message: string) => void) => Promise<JobStub[]>;
+  collect: (onProgress: (message: string) => void) => Promise<JobStub[]>
   /**
    * Detail fetch for one offer, called only for offers missing from cache.
    * Returns the payload as the source publishes it: the cache keeps it raw so
    * that mapping more fields later never costs another round of requests.
    */
-  fetchDetail: (stub: JobStub) => Promise<unknown | null>;
+  fetchDetail: (stub: JobStub) => Promise<unknown | null>
   /** Maps a cached raw payload onto the canonical detail shape. */
-  parseDetail: (raw: unknown) => JobDetail | null;
+  parseDetail: (raw: unknown) => JobDetail | null
 }

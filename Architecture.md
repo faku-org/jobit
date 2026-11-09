@@ -39,13 +39,13 @@ nginx es el único que ve internet. La API escucha en loopback y por eso el
 
 ## Almacenamiento
 
-| Dónde | Qué guarda | Lo escribe |
-|---|---|---|
-| `worker/output/jobs.json` | Las ofertas scrapeadas. Se reescribe entero en cada corrida. | El worker, o la API por ingesta. |
-| `data/jobit.db` (SQLite) | Empresas, ofertas propias, cuentas, sesiones, correos, miembros. | La API. |
-| `data/uploads/` | Logo y banner de cada empresa. | La API. |
-| `data/stats.jsonl`, `data/events.jsonl` | Uso anónimo, sin identificador. | La API. |
-| `localStorage` | Guardadas, descartes, perfil, preferencias, seguimiento. | El navegador. |
+| Dónde                                   | Qué guarda                                                       | Lo escribe                       |
+| --------------------------------------- | ---------------------------------------------------------------- | -------------------------------- |
+| `worker/output/jobs.json`               | Las ofertas scrapeadas. Se reescribe entero en cada corrida.     | El worker, o la API por ingesta. |
+| `data/jobit.db` (SQLite)                | Empresas, ofertas propias, cuentas, sesiones, correos, miembros. | La API.                          |
+| `data/uploads/`                         | Logo y banner de cada empresa.                                   | La API.                          |
+| `data/stats.jsonl`, `data/events.jsonl` | Uso anónimo, sin identificador.                                  | La API.                          |
+| `localStorage`                          | Guardadas, descartes, perfil, preferencias, seguimiento.         | El navegador.                    |
 
 El JSON del scraper no es lugar para algo que la app edita: se reescribe entero
 y no tiene transacciones. Por eso las empresas y las ofertas propias viven en
@@ -55,11 +55,11 @@ SQLite, aparte.
 
 Hay **tres identidades que no se cruzan**, cada una con su cookie y su tabla:
 
-| Quién | Cookie | Alcance | Cómo entra |
-|---|---|---|---|
-| Panel de administración | `jobit_admin` | `/api/admin` | Una clave argon2id en un archivo del entorno. |
-| Quien publica un servicio | `jobit_session` | `/api` | Handle + contraseña; 2FA opcional. |
-| Una empresa | `jobit_company` | `/api/empresas` | Correo o slug + contraseña; **2FA obligatorio**. |
+| Quién                     | Cookie          | Alcance         | Cómo entra                                       |
+| ------------------------- | --------------- | --------------- | ------------------------------------------------ |
+| Panel de administración   | `jobit_admin`   | `/api/admin`    | Una clave argon2id en un archivo del entorno.    |
+| Quien publica un servicio | `jobit_session` | `/api`          | Handle + contraseña; 2FA opcional.               |
+| Una empresa               | `jobit_company` | `/api/empresas` | Correo o slug + contraseña; **2FA obligatorio**. |
 
 Reglas comunes:
 
@@ -119,11 +119,11 @@ cae. Es un estado vivo, no una marca que se saca una vez.
 
 ## Dónde mirar primero
 
-| Querés tocar… | Andá a |
-|---|---|
-| El tablero, filtros o ranking | `api/src/filter.ts`, `api/src/rank.ts`, `web/src/App.tsx` |
-| Las cuentas | `api/src/users.ts`, `api/src/account.ts`, `web/src/components/account/` |
-| El panel de empresa | `api/src/empresas.ts`, `api/src/company-*.ts`, `web/src/empresas/` |
-| El scraper | `worker/src/` |
-| El diseño | [`DESIGN.md`](DESIGN.md) |
-| El despliegue | [`deploy/README.md`](deploy/README.md) |
+| Querés tocar…                 | Andá a                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| El tablero, filtros o ranking | `api/src/filter.ts`, `api/src/rank.ts`, `web/src/App.tsx`               |
+| Las cuentas                   | `api/src/users.ts`, `api/src/account.ts`, `web/src/components/account/` |
+| El panel de empresa           | `api/src/empresas.ts`, `api/src/company-*.ts`, `web/src/empresas/`      |
+| El scraper                    | `worker/src/`                                                           |
+| El diseño                     | [`DESIGN.md`](DESIGN.md)                                                |
+| El despliegue                 | [`deploy/README.md`](deploy/README.md)                                  |

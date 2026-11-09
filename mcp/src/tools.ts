@@ -1,13 +1,13 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
-import { JobitApiError, type Api } from "./client.ts";
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
+import { z } from 'zod'
+import { JobitApiError, type Api } from './client.ts'
 
 /** Menos que el tope de la API: un agente no necesita cincuenta fichas de una. */
-const LIMIT_MAX = 50;
-const LIMIT_DEFAULT = 10;
+const LIMIT_MAX = 50
+const LIMIT_DEFAULT = 10
 
-const text = (value: unknown): string => JSON.stringify(value, null, 2);
+const text = (value: unknown): string => JSON.stringify(value, null, 2)
 
 /** Un fallo se devuelve como resultado, no se lanza: el protocolo sigue vivo. */
 function failure(cause: unknown): CallToolResult {
@@ -16,12 +16,12 @@ function failure(cause: unknown): CallToolResult {
       ? cause.message
       : cause instanceof Error
         ? cause.message
-        : String(cause);
-  return { content: [{ type: "text", text: message }], isError: true };
+        : String(cause)
+  return { content: [{ type: 'text', text: message }], isError: true }
 }
 
 function ok(value: unknown): CallToolResult {
-  return { content: [{ type: "text", text: text(value) }] };
+  return { content: [{ type: 'text', text: text(value) }] }
 }
 
 /**
@@ -30,53 +30,76 @@ function ok(value: unknown): CallToolResult {
  */
 export function registerTools(server: McpServer, api: Api): void {
   server.registerTool(
-    "search_jobs",
+    'search_jobs',
     {
-      title: "Buscar ofertas de trabajo en Uruguay",
+      title: 'Buscar ofertas de trabajo en Uruguay',
       description:
-        "Busca ofertas de trabajo en Uruguay y devuelve { total, offset, limit, jobs }. " +
-        "Todos los filtros son opcionales y combinables. Los valores de category y department " +
-        "son slugs/etiquetas que se obtienen con list_filters. Paginá con offset y limit " +
+        'Busca ofertas de trabajo en Uruguay y devuelve { total, offset, limit, jobs }. ' +
+        'Todos los filtros son opcionales y combinables. Los valores de category y department ' +
+        'son slugs/etiquetas que se obtienen con list_filters. Paginá con offset y limit ' +
         `(máximo ${LIMIT_MAX}).`,
       inputSchema: {
-        q: z.string().optional().describe("Texto libre sobre título, empresa, ubicación y rubro."),
-        category: z.string().optional().describe("Slug de rubro, por ejemplo tecnologia o ventas."),
-        department: z.string().optional().describe("Departamento, tal cual lo publica la fuente."),
-        level: z.enum(["entry", "mid", "senior"]).optional().describe("Nivel del puesto."),
+        q: z
+          .string()
+          .optional()
+          .describe('Texto libre sobre título, empresa, ubicación y rubro.'),
+        category: z
+          .string()
+          .optional()
+          .describe('Slug de rubro, por ejemplo tecnologia o ventas.'),
+        department: z
+          .string()
+          .optional()
+          .describe('Departamento, tal cual lo publica la fuente.'),
+        level: z
+          .enum(['entry', 'mid', 'senior'])
+          .optional()
+          .describe('Nivel del puesto.'),
         remote: z
-          .enum(["onsite", "remote", "hybrid"])
+          .enum(['onsite', 'remote', 'hybrid'])
           .optional()
-          .describe("Modalidad; sin teletrabajo cuenta como onsite."),
+          .describe('Modalidad; sin teletrabajo cuenta como onsite.'),
         job_type: z
-          .enum(["full_time", "part_time", "internship"])
+          .enum(['full_time', 'part_time', 'internship'])
           .optional()
-          .describe("Tipo de jornada."),
+          .describe('Tipo de jornada.'),
         no_experience: z
           .boolean()
           .optional()
-          .describe("true para ofertas que no piden experiencia previa."),
+          .describe('true para ofertas que no piden experiencia previa.'),
         days: z.coerce
           .number()
           .int()
           .min(1)
           .optional()
-          .describe("Solo ofertas publicadas en los últimos N días."),
+          .describe('Solo ofertas publicadas en los últimos N días.'),
         source: z
           .string()
           .optional()
-          .describe("Fuentes separadas por coma: jobit, buscojobs, uruguayconcursa."),
+          .describe(
+            'Fuentes separadas por coma: jobit, buscojobs, uruguayconcursa.',
+          ),
         sort: z
-          .enum(["recent", "closing"])
+          .enum(['recent', 'closing'])
           .optional()
-          .describe("recent por fecha de publicación; closing por fecha de cierre."),
+          .describe(
+            'recent por fecha de publicación; closing por fecha de cierre.',
+          ),
         limit: z.coerce
           .number()
           .int()
           .min(1)
           .max(LIMIT_MAX)
           .optional()
-          .describe(`Cuántas traer; por defecto ${LIMIT_DEFAULT}, máximo ${LIMIT_MAX}.`),
-        offset: z.coerce.number().int().min(0).optional().describe("Desde qué fila empezar."),
+          .describe(
+            `Cuántas traer; por defecto ${LIMIT_DEFAULT}, máximo ${LIMIT_MAX}.`,
+          ),
+        offset: z.coerce
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe('Desde qué fila empezar.'),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
@@ -88,68 +111,71 @@ export function registerTools(server: McpServer, api: Api): void {
             limit: args.limit ?? LIMIT_DEFAULT,
             offset: args.offset ?? 0,
           }),
-        );
+        )
       } catch (cause) {
-        return failure(cause);
+        return failure(cause)
       }
     },
-  );
+  )
 
   server.registerTool(
-    "get_job",
+    'get_job',
     {
-      title: "Ver una oferta completa",
+      title: 'Ver una oferta completa',
       description:
-        "Devuelve una oferta por id, con la descripción completa y el enlace para postularse.",
+        'Devuelve una oferta por id, con la descripción completa y el enlace para postularse.',
       inputSchema: {
-        id: z.string().min(1).describe("El id de la oferta, como viene en search_jobs."),
+        id: z
+          .string()
+          .min(1)
+          .describe('El id de la oferta, como viene en search_jobs.'),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (args): Promise<CallToolResult> => {
       try {
-        return ok(await api.getJob(args.id));
+        return ok(await api.getJob(args.id))
       } catch (cause) {
-        return failure(cause);
+        return failure(cause)
       }
     },
-  );
+  )
 
   server.registerTool(
-    "market_overview",
+    'market_overview',
     {
-      title: "Resumen del mercado laboral",
+      title: 'Resumen del mercado laboral',
       description:
-        "El tablero entero resumido: totales, puestos, rubros, departamentos, modalidad, " +
-        "jornada y sueldos. No lleva nada sobre quien pregunta.",
+        'El tablero entero resumido: totales, puestos, rubros, departamentos, modalidad, ' +
+        'jornada y sueldos. No lleva nada sobre quien pregunta.',
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (): Promise<CallToolResult> => {
       try {
-        return ok(await api.market());
+        return ok(await api.market())
       } catch (cause) {
-        return failure(cause);
+        return failure(cause)
       }
     },
-  );
+  )
 
   server.registerTool(
-    "list_filters",
+    'list_filters',
     {
-      title: "Rubros, departamentos y fuentes disponibles",
+      title: 'Rubros, departamentos y fuentes disponibles',
       description:
-        "Devuelve los rubros y departamentos con su conteo, las fuentes y el total de ofertas. " +
-        "Es lo que hay que mirar antes de filtrar con search_jobs.",
+        'Devuelve los rubros y departamentos con su conteo, las fuentes y el total de ofertas. ' +
+        'Es lo que hay que mirar antes de filtrar con search_jobs.',
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (): Promise<CallToolResult> => {
       try {
-        return ok(await api.meta());
+        return ok(await api.meta())
       } catch (cause) {
-        return failure(cause);
+        return failure(cause)
       }
     },
-  );
+  )
 }

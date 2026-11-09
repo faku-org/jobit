@@ -10,16 +10,16 @@
 
 /** Lo que entra en una celda. Vacío es `null` y no `""`: una celda sin dato no
  * es lo mismo que una celda con texto vacío cuando esto llega a una planilla. */
-export type Cell = string | number | null;
+export type Cell = string | number | null
 
-const NEEDS_QUOTES = /[",\r\n]/;
+const NEEDS_QUOTES = /[",\r\n]/
 
 function escape(value: Cell): string {
-  if (value === null) return "";
-  const text = String(value);
-  return NEEDS_QUOTES.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  if (value === null) return ''
+  const text = String(value)
+  return NEEDS_QUOTES.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
 /** Las filas ya vienen alineadas con el encabezado, que es la primera. */
 export const toCsv = (rows: readonly (readonly Cell[])[]): string =>
-  rows.map((row) => row.map(escape).join(",")).join("\r\n") + "\r\n";
+  rows.map((row) => row.map(escape).join(',')).join('\r\n') + '\r\n'

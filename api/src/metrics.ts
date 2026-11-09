@@ -1,6 +1,6 @@
-import { skillsOf } from "@jobit/worker/skills";
-import { db } from "./db.ts";
-import type { OfferStatus } from "./offers.ts";
+import { skillsOf } from '@jobit/worker/skills'
+import { db } from './db.ts'
+import type { OfferStatus } from './offers.ts'
 
 /**
  * Las métricas de una empresa, contadas sin guardar una fila por visita.
@@ -15,97 +15,109 @@ import type { OfferStatus } from "./offers.ts";
  * Si la persona tiene apagado el envío de estadísticas, no suben: son parte de
  * lo mismo.
  */
-export type OfferStatKind = "view" | "apply";
+export type OfferStatKind = 'view' | 'apply'
 
-const today = (now: Date = new Date()): string => now.toISOString().slice(0, 10);
+const today = (now: Date = new Date()): string => now.toISOString().slice(0, 10)
 
 /**
  * Suma uno al contador del día. Best-effort a propósito: un id que no es una
  * oferta propia se ignora en vez de romper el lote entero.
  */
-export function bump(offerId: string, kind: OfferStatKind, now: Date = new Date()): boolean {
-  const column = kind === "view" ? "views" : "applies";
+export function bump(
+  offerId: string,
+  kind: OfferStatKind,
+  now: Date = new Date(),
+): boolean {
+  const column = kind === 'view' ? 'views' : 'applies'
   const exists = db()
-    .query<{ id: string }, [string]>("SELECT id FROM offers WHERE id = ?")
-    .get(offerId);
-  if (!exists) return false;
+    .query<{ id: string }, [string]>('SELECT id FROM offers WHERE id = ?')
+    .get(offerId)
+  if (!exists) return false
 
   db().run(
     `INSERT INTO offer_daily (offer_id, day, ${column}) VALUES (?, ?, 1)
      ON CONFLICT(offer_id, day) DO UPDATE SET ${column} = ${column} + 1`,
     [offerId, today(now)],
-  );
-  return true;
+  )
+  return true
 }
 
 export interface OfferMetrics {
-  id: string;
-  title: string;
-  status: OfferStatus;
-  published_at: string;
-  views: number;
-  applies: number;
+  id: string
+  title: string
+  status: OfferStatus
+  published_at: string
+  views: number
+  applies: number
 }
 
 export interface DailyMetrics {
-  day: string;
-  views: number;
-  applies: number;
+  day: string
+  views: number
+  applies: number
 }
 
 /** Una habilidad que nombran las ofertas de la empresa. Es lo que después va a
  * alimentar el recomendador: hoy se muestra para que la empresa sepa con qué
  * palabras la encuentra quien busca. */
 export interface KeywordCount {
-  slug: string;
-  label: string;
-  count: number;
+  slug: string
+  label: string
+  count: number
 }
 
 export interface CompanyMetrics {
-  days: number;
-  from: string;
-  to: string;
-  offers: Record<OfferStatus, number>;
-  views: number;
-  applies: number;
-  daily: DailyMetrics[];
+  days: number
+  from: string
+  to: string
+  offers: Record<OfferStatus, number>
+  views: number
+  applies: number
+  daily: DailyMetrics[]
   /** Las que más se ven, en la ventana. */
-  most_viewed: OfferMetrics[];
+  most_viewed: OfferMetrics[]
   /** Las que más postulaciones juntan, que no siempre son las mismas. */
-  most_applied: OfferMetrics[];
-  keywords: KeywordCount[];
+  most_applied: OfferMetrics[]
+  keywords: KeywordCount[]
 }
 
 /** El primer día que entra en una ventana de N días contada desde hoy. */
 function windowStart(days: number, now: Date): string {
-  const start = new Date(now.getTime() - (Math.max(days, 1) - 1) * 86_400_000);
-  return today(start);
+  const start = new Date(now.getTime() - (Math.max(days, 1) - 1) * 86_400_000)
+  return today(start)
 }
 
 const countByStatus = (companyId: string): Record<OfferStatus, number> => {
   const rows = db()
     .query<{ status: OfferStatus; n: number }, [string]>(
-      "SELECT status, COUNT(*) AS n FROM offers WHERE company_id = ? GROUP BY status",
+      'SELECT status, COUNT(*) AS n FROM offers WHERE company_id = ? GROUP BY status',
     )
-    .all(companyId);
+    .all(companyId)
 
-  const out: Record<OfferStatus, number> = { draft: 0, published: 0, archived: 0 };
-  for (const row of rows) if (row.status in out) out[row.status] = row.n;
-  return out;
-};
+  const out: Record<OfferStatus, number> = {
+    draft: 0,
+    published: 0,
+    archived: 0,
+  }
+  for (const row of rows) if (row.status in out) out[row.status] = row.n
+  return out
+}
 
 /** Todas las ofertas de la empresa con sus contadores dentro de la ventana. */
-function offerRows(companyId: string, from: string, to: string): OfferMetrics[] {
+function offerRows(
+  companyId: string,
+  from: string,
+  to: string,
+): OfferMetrics[] {
   return db()
     .query<
       {
-        id: string;
-        title: string;
-        status: OfferStatus;
-        published_at: string;
-        views: number;
-        applies: number;
+        id: string
+        title: string
+        status: OfferStatus
+        published_at: string
+        views: number
+        applies: number
       },
       [string, string, string]
     >(
@@ -118,7 +130,7 @@ function offerRows(companyId: string, from: string, to: string): OfferMetrics[] 
         WHERE o.company_id = ?
         GROUP BY o.id`,
     )
-    .all(from, to, companyId);
+    .all(from, to, companyId)
 }
 
 /** Cuenta, por habilidad, en cuántas ofertas de la empresa se nombra. Una
@@ -129,20 +141,24 @@ function keywordCounts(companyId: string): KeywordCount[] {
       `SELECT title || ' ' || description || ' ' || requirements AS text
          FROM offers WHERE company_id = ?`,
     )
-    .all(companyId);
+    .all(companyId)
 
-  const counts = new Map<string, KeywordCount>();
+  const counts = new Map<string, KeywordCount>()
   for (const row of rows) {
     for (const skill of skillsOf(row.text)) {
-      const entry = counts.get(skill.slug) ?? { slug: skill.slug, label: skill.label, count: 0 };
-      entry.count += 1;
-      counts.set(skill.slug, entry);
+      const entry = counts.get(skill.slug) ?? {
+        slug: skill.slug,
+        label: skill.label,
+        count: 0,
+      }
+      entry.count += 1
+      counts.set(skill.slug, entry)
     }
   }
 
   return [...counts.values()]
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-    .slice(0, 12);
+    .slice(0, 12)
 }
 
 export function companyMetrics(
@@ -150,22 +166,27 @@ export function companyMetrics(
   days = 30,
   now: Date = new Date(),
 ): CompanyMetrics {
-  const count = Math.max(Math.floor(days), 1);
-  const from = windowStart(count, now);
-  const to = today(now);
+  const count = Math.max(Math.floor(days), 1)
+  const from = windowStart(count, now)
+  const to = today(now)
 
-  const rows = offerRows(companyId, from, to);
+  const rows = offerRows(companyId, from, to)
   const totals = rows.reduce(
-    (sum, row) => ({ views: sum.views + row.views, applies: sum.applies + row.applies }),
+    (sum, row) => ({
+      views: sum.views + row.views,
+      applies: sum.applies + row.applies,
+    }),
     { views: 0, applies: 0 },
-  );
+  )
 
   /** La serie trae también los días sin nada: un día en cero es un dato y, si
    * se omite, la gráfica lo dibuja como si nunca hubiera pasado. */
-  const series = new Map<string, DailyMetrics>();
+  const series = new Map<string, DailyMetrics>()
   for (let index = 0; index < count; index += 1) {
-    const day = new Date(now.getTime() - (count - 1 - index) * 86_400_000).toISOString().slice(0, 10);
-    series.set(day, { day, views: 0, applies: 0 });
+    const day = new Date(now.getTime() - (count - 1 - index) * 86_400_000)
+      .toISOString()
+      .slice(0, 10)
+    series.set(day, { day, views: 0, applies: 0 })
   }
   const spent = db()
     .query<DailyMetrics, [string, string, string]>(
@@ -175,17 +196,21 @@ export function companyMetrics(
         GROUP BY d.day
         ORDER BY d.day`,
     )
-    .all(companyId, from, to);
+    .all(companyId, from, to)
   for (const row of spent) {
-    const point = series.get(row.day);
+    const point = series.get(row.day)
     if (point) {
-      point.views = row.views;
-      point.applies = row.applies;
+      point.views = row.views
+      point.applies = row.applies
     }
   }
 
-  const mostViewed = [...rows].sort((a, b) => b.views - a.views || b.applies - a.applies);
-  const mostApplied = [...rows].sort((a, b) => b.applies - a.applies || b.views - a.views);
+  const mostViewed = [...rows].sort(
+    (a, b) => b.views - a.views || b.applies - a.applies,
+  )
+  const mostApplied = [...rows].sort(
+    (a, b) => b.applies - a.applies || b.views - a.views,
+  )
 
   return {
     days: count,
@@ -198,7 +223,7 @@ export function companyMetrics(
     most_viewed: mostViewed.slice(0, 5),
     most_applied: mostApplied.slice(0, 5),
     keywords: keywordCounts(companyId),
-  };
+  }
 }
 
 /**
@@ -206,7 +231,7 @@ export function companyMetrics(
  * columna de persona y el servidor no la recibe, así que no hay nada que cruzar
  * ni siquiera si mañana existe la sesión.
  */
-export type ServiceStatKind = "view" | "contact";
+export type ServiceStatKind = 'view' | 'contact'
 
 /**
  * Devuelve el rubro del servicio, que sale de su fila y no del navegador. Solo
@@ -218,34 +243,34 @@ export function bumpService(
   kind: ServiceStatKind,
   now: Date = new Date(),
 ): string | null {
-  const column = kind === "view" ? "views" : "contacts";
+  const column = kind === 'view' ? 'views' : 'contacts'
   const exists = db()
     .query<{ category: string }, [string]>(
       "SELECT category FROM services WHERE id = ? AND status = 'published'",
     )
-    .get(serviceId);
-  if (!exists) return null;
+    .get(serviceId)
+  if (!exists) return null
 
   db().run(
     `INSERT INTO service_daily (service_id, day, ${column}) VALUES (?, ?, 1)
      ON CONFLICT(service_id, day) DO UPDATE SET ${column} = ${column} + 1`,
     [serviceId, today(now)],
-  );
-  return exists.category;
+  )
+  return exists.category
 }
 
 export interface ServiceMetrics {
-  id: string;
-  title: string;
-  views: number;
-  contacts: number;
-  daily: DailyServiceMetrics[];
+  id: string
+  title: string
+  views: number
+  contacts: number
+  daily: DailyServiceMetrics[]
 }
 
 export interface DailyServiceMetrics {
-  day: string;
-  views: number;
-  contacts: number;
+  day: string
+  views: number
+  contacts: number
 }
 
 /** Las métricas de un servicio de esa persona, o null si no es suyo: el ajeno y
@@ -258,10 +283,10 @@ export function serviceMetrics(
 ): ServiceMetrics | null {
   const service = db()
     .query<{ id: string; title: string }, [string, string]>(
-      "SELECT id, title FROM services WHERE id = ? AND user_id = ?",
+      'SELECT id, title FROM services WHERE id = ? AND user_id = ?',
     )
-    .get(serviceId, userId);
-  if (!service) return null;
+    .get(serviceId, userId)
+  if (!service) return null
 
   const daily = db()
     .query<DailyServiceMetrics, [string, string, string]>(
@@ -269,7 +294,7 @@ export function serviceMetrics(
         WHERE service_id = ? AND day >= ? AND day <= ?
         ORDER BY day`,
     )
-    .all(serviceId, windowStart(days, now), today(now));
+    .all(serviceId, windowStart(days, now), today(now))
 
   return {
     id: service.id,
@@ -277,16 +302,16 @@ export function serviceMetrics(
     views: daily.reduce((sum, row) => sum + row.views, 0),
     contacts: daily.reduce((sum, row) => sum + row.contacts, 0),
     daily,
-  };
+  }
 }
 
 /** Una fila por servicio publicado, con lo que sumó en la ventana. */
 export interface ServiceDailyRow {
-  service_id: string;
-  title: string;
-  category: string;
-  views: number;
-  contacts: number;
+  service_id: string
+  title: string
+  category: string
+  views: number
+  contacts: number
 }
 
 export function serviceUsageRows(from: string, to: string): ServiceDailyRow[] {
@@ -301,5 +326,5 @@ export function serviceUsageRows(from: string, to: string): ServiceDailyRow[] {
         WHERE s.status = 'published'
         GROUP BY s.id`,
     )
-    .all(from, to);
+    .all(from, to)
 }

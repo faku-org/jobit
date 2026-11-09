@@ -1,7 +1,7 @@
-import { SearchX, TriangleAlert } from "lucide-react";
-import { stagger } from "../../lib/motion.ts";
-import type { View } from "../../lib/types.ts";
-import { FadeUp } from "../ui/FadeUp.tsx";
+import { SearchX, TriangleAlert } from 'lucide-react'
+import { stagger } from '../../lib/motion.ts'
+import type { View } from '../../lib/types.ts'
+import { FadeUp } from '../ui/FadeUp.tsx'
 
 export function JobListSkeleton() {
   return (
@@ -19,53 +19,56 @@ export function JobListSkeleton() {
         </FadeUp>
       ))}
     </div>
-  );
+  )
 }
 
 interface EmptyStateProps {
   /** The list that came back empty; each one is empty for its own reason. */
-  view: View;
-  similar: boolean;
+  view: View
+  similar: boolean
   /** Rubros and zonas the person hid, the one setting that removes offers. */
-  hidden: number;
+  hidden: number
   /** Whether there is any filter to clear; an empty shortlist has none. */
-  canReset: boolean;
-  onReset: () => void;
+  canReset: boolean
+  onReset: () => void
 }
 
-function emptyCopy({ view, similar, hidden }: EmptyStateProps): { title: string; hint: string } {
-  if (view === "saved") {
+function emptyCopy({ view, similar, hidden }: EmptyStateProps): {
+  title: string
+  hint: string
+} {
+  if (view === 'saved') {
     return {
-      title: "Todavía no guardaste ninguna oferta",
-      hint: "Usá el marcador en cada oferta para armar tu lista.",
-    };
+      title: 'Todavía no guardaste ninguna oferta',
+      hint: 'Usá el marcador en cada oferta para armar tu lista.',
+    }
   }
-  if (view === "state") {
+  if (view === 'state') {
     return {
-      title: "No hay llamados del Estado para estos filtros",
+      title: 'No hay llamados del Estado para estos filtros',
       hint:
         hidden > 0
-          ? "Puede ser por los rubros o las zonas que ocultaste en Preferencias."
-          : "Uruguay Concursa publica por tandas: probá sin filtros o volvé en unos días.",
-    };
+          ? 'Puede ser por los rubros o las zonas que ocultaste en Preferencias.'
+          : 'Uruguay Concursa publica por tandas: probá sin filtros o volvé en unos días.',
+    }
   }
   if (similar) {
     return {
-      title: "Ninguna oferta coincide con tus preferencias",
-      hint: "Ajustá las preferencias en el encabezado o apagá “Solo similares”.",
-    };
+      title: 'Ninguna oferta coincide con tus preferencias',
+      hint: 'Ajustá las preferencias en el encabezado o apagá “Solo similares”.',
+    }
   }
   return {
-    title: "No hay ofertas para estos filtros",
+    title: 'No hay ofertas para estos filtros',
     hint:
       hidden > 0
-        ? `Ojo que tenés ${hidden} ${hidden === 1 ? "rubro o zona oculta" : "rubros o zonas ocultas"} en Preferencias.`
-        : "Probá ampliar la búsqueda o quitar filtros.",
-  };
+        ? `Ojo que tenés ${hidden} ${hidden === 1 ? 'rubro o zona oculta' : 'rubros o zonas ocultas'} en Preferencias.`
+        : 'Probá ampliar la búsqueda o quitar filtros.',
+  }
 }
 
 export function EmptyState(props: EmptyStateProps) {
-  const { title, hint } = emptyCopy(props);
+  const { title, hint } = emptyCopy(props)
 
   return (
     <div className="rounded-2xl border border-dashed border-sky bg-surface/60 px-6 py-16 text-center">
@@ -82,15 +85,17 @@ export function EmptyState(props: EmptyStateProps) {
         </button>
       ) : null}
     </div>
-  );
+  )
 }
 
 export function ErrorState({ message }: { message: string }) {
   return (
     <div className="rounded-2xl border border-brand bg-mist px-6 py-12 text-center">
       <TriangleAlert aria-hidden className="mx-auto size-7 text-brand" />
-      <p className="mt-4 text-[15px] font-medium text-ink">No se pudieron cargar las ofertas</p>
+      <p className="mt-4 text-[15px] font-medium text-ink">
+        No se pudieron cargar las ofertas
+      </p>
       <p className="mt-1 text-sm text-soft">{message}</p>
     </div>
-  );
+  )
 }

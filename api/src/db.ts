@@ -1,6 +1,6 @@
-import { Database } from "bun:sqlite";
-import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { Database } from 'bun:sqlite'
+import { mkdirSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 
 /**
  * Everything the board itself is stays in the scraper's JSON: it is rebuilt
@@ -8,15 +8,15 @@ import { dirname, resolve } from "node:path";
  * what the app owns instead, starting with the companies somebody has to
  * approve before they can publish.
  */
-export const IN_MEMORY = ":memory:";
+export const IN_MEMORY = ':memory:'
 
 /** `:memory:` no es una ruta y resolverlo la rompe, sobre todo en Windows,
  * donde los dos puntos no van en un nombre de archivo. */
 export const dbFilePath = (): string => {
-  const configured = process.env.DB_FILE;
-  if (!configured) return resolve(import.meta.dir, "../../data/jobit.db");
-  return configured === IN_MEMORY ? IN_MEMORY : resolve(configured);
-};
+  const configured = process.env.DB_FILE
+  if (!configured) return resolve(import.meta.dir, '../../data/jobit.db')
+  return configured === IN_MEMORY ? IN_MEMORY : resolve(configured)
+}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS companies (
@@ -393,31 +393,44 @@ CREATE TABLE IF NOT EXISTS service_daily (
 );
 
 CREATE INDEX IF NOT EXISTS service_daily_service ON service_daily (service_id);
-`;
+`
 
 /**
  * `CREATE TABLE IF NOT EXISTS` no agrega columnas a una tabla que ya existe, y
  * `services` ya está en producción. Esta lista es el único mecanismo de
  * migración: solo suma columnas con valor por defecto, nunca cambia ni borra.
  */
-const ADDITIVE_COLUMNS: readonly { table: string; column: string; definition: string }[] = [
+const ADDITIVE_COLUMNS: readonly {
+  table: string
+  column: string
+  definition: string
+}[] = [
   /* Visibilidad destacada (#33): hasta qué día (inclusive) y de qué clase.
      Vacío es "no destacado". */
-  { table: "services", column: "boost_until", definition: "TEXT NOT NULL DEFAULT ''" },
-  { table: "services", column: "boost_kind", definition: "TEXT NOT NULL DEFAULT ''" },
-];
+  {
+    table: 'services',
+    column: 'boost_until',
+    definition: "TEXT NOT NULL DEFAULT ''",
+  },
+  {
+    table: 'services',
+    column: 'boost_kind',
+    definition: "TEXT NOT NULL DEFAULT ''",
+  },
+]
 
 function addMissingColumns(database: Database): void {
   for (const { table, column, definition } of ADDITIVE_COLUMNS) {
     const present = database
       .query<{ name: string }, []>(`PRAGMA table_info(${table})`)
       .all()
-      .some((existing) => existing.name === column);
-    if (!present) database.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+      .some((existing) => existing.name === column)
+    if (!present)
+      database.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
   }
 }
 
-let handle: Database | null = null;
+let handle: Database | null = null
 
 /**
  * SQLite no agrega columnas con `CREATE TABLE IF NOT EXISTS` sobre una tabla
@@ -431,53 +444,54 @@ function migrate(database: Database): void {
         .query<{ name: string }, []>(`PRAGMA table_info(${table})`)
         .all()
         .map((row) => row.name),
-    );
+    )
 
   const add = (table: string, name: string, definition: string): void => {
-    if (columns(table).has(name)) return;
-    database.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
-  };
+    if (columns(table).has(name)) return
+    database.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`)
+  }
 
   const profileColumns: [string, string][] = [
-    ["phone", "TEXT NOT NULL DEFAULT ''"],
-    ["phone_country", "TEXT NOT NULL DEFAULT ''"],
-    ["logo", "TEXT NOT NULL DEFAULT ''"],
-    ["banner", "TEXT NOT NULL DEFAULT ''"],
-    ["socials", "TEXT NOT NULL DEFAULT '{}'"],
-    ["privacy", "TEXT NOT NULL DEFAULT '{}'"],
-    ["website_token", "TEXT NOT NULL DEFAULT ''"],
-    ["website_verified", "INTEGER NOT NULL DEFAULT 0"],
-    ["website_checked_at", "TEXT NOT NULL DEFAULT ''"],
-  ];
-  for (const [name, definition] of profileColumns) add("companies", name, definition);
+    ['phone', "TEXT NOT NULL DEFAULT ''"],
+    ['phone_country', "TEXT NOT NULL DEFAULT ''"],
+    ['logo', "TEXT NOT NULL DEFAULT ''"],
+    ['banner', "TEXT NOT NULL DEFAULT ''"],
+    ['socials', "TEXT NOT NULL DEFAULT '{}'"],
+    ['privacy', "TEXT NOT NULL DEFAULT '{}'"],
+    ['website_token', "TEXT NOT NULL DEFAULT ''"],
+    ['website_verified', 'INTEGER NOT NULL DEFAULT 0'],
+    ['website_checked_at', "TEXT NOT NULL DEFAULT ''"],
+  ]
+  for (const [name, definition] of profileColumns)
+    add('companies', name, definition)
 
-  add("company_accounts", "totp_secret_enc", "TEXT");
-  add("company_accounts", "totp_enabled", "INTEGER NOT NULL DEFAULT 0");
-  add("company_accounts", "totp_pending_enc", "TEXT");
-  add("company_accounts", "deactivated_at", "TEXT NOT NULL DEFAULT ''");
+  add('company_accounts', 'totp_secret_enc', 'TEXT')
+  add('company_accounts', 'totp_enabled', 'INTEGER NOT NULL DEFAULT 0')
+  add('company_accounts', 'totp_pending_enc', 'TEXT')
+  add('company_accounts', 'deactivated_at', "TEXT NOT NULL DEFAULT ''")
 }
 
 export function db(): Database {
-  if (handle) return handle;
+  if (handle) return handle
 
-  const path = dbFilePath();
-  if (path !== IN_MEMORY) mkdirSync(dirname(path), { recursive: true });
+  const path = dbFilePath()
+  if (path !== IN_MEMORY) mkdirSync(dirname(path), { recursive: true })
 
-  const database = new Database(path, { create: true });
+  const database = new Database(path, { create: true })
   /** WAL keeps a read from blocking the write that the admin panel is doing. */
-  database.run("PRAGMA journal_mode = WAL");
-  database.run("PRAGMA foreign_keys = ON");
-  database.run("PRAGMA busy_timeout = 5000");
-  database.run(SCHEMA);
-  addMissingColumns(database);
-  migrate(database);
+  database.run('PRAGMA journal_mode = WAL')
+  database.run('PRAGMA foreign_keys = ON')
+  database.run('PRAGMA busy_timeout = 5000')
+  database.run(SCHEMA)
+  addMissingColumns(database)
+  migrate(database)
 
-  handle = database;
-  return database;
+  handle = database
+  return database
 }
 
 /** The tests drive a fresh database per file; nothing else needs this. */
 export function closeDb(): void {
-  handle?.close();
-  handle = null;
+  handle?.close()
+  handle = null
 }

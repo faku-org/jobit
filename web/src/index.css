@@ -1,13 +1,15 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @property --aura-angle {
-  syntax: "<angle>";
+  syntax: '<angle>';
   initial-value: 0deg;
   inherits: true;
 }
 
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui,
+    sans-serif;
 
   /* Palette: mist / sky / brand / ink, plus the two surfaces they sit on.
      Brand steps stay for fills and the aura. Copy is ink (or a lighter ink),
@@ -36,9 +38,21 @@
   --color-faint: color-mix(in srgb, var(--color-ink) 40%, #fff);
   --color-wash: #e3f2fd;
   --color-line: color-mix(in srgb, var(--color-ink) 10%, transparent);
-  --color-onpanel-muted: color-mix(in srgb, var(--color-onpanel) 78%, transparent);
-  --color-onpanel-faint: color-mix(in srgb, var(--color-onpanel) 56%, transparent);
-  --color-onpanel-wash: color-mix(in srgb, var(--color-onpanel) 14%, transparent);
+  --color-onpanel-muted: color-mix(
+    in srgb,
+    var(--color-onpanel) 78%,
+    transparent
+  );
+  --color-onpanel-faint: color-mix(
+    in srgb,
+    var(--color-onpanel) 56%,
+    transparent
+  );
+  --color-onpanel-wash: color-mix(
+    in srgb,
+    var(--color-onpanel) 14%,
+    transparent
+  );
 
   /* Cards and inputs. */
   --color-surface: #ffffff;
@@ -79,7 +93,7 @@
   );
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   color-scheme: dark;
 
   --color-mist: #0a1220;
@@ -105,7 +119,11 @@
   --color-line: color-mix(in srgb, var(--color-ink) 12%, transparent);
   --color-onpanel-muted: #d5dde6;
   --color-onpanel-faint: #b7c2ce;
-  --color-onpanel-wash: color-mix(in srgb, var(--color-onpanel) 12%, transparent);
+  --color-onpanel-wash: color-mix(
+    in srgb,
+    var(--color-onpanel) 12%,
+    transparent
+  );
 
   --color-surface: #111c2e;
   --color-panel: #17243a;
@@ -174,7 +192,11 @@ span {
    z-index negativo pintan SOBRE ese fondo, y el halo terminaba lavando el
    interior en vez de quedar detrás. */
 .aura {
-  --aura-fill: color-mix(in srgb, var(--color-brand) 6%, var(--aura-base, var(--color-surface)));
+  --aura-fill: color-mix(
+    in srgb,
+    var(--color-brand) 6%,
+    var(--aura-base, var(--color-surface))
+  );
   position: relative;
   isolation: isolate;
   overflow: visible;
@@ -189,7 +211,7 @@ span {
    se ve lo que sobresale del filo, y como el cometa es un arco el resplandor
    también lo es. */
 .aura::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   z-index: -2;
@@ -205,7 +227,7 @@ span {
 
 /* La superficie, encima del halo y debajo de todo lo demás. */
 .aura::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: -1.5px;
   z-index: -1;
@@ -276,15 +298,14 @@ span {
 }
 
 .aura-edge::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   padding: 1.5px;
   border-radius: inherit;
   pointer-events: none;
   background:
-    var(--aura-gradient),
-    linear-gradient(var(--aura-hair), var(--aura-hair));
+    var(--aura-gradient), linear-gradient(var(--aura-hair), var(--aura-hair));
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -297,7 +318,7 @@ span {
 }
 
 .aura-edge::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 2px;
   z-index: -1;
@@ -322,12 +343,13 @@ span {
   filter: contrast(2.1) brightness(0.42) drop-shadow(0 0 0.7px var(--color-ink));
 }
 
-[data-theme="dark"] .aura-spark:not(.aura-spark-panel) {
+[data-theme='dark'] .aura-spark:not(.aura-spark-panel) {
   filter: contrast(2) brightness(1.7) drop-shadow(0 0 0.7px var(--color-ink));
 }
 
 .aura-spark-panel {
-  filter: contrast(2) brightness(1.75) drop-shadow(0 0 0.8px var(--color-onpanel));
+  filter: contrast(2) brightness(1.75)
+    drop-shadow(0 0 0.8px var(--color-onpanel));
 }
 
 /* Quien pidió menos movimiento se queda con el gradiente quieto, que sigue

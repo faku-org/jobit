@@ -1,22 +1,33 @@
-import { Check, ChevronDown, Search, X } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
-import { useDismissable } from "../../hooks/useDismissable.ts";
-import { type CatalogEntry, groupCatalog, searchCatalog } from "../../lib/catalog.ts";
-import { fadeUpTransition, revealPresence } from "../../lib/motion.ts";
+import { Check, ChevronDown, Search, X } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
+import {
+  type KeyboardEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { useDismissable } from '../../hooks/useDismissable.ts'
+import {
+  type CatalogEntry,
+  groupCatalog,
+  searchCatalog,
+} from '../../lib/catalog.ts'
+import { fadeUpTransition, revealPresence } from '../../lib/motion.ts'
 
 interface ComboboxProps<T extends CatalogEntry> {
-  label: string;
-  placeholder: string;
-  entries: T[];
+  label: string
+  placeholder: string
+  entries: T[]
   /** Ids already picked, in the order they were picked. */
-  selected: string[];
+  selected: string[]
   /** Beyond this the list stops being a profile and starts being a résumé. */
-  max?: number;
-  onChange: (selected: string[]) => void;
+  max?: number
+  onChange: (selected: string[]) => void
 }
 
-const DEFAULT_MAX = 20;
+const DEFAULT_MAX = 20
 
 /**
  * A closed list with a search box, replacing the free-text field that used to
@@ -32,86 +43,96 @@ export function Combobox<T extends CatalogEntry>({
   max = DEFAULT_MAX,
   onChange,
 }: ComboboxProps<T>) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
-  const container = useDismissable<HTMLDivElement>(open, () => setOpen(false));
-  const list = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [active, setActive] = useState(0)
+  const container = useDismissable<HTMLDivElement>(open, () => setOpen(false))
+  const list = useRef<HTMLDivElement>(null)
   /** El input tiene `role="combobox"`, y un combobox sin `aria-controls` no le
    * dice al lector de pantalla qué lista está abriendo. */
-  const listId = useId();
-  const input = useRef<HTMLInputElement>(null);
+  const listId = useId()
+  const input = useRef<HTMLInputElement>(null)
 
-  const full = selected.length >= max;
+  const full = selected.length >= max
 
   /** Picked entries drop off the list: they are already shown as chips. The
    * flat position travels with each option so the keyboard can walk the list
    * across its group headings. */
   const { options, groups } = useMemo(() => {
-    const chosen = new Set(selected);
-    const found = searchCatalog(entries, query).filter((entry) => !chosen.has(entry.id));
+    const chosen = new Set(selected)
+    const found = searchCatalog(entries, query).filter(
+      (entry) => !chosen.has(entry.id),
+    )
     /** La posición plana sale de contar lo que quedó atrás, y no de un
      * contador que se va incrementando adentro del map: una variable que se
      * reasigna mientras se renderiza le hace perder al compilador la
      * memoización de todo el componente. */
-    const grouped = groupCatalog(found);
+    const grouped = groupCatalog(found)
     const starts = grouped.reduce<number[]>(
       (acc, [, items]) => {
-        acc.push((acc[acc.length - 1] ?? 0) + items.length);
-        return acc;
+        acc.push((acc[acc.length - 1] ?? 0) + items.length)
+        return acc
       },
       [0],
-    );
+    )
     const numbered = grouped.map(
       ([group, items], group_index) =>
         [
           group,
-          items.map((entry, offset) => ({ entry, index: (starts[group_index] ?? 0) + offset })),
+          items.map((entry, offset) => ({
+            entry,
+            index: (starts[group_index] ?? 0) + offset,
+          })),
         ] as [string, { entry: T; index: number }[]],
-    );
-    return { options: found, groups: numbered };
-  }, [entries, query, selected]);
+    )
+    return { options: found, groups: numbered }
+  }, [entries, query, selected])
 
   useEffect(() => {
-    setActive(0);
-  }, [query]);
+    setActive(0)
+  }, [query])
 
   useEffect(() => {
-    if (!open) return;
-    list.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [open, active]);
+    if (!open) return
+    list.current
+      ?.querySelector(`[data-index="${active}"]`)
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [open, active])
 
   const pick = (id: string) => {
-    if (full || selected.includes(id)) return;
-    onChange([...selected, id]);
-    setQuery("");
-    input.current?.focus();
-  };
+    if (full || selected.includes(id)) return
+    onChange([...selected, id])
+    setQuery('')
+    input.current?.focus()
+  }
 
-  const remove = (id: string) => onChange(selected.filter((item) => item !== id));
+  const remove = (id: string) =>
+    onChange(selected.filter((item) => item !== id))
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      setOpen(true);
-      if (options.length === 0) return;
-      const step = event.key === "ArrowDown" ? 1 : -1;
-      return setActive((current) => (current + step + options.length) % options.length);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      setOpen(true)
+      if (options.length === 0) return
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      return setActive(
+        (current) => (current + step + options.length) % options.length,
+      )
     }
 
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const option = options[active];
-      if (option) pick(option.id);
-      return;
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      const option = options[active]
+      if (option) pick(option.id)
+      return
     }
 
     /** Backspace on an empty box takes back the last pick, as a tag input does. */
-    if (event.key === "Backspace" && query === "" && selected.length > 0) {
-      const last = selected[selected.length - 1];
-      if (last) remove(last);
+    if (event.key === 'Backspace' && query === '' && selected.length > 0) {
+      const last = selected[selected.length - 1]
+      if (last) remove(last)
     }
-  };
+  }
 
   return (
     <div ref={container}>
@@ -129,8 +150,8 @@ export function Combobox<T extends CatalogEntry>({
       {selected.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {selected.map((id) => {
-            const entry = entries.find((item) => item.id === id);
-            if (!entry) return null;
+            const entry = entries.find((item) => item.id === id)
+            if (!entry) return null
             return (
               <span
                 key={id}
@@ -146,7 +167,7 @@ export function Combobox<T extends CatalogEntry>({
                   <X aria-hidden className="size-3" />
                 </button>
               </span>
-            );
+            )
           })}
         </div>
       ) : null}
@@ -169,8 +190,8 @@ export function Combobox<T extends CatalogEntry>({
           type="text"
           value={query}
           onChange={(event) => {
-            setQuery(event.target.value);
-            setOpen(true);
+            setQuery(event.target.value)
+            setOpen(true)
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
@@ -178,7 +199,7 @@ export function Combobox<T extends CatalogEntry>({
         <ChevronDown
           aria-hidden
           className={`pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-onpanel-faint transition-transform ${
-            open ? "rotate-180" : ""
+            open ? 'rotate-180' : ''
           }`}
         />
       </div>
@@ -212,8 +233,8 @@ export function Combobox<T extends CatalogEntry>({
                         aria-selected={index === active}
                         className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
                           index === active
-                            ? "bg-onpanel/15 text-onpanel"
-                            : "text-onpanel/75 hover:bg-onpanel-wash"
+                            ? 'bg-onpanel/15 text-onpanel'
+                            : 'text-onpanel/75 hover:bg-onpanel-wash'
                         }`}
                         data-index={index}
                         role="option"
@@ -223,7 +244,10 @@ export function Combobox<T extends CatalogEntry>({
                       >
                         <span className="truncate">{entry.label}</span>
                         {index === active ? (
-                          <Check aria-hidden className="size-3 shrink-0 text-sky" />
+                          <Check
+                            aria-hidden
+                            className="size-3 shrink-0 text-sky"
+                          />
                         ) : null}
                       </button>
                     ))}
@@ -235,5 +259,5 @@ export function Combobox<T extends CatalogEntry>({
         ) : null}
       </AnimatePresence>
     </div>
-  );
+  )
 }

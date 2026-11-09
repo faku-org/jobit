@@ -1,10 +1,10 @@
-import { CATEGORIES, categoryLabel } from "@jobit/worker/categories";
-import { ROLES, roleOf } from "@jobit/worker/roles";
-import type { ContentItem } from "@jobit/worker/content/types";
-import { type MarketReport, buildMarketReport } from "./market.ts";
-import { loadFeed, lookupJob } from "./feed.ts";
-import type { Service } from "./services.ts";
-import type { Job, JobsFile } from "./types.ts";
+import { CATEGORIES, categoryLabel } from '@jobit/worker/categories'
+import { ROLES, roleOf } from '@jobit/worker/roles'
+import type { ContentItem } from '@jobit/worker/content/types'
+import { type MarketReport, buildMarketReport } from './market.ts'
+import { loadFeed, lookupJob } from './feed.ts'
+import type { Service } from './services.ts'
+import type { Job, JobsFile } from './types.ts'
 
 /**
  * Las páginas que un buscador puede leer sin ejecutar JavaScript.
@@ -19,17 +19,17 @@ import type { Job, JobsFile } from "./types.ts";
  * /privacidad. La app sigue siendo la experiencia; esto es lo que se indexa y lo
  * que se previsualiza cuando alguien comparte un enlace.
  */
-const DEFAULT_ORIGIN = "https://jobs.wefaber.net";
+const DEFAULT_ORIGIN = 'https://jobs.wefaber.net'
 
 export const publicOrigin = (): string =>
-  (process.env.PUBLIC_ORIGIN ?? DEFAULT_ORIGIN).replace(/\/+$/, "");
+  (process.env.PUBLIC_ORIGIN ?? DEFAULT_ORIGIN).replace(/\/+$/, '')
 
 export function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 const STYLE = `
@@ -57,32 +57,32 @@ table { width:100%; border-collapse:collapse; font-size:.9rem; }
 td,th { text-align:left; padding:.35rem .5rem; border-bottom:1px solid var(--line); }
 footer { border-top:1px solid var(--line); padding:1.25rem; }
 footer nav { display:flex; flex-wrap:wrap; gap:1rem; font-size:.85rem; }
-`;
+`
 
 export interface PageMeta {
-  title: string;
-  description: string;
-  path: string;
+  title: string
+  description: string
+  path: string
   /** Uno o varios bloques JSON-LD: una ficha puede marcar el servicio y, con
    * el mismo proveedor, quién está atrás. */
-  jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null
 }
 
 export function layout(meta: PageMeta, body: string): string {
-  const origin = publicOrigin();
-  const url = `${origin}${meta.path}`;
+  const origin = publicOrigin()
+  const url = `${origin}${meta.path}`
   const blocks = meta.jsonLd
     ? Array.isArray(meta.jsonLd)
       ? meta.jsonLd
       : [meta.jsonLd]
-    : [];
+    : []
   const jsonLd = blocks
     // `<` escapado: un nombre con `</script>` no puede cerrar el bloque.
     .map(
       (block) =>
-        `<script type="application/ld+json">${JSON.stringify(block).replace(/</g, "\\u003c")}</script>`,
+        `<script type="application/ld+json">${JSON.stringify(block).replace(/</g, '\\u003c')}</script>`,
     )
-    .join("");
+    .join('')
 
   return `<!doctype html>
 <html lang="es-UY">
@@ -122,37 +122,38 @@ ${body}
 </nav>
 </footer>
 </body>
-</html>`;
+</html>`
 }
 
 const htmlResponse = (body: string, status = 200): Response =>
   new Response(body, {
     status,
-    headers: { "content-type": "text/html; charset=utf-8" },
-  });
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  })
 
 const dateLabel = (value: string | null): string => {
-  if (!value) return "";
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return "";
-  return new Date(parsed).toLocaleDateString("es-UY", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-};
+  if (!value) return ''
+  const parsed = Date.parse(value)
+  if (Number.isNaN(parsed)) return ''
+  return new Date(parsed).toLocaleDateString('es-UY', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
 
 const salaryLabel = (job: Job): string => {
-  if (!job.salary) return "";
-  const { min, max, currency } = job.salary;
-  if (min === null && max === null) return "";
-  const format = (value: number): string => new Intl.NumberFormat("es-UY").format(value);
+  if (!job.salary) return ''
+  const { min, max, currency } = job.salary
+  if (min === null && max === null) return ''
+  const format = (value: number): string =>
+    new Intl.NumberFormat('es-UY').format(value)
   const range =
     min !== null && max !== null
       ? `${format(min)} – ${format(max)}`
-      : format((min ?? max) as number);
-  return `${range} ${currency} por mes`;
-};
+      : format((min ?? max) as number)
+  return `${range} ${currency} por mes`
+}
 
 /**
  * Una oferta marcada como propia solo cuando vive acá: es el caso en el que
@@ -160,83 +161,89 @@ const salaryLabel = (job: Job): string => {
  * sería lo que sanciona a los agregadores, así que no se marca.
  */
 export const isNativeOffer = (job: Job): boolean =>
-  job.source === "jobit" && job.apply_url.trim() === "";
+  job.source === 'jobit' && job.apply_url.trim() === ''
 
 const EMPLOYMENT_TYPE: Record<string, string> = {
-  full_time: "FULL_TIME",
-  part_time: "PART_TIME",
-  internship: "INTERN",
-};
+  full_time: 'FULL_TIME',
+  part_time: 'PART_TIME',
+  internship: 'INTERN',
+}
 
 export function jobPostingLd(job: Job): Record<string, unknown> | null {
-  if (!isNativeOffer(job)) return null;
+  if (!isNativeOffer(job)) return null
 
   const address = {
-    "@type": "PostalAddress",
-    addressLocality: job.city ?? job.department ?? "Montevideo",
-    addressRegion: job.department ?? "",
-    addressCountry: "UY",
-  };
+    '@type': 'PostalAddress',
+    addressLocality: job.city ?? job.department ?? 'Montevideo',
+    addressRegion: job.department ?? '',
+    addressCountry: 'UY',
+  }
 
   const ld: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "JobPosting",
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
     title: job.title,
     description: job.description || job.requirements || job.title,
     datePosted: job.date_posted.slice(0, 10),
     hiringOrganization: {
-      "@type": "Organization",
-      name: job.company ?? "JobIt",
+      '@type': 'Organization',
+      name: job.company ?? 'JobIt',
       ...(job.company_url ? { sameAs: job.company_url } : {}),
     },
-    jobLocation: { "@type": "Place", address },
+    jobLocation: { '@type': 'Place', address },
     directApply: true,
     url: `${publicOrigin()}/empleo/${encodeURIComponent(job.id)}`,
-  };
+  }
 
-  if (job.closes_at) ld.validThrough = `${job.closes_at}T23:59:59-03:00`;
-  const employmentType = job.job_type ? EMPLOYMENT_TYPE[job.job_type] : undefined;
-  if (employmentType) ld.employmentType = employmentType;
+  if (job.closes_at) ld.validThrough = `${job.closes_at}T23:59:59-03:00`
+  const employmentType = job.job_type
+    ? EMPLOYMENT_TYPE[job.job_type]
+    : undefined
+  if (employmentType) ld.employmentType = employmentType
 
   if (job.salary) {
     ld.baseSalary = {
-      "@type": "MonetaryAmount",
-      currency: job.salary.currency || "UYU",
+      '@type': 'MonetaryAmount',
+      currency: job.salary.currency || 'UYU',
       value: {
-        "@type": "QuantitativeValue",
+        '@type': 'QuantitativeValue',
         ...(job.salary.min !== null ? { minValue: job.salary.min } : {}),
         ...(job.salary.max !== null ? { maxValue: job.salary.max } : {}),
-        unitText: "MONTH",
+        unitText: 'MONTH',
       },
-    };
+    }
   }
 
-  return ld;
+  return ld
 }
 
 function jobChips(job: Job): string {
   const chips = [
     job.category_label,
-    job.department ?? "",
-    job.remote === "remote" ? "Remoto" : job.remote === "hybrid" ? "Híbrido" : "",
-    job.level === "entry"
-      ? "Junior"
-      : job.level === "mid"
-        ? "Semi senior"
-        : job.level === "senior"
-          ? "Senior"
-          : "",
-    job.job_type === "part_time"
-      ? "Medio horario"
-      : job.job_type === "internship"
-        ? "Pasantía"
-        : "",
-    job.no_experience ? "Sin experiencia" : "",
-  ].filter(Boolean);
+    job.department ?? '',
+    job.remote === 'remote'
+      ? 'Remoto'
+      : job.remote === 'hybrid'
+        ? 'Híbrido'
+        : '',
+    job.level === 'entry'
+      ? 'Junior'
+      : job.level === 'mid'
+        ? 'Semi senior'
+        : job.level === 'senior'
+          ? 'Senior'
+          : '',
+    job.job_type === 'part_time'
+      ? 'Medio horario'
+      : job.job_type === 'internship'
+        ? 'Pasantía'
+        : '',
+    job.no_experience ? 'Sin experiencia' : '',
+  ].filter(Boolean)
 
   return `<div class="chips">${chips
     .map((label) => `<span class="chip">${escapeHtml(label)}</span>`)
-    .join("")}</div>`;
+    .join('')}</div>`
 }
 
 export const paragraphs = (text: string): string =>
@@ -244,72 +251,94 @@ export const paragraphs = (text: string): string =>
     .split(/\n{2,}/)
     .map((block) => block.trim())
     .filter(Boolean)
-    .map((block) => `<p>${escapeHtml(block).replace(/\n/g, "<br/>")}</p>`)
-    .join("");
+    .map((block) => `<p>${escapeHtml(block).replace(/\n/g, '<br/>')}</p>`)
+    .join('')
 
 export function jobPageHtml(job: Job): string {
-  const title = job.company ? `${job.title} · ${job.company}` : `${job.title} · JobIt`;
-  const where = [job.city, job.department].filter(Boolean).join(", ") || "Uruguay";
-  const pay = salaryLabel(job);
-  const description = job.description.replace(/\s+/g, " ").trim().slice(0, 155);
+  const title = job.company
+    ? `${job.title} · ${job.company}`
+    : `${job.title} · JobIt`
+  const where =
+    [job.city, job.department].filter(Boolean).join(', ') || 'Uruguay'
+  const pay = salaryLabel(job)
+  const description = job.description.replace(/\s+/g, ' ').trim().slice(0, 155)
   const meta: PageMeta = {
     title,
-    description: `${job.title} en ${where}.${pay ? ` ${pay}.` : ""} ${description}`.slice(0, 300),
+    description:
+      `${job.title} en ${where}.${pay ? ` ${pay}.` : ''} ${description}`.slice(
+        0,
+        300,
+      ),
     path: `/empleo/${encodeURIComponent(job.id)}`,
     jsonLd: jobPostingLd(job),
-  };
+  }
 
   const body = `
 <article>
 <h1>${escapeHtml(job.title)}</h1>
-<p class="muted">${escapeHtml(job.company ?? "JobIt")} · ${escapeHtml(where)}${job.date_posted ? ` · Publicada el ${dateLabel(job.date_posted)}` : ""}</p>
+<p class="muted">${escapeHtml(job.company ?? 'JobIt')} · ${escapeHtml(where)}${job.date_posted ? ` · Publicada el ${dateLabel(job.date_posted)}` : ''}</p>
 ${jobChips(job)}
-${pay ? `<p><strong>${escapeHtml(pay)}</strong></p>` : ""}
-${job.closes_at ? `<p class="muted">Cierra el ${dateLabel(job.closes_at)}</p>` : ""}
+${pay ? `<p><strong>${escapeHtml(pay)}</strong></p>` : ''}
+${job.closes_at ? `<p class="muted">Cierra el ${dateLabel(job.closes_at)}</p>` : ''}
 ${job.apply_url ? `<a class="cta" href="${escapeHtml(job.apply_url)}" rel="noopener nofollow" target="_blank">Postularme en el aviso original</a>` : `<a class="cta" href="${escapeHtml(publicOrigin())}/?job=${encodeURIComponent(job.id)}">Abrir en JobIt y postularme</a>`}
 <a class="cta ghost" href="${escapeHtml(publicOrigin())}/?job=${encodeURIComponent(job.id)}">Ver en JobIt</a>
 <h2>Descripción</h2>
-${job.description ? paragraphs(job.description) : "<p>La fuente no publicó una descripción.</p>"}
-${job.requirements ? `<h2>Requisitos</h2>${paragraphs(job.requirements)}` : ""}
+${job.description ? paragraphs(job.description) : '<p>La fuente no publicó una descripción.</p>'}
+${job.requirements ? `<h2>Requisitos</h2>${paragraphs(job.requirements)}` : ''}
 </article>
-<p class="muted">JobIt reúne avisos de portales uruguayos y llamados del Estado, y siempre enlaza al aviso original.</p>`;
+<p class="muted">JobIt reúne avisos de portales uruguayos y llamados del Estado, y siempre enlaza al aviso original.</p>`
 
-  return layout(meta, body);
+  return layout(meta, body)
 }
 
 /* --- Servicios ------------------------------------------------------------- */
 
 const PRICE_UNIT_TEXT: Record<string, string> = {
-  hora: "por hora",
-  jornada: "por jornada",
-  semana: "por semana",
-  mes: "por mes",
-  proyecto: "por proyecto",
-  unidad: "por unidad",
-};
+  hora: 'por hora',
+  jornada: 'por jornada',
+  semana: 'por semana',
+  mes: 'por mes',
+  proyecto: 'por proyecto',
+  unidad: 'por unidad',
+}
 
 const MODE_LABEL: Record<string, string> = {
-  onsite: "Presencial",
-  remote: "Remoto",
-  hybrid: "Híbrido",
-};
+  onsite: 'Presencial',
+  remote: 'Remoto',
+  hybrid: 'Híbrido',
+}
 
-const WEEKDAY_LABEL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const WEEKDAY_LABEL = [
+  'Domingo',
+  'Lunes',
+  'Martes',
+  'Miércoles',
+  'Jueves',
+  'Viernes',
+  'Sábado',
+]
 
 const serviceKind = (service: Service): string =>
-  [categoryLabel(service.category), MODE_LABEL[service.remote] ?? "", service.department]
+  [
+    categoryLabel(service.category),
+    MODE_LABEL[service.remote] ?? '',
+    service.department,
+  ]
     .filter(Boolean)
-    .join(" · ");
+    .join(' · ')
 
 export const serviceLocation = (service: Service): string =>
-  [service.city, service.department].filter(Boolean).join(", ") || "Uruguay";
+  [service.city, service.department].filter(Boolean).join(', ') || 'Uruguay'
 
-const formatAmount = (amount: number): string => new Intl.NumberFormat("es-UY").format(amount);
+const formatAmount = (amount: number): string =>
+  new Intl.NumberFormat('es-UY').format(amount)
 
-const priceText = (price: Service["prices"][number]): string => {
-  const unit = price.unit ? ` ${PRICE_UNIT_TEXT[price.unit] ?? `por ${price.unit}`}` : "";
-  return `${formatAmount(price.amount)} ${price.currency}${unit}`;
-};
+const priceText = (price: Service['prices'][number]): string => {
+  const unit = price.unit
+    ? ` ${PRICE_UNIT_TEXT[price.unit] ?? `por ${price.unit}`}`
+    : ''
+  return `${formatAmount(price.amount)} ${price.currency}${unit}`
+}
 
 /**
  * El `Service` vive acá, así que marcarlo es legítimo —al contrario de las
@@ -317,205 +346,225 @@ const priceText = (price: Service["prices"][number]): string => {
  * verdad: marcarlo con cero, o con uno solo, es lo que Google castiga.
  */
 export function serviceJsonLd(service: Service): Record<string, unknown>[] {
-  const origin = publicOrigin();
-  const url = `${origin}/servicios/${encodeURIComponent(service.slug)}`;
+  const origin = publicOrigin()
+  const url = `${origin}/servicios/${encodeURIComponent(service.slug)}`
   const provider: Record<string, unknown> = {
-    "@type": "Person",
+    '@type': 'Person',
     name: service.owner_name,
     alternateName: service.owner_handle,
     url,
-  };
+  }
 
-  const base = service.prices.filter((price) => price.kind === "base");
-  const listed = base.length > 0 ? base : service.prices;
+  const base = service.prices.filter((price) => price.kind === 'base')
+  const listed = base.length > 0 ? base : service.prices
   const offers = listed.map((price) => ({
-    "@type": "Offer",
+    '@type': 'Offer',
     price: price.amount,
     priceCurrency: price.currency,
     ...(price.label ? { name: price.label } : {}),
-  }));
+  }))
 
-  const where = [service.city, service.department].filter(Boolean).join(", ");
+  const where = [service.city, service.department].filter(Boolean).join(', ')
   const marked: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Service",
+    '@context': 'https://schema.org',
+    '@type': 'Service',
     name: service.title,
     description: service.description || service.summary || service.title,
     url,
     serviceType: categoryLabel(service.category),
     provider,
-    ...(where ? { areaServed: { "@type": "Place", name: where } } : {}),
-    ...(offers.length > 0 ? { offers: offers.length === 1 ? offers[0] : offers } : {}),
-  };
+    ...(where ? { areaServed: { '@type': 'Place', name: where } } : {}),
+    ...(offers.length > 0
+      ? { offers: offers.length === 1 ? offers[0] : offers }
+      : {}),
+  }
 
   if (service.rating_count >= 2) {
     marked.aggregateRating = {
-      "@type": "AggregateRating",
+      '@type': 'AggregateRating',
       ratingValue: service.rating_avg,
       ratingCount: service.rating_count,
       bestRating: 5,
       worstRating: 1,
-    };
+    }
   }
 
   const profile: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "ProfilePage",
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
     url,
     dateCreated: service.created_at.slice(0, 10),
     dateModified: (service.published_at || service.updated_at).slice(0, 10),
     mainEntity: provider,
-  };
+  }
 
-  return [marked, profile];
+  return [marked, profile]
 }
 
 export function servicePageHtml(service: Service): string {
-  const origin = publicOrigin();
-  const where = serviceLocation(service);
-  const kind = serviceKind(service);
-  const base = service.prices.filter((price) => price.kind === "base");
-  const extras = service.prices.filter((price) => price.kind === "extra");
+  const origin = publicOrigin()
+  const where = serviceLocation(service)
+  const kind = serviceKind(service)
+  const base = service.prices.filter((price) => price.kind === 'base')
+  const extras = service.prices.filter((price) => price.kind === 'extra')
   const rating =
     service.rating_count > 0
       ? `${service.rating_avg.toFixed(1)} de 5 · ${service.rating_count} ${
-          service.rating_count === 1 ? "calificación" : "calificaciones"
+          service.rating_count === 1 ? 'calificación' : 'calificaciones'
         }`
-      : "Todavía sin calificaciones";
+      : 'Todavía sin calificaciones'
   const description = (service.description || service.summary || service.title)
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 155);
+    .slice(0, 155)
 
   const meta: PageMeta = {
     title: `${service.title} · ${service.owner_name} · JobIt`,
     description: `${service.title} en ${where}. ${description}`.slice(0, 300),
     path: `/servicios/${encodeURIComponent(service.slug)}`,
     jsonLd: serviceJsonLd(service),
-  };
+  }
 
-  const priceRows = (prices: Service["prices"]): string =>
+  const priceRows = (prices: Service['prices']): string =>
     prices
       .map(
         (price) =>
-          `<tr><td>${escapeHtml(price.label || "Precio")}${
-            price.notes ? `<br/><span class="muted">${escapeHtml(price.notes)}</span>` : ""
+          `<tr><td>${escapeHtml(price.label || 'Precio')}${
+            price.notes
+              ? `<br/><span class="muted">${escapeHtml(price.notes)}</span>`
+              : ''
           }</td><td>${escapeHtml(priceText(price))}</td></tr>`,
       )
-      .join("");
+      .join('')
 
   const hours = service.hours
     .slice()
     .sort((a, b) => a.weekday - b.weekday || a.from.localeCompare(b.from))
     .map(
       (hour) =>
-        `<tr><td>${escapeHtml(WEEKDAY_LABEL[hour.weekday] ?? "")}</td><td>${escapeHtml(
+        `<tr><td>${escapeHtml(WEEKDAY_LABEL[hour.weekday] ?? '')}</td><td>${escapeHtml(
           `${hour.from} a ${hour.to}`,
         )}</td></tr>`,
     )
-    .join("");
+    .join('')
 
   const body = `
 <article>
 <h1>${escapeHtml(service.title)}</h1>
 <p class="muted">${escapeHtml(service.owner_name)} · ${escapeHtml(where)}</p>
-<div class="chips">${[kind, rating].filter(Boolean).map((label) => `<span class="chip">${escapeHtml(label)}</span>`).join("")}</div>
-${service.summary ? `<p>${escapeHtml(service.summary)}</p>` : ""}
+<div class="chips">${[kind, rating]
+    .filter(Boolean)
+    .map((label) => `<span class="chip">${escapeHtml(label)}</span>`)
+    .join('')}</div>
+${service.summary ? `<p>${escapeHtml(service.summary)}</p>` : ''}
 <a class="cta" href="${escapeHtml(origin)}/?service=${encodeURIComponent(service.slug)}">Ver en JobIt</a>
 ${
   base.length > 0
     ? `<h2>Precios</h2><table><tbody>${priceRows(base)}</tbody></table>${
         service.fixed_price
-          ? ""
+          ? ''
           : `<p class="muted">Los precios son de referencia: se terminan de acordar con la persona.</p>`
       }`
-    : ""
+    : ''
 }
-${extras.length > 0 ? `<h2>Extras</h2><table><tbody>${priceRows(extras)}</tbody></table>` : ""}
+${extras.length > 0 ? `<h2>Extras</h2><table><tbody>${priceRows(extras)}</tbody></table>` : ''}
 ${
   service.skills.length > 0
     ? `<h2>Habilidades</h2><div class="chips">${service.skills
         .map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`)
-        .join("")}</div>`
-    : ""
+        .join('')}</div>`
+    : ''
 }
 <h2>Qué hace</h2>
 ${service.description ? paragraphs(service.description) : `<p>${escapeHtml(service.summary || service.title)}</p>`}
-${hours ? `<h2>Horarios</h2><table><tbody>${hours}</tbody></table>` : ""}
+${hours ? `<h2>Horarios</h2><table><tbody>${hours}</tbody></table>` : ''}
 ${
   service.availability_note
     ? `<p class="muted">${escapeHtml(service.availability_note)}</p>`
-    : ""
+    : ''
 }
 </article>
-<p class="muted">JobIt no guarda datos de contacto de quien publica: el contacto se arregla adentro.</p>`;
+<p class="muted">JobIt no guarda datos de contacto de quien publica: el contacto se arregla adentro.</p>`
 
-  return layout(meta, body);
+  return layout(meta, body)
 }
 
 export interface SitemapEntry {
-  path: string;
+  path: string
   /** El día, no el momento. */
-  lastmod?: string;
-  changefreq?: "daily" | "weekly" | "monthly" | "yearly";
-  priority?: number;
+  lastmod?: string
+  changefreq?: 'daily' | 'weekly' | 'monthly' | 'yearly'
+  priority?: number
 }
 
 export function sitemapXml(entries: SitemapEntry[]): string {
-  const origin = publicOrigin();
+  const origin = publicOrigin()
   const urls = entries
     .map((entry) => {
       const lastmod = entry.lastmod
         ? `<lastmod>${escapeHtml(entry.lastmod.slice(0, 10))}</lastmod>`
-        : "";
-      const changefreq = entry.changefreq ? `<changefreq>${entry.changefreq}</changefreq>` : "";
-      const priority = entry.priority !== undefined ? `<priority>${entry.priority}</priority>` : "";
-      return `<url><loc>${escapeHtml(`${origin}${entry.path}`)}</loc>${lastmod}${changefreq}${priority}</url>`;
+        : ''
+      const changefreq = entry.changefreq
+        ? `<changefreq>${entry.changefreq}</changefreq>`
+        : ''
+      const priority =
+        entry.priority !== undefined
+          ? `<priority>${entry.priority}</priority>`
+          : ''
+      return `<url><loc>${escapeHtml(`${origin}${entry.path}`)}</loc>${lastmod}${changefreq}${priority}</url>`
     })
-    .join("");
+    .join('')
 
-  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`
 }
 
 export const jobListHtml = (jobs: Job[]): string =>
   jobs
     .slice(0, 100)
     .map((job) => {
-      const where = [job.city, job.department].filter(Boolean).join(", ") || "Uruguay";
-      return `<li><a href="${escapeHtml(publicOrigin())}/empleo/${encodeURIComponent(job.id)}">${escapeHtml(job.title)}</a><div class="where">${escapeHtml(job.company ?? "JobIt")} · ${escapeHtml(where)}</div></li>`;
+      const where =
+        [job.city, job.department].filter(Boolean).join(', ') || 'Uruguay'
+      return `<li><a href="${escapeHtml(publicOrigin())}/empleo/${encodeURIComponent(job.id)}">${escapeHtml(job.title)}</a><div class="where">${escapeHtml(job.company ?? 'JobIt')} · ${escapeHtml(where)}</div></li>`
     })
-    .join("");
+    .join('')
 
 export function listPageHtml(options: {
-  title: string;
-  description: string;
-  path: string;
-  intro: string;
-  jobs: Job[];
-  appQuery: string;
+  title: string
+  description: string
+  path: string
+  intro: string
+  jobs: Job[]
+  appQuery: string
 }): string {
-  const { jobs } = options;
-  const items = jobListHtml(jobs);
+  const { jobs } = options
+  const items = jobListHtml(jobs)
 
   const body = `
 <h1>${escapeHtml(options.title)}</h1>
 <p>${escapeHtml(options.intro)}</p>
 <a class="cta" href="${escapeHtml(publicOrigin())}/${options.appQuery}">Ver y filtrar en JobIt</a>
 <ul class="jobs">${items}</ul>
-<p class="muted">${jobs.length} ofertas${jobs.length > 100 ? " (mostrando las primeras 100)" : ""}.</p>`;
+<p class="muted">${jobs.length} ofertas${jobs.length > 100 ? ' (mostrando las primeras 100)' : ''}.</p>`
 
   return layout(
-    { title: options.title, description: options.description, path: options.path },
+    {
+      title: options.title,
+      description: options.description,
+      path: options.path,
+    },
     body,
-  );
+  )
 }
 
 export function marketPageHtml(report: MarketReport): string {
   const rows = (entries: { label: string; count: number }[]): string =>
     entries
       .slice(0, 15)
-      .map((entry) => `<tr><td>${escapeHtml(entry.label)}</td><td>${entry.count}</td></tr>`)
-      .join("");
+      .map(
+        (entry) =>
+          `<tr><td>${escapeHtml(entry.label)}</td><td>${entry.count}</td></tr>`,
+      )
+      .join('')
 
   const body = `
 <h1>El mercado laboral uruguayo, ahora</h1>
@@ -528,17 +577,17 @@ export function marketPageHtml(report: MarketReport): string {
 <table><tbody>${rows(report.departments.map((entry) => ({ label: entry.value, count: entry.count })))}</tbody></table>
 <h2>Habilidades más pedidas</h2>
 <table><tbody>${rows(report.skills.map((skill) => ({ label: skill.label, count: skill.count })))}</tbody></table>
-<p class="muted">Actualizado el ${dateLabel(report.scraped_at)}.</p>`;
+<p class="muted">Actualizado el ${dateLabel(report.scraped_at)}.</p>`
 
   return layout(
     {
-      title: "Mercado laboral en Uruguay · JobIt",
+      title: 'Mercado laboral en Uruguay · JobIt',
       description:
-        "Totales, puestos, rubros y departamentos con más ofertas en Uruguay, armado con las ofertas publicadas en JobIt.",
-      path: "/mercado",
+        'Totales, puestos, rubros y departamentos con más ofertas en Uruguay, armado con las ofertas publicadas en JobIt.',
+      path: '/mercado',
     },
     body,
-  );
+  )
 }
 
 /**
@@ -546,25 +595,27 @@ export function marketPageHtml(report: MarketReport): string {
  * lista vacía no se marca, porque un marcado sin contenido es justo lo que se
  * penaliza.
  */
-export function faqPageLd(items: ContentItem[]): Record<string, unknown> | null {
-  const faqs = items.filter((item) => item.kind === "faq");
-  if (faqs.length === 0) return null;
+export function faqPageLd(
+  items: ContentItem[],
+): Record<string, unknown> | null {
+  const faqs = items.filter((item) => item.kind === 'faq')
+  if (faqs.length === 0) return null
 
   return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
     mainEntity: faqs.map((item) => ({
-      "@type": "Question",
+      '@type': 'Question',
       name: item.title,
-      acceptedAnswer: { "@type": "Answer", text: item.body },
+      acceptedAnswer: { '@type': 'Answer', text: item.body },
     })),
-  };
+  }
 }
 
 /** Un puesto con guía propia, para enlazarlo desde la guía de su rubro. */
 export interface RoleGuideLink {
-  role: string;
-  name: string;
+  role: string
+  name: string
 }
 
 /**
@@ -579,23 +630,23 @@ export function interviewPageHtml(
   items: ContentItem[],
   guides: RoleGuideLink[] = [],
 ): string {
-  const label = categoryLabel(slug);
-  const questions = items.filter((item) => item.kind === "faq");
-  const topics = items.filter((item) => item.kind === "topic");
+  const label = categoryLabel(slug)
+  const questions = items.filter((item) => item.kind === 'faq')
+  const topics = items.filter((item) => item.kind === 'topic')
 
   const questionBlocks = questions
     .map((item) => `<h3>${escapeHtml(item.title)}</h3>${paragraphs(item.body)}`)
-    .join("");
+    .join('')
   const topicBlocks = topics
     .map((item) => `<h3>${escapeHtml(item.title)}</h3>${paragraphs(item.body)}`)
-    .join("");
+    .join('')
 
   const body = `
 <h1>Preguntas de entrevista de ${escapeHtml(label)} en Uruguay</h1>
 <p>Las preguntas que más se repiten en las entrevistas de ${escapeHtml(label)}, y las habilidades y temas que conviene tener a mano.</p>
 <a class="cta" href="${escapeHtml(publicOrigin())}/?category=${encodeURIComponent(slug)}">Ver las ofertas de ${escapeHtml(label)} en JobIt</a>
-${questionBlocks ? `<h2>Preguntas frecuentes</h2>${questionBlocks}` : ""}
-${topicBlocks ? `<h2>Habilidades y temas</h2>${topicBlocks}` : ""}
+${questionBlocks ? `<h2>Preguntas frecuentes</h2>${questionBlocks}` : ''}
+${topicBlocks ? `<h2>Habilidades y temas</h2>${topicBlocks}` : ''}
 ${
   guides.length > 0
     ? `<h2>Guías por puesto</h2><ul>${guides
@@ -603,14 +654,14 @@ ${
           (guide) =>
             `<li><a href="${escapeHtml(publicOrigin())}/entrevista/${encodeURIComponent(slug)}/${encodeURIComponent(guide.role)}">Entrevista de ${escapeHtml(guide.name)}</a></li>`,
         )
-        .join("")}</ul>`
-    : ""
+        .join('')}</ul>`
+    : ''
 }
 ${
   jobs.length > 0
-    ? `<h2>Ofertas de ${escapeHtml(label)}</h2><ul class="jobs">${jobListHtml(jobs)}</ul><p class="muted">${jobs.length} ofertas${jobs.length > 100 ? " (mostrando las primeras 100)" : ""}.</p>`
-    : ""
-}`;
+    ? `<h2>Ofertas de ${escapeHtml(label)}</h2><ul class="jobs">${jobListHtml(jobs)}</ul><p class="muted">${jobs.length} ofertas${jobs.length > 100 ? ' (mostrando las primeras 100)' : ''}.</p>`
+    : ''
+}`
 
   return layout(
     {
@@ -620,7 +671,7 @@ ${
       jsonLd: faqPageLd(items),
     },
     body,
-  );
+  )
 }
 
 /**
@@ -633,10 +684,10 @@ ${
  * Solo promete lo que el panel hace hoy.
  */
 export function publishPageHtml(): string {
-  const origin = publicOrigin();
-  const title = "Publicá ofertas de trabajo en Uruguay · JobIt";
+  const origin = publicOrigin()
+  const title = 'Publicá ofertas de trabajo en Uruguay · JobIt'
   const description =
-    "Publicá las ofertas de tu empresa en JobIt, un buscador de trabajo de Uruguay pensado para quien busca su primer empleo. Sin costo y sin datos de quien mira.";
+    'Publicá las ofertas de tu empresa en JobIt, un buscador de trabajo de Uruguay pensado para quien busca su primer empleo. Sin costo y sin datos de quien mira.'
 
   const body = `
 <h1>Publicá tus ofertas de trabajo en Uruguay</h1>
@@ -655,47 +706,47 @@ export function publishPageHtml(): string {
 <li>JobIt no registra quién mira una oferta ni quién se postula: las métricas son contadores por oferta y por día, nunca por persona.</li>
 <li>Los avisos de otros portales siguen enlazando al original; las ofertas publicadas acá son las de las empresas que las cargan.</li>
 </ul>
-<p class="muted">Más sobre qué se guarda y qué no en la <a href="${escapeHtml(origin)}/privacidad">política de privacidad</a>.</p>`;
+<p class="muted">Más sobre qué se guarda y qué no en la <a href="${escapeHtml(origin)}/privacidad">política de privacidad</a>.</p>`
 
   return layout(
     {
       title,
       description,
-      path: "/publicar",
+      path: '/publicar',
       jsonLd: {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
         name: title,
         description,
         url: `${origin}/publicar`,
-        inLanguage: "es-UY",
+        inLanguage: 'es-UY',
       },
     },
     body,
-  );
+  )
 }
 
 export const notFoundPage = (): string =>
   layout(
     {
-      title: "No encontramos eso · JobIt",
-      description: "La página o la oferta no existe o ya no está publicada.",
-      path: "/",
+      title: 'No encontramos eso · JobIt',
+      description: 'La página o la oferta no existe o ya no está publicada.',
+      path: '/',
     },
     `<h1>No encontramos eso</h1><p>La página o la oferta no existe, o ya no está publicada.</p><a class="cta" href="${escapeHtml(publicOrigin())}/">Volver a las ofertas</a>`,
-  );
+  )
 
 const feedJobs = (feed: JobsFile, predicate: (job: Job) => boolean): Job[] =>
-  feed.jobs.filter(predicate);
+  feed.jobs.filter(predicate)
 
 export const jobsByCategory = (feed: JobsFile, slug: string): Job[] =>
-  feedJobs(feed, (job) => job.category === slug);
+  feedJobs(feed, (job) => job.category === slug)
 
 export const jobsByDepartment = (feed: JobsFile, department: string): Job[] =>
-  feedJobs(feed, (job) => job.department === department);
+  feedJobs(feed, (job) => job.department === department)
 
 export const jobsByRole = (feed: JobsFile, slug: string): Job[] =>
-  feedJobs(feed, (job) => roleOf(job.title)?.slug === slug);
+  feedJobs(feed, (job) => roleOf(job.title)?.slug === slug)
 
 export const categoryPageHtml = (slug: string, jobs: Job[]): string =>
   listPageHtml({
@@ -705,7 +756,7 @@ export const categoryPageHtml = (slug: string, jobs: Job[]): string =>
     intro: `Estas son las ofertas de ${categoryLabel(slug)} que hay hoy en el tablero.`,
     jobs,
     appQuery: `?category=${encodeURIComponent(slug)}`,
-  });
+  })
 
 export const departmentPageHtml = (department: string, jobs: Job[]): string =>
   listPageHtml({
@@ -715,10 +766,10 @@ export const departmentPageHtml = (department: string, jobs: Job[]): string =>
     intro: `Estas son las ofertas publicadas para ${department}.`,
     jobs,
     appQuery: `?department=${encodeURIComponent(department)}`,
-  });
+  })
 
 export const rolePageHtml = (slug: string, jobs: Job[]): string => {
-  const label = ROLES.find((role) => role.slug === slug)?.label ?? slug;
+  const label = ROLES.find((role) => role.slug === slug)?.label ?? slug
   return listPageHtml({
     title: `Ofertas de ${label}`,
     description: `Ofertas de ${label} en Uruguay, reunidas en JobIt.`,
@@ -726,10 +777,11 @@ export const rolePageHtml = (slug: string, jobs: Job[]): string => {
     intro: `Estas son las ofertas para ${label} que hay hoy.`,
     jobs,
     appQuery: `?q=${encodeURIComponent(label)}`,
-  });
-};
+  })
+}
 
-export const categorySlugs = (): string[] => CATEGORIES.map((category) => category.slug);
-export { buildMarketReport };
-export { loadFeed, lookupJob };
-export { htmlResponse };
+export const categorySlugs = (): string[] =>
+  CATEGORIES.map((category) => category.slug)
+export { buildMarketReport }
+export { loadFeed, lookupJob }
+export { htmlResponse }

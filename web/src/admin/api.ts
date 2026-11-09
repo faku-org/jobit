@@ -1,37 +1,37 @@
-export const COMPANY_STATUSES = ["pending", "approved", "suspended"] as const;
-export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
+export const COMPANY_STATUSES = ['pending', 'approved', 'suspended'] as const
+export type CompanyStatus = (typeof COMPANY_STATUSES)[number]
 
 export const STATUS_LABEL: Record<CompanyStatus, string> = {
-  pending: "Pendiente",
-  approved: "Aprobada",
-  suspended: "Suspendida",
-};
-
-export interface Company {
-  id: string;
-  name: string;
-  slug: string;
-  email: string;
-  website: string;
-  status: CompanyStatus;
-  notes: string;
-  created_at: string;
-  updated_at: string;
+  pending: 'Pendiente',
+  approved: 'Aprobada',
+  suspended: 'Suspendida',
 }
 
-export type Counts = Record<CompanyStatus, number>;
+export interface Company {
+  id: string
+  name: string
+  slug: string
+  email: string
+  website: string
+  status: CompanyStatus
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export type Counts = Record<CompanyStatus, number>
 
 export interface CompanyList {
-  companies: Company[];
-  counts: Counts;
+  companies: Company[]
+  counts: Counts
 }
 
 export interface CompanyInput {
-  name: string;
-  email?: string;
-  website?: string;
-  status?: CompanyStatus;
-  notes?: string;
+  name: string
+  email?: string
+  website?: string
+  status?: CompanyStatus
+  notes?: string
 }
 
 /** La sesión vencida no es un error a mostrar, es volver a la pantalla de
@@ -40,315 +40,342 @@ export class Unauthorized extends Error {}
 
 async function send<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`/api/admin${path}`, {
-    credentials: "same-origin",
+    credentials: 'same-origin',
     ...init,
-    headers: { "Content-Type": "application/json", ...init.headers },
-  });
+    headers: { 'Content-Type': 'application/json', ...init.headers },
+  })
 
-  if (response.status === 401) throw new Unauthorized("sesión vencida");
+  if (response.status === 401) throw new Unauthorized('sesión vencida')
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? `La API respondió ${response.status}`);
+    const body = (await response.json().catch(() => null)) as {
+      error?: string
+    } | null
+    throw new Error(body?.error ?? `La API respondió ${response.status}`)
   }
 
-  return (await response.json()) as T;
+  return (await response.json()) as T
 }
 
-export const checkSession = (): Promise<{ status: string }> => send("/session");
+export const checkSession = (): Promise<{ status: string }> => send('/session')
 
 export const login = (password: string): Promise<{ status: string }> =>
-  send("/login", { method: "POST", body: JSON.stringify({ password }) });
+  send('/login', { method: 'POST', body: JSON.stringify({ password }) })
 
-export const logout = (): Promise<{ status: string }> => send("/logout", { method: "POST" });
+export const logout = (): Promise<{ status: string }> =>
+  send('/logout', { method: 'POST' })
 
-export function listCompanies(status: CompanyStatus | "", q: string): Promise<CompanyList> {
-  const params = new URLSearchParams();
-  if (status) params.set("status", status);
-  if (q.trim()) params.set("q", q.trim());
-  const query = params.toString();
-  return send(`/companies${query ? `?${query}` : ""}`);
+export function listCompanies(
+  status: CompanyStatus | '',
+  q: string,
+): Promise<CompanyList> {
+  const params = new URLSearchParams()
+  if (status) params.set('status', status)
+  if (q.trim()) params.set('q', q.trim())
+  const query = params.toString()
+  return send(`/companies${query ? `?${query}` : ''}`)
 }
 
 export const createCompany = (input: CompanyInput): Promise<Company> =>
-  send("/companies", { method: "POST", body: JSON.stringify(input) });
+  send('/companies', { method: 'POST', body: JSON.stringify(input) })
 
-export const updateCompany = (id: string, input: Partial<CompanyInput>): Promise<Company> =>
-  send(`/companies/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+export const updateCompany = (
+  id: string,
+  input: Partial<CompanyInput>,
+): Promise<Company> =>
+  send(`/companies/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 
 export const deleteCompany = (id: string): Promise<{ status: string }> =>
-  send(`/companies/${id}`, { method: "DELETE" });
+  send(`/companies/${id}`, { method: 'DELETE' })
 
-export const OFFER_STATUSES = ["draft", "published", "archived"] as const;
-export type OfferStatus = (typeof OFFER_STATUSES)[number];
+export const OFFER_STATUSES = ['draft', 'published', 'archived'] as const
+export type OfferStatus = (typeof OFFER_STATUSES)[number]
 
 export const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {
-  draft: "Borrador",
-  published: "Publicada",
-  archived: "Archivada",
-};
+  draft: 'Borrador',
+  published: 'Publicada',
+  archived: 'Archivada',
+}
 
 export interface Offer {
-  id: string;
-  company_id: string;
-  company_name: string;
-  company_status: CompanyStatus;
-  title: string;
-  description: string;
-  requirements: string;
-  category: string;
-  department: string;
-  city: string;
-  level: string;
-  remote: string;
-  job_type: string;
-  salary_min: number | null;
-  salary_max: number | null;
-  no_experience: boolean;
-  closes_at: string;
-  apply_url: string;
-  status: OfferStatus;
-  created_at: string;
-  updated_at: string;
-  published_at: string;
+  id: string
+  company_id: string
+  company_name: string
+  company_status: CompanyStatus
+  title: string
+  description: string
+  requirements: string
+  category: string
+  department: string
+  city: string
+  level: string
+  remote: string
+  job_type: string
+  salary_min: number | null
+  salary_max: number | null
+  no_experience: boolean
+  closes_at: string
+  apply_url: string
+  status: OfferStatus
+  created_at: string
+  updated_at: string
+  published_at: string
 }
 
 export interface OfferList {
-  offers: Offer[];
-  counts: Record<OfferStatus, number>;
+  offers: Offer[]
+  counts: Record<OfferStatus, number>
 }
 
 export interface OfferInput {
-  company_id: string;
-  title: string;
-  description?: string;
-  category?: string;
-  department?: string;
-  city?: string;
-  level?: string;
-  remote?: string;
-  job_type?: string;
-  salary_min?: number | null;
-  salary_max?: number | null;
-  no_experience?: boolean;
-  closes_at?: string;
-  apply_url?: string;
-  status?: OfferStatus;
+  company_id: string
+  title: string
+  description?: string
+  category?: string
+  department?: string
+  city?: string
+  level?: string
+  remote?: string
+  job_type?: string
+  salary_min?: number | null
+  salary_max?: number | null
+  no_experience?: boolean
+  closes_at?: string
+  apply_url?: string
+  status?: OfferStatus
 }
 
-export function listOffers(status: OfferStatus | ""): Promise<OfferList> {
-  const params = new URLSearchParams();
-  if (status) params.set("status", status);
-  const query = params.toString();
-  return send(`/offers${query ? `?${query}` : ""}`);
+export function listOffers(status: OfferStatus | ''): Promise<OfferList> {
+  const params = new URLSearchParams()
+  if (status) params.set('status', status)
+  const query = params.toString()
+  return send(`/offers${query ? `?${query}` : ''}`)
 }
 
 export const createOffer = (input: OfferInput): Promise<Offer> =>
-  send("/offers", { method: "POST", body: JSON.stringify(input) });
+  send('/offers', { method: 'POST', body: JSON.stringify(input) })
 
-export const updateOffer = (id: string, input: Partial<OfferInput>): Promise<Offer> =>
-  send(`/offers/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+export const updateOffer = (
+  id: string,
+  input: Partial<OfferInput>,
+): Promise<Offer> =>
+  send(`/offers/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 
 export const deleteOffer = (id: string): Promise<{ status: string }> =>
-  send(`/offers/${id}`, { method: "DELETE" });
+  send(`/offers/${id}`, { method: 'DELETE' })
 
 /** El uso que ya llegó a los .jsonl, sumado por la API. No hay nada por
  * persona acá: son filas contadas, igual que como se escribieron. */
 export interface UsageCount {
-  value: string;
-  count: number;
+  value: string
+  count: number
 }
 
 export interface UsageLabelled extends UsageCount {
-  label: string;
+  label: string
 }
 
 export interface UsageJob {
-  id: string;
-  title: string;
-  company: string;
-  source: string;
-  url: string;
-  count: number;
+  id: string
+  title: string
+  company: string
+  source: string
+  url: string
+  count: number
 }
 
 export interface UsageDay {
-  day: string;
-  summaries: number;
-  searches: number;
-  applies: number;
+  day: string
+  summaries: number
+  searches: number
+  applies: number
 }
 
 export interface UsageService {
-  id: string;
-  title: string;
-  views: number;
-  contacts: number;
+  id: string
+  title: string
+  views: number
+  contacts: number
 }
 
 export interface UsageServices {
-  published: number;
-  viewed: number;
-  contacted: number;
-  views: number;
-  contacts: number;
-  searches: number;
-  demand: UsageLabelled[];
-  unmet: UsageLabelled[];
-  channels: UsageCount[];
-  top: UsageService[];
+  published: number
+  viewed: number
+  contacted: number
+  views: number
+  contacts: number
+  searches: number
+  demand: UsageLabelled[]
+  unmet: UsageLabelled[]
+  channels: UsageCount[]
+  top: UsageService[]
 }
 
 export interface UsageReport {
-  days: number;
-  from: string;
-  to: string;
-  summaries: number;
-  searches: number;
-  applies: number;
-  saved: number;
-  applications: number;
-  interviews: number;
-  closed: number;
-  empty: number;
-  education: UsageCount[];
-  sources: UsageCount[];
-  roles: UsageLabelled[];
-  emptyRoles: UsageLabelled[];
-  filters: UsageCount[];
-  categories: UsageLabelled[];
-  jobs: UsageJob[];
-  daily: UsageDay[];
-  services: UsageServices;
+  days: number
+  from: string
+  to: string
+  summaries: number
+  searches: number
+  applies: number
+  saved: number
+  applications: number
+  interviews: number
+  closed: number
+  empty: number
+  education: UsageCount[]
+  sources: UsageCount[]
+  roles: UsageLabelled[]
+  emptyRoles: UsageLabelled[]
+  filters: UsageCount[]
+  categories: UsageLabelled[]
+  jobs: UsageJob[]
+  daily: UsageDay[]
+  services: UsageServices
 }
 
-export const getUsage = (days: number): Promise<UsageReport> => send(`/usage?days=${days}`);
+export const getUsage = (days: number): Promise<UsageReport> =>
+  send(`/usage?days=${days}`)
 
 /** Las mismas del catálogo del worker, que es lo que la API acepta. */
 export const CATEGORIES: { slug: string; label: string }[] = [
-  { slug: "ventas", label: "Ventas y comercial" },
-  { slug: "atencion-cliente", label: "Atención al cliente" },
-  { slug: "administracion", label: "Administración y gestión" },
-  { slug: "oficios", label: "Oficios y construcción" },
-  { slug: "produccion", label: "Producción e industria" },
-  { slug: "logistica", label: "Logística y distribución" },
-  { slug: "contabilidad-finanzas", label: "Contabilidad y finanzas" },
-  { slug: "tecnologia", label: "Tecnología" },
-  { slug: "datos-analisis", label: "Análisis e investigación" },
-  { slug: "salud", label: "Salud" },
-  { slug: "ingenieria", label: "Ingeniería" },
-  { slug: "marketing", label: "Marketing y publicidad" },
-  { slug: "rrhh", label: "Recursos humanos" },
-  { slug: "educacion", label: "Educación" },
-  { slug: "diseno", label: "Diseño y creatividad" },
-  { slug: "otros", label: "Otros" },
-];
+  { slug: 'ventas', label: 'Ventas y comercial' },
+  { slug: 'atencion-cliente', label: 'Atención al cliente' },
+  { slug: 'administracion', label: 'Administración y gestión' },
+  { slug: 'oficios', label: 'Oficios y construcción' },
+  { slug: 'produccion', label: 'Producción e industria' },
+  { slug: 'logistica', label: 'Logística y distribución' },
+  { slug: 'contabilidad-finanzas', label: 'Contabilidad y finanzas' },
+  { slug: 'tecnologia', label: 'Tecnología' },
+  { slug: 'datos-analisis', label: 'Análisis e investigación' },
+  { slug: 'salud', label: 'Salud' },
+  { slug: 'ingenieria', label: 'Ingeniería' },
+  { slug: 'marketing', label: 'Marketing y publicidad' },
+  { slug: 'rrhh', label: 'Recursos humanos' },
+  { slug: 'educacion', label: 'Educación' },
+  { slug: 'diseno', label: 'Diseño y creatividad' },
+  { slug: 'otros', label: 'Otros' },
+]
 
 /** La cola de moderación de servicios. El puntaje y los motivos los escribe el
  * filtro local de la API: nada de esto sale de la caja. */
-export const SERVICE_STATUSES = ["draft", "pending", "published", "suspended"] as const;
-export type ServiceStatus = (typeof SERVICE_STATUSES)[number];
+export const SERVICE_STATUSES = [
+  'draft',
+  'pending',
+  'published',
+  'suspended',
+] as const
+export type ServiceStatus = (typeof SERVICE_STATUSES)[number]
 
 export const SERVICE_STATUS_LABEL: Record<ServiceStatus, string> = {
-  draft: "Borrador",
-  pending: "Esperando",
-  published: "Publicado",
-  suspended: "Suspendido",
-};
+  draft: 'Borrador',
+  pending: 'Esperando',
+  published: 'Publicado',
+  suspended: 'Suspendido',
+}
 
 export interface ServicePrice {
-  kind: "base" | "extra";
-  label: string;
-  amount: number;
-  currency: "UYU" | "USD";
-  unit: string;
-  notes: string;
+  kind: 'base' | 'extra'
+  label: string
+  amount: number
+  currency: 'UYU' | 'USD'
+  unit: string
+  notes: string
 }
 
 export interface Service {
-  id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  description: string;
-  category: string;
-  department: string;
-  city: string;
-  remote: string;
-  fixed_price: boolean;
-  work_style: string;
-  experience_years: number | null;
-  availability_note: string;
-  response_time: string;
-  status: ServiceStatus;
-  rating_avg: number;
-  rating_count: number;
-  created_at: string;
-  updated_at: string;
-  published_at: string;
-  skills: string[];
-  prices: ServicePrice[];
-  hours: { weekday: number; from: string; to: string }[];
-  owner_handle: string;
-  owner_name: string;
+  id: string
+  title: string
+  slug: string
+  summary: string
+  description: string
+  category: string
+  department: string
+  city: string
+  remote: string
+  fixed_price: boolean
+  work_style: string
+  experience_years: number | null
+  availability_note: string
+  response_time: string
+  status: ServiceStatus
+  rating_avg: number
+  rating_count: number
+  created_at: string
+  updated_at: string
+  published_at: string
+  skills: string[]
+  prices: ServicePrice[]
+  hours: { weekday: number; from: string; to: string }[]
+  owner_handle: string
+  owner_name: string
 }
 
 export interface ModerationReason {
-  code: string;
-  weight: number;
-  detail: string;
+  code: string
+  weight: number
+  detail: string
 }
 
 export interface ModerationReview {
-  service_id: string;
-  score: number;
-  reasons: ModerationReason[];
-  decision: string;
-  decided_by: string;
-  decided_at: string;
+  service_id: string
+  score: number
+  reasons: ModerationReason[]
+  decision: string
+  decided_by: string
+  decided_at: string
 }
 
 /** Una calificación denunciada, que se mira de a una: el servicio sigue
  * publicado y lo que hay para decidir es la fila. */
 export interface ServiceReview {
-  id: string;
-  service_id: string;
-  rating: number;
-  comment: string;
-  reply: string;
-  status: ReviewStatus;
-  edited: boolean;
-  created_at: string;
-  author_handle: string;
-  author_name: string;
+  id: string
+  service_id: string
+  rating: number
+  comment: string
+  reply: string
+  status: ReviewStatus
+  edited: boolean
+  created_at: string
+  author_handle: string
+  author_name: string
 }
 
-export const REVIEW_STATUSES = ["visible", "hidden"] as const;
-export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+export const REVIEW_STATUSES = ['visible', 'hidden'] as const
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number]
 
 export interface QueueItem {
-  service: Service;
-  review: ModerationReview | null;
-  reports: number;
-  reported_reviews: ServiceReview[];
+  service: Service
+  review: ModerationReview | null
+  reports: number
+  reported_reviews: ServiceReview[]
 }
 
 export interface ServiceQueue {
-  queue: QueueItem[];
-  counts: { pending: number; reported: number; reported_reviews: number };
+  queue: QueueItem[]
+  counts: { pending: number; reported: number; reported_reviews: number }
 }
 
-export const DECISIONS = ["approved", "rejected", "suspended"] as const;
-export type Decision = (typeof DECISIONS)[number];
+export const DECISIONS = ['approved', 'rejected', 'suspended'] as const
+export type Decision = (typeof DECISIONS)[number]
 
-export const listServiceQueue = (): Promise<ServiceQueue> => send("/services");
+export const listServiceQueue = (): Promise<ServiceQueue> => send('/services')
 
-export const decideService = (id: string, decision: Decision): Promise<{ service: Service }> =>
-  send(`/services/${id}/decision`, { method: "POST", body: JSON.stringify({ decision }) });
+export const decideService = (
+  id: string,
+  decision: Decision,
+): Promise<{ service: Service }> =>
+  send(`/services/${id}/decision`, {
+    method: 'POST',
+    body: JSON.stringify({ decision }),
+  })
 
 /** Bajar la calificación o dejarla: en las dos la denuncia queda atendida. */
 export const decideReview = (
   id: string,
   status: ReviewStatus,
 ): Promise<{ review: ServiceReview }> =>
-  send(`/services/reviews/${id}/decision`, { method: "POST", body: JSON.stringify({ status }) });
+  send(`/services/reviews/${id}/decision`, {
+    method: 'POST',
+    body: JSON.stringify({ status }),
+  })

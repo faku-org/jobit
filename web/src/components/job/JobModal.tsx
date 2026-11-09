@@ -8,73 +8,89 @@ import {
   Target,
   Undo2,
   X,
-} from "lucide-react";
-import { m } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+} from 'lucide-react'
+import { m } from 'motion/react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   APPLICATION_STATUS_LABEL,
   SOURCE_LABEL,
   formatDay,
   formatLocation,
-} from "../../lib/format.ts";
-import { islandTransition } from "../../lib/motion.ts";
-import { jobShare } from "../../lib/share.ts";
-import { offerView } from "../../lib/events.ts";
-import { track } from "../../lib/track.ts";
-import { chipClass, iconButtonClass } from "../../lib/styles.ts";
-import { type Application, type Job, type Tag, relatedApplications } from "../../lib/types.ts";
-import { ALL_PREP_KINDS, usePrep } from "../../hooks/usePrep.ts";
-import { useRoleGuide } from "../../hooks/useRoleGuide.ts";
-import { ApplyFooter } from "./ApplyFooter.tsx";
-import { WorkedBadge } from "./WorkedBadge.tsx";
-import { JobChips, type TagActions } from "./JobChips.tsx";
-import { JobDescription } from "./JobDescription.tsx";
-import { JobFit } from "./JobFit.tsx";
-import { PrepTips } from "./PrepTips.tsx";
-import { ShareMenu } from "../ui/ShareMenu.tsx";
+} from '../../lib/format.ts'
+import { islandTransition } from '../../lib/motion.ts'
+import { jobShare } from '../../lib/share.ts'
+import { offerView } from '../../lib/events.ts'
+import { track } from '../../lib/track.ts'
+import { chipClass, iconButtonClass } from '../../lib/styles.ts'
+import {
+  type Application,
+  type Job,
+  type Tag,
+  relatedApplications,
+} from '../../lib/types.ts'
+import { ALL_PREP_KINDS, usePrep } from '../../hooks/usePrep.ts'
+import { useRoleGuide } from '../../hooks/useRoleGuide.ts'
+import { ApplyFooter } from './ApplyFooter.tsx'
+import { WorkedBadge } from './WorkedBadge.tsx'
+import { JobChips, type TagActions } from './JobChips.tsx'
+import { JobDescription } from './JobDescription.tsx'
+import { JobFit } from './JobFit.tsx'
+import { PrepTips } from './PrepTips.tsx'
+import { ShareMenu } from '../ui/ShareMenu.tsx'
 
 interface JobModalProps {
-  job: Job;
-  isSaved: boolean;
-  isDismissed: boolean;
-  isMatch: boolean;
-  isApplied: boolean;
+  job: Job
+  isSaved: boolean
+  isDismissed: boolean
+  isMatch: boolean
+  isApplied: boolean
   /** La empresa es una que la persona cargó como suya; solo una marca. */
-  worked?: boolean;
-  applications: Application[];
+  worked?: boolean
+  applications: Application[]
   /** What the chips of the sheet can do to the list behind it. */
-  tagActions: TagActions;
-  onToggleSaved: (id: string) => void;
-  onToggleDismissed: (id: string) => void;
-  onApplied: (job: Job) => void;
-  onClose: () => void;
+  tagActions: TagActions
+  onToggleSaved: (id: string) => void
+  onToggleDismissed: (id: string) => void
+  onApplied: (job: Job) => void
+  onClose: () => void
   /** Abre el stand de la empresa de esta oferta. */
-  onOpenEmployer?: () => void;
+  onOpenEmployer?: () => void
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
   return (
     <section>
-      <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h3>
+      <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">
+        {title}
+      </h3>
       <div className="mt-2">{children}</div>
     </section>
-  );
+  )
 }
 
 function ApplicationList({ applications }: { applications: Application[] }) {
   return (
     <ul className="space-y-1.5">
       {applications.map((entry) => (
-        <li key={entry.id} className="flex items-baseline justify-between gap-3 text-sm">
+        <li
+          key={entry.id}
+          className="flex items-baseline justify-between gap-3 text-sm"
+        >
           <span className="min-w-0 truncate text-ink/80">{entry.title}</span>
           <span className="shrink-0 text-xs text-muted">
             {APPLICATION_STATUS_LABEL[entry.status]}
-            {entry.appliedAt ? ` · ${formatDay(entry.appliedAt)}` : ""}
+            {entry.appliedAt ? ` · ${formatDay(entry.appliedAt)}` : ''}
           </span>
         </li>
       ))}
     </ul>
-  );
+  )
 }
 
 /**
@@ -96,45 +112,45 @@ export function JobModal({
   onClose,
   onOpenEmployer,
 }: JobModalProps) {
-  const related = relatedApplications(job, applications);
+  const related = relatedApplications(job, applications)
   /** La preparación del rubro: se pide siempre, así las preguntas y los
    * ejercicios están a mano aunque todavía no te hayas postulado. */
-  const prep = usePrep(job.category, true, ALL_PREP_KINDS);
+  const prep = usePrep(job.category, true, ALL_PREP_KINDS)
   /** La guía del puesto concreto (Cajero/a, Enfermería…), cuando existe. */
-  const roleGuide = useRoleGuide(job.title);
+  const roleGuide = useRoleGuide(job.title)
   /** The sheet plays its own exit and then asks to be unmounted. */
-  const [closing, setClosing] = useState(false);
-  const close = useCallback(() => setClosing(true), []);
+  const [closing, setClosing] = useState(false)
+  const close = useCallback(() => setClosing(true), [])
   /** Filtering by a chip is a jump back to the list, so the sheet steps aside. */
   const chipActions: TagActions = {
     ...tagActions,
     onFilter: (tag: Tag) => {
-      tagActions.onFilter(tag);
-      close();
+      tagActions.onFilter(tag)
+      close()
     },
-  };
+  }
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
+      if (event.key === 'Escape') close()
+    }
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKeyDown)
 
     return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [close]);
+      document.body.style.overflow = previous
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [close])
 
   /** Abrir la ficha de una oferta publicada acá cuenta como una vista para su
    * empresa; las scrapeadas no tienen a nadie del otro lado. */
   useEffect(() => {
-    const own = offerView(job);
-    if (own) track(own);
-  }, [job]);
+    const own = offerView(job)
+    if (own) track(own)
+  }, [job])
 
   return (
     <div className="fixed inset-0 z-60 flex items-end justify-center sm:items-center sm:p-6">
@@ -147,7 +163,11 @@ export function JobModal({
       />
 
       <m.div
-        animate={closing ? { opacity: 0, y: 24, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
+        animate={
+          closing
+            ? { opacity: 0, y: 24, scale: 0.98 }
+            : { opacity: 1, y: 0, scale: 1 }
+        }
         aria-labelledby="job-modal-title"
         aria-modal
         className="relative flex h-[92svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] supports-[height:1dvh]:h-[92dvh] sm:h-auto sm:max-h-[85svh] sm:rounded-3xl"
@@ -155,7 +175,7 @@ export function JobModal({
         role="dialog"
         transition={islandTransition}
         onAnimationComplete={() => {
-          if (closing) onClose();
+          if (closing) onClose()
         }}
       >
         {/* En el teléfono el título va a lo ancho y las acciones bajan a su
@@ -182,7 +202,10 @@ export function JobModal({
                   type="button"
                   onClick={onOpenEmployer}
                 >
-                  <Building2 aria-hidden className="size-3.5 shrink-0 text-brand" />
+                  <Building2
+                    aria-hidden
+                    className="size-3.5 shrink-0 text-brand"
+                  />
                   {job.company}
                 </button>
               ) : null}
@@ -197,19 +220,24 @@ export function JobModal({
           <div className="flex shrink-0 items-center justify-end gap-1.5">
             <ShareMenu target={jobShare(job)} />
             <m.button
-              aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
+              aria-label={isSaved ? 'Quitar de guardadas' : 'Guardar oferta'}
               aria-pressed={isSaved}
               className={`${iconButtonClass} ${
-                isSaved ? "border-panel bg-panel text-onpanel hover:text-onpanel" : ""
+                isSaved
+                  ? 'border-panel bg-panel text-onpanel hover:text-onpanel'
+                  : ''
               }`}
               type="button"
               whileTap={{ scale: 0.9 }}
               onClick={() => onToggleSaved(job.id)}
             >
-              <Bookmark aria-hidden className={`size-4 ${isSaved ? "fill-current" : ""}`} />
+              <Bookmark
+                aria-hidden
+                className={`size-4 ${isSaved ? 'fill-current' : ''}`}
+              />
             </m.button>
             <m.button
-              aria-label={isDismissed ? "Recuperar oferta" : "Descartar oferta"}
+              aria-label={isDismissed ? 'Recuperar oferta' : 'Descartar oferta'}
               className={iconButtonClass}
               type="button"
               whileTap={{ scale: 0.9 }}
@@ -240,25 +268,35 @@ export function JobModal({
 
           <Section title="Descripción">
             {job.description ? (
-              <JobDescription profile={tagActions.profile} text={job.description} />
+              <JobDescription
+                profile={tagActions.profile}
+                text={job.description}
+              />
             ) : (
               <p className="text-sm text-muted">
-                Esta oferta todavía no tiene la descripción descargada. Suele aparecer en la próxima
-                actualización; mientras tanto podés abrir el aviso original.
+                Esta oferta todavía no tiene la descripción descargada. Suele
+                aparecer en la próxima actualización; mientras tanto podés abrir
+                el aviso original.
               </p>
             )}
           </Section>
 
           {job.requirements ? (
             <Section title="Requisitos">
-              <JobDescription profile={tagActions.profile} text={job.requirements} />
+              <JobDescription
+                profile={tagActions.profile}
+                text={job.requirements}
+              />
             </Section>
           ) : null}
 
           {prep.items.length > 0 || roleGuide ? (
             <details className="group rounded-2xl border border-sky/50 bg-surface">
               <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
-                <GraduationCap aria-hidden className="size-4 shrink-0 text-brand" />
+                <GraduationCap
+                  aria-hidden
+                  className="size-4 shrink-0 text-brand"
+                />
                 <span className="text-xs font-semibold tracking-wide text-muted uppercase">
                   Para prepararte
                 </span>
@@ -271,7 +309,7 @@ export function JobModal({
                 <PrepTips items={prep.items} />
                 {roleGuide ? (
                   <a
-                    className={`inline-block text-xs font-medium text-brand transition-colors hover:text-ink ${prep.items.length > 0 ? "mt-4" : ""}`}
+                    className={`inline-block text-xs font-medium text-brand transition-colors hover:text-ink ${prep.items.length > 0 ? 'mt-4' : ''}`}
                     href={roleGuide}
                   >
                     Ver la guía de entrevista para este puesto
@@ -287,8 +325,9 @@ export function JobModal({
                 {related.company.length > 0 ? (
                   <div>
                     <p className="text-sm font-medium text-ink">
-                      Ya te postulaste a {related.company.length}{" "}
-                      {related.company.length === 1 ? "puesto" : "puestos"} en {job.company}
+                      Ya te postulaste a {related.company.length}{' '}
+                      {related.company.length === 1 ? 'puesto' : 'puestos'} en{' '}
+                      {job.company}
                     </p>
                     <div className="mt-2">
                       <ApplicationList applications={related.company} />
@@ -299,9 +338,11 @@ export function JobModal({
                 {related.category.length > 0 ? (
                   <div>
                     <p className="text-sm font-medium text-ink">
-                      {related.category.length}{" "}
-                      {related.category.length === 1 ? "postulación" : "postulaciones"} en{" "}
-                      {job.category_label}
+                      {related.category.length}{' '}
+                      {related.category.length === 1
+                        ? 'postulación'
+                        : 'postulaciones'}{' '}
+                      en {job.category_label}
                     </p>
                     <div className="mt-2">
                       <ApplicationList applications={related.category} />
@@ -314,8 +355,12 @@ export function JobModal({
 
           <p className="text-xs text-muted">
             Fuente: {SOURCE_LABEL[job.source] ?? job.source}
-            {job.vacancies && job.vacancies > 1 ? ` · ${job.vacancies} vacantes` : ""}
-            {job.duplicates.length > 0 ? ` · ${job.duplicates.length} publicación repetida` : ""}
+            {job.vacancies && job.vacancies > 1
+              ? ` · ${job.vacancies} vacantes`
+              : ''}
+            {job.duplicates.length > 0
+              ? ` · ${job.duplicates.length} publicación repetida`
+              : ''}
           </p>
         </div>
 
@@ -326,8 +371,8 @@ export function JobModal({
             left={
               <p className="hidden text-xs text-muted sm:block">
                 {isApplied
-                  ? "Está en tu lista de seguimiento."
-                  : "Te pregunto si te postulaste al volver."}
+                  ? 'Está en tu lista de seguimiento.'
+                  : 'Te pregunto si te postulaste al volver.'}
               </p>
             }
             onApplied={onApplied}
@@ -335,5 +380,5 @@ export function JobModal({
         </div>
       </m.div>
     </div>
-  );
+  )
 }

@@ -1,6 +1,6 @@
-import { appendFile, mkdir } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { t } from "elysia";
+import { appendFile, mkdir } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
+import { t } from 'elysia'
 
 /**
  * Anonymous usage rows. Everything the browser knows about a person -- the
@@ -10,14 +10,14 @@ import { t } from "elysia";
  */
 export const statsSchema = t.Object({
   education: t.Union([
-    t.Literal(""),
-    t.Literal("none"),
-    t.Literal("primary"),
-    t.Literal("secondary_basic"),
-    t.Literal("secondary"),
-    t.Literal("technical"),
-    t.Literal("university"),
-    t.Literal("postgrad"),
+    t.Literal(''),
+    t.Literal('none'),
+    t.Literal('primary'),
+    t.Literal('secondary_basic'),
+    t.Literal('secondary'),
+    t.Literal('technical'),
+    t.Literal('university'),
+    t.Literal('postgrad'),
   ]),
   has_degree: t.Boolean(),
   degrees: t.Integer({ minimum: 0, maximum: 50 }),
@@ -29,26 +29,26 @@ export const statsSchema = t.Object({
   closed: t.Integer({ minimum: 0, maximum: 10_000 }),
   sources: t.Array(
     t.Union([
-      t.Literal("jobit"),
-      t.Literal("buscojobs"),
-      t.Literal("gallito"),
-      t.Literal("uruguayconcursa"),
+      t.Literal('jobit'),
+      t.Literal('buscojobs'),
+      t.Literal('gallito'),
+      t.Literal('uruguayconcursa'),
     ]),
     { maxItems: 5 },
   ),
-});
+})
 
-export type StatsRow = typeof statsSchema.static;
+export type StatsRow = typeof statsSchema.static
 
 export const statsFilePath = (): string =>
   process.env.STATS_FILE
     ? resolve(process.env.STATS_FILE)
-    : resolve(import.meta.dir, "../../data/stats.jsonl");
+    : resolve(import.meta.dir, '../../data/stats.jsonl')
 
 /** One JSON object per line, stamped with the day only, never the exact time. */
 export async function appendStats(row: StatsRow): Promise<void> {
-  const path = statsFilePath();
-  await mkdir(dirname(path), { recursive: true });
-  const day = new Date().toISOString().slice(0, 10);
-  await appendFile(path, `${JSON.stringify({ day, ...row })}\n`, "utf8");
+  const path = statsFilePath()
+  await mkdir(dirname(path), { recursive: true })
+  const day = new Date().toISOString().slice(0, 10)
+  await appendFile(path, `${JSON.stringify({ day, ...row })}\n`, 'utf8')
 }

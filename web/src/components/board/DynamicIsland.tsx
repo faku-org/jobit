@@ -1,13 +1,13 @@
-import { HelpCircle, SlidersHorizontal } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import { useEffect, useRef, useState } from "react";
-import type { AccountSync } from "../../hooks/useAccountSync.ts";
-import { useScrolledPast } from "../../hooks/useScrolledPast.ts";
-import type { CustomFeed, FeedResult } from "../../lib/feed.ts";
-import { islandTransition } from "../../lib/motion.ts";
-import { type Profile, profileCount } from "../../lib/profile.ts";
-import type { SessionUser } from "../../lib/session.ts";
-import type { Usage } from "../../lib/stats.ts";
+import { HelpCircle, SlidersHorizontal } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
+import { useEffect, useRef, useState } from 'react'
+import type { AccountSync } from '../../hooks/useAccountSync.ts'
+import { useScrolledPast } from '../../hooks/useScrolledPast.ts'
+import type { CustomFeed, FeedResult } from '../../lib/feed.ts'
+import { islandTransition } from '../../lib/motion.ts'
+import { type Profile, profileCount } from '../../lib/profile.ts'
+import type { SessionUser } from '../../lib/session.ts'
+import type { Usage } from '../../lib/stats.ts'
 import {
   type Facet,
   type Meta,
@@ -15,48 +15,48 @@ import {
   type Theme,
   hiddenCount,
   preferenceCount,
-} from "../../lib/types.ts";
-import { AccountSection } from "../account/AccountSection.tsx";
-import { McpSection } from "../account/McpSection.tsx";
-import { PreferencesPanel } from "../profile/Preferences.tsx";
-import { ProfilePanel } from "../profile/ProfilePanel.tsx";
+} from '../../lib/types.ts'
+import { AccountSection } from '../account/AccountSection.tsx'
+import { McpSection } from '../account/McpSection.tsx'
+import { PreferencesPanel } from '../profile/Preferences.tsx'
+import { ProfilePanel } from '../profile/ProfilePanel.tsx'
 
 interface DynamicIslandProps {
-  meta: Meta | null;
-  categories: Facet[];
-  departments: Facet[];
-  preferences: Preferences;
-  sources: string[];
-  feeds: CustomFeed[];
-  feedResults: FeedResult[];
-  feedsLoading: boolean;
-  theme: Theme;
-  profile: Profile;
-  usage: Usage;
+  meta: Meta | null
+  categories: Facet[]
+  departments: Facet[]
+  preferences: Preferences
+  sources: string[]
+  feeds: CustomFeed[]
+  feedResults: FeedResult[]
+  feedsLoading: boolean
+  theme: Theme
+  profile: Profile
+  usage: Usage
   /** What the danger zone would erase, passed through to the profile sheet. */
-  counts: { saved: number; applications: number; dismissed: number };
+  counts: { saved: number; applications: number; dismissed: number }
   /** La sesión y el sync se resuelven arriba, en App, así la cuenta y los datos
    * miran el mismo estado. */
   session: {
-    user: SessionUser | null;
-    ready: boolean;
-    setUser: (user: SessionUser | null) => void;
-  };
-  sync: AccountSync;
-  onChangePreferences: (preferences: Preferences) => void;
-  onChangeSources: (sources: string[]) => void;
-  onChangeFeeds: (feeds: CustomFeed[]) => void;
-  onChangeTheme: (theme: Theme) => void;
-  onChangeProfile: (profile: Profile) => void;
-  onEraseEverything: () => void;
-  onImportCv: (profile: Profile, preferences: Preferences) => void;
+    user: SessionUser | null
+    ready: boolean
+    setUser: (user: SessionUser | null) => void
+  }
+  sync: AccountSync
+  onChangePreferences: (preferences: Preferences) => void
+  onChangeSources: (sources: string[]) => void
+  onChangeFeeds: (feeds: CustomFeed[]) => void
+  onChangeTheme: (theme: Theme) => void
+  onChangeProfile: (profile: Profile) => void
+  onEraseEverything: () => void
+  onImportCv: (profile: Profile, preferences: Preferences) => void
   /** Abre la ayuda general, que vive en App como capa sobre todo lo demás. */
-  onOpenHelp: () => void;
+  onOpenHelp: () => void
   /** Deja la ayuda cargada antes del clic. */
-  onPrefetchHelp: () => void;
+  onPrefetchHelp: () => void
 }
 
-type Tab = "search" | "profile" | "account" | "agents";
+type Tab = 'search' | 'profile' | 'account' | 'agents'
 
 /**
  * A floating header, detached from the top of the page: wide at rest, shrunk
@@ -88,9 +88,9 @@ export function DynamicIsland({
   onOpenHelp,
   onPrefetchHelp,
 }: DynamicIslandProps) {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("search");
-  const condensed = useScrolledPast(24);
+  const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<Tab>('search')
+  const condensed = useScrolledPast(24)
 
   /**
    * El panel arranca arriba en cada pestaña. Mide lo que mide su contenido,
@@ -98,21 +98,21 @@ export function DynamicIsland({
    * una larga scrollea adentro. El header tiene `layout`, así que el cambio de
    * alto entre pestañas se anima solo.
    */
-  const scroller = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    scroller.current?.scrollTo({ top: 0 });
-  }, [tab]);
+    scroller.current?.scrollTo({ top: 0 })
+  }, [tab])
 
-  const count = preferenceCount(preferences) + hiddenCount(preferences);
-  const studies = profileCount(profile);
-  const compact = condensed && !open;
+  const count = preferenceCount(preferences) + hiddenCount(preferences)
+  const studies = profileCount(profile)
+  const compact = condensed && !open
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4 sm:top-4">
       <m.header
         layout
         className={`pointer-events-auto w-full overflow-hidden rounded-[26px] bg-panel text-onpanel shadow-[var(--shadow-panel)] ring-1 ring-onpanel/10 backdrop-blur-xl ${
-          compact ? "max-w-md" : "max-w-3xl"
+          compact ? 'max-w-md' : 'max-w-3xl'
         }`}
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -133,7 +133,9 @@ export function DynamicIsland({
           </m.span>
 
           <m.div layout className="min-w-0 flex-1">
-            <h1 className="text-[15px] leading-tight font-semibold tracking-tight">JobIt</h1>
+            <h1 className="text-[15px] leading-tight font-semibold tracking-tight">
+              JobIt
+            </h1>
             <AnimatePresence initial={false} mode="popLayout">
               {compact ? null : (
                 <m.p
@@ -167,8 +169,8 @@ export function DynamicIsland({
             aria-expanded={open}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               open || count > 0
-                ? "bg-sky text-ink hover:bg-sky/80"
-                : "bg-onpanel-wash text-onpanel/80 hover:bg-onpanel/20 hover:text-onpanel"
+                ? 'bg-sky text-ink hover:bg-sky/80'
+                : 'bg-onpanel-wash text-onpanel/80 hover:bg-onpanel/20 hover:text-onpanel'
             }`}
             type="button"
             onClick={() => setOpen((current) => !current)}
@@ -183,23 +185,26 @@ export function DynamicIsland({
           {open ? (
             <m.div
               key="panel"
-              initial={{ gridTemplateRows: "0fr", opacity: 0 }}
-              animate={{ gridTemplateRows: "1fr", opacity: 1 }}
+              initial={{ gridTemplateRows: '0fr', opacity: 0 }}
+              animate={{ gridTemplateRows: '1fr', opacity: 1 }}
               /* Sin opacidad en la salida: el panel se pliega, no se desvanece
                  primero y después se encoge, que es lo que se sentía en dos
                  pasos. La entrada sí aparece. */
-              exit={{ gridTemplateRows: "0fr" }}
+              exit={{ gridTemplateRows: '0fr' }}
               className="grid overflow-hidden"
               transition={islandTransition}
             >
-              <div className="max-h-[70svh] min-h-0 overflow-y-auto" ref={scroller}>
+              <div
+                className="max-h-[70svh] min-h-0 overflow-y-auto"
+                ref={scroller}
+              >
                 <div className="sticky top-0 z-10 flex gap-1 bg-panel px-4 pt-1 pb-2">
                   {(
                     [
-                      ["search", "Búsqueda", count],
-                      ["profile", "Perfil", studies],
-                      ["account", "Cuenta", 0],
-                      ["agents", "Agentes", 0],
+                      ['search', 'Búsqueda', count],
+                      ['profile', 'Perfil', studies],
+                      ['account', 'Cuenta', 0],
+                      ['agents', 'Agentes', 0],
                     ] as const
                   ).map(([value, label, badge]) => (
                     <button
@@ -207,19 +212,21 @@ export function DynamicIsland({
                       aria-pressed={tab === value}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                         tab === value
-                          ? "bg-onpanel/15 text-onpanel"
-                          : "text-onpanel/55 hover:text-onpanel"
+                          ? 'bg-onpanel/15 text-onpanel'
+                          : 'text-onpanel/55 hover:text-onpanel'
                       }`}
                       type="button"
                       onClick={() => setTab(value)}
                     >
                       {label}
-                      {badge > 0 ? <span className="ml-1 tabular-nums">({badge})</span> : null}
+                      {badge > 0 ? (
+                        <span className="ml-1 tabular-nums">({badge})</span>
+                      ) : null}
                     </button>
                   ))}
                 </div>
 
-                {tab === "search" ? (
+                {tab === 'search' ? (
                   <PreferencesPanel
                     categories={categories}
                     departments={departments}
@@ -233,7 +240,7 @@ export function DynamicIsland({
                     onChangeFeeds={onChangeFeeds}
                     onChangeSources={onChangeSources}
                   />
-                ) : tab === "profile" ? (
+                ) : tab === 'profile' ? (
                   <ProfilePanel
                     categories={categories}
                     counts={counts}
@@ -246,7 +253,7 @@ export function DynamicIsland({
                     onEraseEverything={onEraseEverything}
                     onImportCv={onImportCv}
                   />
-                ) : tab === "account" ? (
+                ) : tab === 'account' ? (
                   <AccountSection
                     ready={session.ready}
                     sync={sync}
@@ -262,5 +269,5 @@ export function DynamicIsland({
         </AnimatePresence>
       </m.header>
     </div>
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import type { Job, SourceId } from "./types.ts";
+import type { Job, SourceId } from './types.ts'
 
 /**
  * If a source lists nothing this run but the previous file had offers from it,
@@ -10,7 +10,7 @@ export function keepIfEmpty(
   listed: number,
   previous: Job[] | undefined,
 ): Job[] | null {
-  if (listed > 0) return null;
-  const kept = previous?.filter((job) => job.source === sourceId) ?? [];
-  return kept.length > 0 ? kept : null;
+  if (listed > 0) return null
+  const kept = previous?.filter((job) => job.source === sourceId) ?? []
+  return kept.length > 0 ? kept : null
 }

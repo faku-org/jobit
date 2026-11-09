@@ -1,43 +1,48 @@
-import { LogOut } from "lucide-react";
-import { useCallback, useState } from "react";
-import { type Company, COMPANY_STATUS_LABEL, Unauthorized, logout } from "./api.ts";
-import { Metrics } from "./Metrics.tsx";
-import { Offers } from "./Offers.tsx";
-import { Settings } from "./settings/Settings.tsx";
+import { LogOut } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import {
+  type Company,
+  COMPANY_STATUS_LABEL,
+  Unauthorized,
+  logout,
+} from './api.ts'
+import { Metrics } from './Metrics.tsx'
+import { Offers } from './Offers.tsx'
+import { Settings } from './settings/Settings.tsx'
 
 const TABS = [
-  { id: "metrics", label: "Resumen" },
-  { id: "offers", label: "Publicaciones" },
-  { id: "account", label: "Empresa" },
-] as const;
+  { id: 'metrics', label: 'Resumen' },
+  { id: 'offers', label: 'Publicaciones' },
+  { id: 'account', label: 'Empresa' },
+] as const
 
-type Tab = (typeof TABS)[number]["id"];
+type Tab = (typeof TABS)[number]['id']
 
-const STATUS_BADGE: Record<Company["status"], string> = {
-  pending: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-800",
-  suspended: "bg-red-100 text-red-700",
-};
+const STATUS_BADGE: Record<Company['status'], string> = {
+  pending: 'bg-amber-100 text-amber-800',
+  approved: 'bg-emerald-100 text-emerald-800',
+  suspended: 'bg-red-100 text-red-700',
+}
 
 export function Dashboard({
   company: initialCompany,
   onLeft,
 }: {
-  company: Company;
-  onLeft: () => void;
+  company: Company
+  onLeft: () => void
 }) {
-  const [company, setCompany] = useState(initialCompany);
-  const [tab, setTab] = useState<Tab>("metrics");
-  const [error, setError] = useState("");
+  const [company, setCompany] = useState(initialCompany)
+  const [tab, setTab] = useState<Tab>('metrics')
+  const [error, setError] = useState('')
 
   /** Una sesión vencida saca de la pantalla, no muestra un error rojo. */
   const handle = useCallback(
     (cause: unknown) => {
-      if (cause instanceof Unauthorized) return onLeft();
-      setError(cause instanceof Error ? cause.message : "algo falló");
+      if (cause instanceof Unauthorized) return onLeft()
+      setError(cause instanceof Error ? cause.message : 'algo falló')
     },
     [onLeft],
-  );
+  )
 
   return (
     <div className="min-h-svh">
@@ -69,12 +74,12 @@ export function Dashboard({
           {TABS.map((item) => (
             <button
               key={item.id}
-              aria-current={tab === item.id ? "page" : undefined}
-              className={`-mb-px border-b-2 px-2.5 py-2 text-xs font-medium ${tab === item.id ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}
+              aria-current={tab === item.id ? 'page' : undefined}
+              className={`-mb-px border-b-2 px-2.5 py-2 text-xs font-medium ${tab === item.id ? 'border-brand text-ink' : 'border-transparent text-muted hover:text-ink'}`}
               type="button"
               onClick={() => {
-                setTab(item.id);
-                setError("");
+                setTab(item.id)
+                setError('')
               }}
             >
               {item.label}
@@ -84,10 +89,10 @@ export function Dashboard({
       </header>
 
       <main className="mx-auto max-w-3xl px-5 py-6">
-        {company.status === "pending" ? (
+        {company.status === 'pending' ? (
           <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800">
-            Tu cuenta está pendiente de aprobación. Podés cargar tus ofertas como borrador y van a
-            salir al tablero en cuanto la aprobemos.
+            Tu cuenta está pendiente de aprobación. Podés cargar tus ofertas
+            como borrador y van a salir al tablero en cuanto la aprobemos.
           </p>
         ) : null}
 
@@ -97,14 +102,19 @@ export function Dashboard({
           </p>
         ) : null}
 
-        {tab === "metrics" ? (
+        {tab === 'metrics' ? (
           <Metrics onFail={handle} />
-        ) : tab === "offers" ? (
+        ) : tab === 'offers' ? (
           <Offers company={company} onFail={handle} />
         ) : (
-          <Settings company={company} onFail={handle} onUpdated={setCompany} onLeft={onLeft} />
+          <Settings
+            company={company}
+            onFail={handle}
+            onUpdated={setCompany}
+            onLeft={onLeft}
+          />
         )}
       </main>
     </div>
-  );
+  )
 }

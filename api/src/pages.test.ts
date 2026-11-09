@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import type { ContentItem } from "@jobit/worker/content/types";
-import type { Job } from "./types.ts";
+import { describe, expect, test } from 'bun:test'
+import type { ContentItem } from '@jobit/worker/content/types'
+import type { Job } from './types.ts'
 import {
   escapeHtml,
   faqPageLd,
@@ -14,299 +14,343 @@ import {
   publishPageHtml,
   serviceJsonLd,
   servicePageHtml,
-} from "./pages.ts";
-import type { JobsFile } from "./types.ts";
-import type { Service } from "./services.ts";
-import { buildMarketReport } from "./market.ts";
+} from './pages.ts'
+import type { JobsFile } from './types.ts'
+import type { Service } from './services.ts'
+import { buildMarketReport } from './market.ts'
 
-process.env.PUBLIC_ORIGIN = "https://jobs.test";
+process.env.PUBLIC_ORIGIN = 'https://jobs.test'
 
 const job = (overrides: Partial<Job> = {}): Job => ({
-  id: "job-1",
-  source: "jobit",
-  source_id: "job-1",
-  title: "Vendedor de mostrador",
-  company: "Acme",
-  department: "Montevideo",
-  city: "Montevideo",
-  category: "ventas",
-  category_label: "Ventas y comercial",
-  category_raw: "ventas",
-  date_posted: "2026-09-01T12:00:00.000Z",
-  level: "entry",
+  id: 'job-1',
+  source: 'jobit',
+  source_id: 'job-1',
+  title: 'Vendedor de mostrador',
+  company: 'Acme',
+  department: 'Montevideo',
+  city: 'Montevideo',
+  category: 'ventas',
+  category_label: 'Ventas y comercial',
+  category_raw: 'ventas',
+  date_posted: '2026-09-01T12:00:00.000Z',
+  level: 'entry',
   remote: null,
-  job_type: "full_time",
-  salary: { min: 25_000, max: 30_000, currency: "UYU" },
+  job_type: 'full_time',
+  salary: { min: 25_000, max: 30_000, currency: 'UYU' },
   experience_years_min: null,
   no_experience: true,
   education_level: null,
   schedule: null,
   vacancies: null,
   closes_at: null,
-  description: "Atender al público.\n\nManejar la caja.",
+  description: 'Atender al público.\n\nManejar la caja.',
   requirements: null,
-  apply_url: "",
+  apply_url: '',
   duplicates: [],
   ...overrides,
-});
+})
 
 const service = (overrides: Partial<Service> = {}): Service => ({
-  id: "svc-1",
-  user_id: "user-1",
-  title: "Electricista a domicilio",
-  slug: "electricista-a-domicilio",
-  summary: "Tableros, tomas y luces",
-  description: "Instalaciones en casas y locales.",
-  category: "oficios",
-  department: "Canelones",
-  city: "Las Piedras",
-  remote: "onsite",
+  id: 'svc-1',
+  user_id: 'user-1',
+  title: 'Electricista a domicilio',
+  slug: 'electricista-a-domicilio',
+  summary: 'Tableros, tomas y luces',
+  description: 'Instalaciones en casas y locales.',
+  category: 'oficios',
+  department: 'Canelones',
+  city: 'Las Piedras',
+  remote: 'onsite',
   fixed_price: false,
-  work_style: "individual",
+  work_style: 'individual',
   experience_years: 8,
-  availability_note: "",
-  response_time: "48-horas",
-  status: "published",
+  availability_note: '',
+  response_time: '48-horas',
+  status: 'published',
   rating_avg: 0,
   rating_count: 0,
-  created_at: "2026-08-01",
-  updated_at: "2026-09-01",
-  published_at: "2026-08-02",
-  skills: ["Tableros", "Domótica"],
-  prices: [{ kind: "base", label: "Hora", amount: 1200, currency: "UYU", unit: "hora", notes: "" }],
+  created_at: '2026-08-01',
+  updated_at: '2026-09-01',
+  published_at: '2026-08-02',
+  skills: ['Tableros', 'Domótica'],
+  prices: [
+    {
+      kind: 'base',
+      label: 'Hora',
+      amount: 1200,
+      currency: 'UYU',
+      unit: 'hora',
+      notes: '',
+    },
+  ],
   hours: [],
-  owner_handle: "juana",
-  owner_name: "Juana Pérez",
-  boost_until: "",
-  boost_kind: "",
+  owner_handle: 'juana',
+  owner_name: 'Juana Pérez',
+  boost_until: '',
+  boost_kind: '',
   featured: false,
   ...overrides,
-});
+})
 
-describe("serviceJsonLd", () => {
-  test("marca el servicio y el perfil de quien está atrás", () => {
-    const blocks = serviceJsonLd(service());
-    const marked = blocks[0]!;
-    const profile = blocks[1]!;
-    expect(marked["@type"]).toBe("Service");
-    expect(profile["@type"]).toBe("ProfilePage");
-    expect(marked.provider).toMatchObject({ name: "Juana Pérez", alternateName: "juana" });
-    expect(marked.offers).toMatchObject({ price: 1200, priceCurrency: "UYU" });
-  });
+describe('serviceJsonLd', () => {
+  test('marca el servicio y el perfil de quien está atrás', () => {
+    const blocks = serviceJsonLd(service())
+    const marked = blocks[0]!
+    const profile = blocks[1]!
+    expect(marked['@type']).toBe('Service')
+    expect(profile['@type']).toBe('ProfilePage')
+    expect(marked.provider).toMatchObject({
+      name: 'Juana Pérez',
+      alternateName: 'juana',
+    })
+    expect(marked.offers).toMatchObject({ price: 1200, priceCurrency: 'UYU' })
+  })
 
-  test("no marca AggregateRating con cero ni con un voto", () => {
-    expect(serviceJsonLd(service({ rating_count: 0 }))[0]!.aggregateRating).toBeUndefined();
+  test('no marca AggregateRating con cero ni con un voto', () => {
     expect(
-      serviceJsonLd(service({ rating_count: 1, rating_avg: 5 }))[0]!.aggregateRating,
-    ).toBeUndefined();
-  });
-
-  test("con dos votos reales sí", () => {
+      serviceJsonLd(service({ rating_count: 0 }))[0]!.aggregateRating,
+    ).toBeUndefined()
     expect(
-      serviceJsonLd(service({ rating_count: 2, rating_avg: 4.5 }))[0]!.aggregateRating,
-    ).toMatchObject({ ratingValue: 4.5, ratingCount: 2 });
-  });
-});
+      serviceJsonLd(service({ rating_count: 1, rating_avg: 5 }))[0]!
+        .aggregateRating,
+    ).toBeUndefined()
+  })
 
-describe("servicePageHtml", () => {
-  test("trae el contenido, el canonical y dice que no hay notas", () => {
-    const html = servicePageHtml(service());
-    expect(html).toContain("<h1>Electricista a domicilio</h1>");
+  test('con dos votos reales sí', () => {
+    expect(
+      serviceJsonLd(service({ rating_count: 2, rating_avg: 4.5 }))[0]!
+        .aggregateRating,
+    ).toMatchObject({ ratingValue: 4.5, ratingCount: 2 })
+  })
+})
+
+describe('servicePageHtml', () => {
+  test('trae el contenido, el canonical y dice que no hay notas', () => {
+    const html = servicePageHtml(service())
+    expect(html).toContain('<h1>Electricista a domicilio</h1>')
     expect(html).toContain(
       'rel="canonical" href="https://jobs.test/servicios/electricista-a-domicilio"',
-    );
-    expect(html).toContain("Todavía sin calificaciones");
-  });
-});
+    )
+    expect(html).toContain('Todavía sin calificaciones')
+  })
+})
 
-describe("publishPageHtml", () => {
-  test("es la puerta de quien publica: título, canonical y salto al panel", () => {
-    const html = publishPageHtml();
-    expect(html).toContain("<h1>Publicá tus ofertas de trabajo en Uruguay</h1>");
-    expect(html).toContain('rel="canonical" href="https://jobs.test/publicar"');
-    expect(html).toContain('href="https://jobs.test/empresas"');
-    expect(html).toContain("nunca por persona");
-  });
+describe('publishPageHtml', () => {
+  test('es la puerta de quien publica: título, canonical y salto al panel', () => {
+    const html = publishPageHtml()
+    expect(html).toContain('<h1>Publicá tus ofertas de trabajo en Uruguay</h1>')
+    expect(html).toContain('rel="canonical" href="https://jobs.test/publicar"')
+    expect(html).toContain('href="https://jobs.test/empresas"')
+    expect(html).toContain('nunca por persona')
+  })
 
-  test("marca la página como WebPage y no inventa un JobPosting", () => {
-    const html = publishPageHtml();
-    expect(html).toContain('"@type":"WebPage"');
-    expect(html).not.toContain("JobPosting");
-  });
+  test('marca la página como WebPage y no inventa un JobPosting', () => {
+    const html = publishPageHtml()
+    expect(html).toContain('"@type":"WebPage"')
+    expect(html).not.toContain('JobPosting')
+  })
 
-  test("el pie de toda página enlaza a publicar", () => {
-    expect(notFoundPage()).toContain("https://jobs.test/publicar");
-  });
-});
+  test('el pie de toda página enlaza a publicar', () => {
+    expect(notFoundPage()).toContain('https://jobs.test/publicar')
+  })
+})
 
-describe("escapeHtml", () => {
-  test("neutraliza lo que rompería el documento", () => {
-    expect(escapeHtml('<a href="x">&')).toBe("&lt;a href=&quot;x&quot;&gt;&amp;");
-  });
-});
+describe('escapeHtml', () => {
+  test('neutraliza lo que rompería el documento', () => {
+    expect(escapeHtml('<a href="x">&')).toBe(
+      '&lt;a href=&quot;x&quot;&gt;&amp;',
+    )
+  })
+})
 
-describe("isNativeOffer", () => {
-  test("propia y sin enlace externo: vive acá", () => {
-    expect(isNativeOffer(job())).toBe(true);
-  });
+describe('isNativeOffer', () => {
+  test('propia y sin enlace externo: vive acá', () => {
+    expect(isNativeOffer(job())).toBe(true)
+  })
 
-  test("propia con enlace externo: no vive acá", () => {
-    expect(isNativeOffer(job({ apply_url: "https://acme.com/postulate" }))).toBe(false);
-  });
+  test('propia con enlace externo: no vive acá', () => {
+    expect(
+      isNativeOffer(job({ apply_url: 'https://acme.com/postulate' })),
+    ).toBe(false)
+  })
 
-  test("scrapeada nunca", () => {
-    expect(isNativeOffer(job({ source: "buscojobs", apply_url: "" }))).toBe(false);
-  });
-});
+  test('scrapeada nunca', () => {
+    expect(isNativeOffer(job({ source: 'buscojobs', apply_url: '' }))).toBe(
+      false,
+    )
+  })
+})
 
-describe("jobPostingLd", () => {
-  test("no marca una oferta scrapeada", () => {
-    expect(jobPostingLd(job({ source: "buscojobs" }))).toBeNull();
-  });
+describe('jobPostingLd', () => {
+  test('no marca una oferta scrapeada', () => {
+    expect(jobPostingLd(job({ source: 'buscojobs' }))).toBeNull()
+  })
 
-  test("marca la propia con los campos que Google pide", () => {
-    const ld = jobPostingLd(job());
-    expect(ld?.["@type"]).toBe("JobPosting");
-    expect(ld?.title).toBe("Vendedor de mostrador");
-    expect(ld?.datePosted).toBe("2026-09-01");
-    expect(ld?.directApply).toBe(true);
-    expect(ld?.employmentType).toBe("FULL_TIME");
-    expect(ld?.baseSalary).toMatchObject({ currency: "UYU" });
-    expect(ld?.jobLocation).toMatchObject({ address: { addressCountry: "UY" } });
-  });
+  test('marca la propia con los campos que Google pide', () => {
+    const ld = jobPostingLd(job())
+    expect(ld?.['@type']).toBe('JobPosting')
+    expect(ld?.title).toBe('Vendedor de mostrador')
+    expect(ld?.datePosted).toBe('2026-09-01')
+    expect(ld?.directApply).toBe(true)
+    expect(ld?.employmentType).toBe('FULL_TIME')
+    expect(ld?.baseSalary).toMatchObject({ currency: 'UYU' })
+    expect(ld?.jobLocation).toMatchObject({ address: { addressCountry: 'UY' } })
+  })
 
-  test("la fecha de cierre entra como validThrough", () => {
-    const ld = jobPostingLd(job({ closes_at: "2026-10-15" }));
-    expect(ld?.validThrough).toBe("2026-10-15T23:59:59-03:00");
-  });
+  test('la fecha de cierre entra como validThrough', () => {
+    const ld = jobPostingLd(job({ closes_at: '2026-10-15' }))
+    expect(ld?.validThrough).toBe('2026-10-15T23:59:59-03:00')
+  })
 
-  test("el sitio de la empresa entra como sameAs de quien contrata", () => {
-    const ld = jobPostingLd(job({ company_url: "https://acme.uy" }));
-    expect(ld?.hiringOrganization).toMatchObject({ name: "Acme", sameAs: "https://acme.uy" });
-  });
+  test('el sitio de la empresa entra como sameAs de quien contrata', () => {
+    const ld = jobPostingLd(job({ company_url: 'https://acme.uy' }))
+    expect(ld?.hiringOrganization).toMatchObject({
+      name: 'Acme',
+      sameAs: 'https://acme.uy',
+    })
+  })
 
-  test("sin sitio no inventa un sameAs", () => {
-    const ld = jobPostingLd(job());
-    expect(ld?.hiringOrganization).toEqual({ "@type": "Organization", name: "Acme" });
-  });
+  test('sin sitio no inventa un sameAs', () => {
+    const ld = jobPostingLd(job())
+    expect(ld?.hiringOrganization).toEqual({
+      '@type': 'Organization',
+      name: 'Acme',
+    })
+  })
 
-  test("sin sueldo no inventa un baseSalary", () => {
-    expect(jobPostingLd(job({ salary: null }))?.baseSalary).toBeUndefined();
-  });
-});
+  test('sin sueldo no inventa un baseSalary', () => {
+    expect(jobPostingLd(job({ salary: null }))?.baseSalary).toBeUndefined()
+  })
+})
 
-describe("jobPageHtml", () => {
-  test("trae el contenido y su canonical", () => {
-    const html = jobPageHtml(job());
-    expect(html).toContain("<h1>Vendedor de mostrador</h1>");
-    expect(html).toContain('rel="canonical" href="https://jobs.test/empleo/job-1"');
-    expect(html).toContain("Atender al público.");
-  });
+describe('jobPageHtml', () => {
+  test('trae el contenido y su canonical', () => {
+    const html = jobPageHtml(job())
+    expect(html).toContain('<h1>Vendedor de mostrador</h1>')
+    expect(html).toContain(
+      'rel="canonical" href="https://jobs.test/empleo/job-1"',
+    )
+    expect(html).toContain('Atender al público.')
+  })
 
-  test("una propia lleva el JobPosting", () => {
-    expect(jobPageHtml(job())).toContain('"@type":"JobPosting"');
-  });
+  test('una propia lleva el JobPosting', () => {
+    expect(jobPageHtml(job())).toContain('"@type":"JobPosting"')
+  })
 
-  test("una scrapeada no lo lleva y enlaza al original", () => {
-    const html = jobPageHtml(job({ source: "buscojobs", apply_url: "https://x.test/aviso" }));
-    expect(html).not.toContain('"@type":"JobPosting"');
-    expect(html).toContain("https://x.test/aviso");
-  });
-});
+  test('una scrapeada no lo lleva y enlaza al original', () => {
+    const html = jobPageHtml(
+      job({ source: 'buscojobs', apply_url: 'https://x.test/aviso' }),
+    )
+    expect(html).not.toContain('"@type":"JobPosting"')
+    expect(html).toContain('https://x.test/aviso')
+  })
+})
 
-describe("marketPageHtml", () => {
-  test("resume el tablero", () => {
+describe('marketPageHtml', () => {
+  test('resume el tablero', () => {
     const file: JobsFile = {
-      scraped_at: "2026-09-01",
-      sources: ["jobit"],
+      scraped_at: '2026-09-01',
+      sources: ['jobit'],
       count: 1,
       jobs: [job()],
-    };
-    const html = marketPageHtml(buildMarketReport(file.jobs, file.scraped_at));
-    expect(html).toContain("<h1>El mercado laboral uruguayo, ahora</h1>");
-    expect(html).toContain("Ventas y comercial");
-  });
-});
+    }
+    const html = marketPageHtml(buildMarketReport(file.jobs, file.scraped_at))
+    expect(html).toContain('<h1>El mercado laboral uruguayo, ahora</h1>')
+    expect(html).toContain('Ventas y comercial')
+  })
+})
 
-describe("jobsByCategory", () => {
-  test("filtra por rubro", () => {
+describe('jobsByCategory', () => {
+  test('filtra por rubro', () => {
     const file: JobsFile = {
-      scraped_at: "2026-09-01",
+      scraped_at: '2026-09-01',
       sources: [],
       count: 2,
-      jobs: [job(), job({ id: "job-2", category: "salud" })],
-    };
-    expect(jobsByCategory(file, "ventas").map((entry) => entry.id)).toEqual(["job-1"]);
-  });
-});
+      jobs: [job(), job({ id: 'job-2', category: 'salud' })],
+    }
+    expect(jobsByCategory(file, 'ventas').map((entry) => entry.id)).toEqual([
+      'job-1',
+    ])
+  })
+})
 
-describe("notFoundPage", () => {
-  test("dice que no está y ofrece volver", () => {
-    const html = notFoundPage();
-    expect(html).toContain("No encontramos eso");
-    expect(html).toContain("https://jobs.test/");
-  });
-});
+describe('notFoundPage', () => {
+  test('dice que no está y ofrece volver', () => {
+    const html = notFoundPage()
+    expect(html).toContain('No encontramos eso')
+    expect(html).toContain('https://jobs.test/')
+  })
+})
 
 const content = (overrides: Partial<ContentItem> = {}): ContentItem => ({
-  id: "c1",
-  kind: "faq",
-  title: "¿Qué es una API?",
-  body: "Una forma de que dos programas se hablen.",
+  id: 'c1',
+  kind: 'faq',
+  title: '¿Qué es una API?',
+  body: 'Una forma de que dos programas se hablen.',
   url: null,
-  source: "jobit",
-  source_label: "JobIt",
+  source: 'jobit',
+  source_label: 'JobIt',
   license: null,
   sponsored: false,
-  categories: ["tecnologia"],
+  categories: ['tecnologia'],
   roles: [],
   level: null,
   tags: [],
-  fetched_at: "2026-09-01",
+  fetched_at: '2026-09-01',
   ...overrides,
-});
+})
 
-describe("faqPageLd", () => {
-  test("arma un FAQPage solo con las preguntas", () => {
+describe('faqPageLd', () => {
+  test('arma un FAQPage solo con las preguntas', () => {
     const ld = faqPageLd([
       content(),
-      content({ id: "c2", kind: "topic", title: "Trabajo en equipo" }),
-    ]);
-    expect(ld?.["@type"]).toBe("FAQPage");
-    const entities = ld?.mainEntity as { name: string; acceptedAnswer: { text: string } }[];
-    expect(entities).toHaveLength(1);
-    expect(entities[0]?.name).toBe("¿Qué es una API?");
-    expect(entities[0]?.acceptedAnswer.text).toContain("dos programas");
-  });
+      content({ id: 'c2', kind: 'topic', title: 'Trabajo en equipo' }),
+    ])
+    expect(ld?.['@type']).toBe('FAQPage')
+    const entities = ld?.mainEntity as {
+      name: string
+      acceptedAnswer: { text: string }
+    }[]
+    expect(entities).toHaveLength(1)
+    expect(entities[0]?.name).toBe('¿Qué es una API?')
+    expect(entities[0]?.acceptedAnswer.text).toContain('dos programas')
+  })
 
-  test("sin preguntas no marca nada", () => {
-    expect(faqPageLd([content({ kind: "topic" })])).toBeNull();
-  });
-});
+  test('sin preguntas no marca nada', () => {
+    expect(faqPageLd([content({ kind: 'topic' })])).toBeNull()
+  })
+})
 
-describe("interviewPageHtml", () => {
-  test("trae preguntas, temas, FAQPage y enlace a la app", () => {
+describe('interviewPageHtml', () => {
+  test('trae preguntas, temas, FAQPage y enlace a la app', () => {
     const html = interviewPageHtml(
-      "tecnologia",
-      [job({ category: "tecnologia" })],
+      'tecnologia',
+      [job({ category: 'tecnologia' })],
       [
         content(),
-        content({ id: "c2", kind: "topic", title: "Trabajo en equipo", body: "Importa." }),
+        content({
+          id: 'c2',
+          kind: 'topic',
+          title: 'Trabajo en equipo',
+          body: 'Importa.',
+        }),
       ],
-    );
+    )
 
-    expect(html).toContain("Preguntas de entrevista de Tecnología en Uruguay");
-    expect(html).toContain("¿Qué es una API?");
-    expect(html).toContain("Trabajo en equipo");
-    expect(html).toContain('"@type":"FAQPage"');
-    expect(html).toContain('rel="canonical" href="https://jobs.test/entrevista/tecnologia"');
-    expect(html).toContain("https://jobs.test/?category=tecnologia");
-    expect(html).toContain("Vendedor de mostrador");
-  });
+    expect(html).toContain('Preguntas de entrevista de Tecnología en Uruguay')
+    expect(html).toContain('¿Qué es una API?')
+    expect(html).toContain('Trabajo en equipo')
+    expect(html).toContain('"@type":"FAQPage"')
+    expect(html).toContain(
+      'rel="canonical" href="https://jobs.test/entrevista/tecnologia"',
+    )
+    expect(html).toContain('https://jobs.test/?category=tecnologia')
+    expect(html).toContain('Vendedor de mostrador')
+  })
 
-  test("sin ofertas igual sale, sin la sección de avisos", () => {
-    const html = interviewPageHtml("tecnologia", [], [content()]);
-    expect(html).toContain("Preguntas de entrevista de Tecnología");
-    expect(html).not.toContain("Ofertas de Tecnología");
-  });
-});
+  test('sin ofertas igual sale, sin la sección de avisos', () => {
+    const html = interviewPageHtml('tecnologia', [], [content()])
+    expect(html).toContain('Preguntas de entrevista de Tecnología')
+    expect(html).not.toContain('Ofertas de Tecnología')
+  })
+})

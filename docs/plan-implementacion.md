@@ -19,19 +19,19 @@ El orden sale de cuatro criterios, en este orden de peso:
 Los tamaños son relativos: **S** (un par de días), **M** (una semana), **L**
 (varias semanas).
 
-| Fase | Qué | Tamaño |
-|---|---|---|
-| 1 | Integrar los PRs listos | M |
-| 2 | Base de accesibilidad, UX y navegación | L |
-| 3 | Privacidad y legales (#34) | S |
-| 4 | Alta de empresa y emprendimientos | M |
-| 5 | Servicios (#26, #38, #32, #33) | L |
-| 6 | Recomendador personalizado | L |
-| 7 | Métricas de empresa | M |
-| 8 | Postulaciones con preguntas y conversación | L |
-| 9 | Contenido (#3, #5, #7) | L |
-| 10 | Plataforma: analítica propia, API, self-hosting | L |
-| 11 | IA para empresas, plan pago | L |
+| Fase | Qué                                             | Tamaño |
+| ---- | ----------------------------------------------- | ------ |
+| 1    | Integrar los PRs listos                         | M      |
+| 2    | Base de accesibilidad, UX y navegación          | L      |
+| 3    | Privacidad y legales (#34)                      | S      |
+| 4    | Alta de empresa y emprendimientos               | M      |
+| 5    | Servicios (#26, #38, #32, #33)                  | L      |
+| 6    | Recomendador personalizado                      | L      |
+| 7    | Métricas de empresa                             | M      |
+| 8    | Postulaciones con preguntas y conversación      | L      |
+| 9    | Contenido (#3, #5, #7)                          | L      |
+| 10   | Plataforma: analítica propia, API, self-hosting | L      |
+| 11   | IA para empresas, plan pago                     | L      |
 
 Las fases 2, 3 y 4 corren en paralelo.
 
@@ -43,28 +43,28 @@ Las fases 2, 3 y 4 corren en paralelo.
 
 Simulación de merge secuencial contra `origin/develop` (`git merge-tree`):
 
-| PR | Rama | Base | Tamaño | Choca con `develop` |
-|---|---|---|---|---|
-| #44 | `fix/descripcion` | `develop` | +179 | No |
-| — | `feat/empresa-perfil` (sin PR, con cambios sin commitear) | `develop` | 3 commits | No |
-| #39 | `feat/mcp` | `develop` | +1.550 | `README.md` |
-| #40 | `feat/ejercicios` | `develop` | +2.027 | No |
-| #42 | `feat/faq-rubros` | `feat/ejercicios` | +865 | No |
-| #46 | `feat/empresas` | `develop` | +852 | `api/src/index.ts`, `web/src/App.tsx` (con #40/#42) |
-| #49 | `feat/atajos` | `feat/empresas` | +579 | Los mismos dos |
-| #50 | `feat/ayuda` | `feat/atajos` | +984 | Los mismos dos |
-| #38 | `feat/servicios` | `develop` | +8.593, 68 archivos | 11 archivos: `api/src/db.ts`, `index.ts`, `pages.ts`, `site.ts`, `deploy/nginx.conf`, `sitemap.xml`, `App.tsx`, `JobModal.tsx`, `vite.config.ts`, `worker/package.json`, `README.md` |
-| #41 | `docs/pendientes` | `develop` | +493 | No |
+| PR  | Rama                                                      | Base              | Tamaño              | Choca con `develop`                                                                                                                                                                  |
+| --- | --------------------------------------------------------- | ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| #44 | `fix/descripcion`                                         | `develop`         | +179                | No                                                                                                                                                                                   |
+| —   | `feat/empresa-perfil` (sin PR, con cambios sin commitear) | `develop`         | 3 commits           | No                                                                                                                                                                                   |
+| #39 | `feat/mcp`                                                | `develop`         | +1.550              | `README.md`                                                                                                                                                                          |
+| #40 | `feat/ejercicios`                                         | `develop`         | +2.027              | No                                                                                                                                                                                   |
+| #42 | `feat/faq-rubros`                                         | `feat/ejercicios` | +865                | No                                                                                                                                                                                   |
+| #46 | `feat/empresas`                                           | `develop`         | +852                | `api/src/index.ts`, `web/src/App.tsx` (con #40/#42)                                                                                                                                  |
+| #49 | `feat/atajos`                                             | `feat/empresas`   | +579                | Los mismos dos                                                                                                                                                                       |
+| #50 | `feat/ayuda`                                              | `feat/atajos`     | +984                | Los mismos dos                                                                                                                                                                       |
+| #38 | `feat/servicios`                                          | `develop`         | +8.593, 68 archivos | 11 archivos: `api/src/db.ts`, `index.ts`, `pages.ts`, `site.ts`, `deploy/nginx.conf`, `sitemap.xml`, `App.tsx`, `JobModal.tsx`, `vite.config.ts`, `worker/package.json`, `README.md` |
+| #41 | `docs/pendientes`                                         | `develop`         | +493                | No                                                                                                                                                                                   |
 
 ### Issues que ya están resueltos (o casi) y siguen abiertos
 
-| Issue | Qué hay en `develop` | Qué hacer |
-|---|---|---|
-| #13 Vista RAW | `api/src/raw.ts` (e67d685) | Verificar contra el issue y cerrar. |
-| #14 Operar desde la CLI | `api/src/cli.ts` y la reescritura por User-Agent en nginx | Cerrar. |
-| #15 Publicación directa | Panel de empresa mergeado (c537a86) | Cerrar; lo que falte va como issue nuevo. |
-| #8 Métricas de uso | Eventos anónimos y panel de uso propios (`api/src/events.ts`, `usage.ts`) | Reescribir el issue como analítica propia exportable (fase 10). |
-| #34 Legales | `terminos.html` y `privacidad.html` ya hablan de cuentas | Queda: la IP en el `access_log` de nginx y la sección verificable de Zero Data. |
+| Issue                   | Qué hay en `develop`                                                      | Qué hacer                                                                       |
+| ----------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| #13 Vista RAW           | `api/src/raw.ts` (e67d685)                                                | Verificar contra el issue y cerrar.                                             |
+| #14 Operar desde la CLI | `api/src/cli.ts` y la reescritura por User-Agent en nginx                 | Cerrar.                                                                         |
+| #15 Publicación directa | Panel de empresa mergeado (c537a86)                                       | Cerrar; lo que falte va como issue nuevo.                                       |
+| #8 Métricas de uso      | Eventos anónimos y panel de uso propios (`api/src/events.ts`, `usage.ts`) | Reescribir el issue como analítica propia exportable (fase 10).                 |
+| #34 Legales             | `terminos.html` y `privacidad.html` ya hablan de cuentas                  | Queda: la IP en el `access_log` de nginx y la sección verificable de Zero Data. |
 
 Y los que cierran los PRs abiertos: #1 (#39), #4 (#40), #3 a nivel rubro
 (#42; el nivel puesto queda abierto), #45 (#46), #47 (#49), #48 (#50).
@@ -111,16 +111,16 @@ después.
 El detalle de cada hallazgo, con la evidencia, está en
 [UX/UI y accesibilidad](#uxui-y-accesibilidad).
 
-| Entrega | Hallazgos | Tamaño |
-|---|---|---|
-| 2.1 Tokens de color con contraste AA | A1 | S |
-| 2.2 Primitiva `Dialog` y migración de todos los modales | A2, A3 | M |
-| 2.3 Navegación por secciones: barra inferior en el teléfono | U3 | M |
-| 2.4 Ficha de oferta en el teléfono (#37) | U2 | M |
-| 2.5 Filtros plegables en el teléfono | U1 | M |
-| 2.6 Validación en vivo con resumen de lo que falta | U8 | M |
-| 2.7 Nombres accesibles, carga de teclado y copy | U4, U5, U6, U7, U9 | S |
-| 2.8 Chequeo automático de accesibilidad en CI | — | S |
+| Entrega                                                     | Hallazgos          | Tamaño |
+| ----------------------------------------------------------- | ------------------ | ------ |
+| 2.1 Tokens de color con contraste AA                        | A1                 | S      |
+| 2.2 Primitiva `Dialog` y migración de todos los modales     | A2, A3             | M      |
+| 2.3 Navegación por secciones: barra inferior en el teléfono | U3                 | M      |
+| 2.4 Ficha de oferta en el teléfono (#37)                    | U2                 | M      |
+| 2.5 Filtros plegables en el teléfono                        | U1                 | M      |
+| 2.6 Validación en vivo con resumen de lo que falta          | U8                 | M      |
+| 2.7 Nombres accesibles, carga de teclado y copy             | U4, U5, U6, U7, U9 | S      |
+| 2.8 Chequeo automático de accesibilidad en CI               | —                  | S      |
 
 ### 2.3 · Navegación por secciones
 
@@ -129,21 +129,21 @@ secciones generales, y mini secciones adentro de cada una.
 
 Por qué la barra inferior y no las otras dos opciones:
 
-| Opción | A favor | En contra |
-|---|---|---|
+| Opción             | A favor                                                                                                    | En contra                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | **Barra inferior** | Siempre a la vista, al alcance del pulgar, un toque por sección. Es lo que la gente ya conoce de las apps. | Entran cinco secciones como mucho: obliga a agrupar, lo que igual hace falta. |
-| Scroll horizontal | No obliga a agrupar. | Lo que no entra en pantalla no se ve, y nadie sabe que existe. |
-| Menú hamburguesa | Entra todo. | Esconde la navegación detrás de un toque; lo que no se ve se usa menos. |
+| Scroll horizontal  | No obliga a agrupar.                                                                                       | Lo que no entra en pantalla no se ve, y nadie sabe que existe.                |
+| Menú hamburguesa   | Entra todo.                                                                                                | Esconde la navegación detrás de un toque; lo que no se ve se usa menos.       |
 
 Estructura propuesta: cinco secciones, y cada una con mini secciones:
 
-| Sección | Mini secciones |
-|---|---|
-| **Ofertas** | Todas · Estado (sector público) |
-| **Servicios** | Explorar · Los míos (si publica) |
-| **Mis ofertas** | Guardadas · Seguimiento · Postulaciones (fase 8) |
-| **Mercado** | Resumen · Entrevistas (#3) · Recursos (#5) · Analista (#7) |
-| **Novedades** | Para vos · Para arrancar · Cierres próximos · Del mercado |
+| Sección         | Mini secciones                                             |
+| --------------- | ---------------------------------------------------------- |
+| **Ofertas**     | Todas · Estado (sector público)                            |
+| **Servicios**   | Explorar · Los míos (si publica)                           |
+| **Mis ofertas** | Guardadas · Seguimiento · Postulaciones (fase 8)           |
+| **Mercado**     | Resumen · Entrevistas (#3) · Recursos (#5) · Analista (#7) |
+| **Novedades**   | Para vos · Para arrancar · Cierres próximos · Del mercado  |
 
 Preferencias, cuenta y ayuda siguen en la isla de arriba.
 
@@ -222,12 +222,12 @@ También define cómo publica un emprendimiento, que la fase 5 necesita saber.
 
 ### Tipos
 
-| Tipo | Para quién | Verificación propuesta | Límites |
-|---|---|---|---|
-| Empresa establecida | Empresa constituida, con RUT | Sitio o DNS TXT (ya existe) y RUT | Sin límites del panel gratuito |
-| Empresa en proceso | Se está constituyendo | Sin RUT todavía; se completa cuando lo tenga | Como emprendimiento hasta verificar |
-| Startup | Empresa joven, con o sin RUT | Como establecida si tiene RUT; si no, como en proceso | Según la verificación |
-| Emprendimiento | Unipersonal o proyecto chico | Correo y teléfono verificados | Ver abajo |
+| Tipo                | Para quién                   | Verificación propuesta                                | Límites                             |
+| ------------------- | ---------------------------- | ----------------------------------------------------- | ----------------------------------- |
+| Empresa establecida | Empresa constituida, con RUT | Sitio o DNS TXT (ya existe) y RUT                     | Sin límites del panel gratuito      |
+| Empresa en proceso  | Se está constituyendo        | Sin RUT todavía; se completa cuando lo tenga          | Como emprendimiento hasta verificar |
+| Startup             | Empresa joven, con o sin RUT | Como establecida si tiene RUT; si no, como en proceso | Según la verificación               |
+| Emprendimiento      | Unipersonal o proyecto chico | Correo y teléfono verificados                         | Ver abajo                           |
 
 Los límites del emprendimiento son una propuesta para ajustar:
 
@@ -337,12 +337,12 @@ De ahí salen las reglas:
 
 ### Modelo
 
-| Pieza | Dónde vive | Cuánto dura |
-|---|---|---|
-| Preguntas de la oferta (sí/no, opción, texto corto) y requisitos descartables | `offers`, del lado de la empresa | Lo que dure la oferta |
-| Respuestas y mensajes | Servidor, cifrados con `api/src/crypto.ts` | Hasta el cierre de la oferta + un plazo corto (propuesta: 30 días), o hasta que la empresa descarta la postulación. Después se borran de verdad. |
-| Conversación extendida | Servidor, igual que arriba | Solo si **las dos partes** aceptan mantenerla; cada una puede cortarla, y cortar la borra del servidor. |
-| Copia de cada parte | IndexedDB del navegador, cifrada | Lo que la persona quiera; el servidor no la ve. |
+| Pieza                                                                         | Dónde vive                                 | Cuánto dura                                                                                                                                      |
+| ----------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Preguntas de la oferta (sí/no, opción, texto corto) y requisitos descartables | `offers`, del lado de la empresa           | Lo que dure la oferta                                                                                                                            |
+| Respuestas y mensajes                                                         | Servidor, cifrados con `api/src/crypto.ts` | Hasta el cierre de la oferta + un plazo corto (propuesta: 30 días), o hasta que la empresa descarta la postulación. Después se borran de verdad. |
+| Conversación extendida                                                        | Servidor, igual que arriba                 | Solo si **las dos partes** aceptan mantenerla; cada una puede cortarla, y cortar la borra del servidor.                                          |
+| Copia de cada parte                                                           | IndexedDB del navegador, cifrada           | Lo que la persona quiera; el servidor no la ve.                                                                                                  |
 
 ### Cifrado local
 
@@ -402,13 +402,13 @@ existe.
 
 ## Fase 10 · Plataforma y developers
 
-| Issue | Orden | Nota |
-|---|---|---|
-| #8 Analítica propia | Primero | Ver abajo. **M** |
-| #9 API pública | Segundo | `limit.ts` ya tiene la ventana; faltan claves, cuota por clave y docs. Es la base de identidad de #10 y de la fase 11. **M** |
-| #11 Self-hosting | Tercero | Sacar rutas y dominio propios de `deploy/`; un comando para levantar todo. **M** |
-| #10 BYOK | Con la fase 11 | Sin funciones de IA no hay nada que pagar con la clave propia. **M** |
-| #12 Redis | Con la fase 11 | `store.ts` ya cachea en memoria; lo justifica el caché de respuestas de IA, no el tablero. Medir antes. **S** |
+| Issue               | Orden          | Nota                                                                                                                         |
+| ------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| #8 Analítica propia | Primero        | Ver abajo. **M**                                                                                                             |
+| #9 API pública      | Segundo        | `limit.ts` ya tiene la ventana; faltan claves, cuota por clave y docs. Es la base de identidad de #10 y de la fase 11. **M** |
+| #11 Self-hosting    | Tercero        | Sacar rutas y dominio propios de `deploy/`; un comando para levantar todo. **M**                                             |
+| #10 BYOK            | Con la fase 11 | Sin funciones de IA no hay nada que pagar con la clave propia. **M**                                                         |
+| #12 Redis           | Con la fase 11 | `store.ts` ya cachea en memoria; lo justifica el caché de respuestas de IA, no el tablero. Medir antes. **S**                |
 
 ### #8 · Analítica propia, exportable a LearnIt
 
@@ -485,11 +485,11 @@ px y en escritorio, tema claro y oscuro.
 axe marca 356 nodos solo en el tablero. Los tonos derivados de `ink`
 (`index.css`) quedan cortos:
 
-| Token | Valor | Sobre `mist` | Sobre `surface` | Mínimo AA |
-|---|---|---|---|---|
-| `faint` (ink 40%) | `#9eb5d9` | 1,83 | 2,09 | 4,5 |
-| `muted` (ink 55%) | `#7a9acb` | 2,51 | 2,87 | 4,5 |
-| `soft` (ink 72%) | `#517bbb` | 3,75 | 4,29 | 4,5 |
+| Token             | Valor     | Sobre `mist` | Sobre `surface` | Mínimo AA |
+| ----------------- | --------- | ------------ | --------------- | --------- |
+| `faint` (ink 40%) | `#9eb5d9` | 1,83         | 2,09            | 4,5       |
+| `muted` (ink 55%) | `#7a9acb` | 2,51         | 2,87            | 4,5       |
+| `soft` (ink 72%)  | `#517bbb` | 3,75         | 4,29            | 4,5       |
 
 `muted` es el color de las pestañas inactivas, los metadatos de la tarjeta, las
 ayudas y el conteo de resultados. El tema oscuro pasa.

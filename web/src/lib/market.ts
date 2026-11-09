@@ -4,77 +4,85 @@
  * person looking at it.
  */
 export interface SalarySummary {
-  count: number;
-  min: number;
-  p25: number;
-  median: number;
-  p75: number;
-  max: number;
+  count: number
+  min: number
+  p25: number
+  median: number
+  p75: number
+  max: number
 }
 
 export interface RoleStat {
-  slug: string;
-  label: string;
-  count: number;
-  category: string;
-  categoryLabel: string;
-  noExperience: number;
-  salary: SalarySummary | null;
+  slug: string
+  label: string
+  count: number
+  category: string
+  categoryLabel: string
+  noExperience: number
+  salary: SalarySummary | null
 }
 
 export interface CategoryStat {
-  value: string;
-  label: string;
-  count: number;
-  noExperience: number;
-  salary: SalarySummary | null;
+  value: string
+  label: string
+  count: number
+  noExperience: number
+  salary: SalarySummary | null
 }
 
 export interface DepartmentStat {
-  value: string;
-  count: number;
-  salary: SalarySummary | null;
+  value: string
+  count: number
+  salary: SalarySummary | null
 }
 
 export interface SkillStat {
-  slug: string;
-  label: string;
-  count: number;
-  salary: SalarySummary | null;
+  slug: string
+  label: string
+  count: number
+  salary: SalarySummary | null
 }
 
 export interface Breakdown {
-  value: string;
-  count: number;
+  value: string
+  count: number
 }
 
 export interface MarketReport {
-  count: number;
-  scraped_at: string;
-  fresh7: number;
-  fresh30: number;
-  noExperience: number;
-  withSalary: number;
-  salary: SalarySummary | null;
-  sources: Breakdown[];
-  roles: RoleStat[];
-  categories: CategoryStat[];
-  departments: DepartmentStat[];
-  skills: SkillStat[];
-  levels: Breakdown[];
-  modes: Breakdown[];
-  jobTypes: Breakdown[];
-  entryFriendly: { value: string; label: string; count: number; share: number }[];
+  count: number
+  scraped_at: string
+  fresh7: number
+  fresh30: number
+  noExperience: number
+  withSalary: number
+  salary: SalarySummary | null
+  sources: Breakdown[]
+  roles: RoleStat[]
+  categories: CategoryStat[]
+  departments: DepartmentStat[]
+  skills: SkillStat[]
+  levels: Breakdown[]
+  modes: Breakdown[]
+  jobTypes: Breakdown[]
+  entryFriendly: {
+    value: string
+    label: string
+    count: number
+    share: number
+  }[]
 }
 
-const pesos = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 });
-const percent = new Intl.NumberFormat("es-UY", { style: "percent", maximumFractionDigits: 0 });
+const pesos = new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 })
+const percent = new Intl.NumberFormat('es-UY', {
+  style: 'percent',
+  maximumFractionDigits: 0,
+})
 
-export const formatPesos = (value: number): string => `$ ${pesos.format(value)}`;
+export const formatPesos = (value: number): string => `$ ${pesos.format(value)}`
 
 export const formatShare = (part: number, whole: number): string =>
-  whole === 0 ? "0%" : percent.format(part / whole);
+  whole === 0 ? '0%' : percent.format(part / whole)
 
 /** "$ 30.000 a $ 50.000", the range most of the offers sit in. */
 export const formatBand = (salary: SalarySummary): string =>
-  `${formatPesos(salary.p25)} a ${formatPesos(salary.p75)}`;
+  `${formatPesos(salary.p25)} a ${formatPesos(salary.p75)}`

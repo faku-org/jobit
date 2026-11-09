@@ -1,17 +1,22 @@
-import { ChevronDown, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { COUNTRIES, countryByIso, flagOf, type Country } from "../lib/countries.ts";
+import { ChevronDown, Search } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  COUNTRIES,
+  countryByIso,
+  flagOf,
+  type Country,
+} from '../lib/countries.ts'
 
 /** Sin acentos y en minúsculas: quien escribe "peru" tiene que encontrar "Perú". */
 const fold = (value: string): string =>
   value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
 
 function matches(country: Country, needle: string): boolean {
-  if (!needle) return true;
-  return fold(country.name).includes(needle) || country.dial.startsWith(needle);
+  if (!needle) return true
+  return fold(country.name).includes(needle) || country.dial.startsWith(needle)
 }
 
 /**
@@ -27,66 +32,69 @@ export function PhoneField({
   error,
   id,
 }: {
-  iso: string;
-  national: string;
-  onIso: (iso: string) => void;
-  onNational: (national: string) => void;
-  error?: string;
-  id?: string;
+  iso: string
+  national: string
+  onIso: (iso: string) => void
+  onNational: (national: string) => void
+  error?: string
+  id?: string
 }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
-  const menu = useRef<HTMLDivElement>(null);
-  const search = useRef<HTMLInputElement>(null);
-  const country = countryByIso(iso) ?? COUNTRIES[0]!;
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [active, setActive] = useState(0)
+  const menu = useRef<HTMLDivElement>(null)
+  const search = useRef<HTMLInputElement>(null)
+  const country = countryByIso(iso) ?? COUNTRIES[0]!
 
-  const needle = fold(query.trim());
-  const options = useMemo(() => COUNTRIES.filter((entry) => matches(entry, needle)), [needle]);
+  const needle = fold(query.trim())
+  const options = useMemo(
+    () => COUNTRIES.filter((entry) => matches(entry, needle)),
+    [needle],
+  )
 
   /** El resaltado no puede quedar apuntando a una fila que el filtro se llevó. */
   useEffect(() => {
-    setActive((current) => Math.min(current, Math.max(options.length - 1, 0)));
-  }, [options.length]);
+    setActive((current) => Math.min(current, Math.max(options.length - 1, 0)))
+  }, [options.length])
 
   useEffect(() => {
-    if (!open) return;
-    search.current?.focus();
+    if (!open) return
+    search.current?.focus()
     const onPointerDown = (event: MouseEvent) => {
-      if (!menu.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [open]);
+      if (!menu.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [open])
 
   const choose = (option: Country) => {
-    onIso(option.iso);
-    setOpen(false);
-    setQuery("");
-  };
+    onIso(option.iso)
+    setOpen(false)
+    setQuery('')
+  }
 
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Escape") {
-      setOpen(false);
-      return;
+    if (event.key === 'Escape') {
+      setOpen(false)
+      return
     }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActive((current) => Math.min(current + 1, options.length - 1));
-      return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActive((current) => Math.min(current + 1, options.length - 1))
+      return
     }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActive((current) => Math.max(current - 1, 0));
-      return;
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActive((current) => Math.max(current - 1, 0))
+      return
     }
     /** Con texto escrito, Enter se lleva el resaltado —o el primero, que es lo
      * que se espera al teclear un país y no querer bajar con la flecha. */
-    if (event.key === "Enter" && options.length > 0) {
-      event.preventDefault();
-      choose(options[Math.min(active, options.length - 1)] ?? options[0]!);
+    if (event.key === 'Enter' && options.length > 0) {
+      event.preventDefault()
+      choose(options[Math.min(active, options.length - 1)] ?? options[0]!)
     }
-  };
+  }
 
   return (
     <div>
@@ -124,8 +132,8 @@ export function PhoneField({
                   role="combobox"
                   value={query}
                   onChange={(event) => {
-                    setQuery(event.target.value);
-                    setActive(0);
+                    setQuery(event.target.value)
+                    setActive(0)
                   }}
                   onKeyDown={onKeyDown}
                 />
@@ -137,15 +145,17 @@ export function PhoneField({
                 role="listbox"
               >
                 {options.length === 0 ? (
-                  <li className="px-3 py-2 text-xs text-faint">Ningún país con ese nombre.</li>
+                  <li className="px-3 py-2 text-xs text-faint">
+                    Ningún país con ese nombre.
+                  </li>
                 ) : (
                   options.map((option, index) => (
                     <li key={option.iso}>
                       <button
                         aria-selected={option.iso === country.iso}
                         className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-mist ${
-                          index === active ? "bg-mist" : ""
-                        } ${option.iso === country.iso ? "text-ink" : "text-soft"}`}
+                          index === active ? 'bg-mist' : ''
+                        } ${option.iso === country.iso ? 'text-ink' : 'text-soft'}`}
                         role="option"
                         type="button"
                         onClick={() => choose(option)}
@@ -155,7 +165,9 @@ export function PhoneField({
                           {flagOf(option.iso)}
                         </span>
                         <span className="flex-1 truncate">{option.name}</span>
-                        <span className="tabular-nums text-faint">+{option.dial}</span>
+                        <span className="tabular-nums text-faint">
+                          +{option.dial}
+                        </span>
                       </button>
                     </li>
                   ))
@@ -178,10 +190,13 @@ export function PhoneField({
         />
       </div>
       {error ? (
-        <p className="mt-1 text-[11px] text-red-600" id={id ? `${id}-error` : undefined}>
+        <p
+          className="mt-1 text-[11px] text-red-600"
+          id={id ? `${id}-error` : undefined}
+        >
           {error}
         </p>
       ) : null}
     </div>
-  );
+  )
 }

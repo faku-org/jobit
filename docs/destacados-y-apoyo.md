@@ -9,18 +9,18 @@ Evidencia en el código de `develop` (`2ee9a1c`), salvo donde dice PR #58.
 
 ### Épica #26
 
-| Criterio | Estado | Evidencia |
-|---|---|---|
-| Alta con handle, nombre y contraseña; email opcional y cifrado | cumplido | `db.ts` (`users.email_enc`), `users.ts`, `account.ts` |
-| Sin IP, user agent, historial de logins ni hora; solo el día | cumplido en la app | `day()` en `services.ts`, `reviews.ts`, `events.ts`; el `access_log` de nginx sigue guardando IP (#34) |
-| Moderación previa con descarte semántico local | cumplido | `moderation.ts`, `queue.ts`; `moderation_prints` guarda hash y firma, no el texto |
-| Dos monedas, sin convertir al guardar | cumplido | `cleanPrices` en `services.ts`, orden por precio apagado sin tasa (`price_sort`) |
-| Borrado de cuenta real; la reseña pierde autor y la nota queda | cumplido | `service_reviews.author_user_id ... ON DELETE SET NULL` en `db.ts` |
-| Eventos de uso sin `user_id` | cumplido | `events.ts`; ningún evento ni fila lleva usuario |
-| Contadores agregados por servicio y por día | **PR #58** | `service_daily`, `bumpService` |
-| Publicar gratis; destacado siempre marcado; apoyo sin cuenta | **esta PR** | ver sección 3 |
-| El 3 % por trabajo hecho queda anotado y no se construye | cumplido | no existe; ver sección 5 |
-| Servicios fuera de `/api/jobs` | cumplido | rutas propias en `catalog.ts` y `publish.ts` |
+| Criterio                                                       | Estado             | Evidencia                                                                                              |
+| -------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
+| Alta con handle, nombre y contraseña; email opcional y cifrado | cumplido           | `db.ts` (`users.email_enc`), `users.ts`, `account.ts`                                                  |
+| Sin IP, user agent, historial de logins ni hora; solo el día   | cumplido en la app | `day()` en `services.ts`, `reviews.ts`, `events.ts`; el `access_log` de nginx sigue guardando IP (#34) |
+| Moderación previa con descarte semántico local                 | cumplido           | `moderation.ts`, `queue.ts`; `moderation_prints` guarda hash y firma, no el texto                      |
+| Dos monedas, sin convertir al guardar                          | cumplido           | `cleanPrices` en `services.ts`, orden por precio apagado sin tasa (`price_sort`)                       |
+| Borrado de cuenta real; la reseña pierde autor y la nota queda | cumplido           | `service_reviews.author_user_id ... ON DELETE SET NULL` en `db.ts`                                     |
+| Eventos de uso sin `user_id`                                   | cumplido           | `events.ts`; ningún evento ni fila lleva usuario                                                       |
+| Contadores agregados por servicio y por día                    | **PR #58**         | `service_daily`, `bumpService`                                                                         |
+| Publicar gratis; destacado siempre marcado; apoyo sin cuenta   | **esta PR**        | ver sección 3                                                                                          |
+| El 3 % por trabajo hecho queda anotado y no se construye       | cumplido           | no existe; ver sección 5                                                                               |
+| Servicios fuera de `/api/jobs`                                 | cumplido           | rutas propias en `catalog.ts` y `publish.ts`                                                           |
 
 ### #32 (PR #58, `feat/metricas-servicios`, abierta y MERGEABLE)
 
@@ -56,18 +56,18 @@ conteo "bumped" de `appendEvents` suma las vistas y no los contactos; no cambia 
 
 ### #33 (este trabajo)
 
-| Criterio | Estado |
-|---|---|
-| `boost_until` / `boost_kind` en `services` | hecho, con migración aditiva para la base de producción |
-| Destacado sube en la lista y siempre dice que lo es | hecho (API `featured` + etiqueta "Destacado" en tarjeta y ficha) |
-| Orden por relevancia adentro de cada grupo | hecho y testeado |
-| Apoyo voluntario: enlace, sin cuenta, sin seguimiento, sin contraprestación | hecho |
-| `PaymentProvider` con dos proveedores desde el diseño | interfaz y registro hechos, **sin proveedor real** |
-| Ids del proveedor como `provider` + `external_id` | hecho (`ExternalRef`) |
-| Montos con moneda y tasa aplicada | hecho (`Amount`) |
-| Jurisdicción como dato de primera clase | hecho (`Jurisdiction`, en `Order`) |
-| Split nativo excluyente | hecho (`register` rechaza el que no lo tenga) |
-| Mercado Pago / CFE | **no**: recién con un primer cliente de destacados |
+| Criterio                                                                    | Estado                                                           |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `boost_until` / `boost_kind` en `services`                                  | hecho, con migración aditiva para la base de producción          |
+| Destacado sube en la lista y siempre dice que lo es                         | hecho (API `featured` + etiqueta "Destacado" en tarjeta y ficha) |
+| Orden por relevancia adentro de cada grupo                                  | hecho y testeado                                                 |
+| Apoyo voluntario: enlace, sin cuenta, sin seguimiento, sin contraprestación | hecho                                                            |
+| `PaymentProvider` con dos proveedores desde el diseño                       | interfaz y registro hechos, **sin proveedor real**               |
+| Ids del proveedor como `provider` + `external_id`                           | hecho (`ExternalRef`)                                            |
+| Montos con moneda y tasa aplicada                                           | hecho (`Amount`)                                                 |
+| Jurisdicción como dato de primera clase                                     | hecho (`Jurisdiction`, en `Order`)                               |
+| Split nativo excluyente                                                     | hecho (`register` rechaza el que no lo tenga)                    |
+| Mercado Pago / CFE                                                          | **no**: recién con un primer cliente de destacados               |
 
 ### #34 (legales)
 

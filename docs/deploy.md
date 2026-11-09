@@ -17,12 +17,12 @@ y el egress. Acá va el resumen y lo específico del panel de empresa.
 
 ## Configuración que hay que tener en el servidor
 
-| Qué | Dónde | Sin eso |
-|---|---|---|
-| Hash del panel | `/srv/jobit/data/admin.hash` | `/api/admin` da 404. |
-| Token de ingesta | `/srv/jobit/data/ingest.token` | `/api/ingest` da 404. |
-| Clave de cifrado | `/srv/jobit/data/secret.key` | No hay alta de empresa (2FA obligatorio). |
-| Correo | `/srv/jobit/api/.env` (`RESEND_API_KEY`, `MAIL_FROM`) | Los correos quedan en el log. |
+| Qué              | Dónde                                                 | Sin eso                                   |
+| ---------------- | ----------------------------------------------------- | ----------------------------------------- |
+| Hash del panel   | `/srv/jobit/data/admin.hash`                          | `/api/admin` da 404.                      |
+| Token de ingesta | `/srv/jobit/data/ingest.token`                        | `/api/ingest` da 404.                     |
+| Clave de cifrado | `/srv/jobit/data/secret.key`                          | No hay alta de empresa (2FA obligatorio). |
+| Correo           | `/srv/jobit/api/.env` (`RESEND_API_KEY`, `MAIL_FROM`) | Los correos quedan en el log.             |
 
 La unidad `deploy/jobit-api.service` ya apunta a los tres archivos y carga
 `/srv/jobit/api/.env` como `EnvironmentFile` opcional.

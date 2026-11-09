@@ -1,23 +1,23 @@
-import { Check, Code2, Loader2, Plus, TriangleAlert, X } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { Check, Code2, Loader2, Plus, TriangleAlert, X } from 'lucide-react'
+import { type FormEvent, useState } from 'react'
 import {
   type CustomFeed,
   type FeedResult,
   MAX_FEEDS,
   isFeedUrl,
   newFeedId,
-} from "../../lib/feed.ts";
+} from '../../lib/feed.ts'
 
 interface CustomSourcesProps {
-  feeds: CustomFeed[];
+  feeds: CustomFeed[]
   /** What each enabled feed answered on the last read. */
-  results: FeedResult[];
-  loading: boolean;
-  onChange: (feeds: CustomFeed[]) => void;
+  results: FeedResult[]
+  loading: boolean
+  onChange: (feeds: CustomFeed[]) => void
 }
 
 const inputClass =
-  "w-full rounded-lg border border-onpanel/20 bg-onpanel/5 px-2.5 py-1.5 text-xs text-onpanel outline-none transition-colors placeholder:text-onpanel-faint focus:border-sky";
+  'w-full rounded-lg border border-onpanel/20 bg-onpanel/5 px-2.5 py-1.5 text-xs text-onpanel outline-none transition-colors placeholder:text-onpanel-faint focus:border-sky'
 
 const EXAMPLE = `{
   "jobs": [
@@ -34,7 +34,7 @@ const EXAMPLE = `{
       "description": "…"
     }
   ]
-}`;
+}`
 
 /**
  * The bundled boards are scraped by the worker, so adding one is a code
@@ -42,18 +42,23 @@ const EXAMPLE = `{
  * a URL returning the app's own job shape, read straight from the browser and
  * shown in its own group so its provenance is never in doubt.
  */
-export function CustomSources({ feeds, results, loading, onChange }: CustomSourcesProps) {
-  const [url, setUrl] = useState("");
-  const [label, setLabel] = useState("");
+export function CustomSources({
+  feeds,
+  results,
+  loading,
+  onChange,
+}: CustomSourcesProps) {
+  const [url, setUrl] = useState('')
+  const [label, setLabel] = useState('')
 
-  const full = feeds.length >= MAX_FEEDS;
-  const valid = isFeedUrl(url.trim());
+  const full = feeds.length >= MAX_FEEDS
+  const valid = isFeedUrl(url.trim())
 
   const add = (event: FormEvent) => {
-    event.preventDefault();
-    if (!valid || full) return;
-    const trimmed = url.trim();
-    if (feeds.some((feed) => feed.url === trimmed)) return;
+    event.preventDefault()
+    if (!valid || full) return
+    const trimmed = url.trim()
+    if (feeds.some((feed) => feed.url === trimmed)) return
 
     onChange([
       ...feeds,
@@ -63,53 +68,71 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
         label: label.trim().slice(0, 40) || new URL(trimmed).hostname,
         enabled: true,
       },
-    ]);
-    setUrl("");
-    setLabel("");
-  };
+    ])
+    setUrl('')
+    setLabel('')
+  }
 
   const update = (id: string, patch: Partial<CustomFeed>) =>
-    onChange(feeds.map((feed) => (feed.id === id ? { ...feed, ...patch } : feed)));
+    onChange(
+      feeds.map((feed) => (feed.id === id ? { ...feed, ...patch } : feed)),
+    )
 
-  const resultOf = (id: string) => results.find((result) => result.feedId === id);
+  const resultOf = (id: string) =>
+    results.find((result) => result.feedId === id)
 
   return (
     <div>
       <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
         <Code2 aria-hidden className="size-3" />
         Fuentes propias
-        {feeds.length > 0 ? <span className="tabular-nums">({feeds.length})</span> : null}
+        {feeds.length > 0 ? (
+          <span className="tabular-nums">({feeds.length})</span>
+        ) : null}
       </p>
 
       <p className="mt-2 text-[11px] leading-relaxed text-onpanel-muted">
-        Para quien pueda publicar un feed propio: una URL que devuelva JSON con un array de ofertas,
-        o un objeto con <code className="text-onpanel/70">jobs</code>. Se lee desde tu navegador,
-        así que tiene que estar servida por https y con CORS abierto. No pasa por la API de JobIt.
+        Para quien pueda publicar un feed propio: una URL que devuelva JSON con
+        un array de ofertas, o un objeto con{' '}
+        <code className="text-onpanel/70">jobs</code>. Se lee desde tu
+        navegador, así que tiene que estar servida por https y con CORS abierto.
+        No pasa por la API de JobIt.
       </p>
 
       {feeds.length > 0 ? (
         <ul className="mt-3 space-y-2">
           {feeds.map((feed) => {
-            const result = resultOf(feed.id);
+            const result = resultOf(feed.id)
             return (
-              <li key={feed.id} className="rounded-xl bg-onpanel-wash px-2.5 py-2">
+              <li
+                key={feed.id}
+                className="rounded-xl bg-onpanel-wash px-2.5 py-2"
+              >
                 <div className="flex items-center gap-2">
                   <input
                     aria-label={`Usar ${feed.label}`}
                     checked={feed.enabled}
                     className="size-3.5 shrink-0 accent-sky"
                     type="checkbox"
-                    onChange={(event) => update(feed.id, { enabled: event.target.checked })}
+                    onChange={(event) =>
+                      update(feed.id, { enabled: event.target.checked })
+                    }
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-onpanel">{feed.label}</p>
-                    <p className="truncate text-[10px] text-onpanel-faint">{feed.url}</p>
+                    <p className="truncate text-xs font-medium text-onpanel">
+                      {feed.label}
+                    </p>
+                    <p className="truncate text-[10px] text-onpanel-faint">
+                      {feed.url}
+                    </p>
                   </div>
                   <button
                     aria-label={`Quitar ${feed.label}`}
                     className="shrink-0 rounded-md p-1 text-onpanel-muted transition-colors hover:bg-onpanel/15 hover:text-onpanel"
                     type="button"
-                    onClick={() => onChange(feeds.filter((item) => item.id !== feed.id))}
+                    onClick={() =>
+                      onChange(feeds.filter((item) => item.id !== feed.id))
+                    }
                   >
                     <X aria-hidden className="size-3.5" />
                   </button>
@@ -119,17 +142,26 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
                   <p className="mt-1.5 flex items-center gap-1.5 pl-5.5 text-[10px]">
                     {loading && !result ? (
                       <>
-                        <Loader2 aria-hidden className="size-3 animate-spin text-onpanel-muted" />
+                        <Loader2
+                          aria-hidden
+                          className="size-3 animate-spin text-onpanel-muted"
+                        />
                         <span className="text-onpanel-muted">Leyendo…</span>
                       </>
                     ) : result?.error ? (
                       <>
-                        <TriangleAlert aria-hidden className="size-3 shrink-0 text-sky" />
+                        <TriangleAlert
+                          aria-hidden
+                          className="size-3 shrink-0 text-sky"
+                        />
                         <span className="text-onpanel/70">{result.error}</span>
                       </>
                     ) : result ? (
                       <>
-                        <Check aria-hidden className="size-3 shrink-0 text-sky" />
+                        <Check
+                          aria-hidden
+                          className="size-3 shrink-0 text-sky"
+                        />
                         <span className="text-onpanel/60 tabular-nums">
                           {result.jobs.length} ofertas
                         </span>
@@ -138,7 +170,7 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
                   </p>
                 ) : null}
               </li>
-            );
+            )
           })}
         </ul>
       ) : null}
@@ -187,12 +219,13 @@ export function CustomSources({ feeds, results, loading, onChange }: CustomSourc
           {EXAMPLE}
         </pre>
         <p className="mt-1.5 text-[10px] leading-relaxed text-onpanel-faint">
-          Solo <code>title</code> y <code>apply_url</code> son obligatorios. El resto sigue los
-          mismos valores que la API: <code>category</code> como slug de rubro, <code>level</code>{" "}
-          entry/mid/senior, <code>remote</code> remote/hybrid, <code>job_type</code>{" "}
+          Solo <code>title</code> y <code>apply_url</code> son obligatorios. El
+          resto sigue los mismos valores que la API: <code>category</code> como
+          slug de rubro, <code>level</code> entry/mid/senior,{' '}
+          <code>remote</code> remote/hybrid, <code>job_type</code>{' '}
           full_time/part_time/internship.
         </p>
       </details>
     </div>
-  );
+  )
 }

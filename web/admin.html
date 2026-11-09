@@ -11,14 +11,16 @@
     <script>
       /* Mismo criterio que la app: el tema se pinta antes del primer render. */
       try {
-        const stored = JSON.parse(localStorage.getItem("jobit.prefs.v1") || "{}");
+        const stored = JSON.parse(
+          localStorage.getItem('jobit.prefs.v1') || '{}',
+        )
         const theme =
-          stored.theme === "light" || stored.theme === "dark"
+          stored.theme === 'light' || stored.theme === 'dark'
             ? stored.theme
-            : matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-        document.documentElement.dataset.theme = theme;
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+        document.documentElement.dataset.theme = theme
       } catch {}
     </script>
   </head>

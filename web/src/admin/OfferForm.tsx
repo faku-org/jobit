@@ -1,82 +1,85 @@
-import { Plus } from "lucide-react";
-import { useState } from "react";
-import { CATEGORIES, type Company, type OfferInput } from "./api.ts";
+import { Plus } from 'lucide-react'
+import { useState } from 'react'
+import { CATEGORIES, type Company, type OfferInput } from './api.ts'
 
 const LEVELS = [
-  { value: "entry", label: "Junior" },
-  { value: "mid", label: "Semi senior" },
-  { value: "senior", label: "Senior" },
-];
+  { value: 'entry', label: 'Junior' },
+  { value: 'mid', label: 'Semi senior' },
+  { value: 'senior', label: 'Senior' },
+]
 
 const REMOTES = [
-  { value: "", label: "Presencial" },
-  { value: "hybrid", label: "Híbrido" },
-  { value: "remote", label: "Remoto" },
-];
+  { value: '', label: 'Presencial' },
+  { value: 'hybrid', label: 'Híbrido' },
+  { value: 'remote', label: 'Remoto' },
+]
 
 const JOB_TYPES = [
-  { value: "full_time", label: "Jornada completa" },
-  { value: "part_time", label: "Medio horario" },
-  { value: "internship", label: "Pasantía" },
-];
+  { value: 'full_time', label: 'Jornada completa' },
+  { value: 'part_time', label: 'Medio horario' },
+  { value: 'internship', label: 'Pasantía' },
+]
 
 const EMPTY = {
-  company_id: "",
-  title: "",
-  category: "otros",
-  department: "",
-  city: "",
-  level: "",
-  remote: "",
-  job_type: "full_time",
-  salary_min: "",
-  salary_max: "",
-  closes_at: "",
-  apply_url: "",
-  description: "",
+  company_id: '',
+  title: '',
+  category: 'otros',
+  department: '',
+  city: '',
+  level: '',
+  remote: '',
+  job_type: 'full_time',
+  salary_min: '',
+  salary_max: '',
+  closes_at: '',
+  apply_url: '',
+  description: '',
   no_experience: false,
-};
+}
 
 /** El formulario junta texto; la API pide números y nulos. */
 const amount = (value: string): number | null => {
-  const parsed = Number(value.replace(/\D/g, ""));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-};
+  const parsed = Number(value.replace(/\D/g, ''))
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
 
 interface Props {
-  companies: Company[];
-  onCreate: (input: OfferInput) => Promise<void>;
+  companies: Company[]
+  onCreate: (input: OfferInput) => Promise<void>
 }
 
 export function OfferForm({ companies, onCreate }: Props) {
-  const [form, setForm] = useState(EMPTY);
-  const [open, setOpen] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState("");
+  const [form, setForm] = useState(EMPTY)
+  const [open, setOpen] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
 
-  const set = <K extends keyof typeof EMPTY>(key: K, value: (typeof EMPTY)[K]) =>
-    setForm((current) => ({ ...current, [key]: value }));
+  const set = <K extends keyof typeof EMPTY>(
+    key: K,
+    value: (typeof EMPTY)[K],
+  ) => setForm((current) => ({ ...current, [key]: value }))
 
   const text = (key: keyof typeof EMPTY) => ({
     value: String(form[key]),
-    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      set(key, event.target.value as never),
-  });
+    onChange: (
+      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => set(key, event.target.value as never),
+  })
 
   const choice = (key: keyof typeof EMPTY) => ({
     value: String(form[key]),
     onChange: (event: React.ChangeEvent<HTMLSelectElement>) =>
       set(key, event.target.value as never),
-  });
+  })
 
-  const ready = form.company_id !== "" && form.title.trim() !== "";
+  const ready = form.company_id !== '' && form.title.trim() !== ''
 
   const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (sending || !ready) return;
+    event.preventDefault()
+    if (sending || !ready) return
 
-    setSending(true);
-    setError("");
+    setSending(true)
+    setError('')
     onCreate({
       company_id: form.company_id,
       title: form.title.trim(),
@@ -94,30 +97,34 @@ export function OfferForm({ companies, onCreate }: Props) {
       description: form.description.trim(),
     })
       .then(() => {
-        setForm(EMPTY);
-        setOpen(false);
+        setForm(EMPTY)
+        setOpen(false)
       })
-      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "no se pudo"))
-      .finally(() => setSending(false));
-  };
+      .catch((cause: unknown) =>
+        setError(cause instanceof Error ? cause.message : 'no se pudo'),
+      )
+      .finally(() => setSending(false))
+  }
 
   if (!open) {
     return (
       <button
         className="inline-flex items-center gap-1.5 rounded-xl border border-sky/70 bg-surface px-3 py-2 text-sm font-medium text-ink hover:border-brand hover:bg-mist disabled:opacity-50"
         disabled={companies.length === 0}
-        title={companies.length === 0 ? "Primero aprobá una empresa" : undefined}
+        title={
+          companies.length === 0 ? 'Primero aprobá una empresa' : undefined
+        }
         type="button"
         onClick={() => setOpen(true)}
       >
         <Plus aria-hidden className="size-4" />
         Publicar oferta
       </button>
-    );
+    )
   }
 
   const field =
-    "w-full rounded-lg border border-sky/70 bg-mist px-2.5 py-2 text-sm text-ink outline-none focus:border-brand";
+    'w-full rounded-lg border border-sky/70 bg-mist px-2.5 py-2 text-sm text-ink outline-none focus:border-brand'
 
   return (
     <form
@@ -125,7 +132,7 @@ export function OfferForm({ companies, onCreate }: Props) {
       onSubmit={submit}
     >
       <div className="grid gap-2.5 sm:grid-cols-2">
-        <select className={field} required {...choice("company_id")}>
+        <select className={field} required {...choice('company_id')}>
           <option value="">Empresa…</option>
           {companies.map((company) => (
             <option key={company.id} value={company.id}>
@@ -133,16 +140,22 @@ export function OfferForm({ companies, onCreate }: Props) {
             </option>
           ))}
         </select>
-        <input autoFocus className={field} placeholder="Puesto" required {...text("title")} />
+        <input
+          autoFocus
+          className={field}
+          placeholder="Puesto"
+          required
+          {...text('title')}
+        />
 
-        <select className={field} {...choice("category")}>
+        <select className={field} {...choice('category')}>
           {CATEGORIES.map((category) => (
             <option key={category.slug} value={category.slug}>
               {category.label}
             </option>
           ))}
         </select>
-        <select className={field} {...choice("job_type")}>
+        <select className={field} {...choice('job_type')}>
           {JOB_TYPES.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -150,10 +163,18 @@ export function OfferForm({ companies, onCreate }: Props) {
           ))}
         </select>
 
-        <input className={field} placeholder="Departamento" {...text("department")} />
-        <input className={field} placeholder="Ciudad o barrio" {...text("city")} />
+        <input
+          className={field}
+          placeholder="Departamento"
+          {...text('department')}
+        />
+        <input
+          className={field}
+          placeholder="Ciudad o barrio"
+          {...text('city')}
+        />
 
-        <select className={field} {...choice("level")}>
+        <select className={field} {...choice('level')}>
           <option value="">Sin nivel definido</option>
           {LEVELS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -161,7 +182,7 @@ export function OfferForm({ companies, onCreate }: Props) {
             </option>
           ))}
         </select>
-        <select className={field} {...choice("remote")}>
+        <select className={field} {...choice('remote')}>
           {REMOTES.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -173,13 +194,13 @@ export function OfferForm({ companies, onCreate }: Props) {
           className={field}
           inputMode="numeric"
           placeholder="Sueldo desde"
-          {...text("salary_min")}
+          {...text('salary_min')}
         />
         <input
           className={field}
           inputMode="numeric"
           placeholder="Sueldo hasta"
-          {...text("salary_max")}
+          {...text('salary_max')}
         />
 
         <label className="flex items-center gap-2 text-xs text-soft">
@@ -187,25 +208,25 @@ export function OfferForm({ companies, onCreate }: Props) {
             checked={form.no_experience}
             className="size-4 accent-[var(--color-brand)]"
             type="checkbox"
-            onChange={(event) => set("no_experience", event.target.checked)}
+            onChange={(event) => set('no_experience', event.target.checked)}
           />
           No pide experiencia
         </label>
         <label className="flex items-center gap-2 text-xs text-muted">
           Cierra
-          <input className={field} type="date" {...text("closes_at")} />
+          <input className={field} type="date" {...text('closes_at')} />
         </label>
 
         <input
           className={`${field} sm:col-span-2`}
           placeholder="https://… enlace para postularse"
-          {...text("apply_url")}
+          {...text('apply_url')}
         />
         <textarea
           className={`${field} sm:col-span-2 resize-y`}
           placeholder="Descripción del puesto"
           rows={4}
-          {...text("description")}
+          {...text('description')}
         />
       </div>
 
@@ -223,8 +244,8 @@ export function OfferForm({ companies, onCreate }: Props) {
           className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted hover:bg-mist"
           type="button"
           onClick={() => {
-            setOpen(false);
-            setError("");
+            setOpen(false)
+            setError('')
           }}
         >
           Cancelar
@@ -232,5 +253,5 @@ export function OfferForm({ companies, onCreate }: Props) {
         <span className="ml-auto text-[11px] text-faint">Nace en borrador</span>
       </div>
     </form>
-  );
+  )
 }

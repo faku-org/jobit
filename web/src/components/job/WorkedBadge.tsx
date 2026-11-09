@@ -1,5 +1,5 @@
-import { Check } from "lucide-react";
-import { chipClass } from "../../lib/styles.ts";
+import { Check } from 'lucide-react'
+import { chipClass } from '../../lib/styles.ts'
 
 /**
  * "Ya trabajaste acá": la oferta es de una empresa que la persona cargó en su
@@ -12,5 +12,5 @@ export function WorkedBadge() {
       <Check aria-hidden className="size-3.5 shrink-0 text-brand" />
       Ya trabajaste acá
     </span>
-  );
+  )
 }

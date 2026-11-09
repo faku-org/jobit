@@ -1,9 +1,9 @@
-import { describe, expect, test } from "bun:test";
-import { jobsQueryKey } from "./api.ts";
-import { EMPTY_PROFILE } from "./profile.ts";
-import { type BoardContext, jobsQuery, keepListView } from "./query.ts";
-import { toRanking } from "./ranking.ts";
-import { EMPTY_FILTERS, EMPTY_PREFERENCES, STATE_SOURCE } from "./types.ts";
+import { describe, expect, test } from 'bun:test'
+import { jobsQueryKey } from './api.ts'
+import { EMPTY_PROFILE } from './profile.ts'
+import { type BoardContext, jobsQuery, keepListView } from './query.ts'
+import { toRanking } from './ranking.ts'
+import { EMPTY_FILTERS, EMPTY_PREFERENCES, STATE_SOURCE } from './types.ts'
 
 const context = (overrides: Partial<BoardContext> = {}): BoardContext => ({
   filters: EMPTY_FILTERS,
@@ -16,82 +16,91 @@ const context = (overrides: Partial<BoardContext> = {}): BoardContext => ({
   similarOnly: false,
   reviewing: false,
   ...overrides,
-});
+})
 
-const wanting = { ...EMPTY_PREFERENCES, categories: ["tecnologia"] };
+const wanting = { ...EMPTY_PREFERENCES, categories: ['tecnologia'] }
 
-describe("jobsQuery", () => {
-  test("el orden por calce sale del perfil y de lo que se quiere", () => {
+describe('jobsQuery', () => {
+  test('el orden por calce sale del perfil y de lo que se quiere', () => {
     const query = jobsQuery(
-      "all",
-      context({ preferences: wanting, ranking: toRanking(wanting, EMPTY_PROFILE) }),
-    );
-
-    expect(query.sort).toBe("match");
-    expect(query.ranking?.categories).toEqual(["tecnologia"]);
-  });
-
-  test("sin nada cargado no hay con qué ordenar", () => {
-    expect(jobsQuery("all", context()).sort).toBeUndefined();
-  });
-
-  test("Estado va a su fuente y corre contra la fecha de cierre", () => {
-    const query = jobsQuery(
-      "state",
+      'all',
       context({
         preferences: wanting,
         ranking: toRanking(wanting, EMPTY_PROFILE),
-        sources: ["gallito"],
       }),
-    );
+    )
 
-    expect(query.sources).toEqual([STATE_SOURCE]);
-    expect(query.sort).toBe("closing");
-    expect(query.ranking).toBeUndefined();
-    expect(jobsQueryKey(query)).toContain("source=uruguayconcursa");
-    expect(jobsQueryKey(query)).toContain("sort=closing");
-  });
+    expect(query.sort).toBe('match')
+    expect(query.ranking?.categories).toEqual(['tecnologia'])
+  })
 
-  test("guardadas es la lista de la persona, sin recortes ni puntaje", () => {
+  test('sin nada cargado no hay con qué ordenar', () => {
+    expect(jobsQuery('all', context()).sort).toBeUndefined()
+  })
+
+  test('Estado va a su fuente y corre contra la fecha de cierre', () => {
     const query = jobsQuery(
-      "saved",
+      'state',
       context({
-        filters: { ...EMPTY_FILTERS, category: "ventas" },
-        preferences: { ...wanting, hiddenCategories: ["salud"] },
-        savedIds: ["a", "b"],
+        preferences: wanting,
+        ranking: toRanking(wanting, EMPTY_PROFILE),
+        sources: ['gallito'],
       }),
-    );
+    )
 
-    expect(query.ids).toEqual(["a", "b"]);
-    expect(query.filters.category).toBe("");
-    expect(query.hiddenCategories).toBeUndefined();
-    expect(query.sort).toBeUndefined();
-  });
+    expect(query.sources).toEqual([STATE_SOURCE])
+    expect(query.sort).toBe('closing')
+    expect(query.ranking).toBeUndefined()
+    expect(jobsQueryKey(query)).toContain('source=uruguayconcursa')
+    expect(jobsQueryKey(query)).toContain('sort=closing')
+  })
 
-  test("una lista de guardadas vacía pide lo que no existe, no todo", () => {
-    expect(jobsQuery("saved", context()).ids).toEqual(["none"]);
-  });
+  test('guardadas es la lista de la persona, sin recortes ni puntaje', () => {
+    const query = jobsQuery(
+      'saved',
+      context({
+        filters: { ...EMPTY_FILTERS, category: 'ventas' },
+        preferences: { ...wanting, hiddenCategories: ['salud'] },
+        savedIds: ['a', 'b'],
+      }),
+    )
 
-  test("la pila de descartadas se mira solo desde Ofertas", () => {
-    const reviewing = context({ discardedIds: ["x"], reviewing: true, sources: ["gallito"] });
+    expect(query.ids).toEqual(['a', 'b'])
+    expect(query.filters.category).toBe('')
+    expect(query.hiddenCategories).toBeUndefined()
+    expect(query.sort).toBeUndefined()
+  })
 
-    expect(jobsQuery("all", reviewing).ids).toEqual(["x"]);
+  test('una lista de guardadas vacía pide lo que no existe, no todo', () => {
+    expect(jobsQuery('saved', context()).ids).toEqual(['none'])
+  })
+
+  test('la pila de descartadas se mira solo desde Ofertas', () => {
+    const reviewing = context({
+      discardedIds: ['x'],
+      reviewing: true,
+      sources: ['gallito'],
+    })
+
+    expect(jobsQuery('all', reviewing).ids).toEqual(['x'])
     /** Y sin fuente, porque una descartada puede venir de cualquier portal. */
-    expect(jobsQuery("all", reviewing).sources).toBeUndefined();
-    expect(jobsQuery("saved", reviewing).ids).toEqual(["none"]);
-    expect(jobsQuery("state", reviewing).ids).toBeUndefined();
-  });
+    expect(jobsQuery('all', reviewing).sources).toBeUndefined()
+    expect(jobsQuery('saved', reviewing).ids).toEqual(['none'])
+    expect(jobsQuery('state', reviewing).ids).toBeUndefined()
+  })
 
-  test("dos vistas con lo mismo piden lo mismo, que es lo que comparte la caché", () => {
-    expect(jobsQuery("all", context())).toEqual(jobsQuery("tracking", context()));
-  });
-});
+  test('dos vistas con lo mismo piden lo mismo, que es lo que comparte la caché', () => {
+    expect(jobsQuery('all', context())).toEqual(
+      jobsQuery('tracking', context()),
+    )
+  })
+})
 
-describe("keepListView", () => {
-  test("Mercado y seguimiento no pisan la lista que se estaba mirando", () => {
-    expect(keepListView("market", "state")).toBe("state");
-    expect(keepListView("tracking", "all")).toBe("all");
-    expect(keepListView("state", "all")).toBe("state");
-    expect(keepListView("saved", "all")).toBe("saved");
-  });
-});
+describe('keepListView', () => {
+  test('Mercado y seguimiento no pisan la lista que se estaba mirando', () => {
+    expect(keepListView('market', 'state')).toBe('state')
+    expect(keepListView('tracking', 'all')).toBe('all')
+    expect(keepListView('state', 'all')).toBe('state')
+    expect(keepListView('saved', 'all')).toBe('saved')
+  })
+})

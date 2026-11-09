@@ -16,20 +16,20 @@ bun run --cwd worker start   # equivalente a scrape
 La configuración va en **`worker/.env`** (Bun carga el de ese directorio cuando
 corre el worker). `worker/.env.example` tiene todo.
 
-| Variable | Para qué |
-|---|---|
-| `JOBIT_INGEST_URL` | URL de `POST /api/ingest/jobs`. |
-| `JOBIT_INGEST_TOKEN` | El mismo token que `INGEST_TOKEN_FILE` en el servidor. |
-| `JOBIT_SCRAPE_PROXY` | Proxy de salida (`http://usuario:clave@host:puerto`). |
-| `JOBIT_HEARTBEAT_URL` | Se pinguea solo cuando BuscoJobs vino fresco. |
+| Variable              | Para qué                                               |
+| --------------------- | ------------------------------------------------------ |
+| `JOBIT_INGEST_URL`    | URL de `POST /api/ingest/jobs`.                        |
+| `JOBIT_INGEST_TOKEN`  | El mismo token que `INGEST_TOKEN_FILE` en el servidor. |
+| `JOBIT_SCRAPE_PROXY`  | Proxy de salida (`http://usuario:clave@host:puerto`).  |
+| `JOBIT_HEARTBEAT_URL` | Se pinguea solo cuando BuscoJobs vino fresco.          |
 
 ## Fuentes
 
-| Fuente | Estado |
-|---|---|
-| BuscoJobs Uruguay | Activa. Necesita salir por una IP limpia (ver abajo). |
-| Uruguay Concursa | Activa. Llamados del Estado, con fecha de cierre. |
-| Gallito | Pendiente (403 de Cloudflare; necesitaría navegador headless). |
+| Fuente            | Estado                                                         |
+| ----------------- | -------------------------------------------------------------- |
+| BuscoJobs Uruguay | Activa. Necesita salir por una IP limpia (ver abajo).          |
+| Uruguay Concursa  | Activa. Llamados del Estado, con fecha de cierre.              |
+| Gallito           | Pendiente (403 de Cloudflare; necesitaría navegador headless). |
 
 El worker pide de a una petición por vez, con pausa, y cachea las descripciones
 en `worker/cache/`. Si una fuente vuelve vacía, conserva lo que esa fuente había

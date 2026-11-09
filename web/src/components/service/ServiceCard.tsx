@@ -1,4 +1,4 @@
-import { Clock3, Laptop, MapPin, UserRound, Wallet } from "lucide-react";
+import { Clock3, Laptop, MapPin, UserRound, Wallet } from 'lucide-react'
 import {
   type Service,
   RESPONSE_TIME_LABEL,
@@ -7,30 +7,30 @@ import {
   serviceCategoryLabel,
   serviceLocation,
   serviceModeLabel,
-} from "../../lib/services.ts";
-import { serviceShare } from "../../lib/share.ts";
-import { chipClass, mutedChip } from "../../lib/styles.ts";
-import { ShareMenu } from "../ui/ShareMenu.tsx";
-import { FeaturedBadge } from "./FeaturedBadge.tsx";
-import { Rating } from "./Rating.tsx";
+} from '../../lib/services.ts'
+import { serviceShare } from '../../lib/share.ts'
+import { chipClass, mutedChip } from '../../lib/styles.ts'
+import { ShareMenu } from '../ui/ShareMenu.tsx'
+import { FeaturedBadge } from './FeaturedBadge.tsx'
+import { Rating } from './Rating.tsx'
 
 interface ServiceCardProps {
-  service: Service;
-  onOpen: (service: Service) => void;
+  service: Service
+  onOpen: (service: Service) => void
 }
 
 /** Lo justo para decidir si vale la pena abrir la ficha: qué hace, dónde, a
  * cuánto y cómo le fue con quienes lo contrataron. */
 export function ServiceCard({ service, onOpen }: ServiceCardProps) {
-  const price = basePrice(service);
-  const skills = service.skills.slice(0, 3);
-  const response = RESPONSE_TIME_LABEL[service.response_time];
+  const price = basePrice(service)
+  const skills = service.skills.slice(0, 3)
+  const response = RESPONSE_TIME_LABEL[service.response_time]
 
   return (
     <article className="rounded-2xl [contain-intrinsic-size:auto_260px] [content-visibility:auto]">
       <div
         className={`relative z-[1] rounded-2xl border bg-surface p-5 transition-[border-color,box-shadow] hover:border-brand hover:shadow-[var(--shadow-card)] ${
-          service.featured ? "border-brand/50" : "border-sky/50"
+          service.featured ? 'border-brand/50' : 'border-sky/50'
         }`}
       >
         {service.featured ? (
@@ -51,7 +51,10 @@ export function ServiceCard({ service, onOpen }: ServiceCardProps) {
             </h2>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-soft">
               <span className="inline-flex items-center gap-1.5">
-                <UserRound aria-hidden className="size-3.5 shrink-0 text-brand" />
+                <UserRound
+                  aria-hidden
+                  className="size-3.5 shrink-0 text-brand"
+                />
                 {service.owner_name}
               </span>
               <span className="inline-flex items-center gap-1.5">
@@ -67,7 +70,9 @@ export function ServiceCard({ service, onOpen }: ServiceCardProps) {
         </div>
 
         {service.summary ? (
-          <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-soft">{service.summary}</p>
+          <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-soft">
+            {service.summary}
+          </p>
         ) : null}
 
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
@@ -81,7 +86,9 @@ export function ServiceCard({ service, onOpen }: ServiceCardProps) {
               <Wallet aria-hidden className="size-3.5" />
               {/* Un precio que no es cerrado es una referencia, y "desde" lo
                   dice sin contradecir al número que está al lado. */}
-              {service.fixed_price ? formatPrice(price) : `desde ${formatPrice(price)}`}
+              {service.fixed_price
+                ? formatPrice(price)
+                : `desde ${formatPrice(price)}`}
             </span>
           ) : (
             <span className={mutedChip}>Precio a convenir</span>
@@ -98,7 +105,9 @@ export function ServiceCard({ service, onOpen }: ServiceCardProps) {
             </span>
           ))}
           {service.skills.length > skills.length ? (
-            <span className="text-xs text-muted">+{service.skills.length - skills.length}</span>
+            <span className="text-xs text-muted">
+              +{service.skills.length - skills.length}
+            </span>
           ) : null}
         </div>
 
@@ -114,5 +123,5 @@ export function ServiceCard({ service, onOpen }: ServiceCardProps) {
         </div>
       </div>
     </article>
-  );
+  )
 }

@@ -1,28 +1,34 @@
-import { Check, CircleHelp, Lightbulb, Minus } from "lucide-react";
-import { m } from "motion/react";
-import { type CheckStatus, assessFit, educationGap, fitHeadline, hasFit } from "../../lib/fit.ts";
-import { fadeUpTransition, stagger } from "../../lib/motion.ts";
-import type { Profile } from "../../lib/profile.ts";
-import { applyTips } from "../../lib/tips.ts";
-import type { Job } from "../../lib/types.ts";
-import { Aura, AuraSpark } from "../ui/Aura.tsx";
+import { Check, CircleHelp, Lightbulb, Minus } from 'lucide-react'
+import { m } from 'motion/react'
+import {
+  type CheckStatus,
+  assessFit,
+  educationGap,
+  fitHeadline,
+  hasFit,
+} from '../../lib/fit.ts'
+import { fadeUpTransition, stagger } from '../../lib/motion.ts'
+import type { Profile } from '../../lib/profile.ts'
+import { applyTips } from '../../lib/tips.ts'
+import type { Job } from '../../lib/types.ts'
+import { Aura, AuraSpark } from '../ui/Aura.tsx'
 
 interface JobFitProps {
-  job: Job;
-  profile: Profile;
+  job: Job
+  profile: Profile
 }
 
 const STATUS_ICON: Record<CheckStatus, typeof Check> = {
   ok: Check,
   short: Minus,
   unknown: CircleHelp,
-};
+}
 
 const STATUS_STYLE: Record<CheckStatus, string> = {
-  ok: "bg-sky text-ink",
-  short: "bg-wash text-muted",
-  unknown: "bg-wash text-faint",
-};
+  ok: 'bg-sky text-ink',
+  short: 'bg-wash text-muted',
+  unknown: 'bg-wash text-faint',
+}
 
 /**
  * Cuánto color se le pone al vidrio. Es la misma escala de siempre, un solo
@@ -30,10 +36,10 @@ const STATUS_STYLE: Record<CheckStatus, string> = {
  * pide más brand que la que no tiene con qué contestar.
  */
 const HEADLINE_TONE: Record<CheckStatus, string> = {
-  ok: "[--aura-tone:36%]",
-  short: "[--aura-tone:24%]",
-  unknown: "[--aura-tone:16%]",
-};
+  ok: '[--aura-tone:36%]',
+  short: '[--aura-tone:24%]',
+  unknown: '[--aura-tone:16%]',
+}
 
 /**
  * The first thing on the sheet: can you apply to this, and what should you
@@ -44,11 +50,11 @@ const HEADLINE_TONE: Record<CheckStatus, string> = {
  * profile, so it wears the same aura as the CV reading.
  */
 export function JobFit({ job, profile }: JobFitProps) {
-  const fit = assessFit(job, profile);
-  const tips = applyTips(job);
-  const gap = educationGap(job, profile);
+  const fit = assessFit(job, profile)
+  const tips = applyTips(job)
+  const gap = educationGap(job, profile)
 
-  if (!hasFit(fit) && tips.length === 0) return null;
+  if (!hasFit(fit) && tips.length === 0) return null
 
   /* El calce ya está listo al abrir la ficha: el orbe respira, no finge
      que está pensando y después salta de estado. */
@@ -64,14 +70,14 @@ export function JobFit({ job, profile }: JobFitProps) {
 
             {fit.unknownProfile ? (
               <p className="mt-1 text-xs leading-relaxed text-muted">
-                Cargá tus estudios y tu experiencia en Perfil y esto pasa a decirte, en cada oferta,
-                si llegás a lo que piden.
+                Cargá tus estudios y tu experiencia en Perfil y esto pasa a
+                decirte, en cada oferta, si llegás a lo que piden.
               </p>
             ) : null}
 
             <ul className="mt-3 space-y-2">
               {fit.checks.map((check, index) => {
-                const Icon = STATUS_ICON[check.status];
+                const Icon = STATUS_ICON[check.status]
                 return (
                   <m.li
                     key={check.id}
@@ -87,10 +93,12 @@ export function JobFit({ job, profile }: JobFitProps) {
                     </span>
                     <span className="text-[13px] leading-snug text-ink/80">
                       {check.asks}
-                      {check.yours ? <span className="text-muted"> · {check.yours}</span> : null}
+                      {check.yours ? (
+                        <span className="text-muted"> · {check.yours}</span>
+                      ) : null}
                     </span>
                   </m.li>
-                );
+                )
               })}
             </ul>
 
@@ -109,12 +117,14 @@ export function JobFit({ job, profile }: JobFitProps) {
               </div>
             ) : null}
 
-            {gap ? <p className="mt-3 text-xs leading-relaxed text-muted">{gap}</p> : null}
+            {gap ? (
+              <p className="mt-3 text-xs leading-relaxed text-muted">{gap}</p>
+            ) : null}
           </>
         ) : null}
 
         {tips.length > 0 ? (
-          <div className={hasFit(fit) ? "mt-4 border-t border-line pt-3" : ""}>
+          <div className={hasFit(fit) ? 'mt-4 border-t border-line pt-3' : ''}>
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
               <Lightbulb aria-hidden className="size-3.5 text-brand" />
               Antes de postularte
@@ -128,7 +138,10 @@ export function JobFit({ job, profile }: JobFitProps) {
                   initial={{ opacity: 0, y: 4 }}
                   transition={{ ...fadeUpTransition, delay: stagger(index) }}
                 >
-                  <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand" />
+                  <span
+                    aria-hidden
+                    className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand"
+                  />
                   {tip}
                 </m.li>
               ))}
@@ -137,5 +150,5 @@ export function JobFit({ job, profile }: JobFitProps) {
         ) : null}
       </section>
     </Aura>
-  );
+  )
 }

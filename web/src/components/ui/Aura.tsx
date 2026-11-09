@@ -1,19 +1,19 @@
-import type { ReactNode } from "react";
-import { ThinkingOrb, type OrbState } from "thinking-orbs";
-import { AURA_INTRO_MS, useSettlingBusy } from "../../hooks/useSettlingBusy.ts";
+import type { ReactNode } from 'react'
+import { ThinkingOrb, type OrbState } from 'thinking-orbs'
+import { AURA_INTRO_MS, useSettlingBusy } from '../../hooks/useSettlingBusy.ts'
 
 interface AuraProps {
   /** False leaves the block bare: it only wears the aura while what it holds
    * was written by the page. */
-  on?: boolean;
+  on?: boolean
   /** True while the answer is still being worked out: the aura speeds up. */
-  busy?: boolean;
+  busy?: boolean
   /** The rounding, and any tuning of `--aura-tone` or `--aura-base`, since only
    * the caller knows what the block sits on. */
-  className?: string;
+  className?: string
   /** False skips the opening busy beat, for a result that should arrive calm. */
-  intro?: boolean;
-  children: ReactNode;
+  intro?: boolean
+  children: ReactNode
 }
 
 /**
@@ -30,15 +30,15 @@ export function Aura({
   on = true,
   busy = false,
   intro = true,
-  className = "",
+  className = '',
   children,
 }: AuraProps) {
-  const shownBusy = useSettlingBusy(busy, intro ? AURA_INTRO_MS : 0);
+  const shownBusy = useSettlingBusy(busy, intro ? AURA_INTRO_MS : 0)
 
-  if (!on) return <>{children}</>;
+  if (!on) return <>{children}</>
 
   return (
-    <div className={`aura ${shownBusy ? "aura-busy" : ""} ${className}`.trim()}>
+    <div className={`aura ${shownBusy ? 'aura-busy' : ''} ${className}`.trim()}>
       <div aria-hidden className="aura-glass">
         <div className="aura-glass-blur">
           <div className="aura-glass-light" />
@@ -46,7 +46,7 @@ export function Aura({
       </div>
       <div className="aura-body">{children}</div>
     </div>
-  );
+  )
 }
 
 /** The orb that goes with it: breathing when the answer is there, working
@@ -54,32 +54,32 @@ export function Aura({
  * something. */
 export function AuraSpark({
   busy = false,
-  tone = "surface",
+  tone = 'surface',
   state,
   intro = false,
-  className = "",
+  className = '',
 }: {
-  busy?: boolean;
+  busy?: boolean
   /** The island is navy in both schemes, so the orb has to paint light ink. */
-  tone?: "panel" | "surface";
+  tone?: 'panel' | 'surface'
   /** Pins a specific animation; otherwise busy works and idle breathes. */
-  state?: OrbState;
+  state?: OrbState
   /** True plays a working beat before breathing. Off by default: the
    * canvas remounts on a state change, so a fake intro reads as a jump. */
-  intro?: boolean;
-  className?: string;
+  intro?: boolean
+  className?: string
 }) {
-  const shownBusy = useSettlingBusy(busy, intro ? AURA_INTRO_MS : 0);
-  const orbState = state ?? (shownBusy ? "working" : "breathing");
+  const shownBusy = useSettlingBusy(busy, intro ? AURA_INTRO_MS : 0)
+  const orbState = state ?? (shownBusy ? 'working' : 'breathing')
 
   return (
     <ThinkingOrb
       aria-hidden
-      aria-label={shownBusy ? "Pensando" : "Generado por JobIt"}
-      className={`aura-spark ${tone === "panel" ? "aura-spark-panel" : ""} shrink-0 ${className}`.trim()}
+      aria-label={shownBusy ? 'Pensando' : 'Generado por JobIt'}
+      className={`aura-spark ${tone === 'panel' ? 'aura-spark-panel' : ''} shrink-0 ${className}`.trim()}
       size={20}
       state={orbState}
-      theme={tone === "panel" ? "dark" : "auto"}
+      theme={tone === 'panel' ? 'dark' : 'auto'}
     />
-  );
+  )
 }

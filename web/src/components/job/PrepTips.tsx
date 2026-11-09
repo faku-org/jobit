@@ -1,14 +1,20 @@
-import { BookOpen, ExternalLink, HelpCircle } from "lucide-react";
-import { m } from "motion/react";
-import type { ContentItem } from "@jobit/worker/content/types";
-import { externalRel } from "../../lib/content.ts";
-import { fadeUpTransition, stagger } from "../../lib/motion.ts";
+import { BookOpen, ExternalLink, HelpCircle } from 'lucide-react'
+import { m } from 'motion/react'
+import type { ContentItem } from '@jobit/worker/content/types'
+import { externalRel } from '../../lib/content.ts'
+import { fadeUpTransition, stagger } from '../../lib/motion.ts'
 
 interface PrepTipsProps {
-  items: ContentItem[];
+  items: ContentItem[]
 }
 
-function Heading({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+function Heading({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
       <span aria-hidden className="text-brand">
@@ -16,7 +22,7 @@ function Heading({ icon, children }: { icon: React.ReactNode; children: React.Re
       </span>
       {children}
     </p>
-  );
+  )
 }
 
 /**
@@ -25,16 +31,20 @@ function Heading({ icon, children }: { icon: React.ReactNode; children: React.Re
  * rubro, así que un rubro sin nada no dibuja nada.
  */
 export function PrepTips({ items }: PrepTipsProps) {
-  if (items.length === 0) return null;
+  if (items.length === 0) return null
 
-  const exercises = items.filter((item) => item.kind === "exercise");
-  const questions = items.filter((item) => item.kind === "faq" || item.kind === "topic");
+  const exercises = items.filter((item) => item.kind === 'exercise')
+  const questions = items.filter(
+    (item) => item.kind === 'faq' || item.kind === 'topic',
+  )
 
   return (
     <div className="space-y-5">
       {exercises.length > 0 ? (
         <div>
-          <Heading icon={<BookOpen className="size-4" />}>Para practicar</Heading>
+          <Heading icon={<BookOpen className="size-4" />}>
+            Para practicar
+          </Heading>
           <ul className="mt-2 space-y-2">
             {exercises.map((item, index) => (
               <m.li
@@ -46,7 +56,9 @@ export function PrepTips({ items }: PrepTipsProps) {
               >
                 <p className="text-sm font-medium text-ink">{item.title}</p>
                 {item.body ? (
-                  <p className="mt-1 text-sm leading-relaxed text-soft">{item.body}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-soft">
+                    {item.body}
+                  </p>
                 ) : null}
                 {item.url ? (
                   <a
@@ -67,7 +79,9 @@ export function PrepTips({ items }: PrepTipsProps) {
 
       {questions.length > 0 ? (
         <div>
-          <Heading icon={<HelpCircle className="size-4" />}>Preguntas frecuentes del área</Heading>
+          <Heading icon={<HelpCircle className="size-4" />}>
+            Preguntas frecuentes del área
+          </Heading>
           <div className="mt-2 space-y-1.5">
             {questions.map((item) => (
               <details
@@ -83,12 +97,14 @@ export function PrepTips({ items }: PrepTipsProps) {
                     +
                   </span>
                 </summary>
-                <p className="mt-2 text-sm leading-relaxed text-soft">{item.body}</p>
+                <p className="mt-2 text-sm leading-relaxed text-soft">
+                  {item.body}
+                </p>
               </details>
             ))}
           </div>
         </div>
       ) : null}
     </div>
-  );
+  )
 }

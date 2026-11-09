@@ -6,15 +6,15 @@ documentos HTML sueltos (`api/src/pages.ts`, rutas en `api/src/site.ts`) y nginx
 los pone delante de la app (`deploy/nginx.conf`, y `web/vite.config.ts` en
 desarrollo).
 
-| Ruta | Para quién | JSON-LD |
-|---|---|---|
-| `/empleo/<id>` | Quien busca: ficha de una oferta | `JobPosting`, solo en ofertas propias sin enlace externo |
-| `/rubro/<slug>`, `/departamento/<d>`, `/puesto/<slug>` | Quien busca: listados | — |
-| `/mercado` | Quien busca | — |
-| `/entrevista/<rubro>` | Quien busca: guía de entrevista | `FAQPage` |
-| `/servicios/<slug>` | Quien busca un servicio | `Service`, `ProfilePage` |
-| `/publicar` | **Quien quiere publicar**: qué hace el panel de empresa | `WebPage` |
-| `/sitemap.xml` | Buscadores | — |
+| Ruta                                                   | Para quién                                              | JSON-LD                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
+| `/empleo/<id>`                                         | Quien busca: ficha de una oferta                        | `JobPosting`, solo en ofertas propias sin enlace externo |
+| `/rubro/<slug>`, `/departamento/<d>`, `/puesto/<slug>` | Quien busca: listados                                   | —                                                        |
+| `/mercado`                                             | Quien busca                                             | —                                                        |
+| `/entrevista/<rubro>`                                  | Quien busca: guía de entrevista                         | `FAQPage`                                                |
+| `/servicios/<slug>`                                    | Quien busca un servicio                                 | `Service`, `ProfilePage`                                 |
+| `/publicar`                                            | **Quien quiere publicar**: qué hace el panel de empresa | `WebPage`                                                |
+| `/sitemap.xml`                                         | Buscadores                                              | —                                                        |
 
 ## Dos públicos
 

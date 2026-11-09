@@ -10,4 +10,4 @@
  * `layoutId`, que es una animación de layout compartida y vive solo en el
  * paquete grande.
  */
-export { domMax as default } from "motion/react";
+export { domMax as default } from 'motion/react'

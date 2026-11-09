@@ -1,19 +1,19 @@
-import { GraduationCap, X } from "lucide-react";
-import { m } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
-import { islandTransition } from "../../lib/motion.ts";
-import { iconButtonClass } from "../../lib/styles.ts";
-import { ALL_PREP_KINDS, usePrep } from "../../hooks/usePrep.ts";
-import { PrepTips } from "./PrepTips.tsx";
+import { GraduationCap, X } from 'lucide-react'
+import { m } from 'motion/react'
+import { useCallback, useEffect, useState } from 'react'
+import { islandTransition } from '../../lib/motion.ts'
+import { iconButtonClass } from '../../lib/styles.ts'
+import { ALL_PREP_KINDS, usePrep } from '../../hooks/usePrep.ts'
+import { PrepTips } from './PrepTips.tsx'
 
 interface PracticeDialogProps {
   /** La oferta que se acaba de seguir, para el subtítulo. */
-  title: string;
-  category: string;
-  label: string;
-  practiceAlways: boolean;
-  onPracticeAlwaysChange: (value: boolean) => void;
-  onClose: () => void;
+  title: string
+  category: string
+  label: string
+  practiceAlways: boolean
+  onPracticeAlwaysChange: (value: boolean) => void
+  onClose: () => void
 }
 
 /**
@@ -30,24 +30,24 @@ export function PracticeDialog({
   onPracticeAlwaysChange,
   onClose,
 }: PracticeDialogProps) {
-  const prep = usePrep(category, true, ALL_PREP_KINDS);
-  const [closing, setClosing] = useState(false);
-  const close = useCallback(() => setClosing(true), []);
+  const prep = usePrep(category, true, ALL_PREP_KINDS)
+  const [closing, setClosing] = useState(false)
+  const close = useCallback(() => setClosing(true), [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
+      if (event.key === 'Escape') close()
+    }
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKeyDown)
 
     return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [close]);
+      document.body.style.overflow = previous
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [close])
 
   return (
     <div className="fixed inset-0 z-70 flex items-end justify-center sm:items-center sm:p-6">
@@ -60,7 +60,11 @@ export function PracticeDialog({
       />
 
       <m.div
-        animate={closing ? { opacity: 0, y: 24, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
+        animate={
+          closing
+            ? { opacity: 0, y: 24, scale: 0.98 }
+            : { opacity: 1, y: 0, scale: 1 }
+        }
         aria-labelledby="practice-dialog-title"
         aria-modal
         className="relative flex max-h-[92svh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border border-sky/50 bg-surface shadow-[var(--shadow-panel)] sm:max-h-[85svh] sm:rounded-3xl"
@@ -68,7 +72,7 @@ export function PracticeDialog({
         role="dialog"
         transition={islandTransition}
         onAnimationComplete={() => {
-          if (closing) onClose();
+          if (closing) onClose()
         }}
       >
         <header className="flex items-start gap-3 border-b border-sky/40 px-5 py-4">
@@ -86,7 +90,7 @@ export function PracticeDialog({
               Ya la seguís. ¿Practicamos?
             </h2>
             <p className="mt-0.5 truncate text-xs text-muted">
-              {label ? `${label} · ` : ""}
+              {label ? `${label} · ` : ''}
               {title}
             </p>
           </div>
@@ -102,14 +106,16 @@ export function PracticeDialog({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
-          {prep.status === "loading" ? (
-            <p className="text-sm text-muted">Buscando ejercicios y preguntas de tu rubro…</p>
+          {prep.status === 'loading' ? (
+            <p className="text-sm text-muted">
+              Buscando ejercicios y preguntas de tu rubro…
+            </p>
           ) : prep.items.length > 0 ? (
             <PrepTips items={prep.items} />
           ) : (
             <p className="text-sm leading-relaxed text-muted">
-              Todavía no tenemos preguntas ni ejercicios para este rubro. Cuando los tengamos, van a
-              aparecer acá y en la ficha de la oferta.
+              Todavía no tenemos preguntas ni ejercicios para este rubro. Cuando
+              los tengamos, van a aparecer acá y en la ficha de la oferta.
             </p>
           )}
         </div>
@@ -123,12 +129,13 @@ export function PracticeDialog({
               onChange={(event) => onPracticeAlwaysChange(event.target.checked)}
             />
             <span className="text-xs leading-relaxed text-soft">
-              Mostrar ejercicios siempre al postular. También podés practicar cuando quieras desde{" "}
+              Mostrar ejercicios siempre al postular. También podés practicar
+              cuando quieras desde{' '}
               <strong className="font-medium text-ink">Seguimiento</strong>.
             </span>
           </label>
         </div>
       </m.div>
     </div>
-  );
+  )
 }

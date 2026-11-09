@@ -1,11 +1,11 @@
-import { Elysia, t } from "elysia";
-import * as queue from "./queue.ts";
-import { REPORT_REASONS } from "./queue.ts";
-import * as reviews from "./reviews.ts";
-import { MAX_RATING, MIN_RATING } from "./reviews.ts";
-import * as services from "./services.ts";
-import { type CookieJar, sessionToken } from "./session.ts";
-import * as users from "./users.ts";
+import { Elysia, t } from 'elysia'
+import * as queue from './queue.ts'
+import { REPORT_REASONS } from './queue.ts'
+import * as reviews from './reviews.ts'
+import { MAX_RATING, MIN_RATING } from './reviews.ts'
+import * as services from './services.ts'
+import { type CookieJar, sessionToken } from './session.ts'
+import * as users from './users.ts'
 
 /**
  * La calificación: leerla no pide nada, escribirla pide cuenta. Las dos cosas
@@ -18,19 +18,19 @@ import * as users from "./users.ts";
 const reviewBody = t.Object({
   rating: t.Number({ minimum: MIN_RATING, maximum: MAX_RATING }),
   comment: t.Optional(t.String({ maxLength: 2000 })),
-});
+})
 
 const reasonBody = t.Object({
   reason: t.Union(REPORT_REASONS.map((value) => t.Literal(value))),
-});
+})
 
 /** El que no existe y el de otra persona contestan lo mismo. */
-const notFound = "esa calificación no existe";
+const notFound = 'esa calificación no existe'
 
 const published = (slug: string): services.Service | null => {
-  const service = services.bySlug(slug);
-  return service && service.status === "published" ? service : null;
-};
+  const service = services.bySlug(slug)
+  return service && service.status === 'published' ? service : null
+}
 
 export const ratings = new Elysia()
   /**
@@ -38,12 +38,12 @@ export const ratings = new Elysia()
    * le deja a quien ya calificó ver su propia nota aunque la moderación la
    * haya bajado, sin tener que pedir otra ruta.
    */
-  .get("/api/services/:slug/reviews", ({ cookie, params, status }) => {
-    const service = published(params.slug);
-    if (!service) return status(404, { error: "ese servicio no existe" });
+  .get('/api/services/:slug/reviews', ({ cookie, params, status }) => {
+    const service = published(params.slug)
+    if (!service) return status(404, { error: 'ese servicio no existe' })
 
-    const me = users.sessionUser(sessionToken(cookie as CookieJar));
-    const mine = me ? reviews.mineFor(service.id, me.id) : null;
+    const me = users.sessionUser(sessionToken(cookie as CookieJar))
+    const mine = me ? reviews.mineFor(service.id, me.id) : null
 
     return {
       reviews: reviews.listFor(service.id).map(reviews.publicView),
@@ -53,14 +53,14 @@ export const ratings = new Elysia()
        * escriba algo y se coma un 422. */
       can_review: me ? me.id !== service.user_id : null,
       is_owner: me ? me.id === service.user_id : false,
-    };
+    }
   })
   /** Denunciar una calificación no pide cuenta, como denunciar un servicio. */
   .post(
-    "/api/reviews/:id/report",
+    '/api/reviews/:id/report',
     ({ body, params, status }) =>
       queue.reportReview(params.id, body.reason)
-        ? { status: "ok" }
+        ? { status: 'ok' }
         : status(404, { error: notFound }),
     { body: reasonBody },
   )
@@ -68,7 +68,7 @@ export const ratings = new Elysia()
   .guard({
     beforeHandle({ cookie, status }) {
       if (!users.sessionUser(sessionToken(cookie as CookieJar))) {
-        return status(401, { error: "no hay sesión" });
+        return status(401, { error: 'no hay sesión' })
       }
     },
   })
@@ -77,43 +77,45 @@ export const ratings = new Elysia()
     me: users.sessionUser(sessionToken(cookie as CookieJar)) as users.User,
   }))
   .post(
-    "/api/services/:slug/reviews",
+    '/api/services/:slug/reviews',
     ({ body, me, params, status }) => {
-      const service = published(params.slug);
-      if (!service) return status(404, { error: "ese servicio no existe" });
+      const service = published(params.slug)
+      if (!service) return status(404, { error: 'ese servicio no existe' })
 
-      const created = reviews.create(service.id, me.id, body);
+      const created = reviews.create(service.id, me.id, body)
       return created.ok
         ? status(201, reviews.publicView(created.value))
-        : status(422, { error: created.error });
+        : status(422, { error: created.error })
     },
     { body: reviewBody },
   )
   .patch(
-    "/api/reviews/:id",
+    '/api/reviews/:id',
     ({ body, me, params, status }) => {
-      const updated = reviews.update(params.id, me.id, body);
-      if (updated.ok) return reviews.publicView(updated.value);
+      const updated = reviews.update(params.id, me.id, body)
+      if (updated.ok) return reviews.publicView(updated.value)
 
       return updated.error === notFound
         ? status(404, { error: updated.error })
-        : status(422, { error: updated.error });
+        : status(422, { error: updated.error })
     },
     { body: reviewBody },
   )
-  .delete("/api/reviews/:id", ({ me, params, status }) =>
-    reviews.remove(params.id, me.id) ? { status: "ok" } : status(404, { error: notFound }),
+  .delete('/api/reviews/:id', ({ me, params, status }) =>
+    reviews.remove(params.id, me.id)
+      ? { status: 'ok' }
+      : status(404, { error: notFound }),
   )
   /** La respuesta de quien publica, una sola. */
   .post(
-    "/api/reviews/:id/reply",
+    '/api/reviews/:id/reply',
     ({ body, me, params, status }) => {
-      const answered = reviews.reply(params.id, me.id, body.text);
-      if (answered.ok) return reviews.publicView(answered.value);
+      const answered = reviews.reply(params.id, me.id, body.text)
+      if (answered.ok) return reviews.publicView(answered.value)
 
       return answered.error === notFound
         ? status(404, { error: answered.error })
-        : status(422, { error: answered.error });
+        : status(422, { error: answered.error })
     },
     { body: t.Object({ text: t.String({ maxLength: 2000 }) }) },
-  );
+  )

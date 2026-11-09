@@ -1,16 +1,16 @@
-import { ArrowDown, ArrowUp, X } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import { fadeUpTransition } from "../../lib/motion.ts";
-import { reorder } from "../../lib/types.ts";
+import { ArrowDown, ArrowUp, X } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
+import { fadeUpTransition } from '../../lib/motion.ts'
+import { reorder } from '../../lib/types.ts'
 
 interface PriorityListProps {
-  title: string;
+  title: string
   /** Values in order of preference, first is the one wanted most. */
-  values: string[];
+  values: string[]
   /** The value's human name; a value with no label is skipped. */
-  labelOf: (value: string) => string | undefined;
-  empty: string;
-  onChange: (values: string[]) => void;
+  labelOf: (value: string) => string | undefined
+  empty: string
+  onChange: (values: string[]) => void
 }
 
 /**
@@ -19,8 +19,14 @@ interface PriorityListProps {
  * reads, so it has to be visible and movable rather than implied by the
  * order things happened to be clicked in.
  */
-export function PriorityList({ title, values, labelOf, empty, onChange }: PriorityListProps) {
-  const move = (from: number, to: number) => onChange(reorder(values, from, to));
+export function PriorityList({
+  title,
+  values,
+  labelOf,
+  empty,
+  onChange,
+}: PriorityListProps) {
+  const move = (from: number, to: number) => onChange(reorder(values, from, to))
 
   return (
     <div>
@@ -29,12 +35,14 @@ export function PriorityList({ title, values, labelOf, empty, onChange }: Priori
       </p>
 
       {values.length === 0 ? (
-        <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">{empty}</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
+          {empty}
+        </p>
       ) : null}
       <ol className="mt-2 space-y-1">
         <AnimatePresence initial={false} mode="popLayout">
           {values.map((value, position) => {
-            const label = labelOf(value) ?? value;
+            const label = labelOf(value) ?? value
             return (
               <m.li
                 key={value}
@@ -48,7 +56,9 @@ export function PriorityList({ title, values, labelOf, empty, onChange }: Priori
                 <span className="w-4 shrink-0 text-[11px] font-semibold text-sky tabular-nums">
                   {position + 1}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-onpanel">{label}</span>
+                <span className="min-w-0 flex-1 truncate text-xs text-onpanel">
+                  {label}
+                </span>
 
                 <button
                   aria-label={`Subir ${label}`}
@@ -72,15 +82,17 @@ export function PriorityList({ title, values, labelOf, empty, onChange }: Priori
                   aria-label={`Quitar ${label}`}
                   className="shrink-0 rounded-md p-1 text-onpanel-muted transition-colors hover:bg-onpanel/15 hover:text-onpanel"
                   type="button"
-                  onClick={() => onChange(values.filter((item) => item !== value))}
+                  onClick={() =>
+                    onChange(values.filter((item) => item !== value))
+                  }
                 >
                   <X aria-hidden className="size-3.5" />
                 </button>
               </m.li>
-            );
+            )
           })}
         </AnimatePresence>
       </ol>
     </div>
-  );
+  )
 }

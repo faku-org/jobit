@@ -1,5 +1,5 @@
-import { EDUCATION_RANK, type Profile } from "./profile.ts";
-import type { JobType, Level, Mix, Preferences, WorkMode } from "./types.ts";
+import { EDUCATION_RANK, type Profile } from './profile.ts'
+import type { JobType, Level, Mix, Preferences, WorkMode } from './types.ts'
 
 /**
  * The soft half of a query: what should come first, as opposed to what should
@@ -8,17 +8,17 @@ import type { JobType, Level, Mix, Preferences, WorkMode } from "./types.ts";
  * board instead of over the page that happens to be loaded.
  */
 export interface Ranking {
-  categories: string[];
-  departments: string[];
-  modes: WorkMode[];
-  levels: Level[];
-  jobTypes: JobType[];
-  salaryTarget: number | null;
-  noExperience: boolean;
+  categories: string[]
+  departments: string[]
+  modes: WorkMode[]
+  levels: Level[]
+  jobTypes: JobType[]
+  salaryTarget: number | null
+  noExperience: boolean
   /** Education held, on the same 0-6 scale as EDUCATION_RANK. */
-  education: number | null;
-  experienceYears: number | null;
-  mix: Mix;
+  education: number | null
+  experienceYears: number | null
+  mix: Mix
 }
 
 /**
@@ -37,10 +37,11 @@ export function toRanking(preferences: Preferences, profile: Profile): Ranking {
     /** The floor of the range is what the person is aiming at. */
     salaryTarget: preferences.salary.min,
     noExperience: profile.experienceYears === 0,
-    education: profile.education === "" ? null : EDUCATION_RANK[profile.education],
+    education:
+      profile.education === '' ? null : EDUCATION_RANK[profile.education],
     experienceYears: profile.experienceYears,
     mix: preferences.mix,
-  };
+  }
 }
 
 export const isEmptyRanking = (ranking: Ranking): boolean =>
@@ -52,17 +53,18 @@ export const isEmptyRanking = (ranking: Ranking): boolean =>
   ranking.salaryTarget === null &&
   !ranking.noExperience &&
   ranking.education === null &&
-  ranking.experienceYears === null;
+  ranking.experienceYears === null
 
 /** What the person has told the app, in plain words, for the sort control. */
 export function rankingSummary(ranking: Ranking): string[] {
-  const parts: string[] = [];
-  if (ranking.categories.length > 0) parts.push("rubros elegidos");
-  if (ranking.departments.length > 0) parts.push("zona");
-  if (ranking.modes.length > 0) parts.push("modalidad");
-  if (ranking.levels.length > 0 || ranking.experienceYears !== null) parts.push("experiencia");
-  if (ranking.jobTypes.length > 0) parts.push("jornada");
-  if (ranking.salaryTarget !== null) parts.push("sueldo");
-  if (ranking.education !== null) parts.push("estudios");
-  return parts;
+  const parts: string[] = []
+  if (ranking.categories.length > 0) parts.push('rubros elegidos')
+  if (ranking.departments.length > 0) parts.push('zona')
+  if (ranking.modes.length > 0) parts.push('modalidad')
+  if (ranking.levels.length > 0 || ranking.experienceYears !== null)
+    parts.push('experiencia')
+  if (ranking.jobTypes.length > 0) parts.push('jornada')
+  if (ranking.salaryTarget !== null) parts.push('sueldo')
+  if (ranking.education !== null) parts.push('estudios')
+  return parts
 }

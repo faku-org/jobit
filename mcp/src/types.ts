@@ -8,52 +8,52 @@
  */
 
 export interface Salary {
-  min: number | null;
-  max: number | null;
-  currency: string;
+  min: number | null
+  max: number | null
+  currency: string
 }
 
 export interface Job {
-  id: string;
-  source: string;
-  source_id: string;
-  title: string;
-  company: string | null;
-  department: string | null;
-  city: string | null;
-  category: string;
-  category_label: string;
-  date_posted: string;
-  level: "entry" | "mid" | "senior" | null;
-  remote: "remote" | "hybrid" | null;
-  job_type: "full_time" | "part_time" | "internship" | null;
-  salary: Salary | null;
-  experience_years_min: number | null;
-  no_experience: boolean;
-  closes_at: string | null;
-  description: string;
-  requirements: string | null;
-  apply_url: string;
+  id: string
+  source: string
+  source_id: string
+  title: string
+  company: string | null
+  department: string | null
+  city: string | null
+  category: string
+  category_label: string
+  date_posted: string
+  level: 'entry' | 'mid' | 'senior' | null
+  remote: 'remote' | 'hybrid' | null
+  job_type: 'full_time' | 'part_time' | 'internship' | null
+  salary: Salary | null
+  experience_years_min: number | null
+  no_experience: boolean
+  closes_at: string | null
+  description: string
+  requirements: string | null
+  apply_url: string
 }
 
 export interface JobsResponse {
-  total: number;
-  offset: number;
-  limit: number;
-  jobs: Job[];
+  total: number
+  offset: number
+  limit: number
+  jobs: Job[]
 }
 
 export interface Facet {
-  value: string;
-  label: string;
-  count: number;
+  value: string
+  label: string
+  count: number
 }
 
 export interface Meta {
-  count: number;
-  scraped_at: string;
-  sources: string[];
-  categories: Facet[];
-  departments: Facet[];
-  no_experience_count: number;
+  count: number
+  scraped_at: string
+  sources: string[]
+  categories: Facet[]
+  departments: Facet[]
+  no_experience_count: number
 }

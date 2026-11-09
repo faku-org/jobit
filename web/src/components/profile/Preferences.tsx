@@ -6,11 +6,28 @@ import {
   RotateCcw,
   Shuffle,
   Target,
-} from "lucide-react";
-import type { CustomFeed, FeedResult } from "../../lib/feed.ts";
-import { SOURCE_LABEL, formatScrapedAt, pluralOffers } from "../../lib/format.ts";
-import { advancedSummary, searchSummary, sourcesSummary, workSummary } from "../../lib/sections.ts";
-import type { Facet, JobType, Level, Meta, Mix, Preferences, WorkMode } from "../../lib/types.ts";
+} from 'lucide-react'
+import type { CustomFeed, FeedResult } from '../../lib/feed.ts'
+import {
+  SOURCE_LABEL,
+  formatScrapedAt,
+  pluralOffers,
+} from '../../lib/format.ts'
+import {
+  advancedSummary,
+  searchSummary,
+  sourcesSummary,
+  workSummary,
+} from '../../lib/sections.ts'
+import type {
+  Facet,
+  JobType,
+  Level,
+  Meta,
+  Mix,
+  Preferences,
+  WorkMode,
+} from '../../lib/types.ts'
 import {
   EMPTY_PREFERENCES,
   categoryStances,
@@ -20,82 +37,95 @@ import {
   toggleValue,
   withCategoryStances,
   withDepartmentStances,
-} from "../../lib/types.ts";
-import type { SectionId } from "../../hooks/useSections.ts";
-import { useSections } from "../../hooks/useSections.ts";
-import { CustomSources } from "./CustomSources.tsx";
-import { PanelChip as Chip, PanelGroup as Group, StanceChips } from "./PanelControls.tsx";
-import { PanelSection } from "./PanelSection.tsx";
-import { PriorityList } from "./PriorityList.tsx";
-import { SalaryRange } from "./SalaryRange.tsx";
+} from '../../lib/types.ts'
+import type { SectionId } from '../../hooks/useSections.ts'
+import { useSections } from '../../hooks/useSections.ts'
+import { CustomSources } from './CustomSources.tsx'
+import {
+  PanelChip as Chip,
+  PanelGroup as Group,
+  StanceChips,
+} from './PanelControls.tsx'
+import { PanelSection } from './PanelSection.tsx'
+import { PriorityList } from './PriorityList.tsx'
+import { SalaryRange } from './SalaryRange.tsx'
 
 interface PreferencesPanelProps {
-  meta: Meta | null;
-  categories: Facet[];
-  departments: Facet[];
-  preferences: Preferences;
+  meta: Meta | null
+  categories: Facet[]
+  departments: Facet[]
+  preferences: Preferences
   /** Chosen job boards; empty means every source the API offers. */
-  sources: string[];
+  sources: string[]
   /** Extra feeds this browser reads on its own. */
-  feeds: CustomFeed[];
-  feedResults: FeedResult[];
-  feedsLoading: boolean;
-  onChange: (preferences: Preferences) => void;
-  onChangeSources: (sources: string[]) => void;
-  onChangeFeeds: (feeds: CustomFeed[]) => void;
+  feeds: CustomFeed[]
+  feedResults: FeedResult[]
+  feedsLoading: boolean
+  onChange: (preferences: Preferences) => void
+  onChangeSources: (sources: string[]) => void
+  onChangeFeeds: (feeds: CustomFeed[]) => void
 }
 
 const MODE_OPTIONS: { value: WorkMode; label: string }[] = [
-  { value: "onsite", label: "Presencial" },
-  { value: "remote", label: "Remoto" },
-  { value: "hybrid", label: "Híbrido" },
-];
+  { value: 'onsite', label: 'Presencial' },
+  { value: 'remote', label: 'Remoto' },
+  { value: 'hybrid', label: 'Híbrido' },
+]
 
 const LEVEL_OPTIONS: { value: Level; label: string }[] = [
-  { value: "entry", label: "Junior" },
-  { value: "mid", label: "Semi senior" },
-  { value: "senior", label: "Senior" },
-];
+  { value: 'entry', label: 'Junior' },
+  { value: 'mid', label: 'Semi senior' },
+  { value: 'senior', label: 'Senior' },
+]
 
 const JOB_TYPE_OPTIONS: { value: JobType; label: string }[] = [
-  { value: "full_time", label: "Jornada completa" },
-  { value: "part_time", label: "Medio horario" },
-  { value: "internship", label: "Pasantía" },
-];
+  { value: 'full_time', label: 'Jornada completa' },
+  { value: 'part_time', label: 'Medio horario' },
+  { value: 'internship', label: 'Pasantía' },
+]
 
-const MIX_OPTIONS: { value: Mix; label: string; hint: string; icon: typeof Shuffle }[] = [
+const MIX_OPTIONS: {
+  value: Mix
+  label: string
+  hint: string
+  icon: typeof Shuffle
+}[] = [
   {
-    value: "broad",
-    label: "Más variedad",
-    hint: "Marca todas las que coinciden y sube ofertas nuevas de otros rubros.",
+    value: 'broad',
+    label: 'Más variedad',
+    hint: 'Marca todas las que coinciden y sube ofertas nuevas de otros rubros.',
     icon: Shuffle,
   },
   {
-    value: "balanced",
-    label: "Equilibrio",
-    hint: "“Para vos” queda para las que mejor te calzan, no para todas las del rubro.",
+    value: 'balanced',
+    label: 'Equilibrio',
+    hint: '“Para vos” queda para las que mejor te calzan, no para todas las del rubro.',
     icon: Layers,
   },
   {
-    value: "focused",
-    label: "Más precisas",
-    hint: "Pocas marcadas y bien arriba. El resto no desaparece, solo deja de llevar el sello.",
+    value: 'focused',
+    label: 'Más precisas',
+    hint: 'Pocas marcadas y bien arriba. El resto no desaparece, solo deja de llevar el sello.',
     icon: Focus,
   },
-];
+]
 
 /**
  * Sources are stored as an explicit list, with the empty list meaning "all", so
  * a new job board starts included. Turning the last one off goes back to all.
  */
-function toggleSource(current: string[], all: string[], value: string): string[] {
-  const selected = current.length === 0 ? all : current;
-  const next = toggleValue(selected, value);
-  return next.length === 0 || next.length === all.length ? [] : next;
+function toggleSource(
+  current: string[],
+  all: string[],
+  value: string,
+): string[] {
+  const selected = current.length === 0 ? all : current
+  const next = toggleValue(selected, value)
+  return next.length === 0 || next.length === all.length ? [] : next
 }
 
 const labelFrom = (facets: Facet[]) => (value: string) =>
-  facets.find((facet) => facet.value === value)?.label;
+  facets.find((facet) => facet.value === value)?.label
 
 /**
  * Lives inside the island: what the person is looking for and where the offers
@@ -115,12 +145,15 @@ export function PreferencesPanel({
   onChangeSources,
   onChangeFeeds,
 }: PreferencesPanelProps) {
-  const [open, toggleSection] = useSections();
-  const count = preferenceCount(preferences);
-  const hidden = hiddenCount(preferences);
-  const allSources = meta?.sources ?? [];
+  const [open, toggleSection] = useSections()
+  const count = preferenceCount(preferences)
+  const hidden = hiddenCount(preferences)
+  const allSources = meta?.sources ?? []
 
-  const section = (id: SectionId) => ({ open: open[id], onToggle: () => toggleSection(id) });
+  const section = (id: SectionId) => ({
+    open: open[id],
+    onToggle: () => toggleSection(id),
+  })
 
   return (
     <div className="space-y-4 px-4 pt-1 pb-4">
@@ -145,8 +178,9 @@ export function PreferencesPanel({
           </Chip>
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
-          Con la primera opción el orden lo deciden tus rubros, tu zona, tu sueldo y lo que cargaste
-          en el perfil. Nada se descarta por no coincidir, solo baja de lugar.
+          Con la primera opción el orden lo deciden tus rubros, tu zona, tu
+          sueldo y lo que cargaste en el perfil. Nada se descarta por no
+          coincidir, solo baja de lugar.
         </p>
 
         <p className="mt-4 text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
@@ -154,7 +188,7 @@ export function PreferencesPanel({
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {MIX_OPTIONS.map((option) => {
-            const Icon = option.icon;
+            const Icon = option.icon
             return (
               <Chip
                 key={option.value}
@@ -164,7 +198,7 @@ export function PreferencesPanel({
                 <Icon aria-hidden className="size-3.5" />
                 {option.label}
               </Chip>
-            );
+            )
           })}
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
@@ -175,14 +209,16 @@ export function PreferencesPanel({
       <PanelSection
         summary={searchSummary(preferences, categories, departments)}
         title="Qué buscás"
-        {...section("search")}
+        {...section('search')}
       >
         <StanceChips
           facets={categories}
           hint="Una vez para priorizarlo, otra para ocultarlo, otra para dejarlo neutro."
           lists={categoryStances(preferences)}
           title="Rubros"
-          onChange={(lists) => onChange(withCategoryStances(preferences, lists))}
+          onChange={(lists) =>
+            onChange(withCategoryStances(preferences, lists))
+          }
         />
 
         {preferences.categories.length > 1 ? (
@@ -191,7 +227,9 @@ export function PreferencesPanel({
             labelOf={labelFrom(categories)}
             title="Tu orden de rubros"
             values={preferences.categories}
-            onChange={(values) => onChange({ ...preferences, categories: values })}
+            onChange={(values) =>
+              onChange({ ...preferences, categories: values })
+            }
           />
         ) : null}
 
@@ -200,7 +238,9 @@ export function PreferencesPanel({
           hint="Priorizá dónde querés trabajar y sacá de la lista los departamentos que no te sirven."
           lists={departmentStances(preferences)}
           title="Zona"
-          onChange={(lists) => onChange(withDepartmentStances(preferences, lists))}
+          onChange={(lists) =>
+            onChange(withDepartmentStances(preferences, lists))
+          }
         />
 
         {preferences.departments.length > 1 ? (
@@ -209,7 +249,9 @@ export function PreferencesPanel({
             labelOf={labelFrom(departments)}
             title="Tu orden de zonas"
             values={preferences.departments}
-            onChange={(values) => onChange({ ...preferences, departments: values })}
+            onChange={(values) =>
+              onChange({ ...preferences, departments: values })
+            }
           />
         ) : null}
       </PanelSection>
@@ -217,7 +259,7 @@ export function PreferencesPanel({
       <PanelSection
         summary={workSummary(preferences)}
         title="Cómo querés trabajar"
-        {...section("work")}
+        {...section('work')}
       >
         <SalaryRange
           value={preferences.salary}
@@ -230,7 +272,10 @@ export function PreferencesPanel({
               key={option.value}
               active={preferences.modes.includes(option.value)}
               onClick={() =>
-                onChange({ ...preferences, modes: toggleValue(preferences.modes, option.value) })
+                onChange({
+                  ...preferences,
+                  modes: toggleValue(preferences.modes, option.value),
+                })
               }
             >
               {option.label}
@@ -261,7 +306,10 @@ export function PreferencesPanel({
               key={option.value}
               active={preferences.levels.includes(option.value)}
               onClick={() =>
-                onChange({ ...preferences, levels: toggleValue(preferences.levels, option.value) })
+                onChange({
+                  ...preferences,
+                  levels: toggleValue(preferences.levels, option.value),
+                })
               }
             >
               {option.label}
@@ -273,7 +321,7 @@ export function PreferencesPanel({
       <PanelSection
         summary={sourcesSummary(sources, allSources)}
         title="Fuentes"
-        {...section("sources")}
+        {...section('sources')}
       >
         {allSources.length > 0 ? (
           <Group title="De dónde salen las ofertas">
@@ -281,7 +329,9 @@ export function PreferencesPanel({
               <Chip
                 key={source}
                 active={sources.length === 0 || sources.includes(source)}
-                onClick={() => onChangeSources(toggleSource(sources, allSources, source))}
+                onClick={() =>
+                  onChangeSources(toggleSource(sources, allSources, source))
+                }
               >
                 {SOURCE_LABEL[source] ?? source}
               </Chip>
@@ -296,7 +346,11 @@ export function PreferencesPanel({
 
       {/* Lo de acá abajo pide poder publicar un feed: es de otra liga que el
           resto del panel y por eso vive en su propia sección. */}
-      <PanelSection summary={advancedSummary(feeds)} title="Avanzado" {...section("advanced")}>
+      <PanelSection
+        summary={advancedSummary(feeds)}
+        title="Avanzado"
+        {...section('advanced')}
+      >
         <CustomSources
           feeds={feeds}
           loading={feedsLoading}
@@ -310,10 +364,11 @@ export function PreferencesPanel({
           {meta ? (
             <span className="inline-flex items-center gap-1.5">
               <RefreshCw aria-hidden className="size-3" />
-              {pluralOffers(meta.count)} · actualizado {formatScrapedAt(meta.scraped_at)}
+              {pluralOffers(meta.count)} · actualizado{' '}
+              {formatScrapedAt(meta.scraped_at)}
             </span>
           ) : (
-            "Las ofertas que coinciden quedan destacadas en la lista."
+            'Las ofertas que coinciden quedan destacadas en la lista.'
           )}
         </p>
         {count > 0 || hidden > 0 ? (
@@ -328,5 +383,5 @@ export function PreferencesPanel({
         ) : null}
       </div>
     </div>
-  );
+  )
 }

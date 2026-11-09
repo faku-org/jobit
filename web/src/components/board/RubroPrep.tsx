@@ -1,10 +1,10 @@
-import { ChevronDown, GraduationCap } from "lucide-react";
-import { INTERVIEW_KINDS, usePrep } from "../../hooks/usePrep.ts";
-import { PrepTips } from "../job/PrepTips.tsx";
+import { ChevronDown, GraduationCap } from 'lucide-react'
+import { INTERVIEW_KINDS, usePrep } from '../../hooks/usePrep.ts'
+import { PrepTips } from '../job/PrepTips.tsx'
 
 interface RubroPrepProps {
-  category: string;
-  label: string;
+  category: string
+  label: string
 }
 
 /**
@@ -14,14 +14,16 @@ interface RubroPrepProps {
  * buscador, acá dentro de la app.
  */
 export function RubroPrep({ category, label }: RubroPrepProps) {
-  const prep = usePrep(category, category !== "", INTERVIEW_KINDS);
-  if (prep.items.length === 0) return null;
+  const prep = usePrep(category, category !== '', INTERVIEW_KINDS)
+  if (prep.items.length === 0) return null
 
   return (
     <details className="group rounded-2xl border border-sky/50 bg-surface">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
         <GraduationCap aria-hidden className="size-4 shrink-0 text-brand" />
-        <span className="text-sm font-medium text-ink">Prepará tu entrevista de {label}</span>
+        <span className="text-sm font-medium text-ink">
+          Prepará tu entrevista de {label}
+        </span>
         <ChevronDown
           aria-hidden
           className="ml-auto size-4 shrink-0 text-muted transition-transform group-open:rotate-180"
@@ -37,5 +39,5 @@ export function RubroPrep({ category, label }: RubroPrepProps) {
         </a>
       </div>
     </details>
-  );
+  )
 }

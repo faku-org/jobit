@@ -1,11 +1,11 @@
-import { useEffect } from "react";
-import { prefetchJobs } from "../lib/jobsCache.ts";
-import { prefetchMarket } from "./useMarket.ts";
+import { useEffect } from 'react'
+import { prefetchJobs } from '../lib/jobsCache.ts'
+import { prefetchMarket } from './useMarket.ts'
 
 /** Las claves son query strings, así que el separador no puede aparecer en
  * ninguna: viajan juntas para que el efecto dependa de un dato y no de un
  * arreglo nuevo en cada render. */
-const SEPARATOR = "|";
+const SEPARATOR = '|'
 
 /**
  * Cuando el navegador queda libre. `requestIdleCallback` no está en todos
@@ -13,13 +13,13 @@ const SEPARATOR = "|";
  * no pelearle el ancho de banda a la primera pantalla.
  */
 export function onIdle(run: () => void): () => void {
-  if (typeof requestIdleCallback === "function") {
-    const id = requestIdleCallback(run, { timeout: 2500 });
-    return () => cancelIdleCallback(id);
+  if (typeof requestIdleCallback === 'function') {
+    const id = requestIdleCallback(run, { timeout: 2500 })
+    return () => cancelIdleCallback(id)
   }
 
-  const id = window.setTimeout(run, 800);
-  return () => window.clearTimeout(id);
+  const id = window.setTimeout(run, 800)
+  return () => window.clearTimeout(id)
 }
 
 /**
@@ -29,14 +29,14 @@ export function onIdle(run: () => void): () => void {
  * tocar Estado y esperar, y tocar Estado y verlo.
  */
 export function usePrefetchViews(keys: string[], ready: boolean): void {
-  const joined = keys.join(SEPARATOR);
+  const joined = keys.join(SEPARATOR)
 
   useEffect(() => {
-    if (!ready || joined === "") return;
+    if (!ready || joined === '') return
 
     return onIdle(() => {
-      for (const key of joined.split(SEPARATOR)) prefetchJobs(key);
-      prefetchMarket();
-    });
-  }, [joined, ready]);
+      for (const key of joined.split(SEPARATOR)) prefetchJobs(key)
+      prefetchMarket()
+    })
+  }, [joined, ready])
 }

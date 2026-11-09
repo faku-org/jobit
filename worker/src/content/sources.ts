@@ -1,4 +1,4 @@
-import type { ContentSource } from "./types.ts";
+import type { ContentSource } from './types.ts'
 
 /**
  * Las fuentes base del contenido.
@@ -13,38 +13,41 @@ import type { ContentSource } from "./types.ts";
  */
 export const CONTENT_SOURCES: ContentSource[] = [
   {
-    id: "mdn",
-    label: "MDN Web Docs",
-    base: "https://developer.mozilla.org",
-    kind: "resource",
-    adapter: "rss",
-    categories: ["tecnologia"],
-    license: "CC BY-SA 2.5",
-    config: { feed: "https://developer.mozilla.org/en-US/blog/rss.xml", tag: "documentacion" },
-  },
-  {
-    id: "w3schools",
-    label: "W3Schools",
-    base: "https://www.w3schools.com",
-    kind: "resource",
-    adapter: "links",
-    categories: ["tecnologia", "datos-analisis"],
-    license: "© W3Schools",
+    id: 'mdn',
+    label: 'MDN Web Docs',
+    base: 'https://developer.mozilla.org',
+    kind: 'resource',
+    adapter: 'rss',
+    categories: ['tecnologia'],
+    license: 'CC BY-SA 2.5',
     config: {
-      page: "https://www.w3schools.com/sitemap.xml",
-      pattern: "/(js|sql|python|html|css)/",
-      tag: "documentacion",
-      limit: "30",
+      feed: 'https://developer.mozilla.org/en-US/blog/rss.xml',
+      tag: 'documentacion',
     },
   },
   {
-    id: "freecodecamp",
-    label: "freeCodeCamp",
-    base: "https://www.freecodecamp.org",
-    kind: "exercise",
-    adapter: "rss",
-    categories: ["tecnologia"],
-    license: "CC BY-SA 4.0",
-    config: { feed: "https://www.freecodecamp.org/news/rss/", tag: "practica" },
+    id: 'w3schools',
+    label: 'W3Schools',
+    base: 'https://www.w3schools.com',
+    kind: 'resource',
+    adapter: 'links',
+    categories: ['tecnologia', 'datos-analisis'],
+    license: '© W3Schools',
+    config: {
+      page: 'https://www.w3schools.com/sitemap.xml',
+      pattern: '/(js|sql|python|html|css)/',
+      tag: 'documentacion',
+      limit: '30',
+    },
   },
-];
+  {
+    id: 'freecodecamp',
+    label: 'freeCodeCamp',
+    base: 'https://www.freecodecamp.org',
+    kind: 'exercise',
+    adapter: 'rss',
+    categories: ['tecnologia'],
+    license: 'CC BY-SA 4.0',
+    config: { feed: 'https://www.freecodecamp.org/news/rss/', tag: 'practica' },
+  },
+]

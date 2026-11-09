@@ -1,11 +1,11 @@
-import { m } from "motion/react";
-import type { ReactNode } from "react";
-import { fadeUpTransition } from "../../lib/motion.ts";
+import { m } from 'motion/react'
+import type { ReactNode } from 'react'
+import { fadeUpTransition } from '../../lib/motion.ts'
 
 interface FadeUpProps {
-  children: ReactNode;
+  children: ReactNode
   /** Seconds to wait before the element starts moving. */
-  delay?: number;
+  delay?: number
 }
 
 /** The one entrance animation used across the app: 12px up plus a fade. */
@@ -18,5 +18,5 @@ export function FadeUp({ children, delay = 0 }: FadeUpProps) {
     >
       {children}
     </m.div>
-  );
+  )
 }

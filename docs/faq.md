@@ -20,6 +20,7 @@ identificador y con el día y nunca la hora. El detalle está en `/privacidad`.
 [Bun](https://bun.sh). Nada más.
 
 **¿Cómo arranco todo?**
+
 ```bash
 bun install
 bun run scrape   # o poné un worker/output/jobs.json
@@ -84,6 +85,7 @@ Figura como parte de la empresa. No entra al panel ni publica por estar ahí.
 directorio donde corre cada cosa).
 
 **¿Cómo corro los tests?**
+
 ```bash
 bun run --cwd api test
 cd web && bun test

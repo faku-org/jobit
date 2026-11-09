@@ -14,7 +14,7 @@ Si una persona tiene integracion con su calendario y tiene pendiente una reunion
 
 Por la informacion existente no se sabe si expone una API, pero se podria contactar al developer hola@ahivoy.uy para mas informacion y la cohesion de las aplicaciones.
 
-### Rentabilidad 
+### Rentabilidad
 
 Desconozco si habria alguna remuneracion necesaria para hacer el sistema funcionar en conjunto, calls a la supuesta API de ahi voy o que costos tendria de integracion.
 
@@ -29,4 +29,3 @@ Por determinar, se desconoce API o uso de datos.
 ### Rentabilidad
 
 Se podria proveer datos de productos mas buscados por empresas/emprendedores.
-

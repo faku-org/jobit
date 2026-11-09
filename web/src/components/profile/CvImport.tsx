@@ -1,32 +1,37 @@
-import { Check, Plus, ShieldCheck, Upload, X } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import { type ChangeEvent, useEffect, useRef, useState } from "react";
-import type { OrbState } from "thinking-orbs";
-import { holdBusy } from "../../hooks/useSettlingBusy.ts";
-import { COURSES, DEGREES } from "../../lib/catalog.ts";
-import { type CvReading, EMPTY_READING, isEmptyReading, readCv } from "../../lib/cv.ts";
-import { fadeUpTransition, stagger } from "../../lib/motion.ts";
-import { EDUCATION_LABEL, type Profile } from "../../lib/profile.ts";
-import type { Facet, Preferences } from "../../lib/types.ts";
-import { Aura, AuraSpark } from "../ui/Aura.tsx";
+import { Check, Plus, ShieldCheck, Upload, X } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
+import { type ChangeEvent, useEffect, useRef, useState } from 'react'
+import type { OrbState } from 'thinking-orbs'
+import { holdBusy } from '../../hooks/useSettlingBusy.ts'
+import { COURSES, DEGREES } from '../../lib/catalog.ts'
+import {
+  type CvReading,
+  EMPTY_READING,
+  isEmptyReading,
+  readCv,
+} from '../../lib/cv.ts'
+import { fadeUpTransition, stagger } from '../../lib/motion.ts'
+import { EDUCATION_LABEL, type Profile } from '../../lib/profile.ts'
+import type { Facet, Preferences } from '../../lib/types.ts'
+import { Aura, AuraSpark } from '../ui/Aura.tsx'
 
 /** Las auras de acá viven sobre el panel y no sobre una tarjeta. */
-const ON_PANEL = "[--aura-base:var(--color-panel)] [--aura-tone:40%]";
+const ON_PANEL = '[--aura-base:var(--color-panel)] [--aura-tone:40%]'
 
 interface CvImportProps {
-  profile: Profile;
-  preferences: Preferences;
-  categories: Facet[];
-  onApply: (profile: Profile, preferences: Preferences) => void;
-  title?: string;
-  onEmpty?: () => void;
+  profile: Profile
+  preferences: Preferences
+  categories: Facet[]
+  onApply: (profile: Profile, preferences: Preferences) => void
+  title?: string
+  onEmpty?: () => void
 }
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
-const ACCEPT = ".pdf,.txt,.md,.markdown,text/plain,application/pdf";
+const MAX_FILE_BYTES = 8 * 1024 * 1024
+const ACCEPT = '.pdf,.txt,.md,.markdown,text/plain,application/pdf'
 
 const isPdf = (file: File): boolean =>
-  file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
 
 /**
  * El lector de PDF se trae recién cuando hace falta, y se trae desde acá: un
@@ -34,38 +39,40 @@ const isPdf = (file: File): boolean =>
  * sabe leer, y le hacía perder la memoización de todo `CvImport`.
  */
 const readFileText = async (file: File): Promise<string> =>
-  isPdf(file) ? (await import("../../lib/pdf.ts")).extractPdfText(file) : file.text();
+  isPdf(file)
+    ? (await import('../../lib/pdf.ts')).extractPdfText(file)
+    : file.text()
 
-type Stage = "idle" | "uploading" | "analyzing" | "answered" | "review";
+type Stage = 'idle' | 'uploading' | 'analyzing' | 'answered' | 'review'
 
 const BEAT: Record<
-  Exclude<Stage, "idle" | "review">,
+  Exclude<Stage, 'idle' | 'review'>,
   { label: string; orb: OrbState; ms: number }
 > = {
-  uploading: { label: "Subiendo archivo…", orb: "working", ms: 900 },
-  analyzing: { label: "Analizando CV…", orb: "working", ms: 1800 },
-  answered: { label: "CV analizado", orb: "working", ms: 1100 },
-};
+  uploading: { label: 'Subiendo archivo…', orb: 'working', ms: 900 },
+  analyzing: { label: 'Analizando CV…', orb: 'working', ms: 1800 },
+  answered: { label: 'CV analizado', orb: 'working', ms: 1100 },
+}
 
 const labelOf = (id: string): string =>
-  [...DEGREES, ...COURSES].find((entry) => entry.id === id)?.label ?? id;
+  [...DEGREES, ...COURSES].find((entry) => entry.id === id)?.label ?? id
 
 function Pick({
   label,
   checked,
   onToggle,
 }: {
-  label: string;
-  checked: boolean;
-  onToggle: () => void;
+  label: string
+  checked: boolean
+  onToggle: () => void
 }) {
   return (
     <button
       aria-pressed={checked}
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
         checked
-          ? "bg-brand/85 text-ink"
-          : "bg-onpanel-wash text-onpanel-muted hover:bg-onpanel-wash"
+          ? 'bg-brand/85 text-ink'
+          : 'bg-onpanel-wash text-onpanel-muted hover:bg-onpanel-wash'
       }`}
       type="button"
       onClick={onToggle}
@@ -73,10 +80,16 @@ function Pick({
       {checked ? <Check aria-hidden className="size-3" /> : null}
       {label}
     </button>
-  );
+  )
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+function Group({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
   return (
     <div>
       <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
@@ -84,11 +97,11 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
       </p>
       <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
     </div>
-  );
+  )
 }
 
-function ProgressBeat({ stage }: { stage: Exclude<Stage, "idle" | "review"> }) {
-  const beat = BEAT[stage];
+function ProgressBeat({ stage }: { stage: Exclude<Stage, 'idle' | 'review'> }) {
+  const beat = BEAT[stage]
 
   return (
     <Aura busy className={`rounded-xl ${ON_PANEL}`} intro={false}>
@@ -108,7 +121,7 @@ function ProgressBeat({ stage }: { stage: Exclude<Stage, "idle" | "review"> }) {
         </AnimatePresence>
       </div>
     </Aura>
-  );
+  )
 }
 
 /**
@@ -122,106 +135,113 @@ export function CvImport({
   categories,
   onApply,
   onEmpty,
-  title = "Importar tu CV",
+  title = 'Importar tu CV',
 }: CvImportProps) {
-  const [stage, setStage] = useState<Stage>("idle");
-  const [reading, setReading] = useState<CvReading>(EMPTY_READING);
-  const [dropped, setDropped] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
-  const input = useRef<HTMLInputElement>(null);
-  const reviewRef = useRef<HTMLDivElement>(null);
-  const readTicket = useRef(0);
+  const [stage, setStage] = useState<Stage>('idle')
+  const [reading, setReading] = useState<CvReading>(EMPTY_READING)
+  const [dropped, setDropped] = useState<Set<string>>(new Set())
+  const [error, setError] = useState<string | null>(null)
+  const input = useRef<HTMLInputElement>(null)
+  const reviewRef = useRef<HTMLDivElement>(null)
+  const readTicket = useRef(0)
 
   useEffect(
     () => () => {
-      readTicket.current += 1;
+      readTicket.current += 1
     },
     [],
-  );
+  )
 
   useEffect(() => {
-    if (stage !== "review") return;
-    reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [stage]);
+    if (stage !== 'review') return
+    reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [stage])
 
-  const kept = (key: string) => !dropped.has(key);
+  const kept = (key: string) => !dropped.has(key)
   const toggle = (key: string) =>
     setDropped((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
 
   const finish = (found: CvReading) => {
     if (isEmptyReading(found) && onEmpty) {
-      setStage("idle");
-      setError(null);
-      onEmpty();
-      return;
+      setStage('idle')
+      setError(null)
+      onEmpty()
+      return
     }
 
-    setReading(found);
-    setDropped(new Set());
-    setStage("review");
+    setReading(found)
+    setDropped(new Set())
+    setStage('review')
     if (isEmptyReading(found)) {
       setError(
         found.characters < 40
-          ? "Casi no se pudo leer texto. Si el PDF es una foto escaneada, exportalo de nuevo como PDF de texto."
-          : "Se leyó el archivo pero no reconocí títulos ni cursos de la lista. Podés cargarlos a mano.",
-      );
+          ? 'Casi no se pudo leer texto. Si el PDF es una foto escaneada, exportalo de nuevo como PDF de texto.'
+          : 'Se leyó el archivo pero no reconocí títulos ni cursos de la lista. Podés cargarlos a mano.',
+      )
     } else {
-      setError(null);
+      setError(null)
     }
-  };
+  }
 
   const runReading = async (source: () => Promise<string>) => {
-    const ticket = ++readTicket.current;
-    setError(null);
-    const live = (next: Stage) => ticket === readTicket.current && setStage(next);
+    const ticket = ++readTicket.current
+    setError(null)
+    const live = (next: Stage) =>
+      ticket === readTicket.current && setStage(next)
 
     try {
-      live("uploading");
-      const uploadStarted = performance.now();
-      const text = await source();
-      await holdBusy(uploadStarted, BEAT.uploading.ms);
-      if (ticket !== readTicket.current) return;
+      live('uploading')
+      const uploadStarted = performance.now()
+      const text = await source()
+      await holdBusy(uploadStarted, BEAT.uploading.ms)
+      if (ticket !== readTicket.current) return
 
-      live("analyzing");
-      const analyzeStarted = performance.now();
-      const found = readCv(text);
-      await holdBusy(analyzeStarted, BEAT.analyzing.ms);
-      if (ticket !== readTicket.current) return;
+      live('analyzing')
+      const analyzeStarted = performance.now()
+      const found = readCv(text)
+      await holdBusy(analyzeStarted, BEAT.analyzing.ms)
+      if (ticket !== readTicket.current) return
 
-      live("answered");
-      await holdBusy(performance.now(), BEAT.answered.ms);
-      if (ticket !== readTicket.current) return;
-      finish(found);
+      live('answered')
+      await holdBusy(performance.now(), BEAT.answered.ms)
+      if (ticket !== readTicket.current) return
+      finish(found)
     } catch {
-      if (ticket !== readTicket.current) return;
-      setStage("idle");
-      setError("No se pudo abrir el archivo. Probá con un PDF de texto o un .txt.");
+      if (ticket !== readTicket.current) return
+      setStage('idle')
+      setError(
+        'No se pudo abrir el archivo. Probá con un PDF de texto o un .txt.',
+      )
     }
-  };
+  }
 
   const onFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
 
     if (file.size > MAX_FILE_BYTES) {
-      setError("El archivo pesa más de 8 MB. Probá con el CV solo, sin adjuntos.");
-      return;
+      setError(
+        'El archivo pesa más de 8 MB. Probá con el CV solo, sin adjuntos.',
+      )
+      return
     }
 
-    void runReading(() => readFileText(file));
-  };
+    void runReading(() => readFileText(file))
+  }
 
   const apply = () => {
-    const degrees = reading.degrees.filter((id) => kept(`degree:${id}`));
-    const courses = reading.courses.filter((id) => kept(`course:${id}`));
-    const wanted = reading.categories.filter((slug) => kept(`category:${slug}`));
-    const places = reading.places.filter((place) => kept(`place:${place.department}`));
+    const degrees = reading.degrees.filter((id) => kept(`degree:${id}`))
+    const courses = reading.courses.filter((id) => kept(`course:${id}`))
+    const wanted = reading.categories.filter((slug) => kept(`category:${slug}`))
+    const places = reading.places.filter((place) =>
+      kept(`place:${place.department}`),
+    )
 
     onApply(
       {
@@ -229,9 +249,11 @@ export function CvImport({
         degrees: [...new Set([...profile.degrees, ...degrees])],
         courses: [...new Set([...profile.courses, ...courses])],
         education:
-          reading.education !== "" && kept("education") ? reading.education : profile.education,
+          reading.education !== '' && kept('education')
+            ? reading.education
+            : profile.education,
         experienceYears:
-          reading.experienceYears !== null && kept("experience")
+          reading.experienceYears !== null && kept('experience')
             ? reading.experienceYears
             : profile.experienceYears,
       },
@@ -241,27 +263,30 @@ export function CvImport({
           (slug) => !preferences.hiddenCategories.includes(slug),
         ),
         departments: [
-          ...new Set([...preferences.departments, ...places.map((p) => p.department)]),
+          ...new Set([
+            ...preferences.departments,
+            ...places.map((p) => p.department),
+          ]),
         ].filter((name) => !preferences.hiddenDepartments.includes(name)),
       },
-    );
+    )
 
-    setStage("idle");
-    setReading(EMPTY_READING);
-  };
+    setStage('idle')
+    setReading(EMPTY_READING)
+  }
 
   const found =
     reading.degrees.length +
     reading.courses.length +
     reading.categories.length +
     reading.places.length +
-    (reading.education === "" ? 0 : 1) +
-    (reading.experienceYears === null ? 0 : 1);
+    (reading.education === '' ? 0 : 1) +
+    (reading.experienceYears === null ? 0 : 1)
 
-  const groups: { key: string; node: React.ReactNode }[] = [];
+  const groups: { key: string; node: React.ReactNode }[] = []
   if (reading.places.length > 0) {
     groups.push({
-      key: "places",
+      key: 'places',
       node: (
         <Group title="Ubicación">
           {reading.places.map((place) => (
@@ -274,25 +299,25 @@ export function CvImport({
           ))}
         </Group>
       ),
-    });
+    })
   }
-  if (reading.education !== "") {
+  if (reading.education !== '') {
     groups.push({
-      key: "education",
+      key: 'education',
       node: (
         <Group title="Nivel educativo">
           <Pick
-            checked={kept("education")}
+            checked={kept('education')}
             label={EDUCATION_LABEL[reading.education]}
-            onToggle={() => toggle("education")}
+            onToggle={() => toggle('education')}
           />
         </Group>
       ),
-    });
+    })
   }
   if (reading.degrees.length > 0) {
     groups.push({
-      key: "degrees",
+      key: 'degrees',
       node: (
         <Group title="Títulos">
           {reading.degrees.map((id) => (
@@ -305,11 +330,11 @@ export function CvImport({
           ))}
         </Group>
       ),
-    });
+    })
   }
   if (reading.courses.length > 0) {
     groups.push({
-      key: "courses",
+      key: 'courses',
       node: (
         <Group title="Cursos y certificaciones">
           {reading.courses.map((id) => (
@@ -322,42 +347,44 @@ export function CvImport({
           ))}
         </Group>
       ),
-    });
+    })
   }
   if (reading.experienceYears !== null) {
     groups.push({
-      key: "experience",
+      key: 'experience',
       node: (
         <Group title="Años de experiencia">
           <Pick
-            checked={kept("experience")}
+            checked={kept('experience')}
             label={
               reading.experienceYears === 0
-                ? "Sin experiencia"
-                : `${reading.experienceYears} ${reading.experienceYears === 1 ? "año" : "años"}`
+                ? 'Sin experiencia'
+                : `${reading.experienceYears} ${reading.experienceYears === 1 ? 'año' : 'años'}`
             }
-            onToggle={() => toggle("experience")}
+            onToggle={() => toggle('experience')}
           />
         </Group>
       ),
-    });
+    })
   }
   if (reading.categories.length > 0) {
     groups.push({
-      key: "categories",
+      key: 'categories',
       node: (
         <Group title="Rubros que sugiere">
           {reading.categories.map((slug) => (
             <Pick
               key={slug}
               checked={kept(`category:${slug}`)}
-              label={categories.find((facet) => facet.value === slug)?.label ?? slug}
+              label={
+                categories.find((facet) => facet.value === slug)?.label ?? slug
+              }
               onToggle={() => toggle(`category:${slug}`)}
             />
           ))}
         </Group>
       ),
-    });
+    })
   }
 
   return (
@@ -367,15 +394,22 @@ export function CvImport({
           {title}
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-onpanel-muted">
-          Leo el archivo <strong>en este navegador</strong> y busco tus títulos, cursos y años de
-          experiencia. No se sube a ningún lado. También sirve tu perfil de LinkedIn: entrá a tu
-          perfil, “Más” → “Guardar como PDF”, y subí ese archivo.
+          Leo el archivo <strong>en este navegador</strong> y busco tus títulos,
+          cursos y años de experiencia. No se sube a ningún lado. También sirve
+          tu perfil de LinkedIn: entrá a tu perfil, “Más” → “Guardar como PDF”,
+          y subí ese archivo.
         </p>
       </div>
 
-      <input ref={input} accept={ACCEPT} className="hidden" type="file" onChange={onFile} />
+      <input
+        ref={input}
+        accept={ACCEPT}
+        className="hidden"
+        type="file"
+        onChange={onFile}
+      />
 
-      {stage === "idle" ? (
+      {stage === 'idle' ? (
         <button
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-onpanel-wash px-3 py-2.5 text-xs font-medium text-onpanel/85 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
           type="button"
@@ -386,7 +420,9 @@ export function CvImport({
         </button>
       ) : null}
 
-      {stage === "uploading" || stage === "analyzing" || stage === "answered" ? (
+      {stage === 'uploading' ||
+      stage === 'analyzing' ||
+      stage === 'answered' ? (
         <ProgressBeat stage={stage} />
       ) : null}
 
@@ -397,7 +433,7 @@ export function CvImport({
       ) : null}
 
       <AnimatePresence initial={false}>
-        {stage === "review" ? (
+        {stage === 'review' ? (
           <m.div
             ref={reviewRef}
             animate={{ opacity: 1, y: 0 }}
@@ -410,15 +446,17 @@ export function CvImport({
                 <div className="flex items-center gap-2">
                   <AuraSpark intro={false} state="breathing" tone="panel" />
                   <p className="min-w-0 flex-1 text-xs font-semibold text-onpanel">
-                    {found === 0 ? "No encontré nada de la lista" : `Encontré ${found} cosas`}
+                    {found === 0
+                      ? 'No encontré nada de la lista'
+                      : `Encontré ${found} cosas`}
                   </p>
                   <button
                     aria-label="Descartar la lectura"
                     className="shrink-0 rounded-md p-1 text-onpanel-muted transition-colors hover:bg-onpanel/15 hover:text-onpanel"
                     type="button"
                     onClick={() => {
-                      setStage("idle");
-                      setError(null);
+                      setStage('idle')
+                      setError(null)
                     }}
                   >
                     <X aria-hidden className="size-3.5" />
@@ -427,7 +465,8 @@ export function CvImport({
 
                 {found > 0 ? (
                   <p className="text-[11px] leading-relaxed text-onpanel/80">
-                    Tocá para sacar lo que no corresponda. Se suma a tu perfil, no lo reemplaza.
+                    Tocá para sacar lo que no corresponda. Se suma a tu perfil,
+                    no lo reemplaza.
                   </p>
                 ) : null}
 
@@ -436,7 +475,10 @@ export function CvImport({
                     key={group.key}
                     animate={{ opacity: 1, y: 0 }}
                     initial={{ opacity: 0, y: 10 }}
-                    transition={{ ...fadeUpTransition, delay: stagger(index, 0.07, 0.4) }}
+                    transition={{
+                      ...fadeUpTransition,
+                      delay: stagger(index, 0.07, 0.4),
+                    }}
                   >
                     {group.node}
                   </m.div>
@@ -464,5 +506,5 @@ export function CvImport({
         ) : null}
       </AnimatePresence>
     </div>
-  );
+  )
 }

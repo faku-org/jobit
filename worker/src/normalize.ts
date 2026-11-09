@@ -1,32 +1,40 @@
-import { createHash } from "node:crypto";
-import { categoryLabel } from "./categories.ts";
-import type { Job, JobDetail, JobStub, Level } from "./types.ts";
+import { createHash } from 'node:crypto'
+import { categoryLabel } from './categories.ts'
+import type { Job, JobDetail, JobStub, Level } from './types.ts'
 
-const SENIOR_HINTS = /\b(senior|sr\.?|lead|jefe|gerente|encargad[oa]|responsable|arquitect[oa])\b/i;
-const MID_HINTS = /\b(semi\s?senior|ssr\.?|semi-?sr|analista|oficial)\b/i;
+const SENIOR_HINTS =
+  /\b(senior|sr\.?|lead|jefe|gerente|encargad[oa]|responsable|arquitect[oa])\b/i
+const MID_HINTS = /\b(semi\s?senior|ssr\.?|semi-?sr|analista|oficial)\b/i
 const ENTRY_HINTS =
-  /\b(junior|jr\.?|trainee|pasant[ei]a?|practicante|aprendiz|ayudante|auxiliar|primer empleo|sin experiencia)\b/i;
+  /\b(junior|jr\.?|trainee|pasant[ei]a?|practicante|aprendiz|ayudante|auxiliar|primer empleo|sin experiencia)\b/i
 
-function inferLevel(title: string, experienceYears: number | null): Level | null {
+function inferLevel(
+  title: string,
+  experienceYears: number | null,
+): Level | null {
   if (experienceYears !== null) {
-    if (experienceYears <= 1) return "entry";
-    if (experienceYears <= 4) return "mid";
-    return "senior";
+    if (experienceYears <= 1) return 'entry'
+    if (experienceYears <= 4) return 'mid'
+    return 'senior'
   }
-  if (ENTRY_HINTS.test(title)) return "entry";
-  if (SENIOR_HINTS.test(title)) return "senior";
-  if (MID_HINTS.test(title)) return "mid";
-  return null;
+  if (ENTRY_HINTS.test(title)) return 'entry'
+  if (SENIOR_HINTS.test(title)) return 'senior'
+  if (MID_HINTS.test(title)) return 'mid'
+  return null
 }
 
 /** Offers explicitly open to people with no prior experience. */
-function noExperience(stub: JobStub, detail: JobDetail | null, description: string): boolean {
-  if (stub.no_experience) return true;
-  if (detail?.no_experience) return true;
-  if (detail?.experience_years_min === 0) return true;
+function noExperience(
+  stub: JobStub,
+  detail: JobDetail | null,
+  description: string,
+): boolean {
+  if (stub.no_experience) return true
+  if (detail?.no_experience) return true
+  if (detail?.experience_years_min === 0) return true
   return /\b(sin experiencia|no requiere experiencia|primer empleo|se entrena|te capacitamos)\b/i.test(
     `${stub.title} ${description}`,
-  );
+  )
 }
 
 /**
@@ -35,22 +43,25 @@ function noExperience(stub: JobStub, detail: JobDetail | null, description: stri
  */
 export function plainText(value: string): string {
   return value
-    .replace(/\\([\\`*_{}[\]()#+\-.!])/g, "$1")
-    .replace(/_{2,3}(.+?)_{2,3}/g, "$1")
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/(^|\s)[*_](\S[^*_]*?)[*_](?=\s|$)/g, "$1$2")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+    .replace(/\\([\\`*_{}[\]()#+\-.!])/g, '$1')
+    .replace(/_{2,3}(.+?)_{2,3}/g, '$1')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/(^|\s)[*_](\S[^*_]*?)[*_](?=\s|$)/g, '$1$2')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 export function jobId(source: string, sourceId: string): string {
-  return createHash("sha256").update(`${source}:${sourceId}`).digest("hex").slice(0, 12);
+  return createHash('sha256')
+    .update(`${source}:${sourceId}`)
+    .digest('hex')
+    .slice(0, 12)
 }
 
 export function toJob(stub: JobStub, detail: JobDetail | null): Job {
-  const description = plainText(detail?.description ?? "");
-  const experience = detail?.experience_years_min ?? null;
+  const description = plainText(detail?.description ?? '')
+  const experience = detail?.experience_years_min ?? null
 
   return {
     id: jobId(stub.source, stub.source_id),
@@ -78,5 +89,5 @@ export function toJob(stub: JobStub, detail: JobDetail | null): Job {
     requirements: detail?.requirements ? plainText(detail.requirements) : null,
     apply_url: stub.apply_url,
     duplicates: [],
-  };
+  }
 }
