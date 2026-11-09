@@ -3,7 +3,7 @@ import { appendFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { t } from "elysia";
 import { ROLES } from "@jobit/worker/roles";
-import { bump } from "./metrics.ts";
+import { bump, bumpService } from "./metrics.ts";
 
 /**
  * Eventos de uso, al lado del resumen diario de stats.ts. La diferencia con
@@ -42,6 +42,26 @@ export const eventsSchema = t.Object({
         kind: t.Literal("offer_apply"),
         id: t.String({ maxLength: 100 }),
       }),
+      /* La sección de servicios. Ninguno lleva usuario ni sesión, aunque la
+         sesión exista: la regla es la de arriba, una fila es una acción y no
+         una persona. Ver y contactar solo suben el contador del servicio. */
+      t.Object({
+        kind: t.Literal("service_search"),
+        category: t.String({ maxLength: 60 }),
+        filters: t.Array(t.String({ maxLength: 20 }), { maxItems: 12 }),
+        results: t.Integer({ minimum: 0, maximum: 1_000_000 }),
+      }),
+      t.Object({
+        kind: t.Literal("service_view"),
+        id: t.String({ maxLength: 100 }),
+        category: t.String({ maxLength: 60 }),
+      }),
+      t.Object({
+        kind: t.Literal("service_contact"),
+        id: t.String({ maxLength: 100 }),
+        category: t.String({ maxLength: 60 }),
+        channel: t.String({ maxLength: 20 }),
+      }),
     ]),
     { maxItems: 20 },
   ),
@@ -70,6 +90,23 @@ const FILTERS = new Set([
   "source",
 ]);
 
+/** Los filtros que entiende /api/services, con el mismo criterio: cuáles se
+ * usan, nunca con qué valor. */
+const SERVICE_FILTERS = new Set([
+  "q",
+  "category",
+  "department",
+  "remote",
+  "price",
+  "currency",
+  "rating",
+  "sort",
+]);
+
+/** Por dónde se contactó. Lo que no figura acá entra como "otro". */
+export const CONTACT_CHANNELS = ["mensaje", "whatsapp", "email", "telefono", "otro"] as const;
+const CHANNELS = new Set<string>(CONTACT_CHANNELS);
+
 const known = (value: string, vocabulary: Set<string>, fallback: string): string =>
   vocabulary.has(value) ? value : fallback;
 
@@ -79,7 +116,23 @@ const JOB_ID = /^[a-z0-9:_-]{1,80}$/i;
 
 function normalise(event: UsageEvent): Record<string, unknown> | null {
   /** Los de métricas no van al archivo: se suman a los contadores y listo. */
-  if (event.kind === "offer_view" || event.kind === "offer_apply") return null;
+  if (
+    event.kind === "offer_view" ||
+    event.kind === "offer_apply" ||
+    event.kind === "service_view" ||
+    event.kind === "service_contact"
+  ) {
+    return null;
+  }
+
+  if (event.kind === "service_search") {
+    return {
+      kind: "service_search",
+      category: known(event.category, CATEGORY_SLUGS, ""),
+      filters: [...new Set(event.filters.filter((name) => SERVICE_FILTERS.has(name)))].sort(),
+      results: event.results,
+    };
+  }
 
   if (event.kind === "search") {
     return {
@@ -108,9 +161,11 @@ export const eventsFilePath = (): string =>
 /** Un objeto JSON por línea, con el día y nunca la hora: dos eventos del mismo
  * navegador quedan indistinguibles de dos de navegadores distintos. */
 export async function appendEvents(events: UsageEvent[]): Promise<number> {
-  /** Los de métricas se suman a `offer_daily` y no tocan el archivo. */
+  /** Los de métricas se suman a `offer_daily` y `service_daily`, y no tocan el
+   * archivo. */
   let bumped = 0;
   const usage: UsageEvent[] = [];
+  const contacts: Record<string, unknown>[] = [];
   for (const event of events) {
     if (event.kind === "offer_view" || event.kind === "offer_apply") {
       if (JOB_ID.test(event.id) && bump(event.id, event.kind === "offer_view" ? "view" : "apply")) {
@@ -118,10 +173,28 @@ export async function appendEvents(events: UsageEvent[]): Promise<number> {
       }
       continue;
     }
+    /** El rubro sale de la fila del servicio, no del navegador. El medio de
+     * contacto, además de sumar al contador, queda en el archivo sin el id del
+     * servicio: dice por dónde se contacta, no a quién ni a quién se contactó. */
+    if (event.kind === "service_view" || event.kind === "service_contact") {
+      if (!JOB_ID.test(event.id)) continue;
+      const category = bumpService(event.id, event.kind === "service_view" ? "view" : "contact");
+      if (category === null) continue;
+      /** El contacto ya se cuenta como fila, más abajo. */
+      if (event.kind === "service_view") bumped += 1;
+      else {
+        contacts.push({
+          kind: "service_contact",
+          category,
+          channel: known(event.channel, CHANNELS, "otro"),
+        });
+      }
+      continue;
+    }
     usage.push(event);
   }
 
-  const rows = usage.map(normalise).filter((row) => row !== null);
+  const rows = [...usage.map(normalise).filter((row) => row !== null), ...contacts];
   if (rows.length === 0) return bumped;
 
   const path = eventsFilePath();

@@ -3,6 +3,7 @@ import { CATEGORIES } from "@jobit/worker/categories";
 import { ROLES } from "@jobit/worker/roles";
 import { eventsFilePath } from "./events.ts";
 import { loadFeed } from "./feed.ts";
+import { type ServiceDailyRow, serviceUsageRows } from "./metrics.ts";
 import { statsFilePath } from "./stats.ts";
 import type { Job } from "./types.ts";
 
@@ -39,7 +40,9 @@ export type EventLine =
       filters: string[];
       results: number;
     }
-  | { day: string; kind: "apply"; job: string; source: string; category: string };
+  | { day: string; kind: "apply"; job: string; source: string; category: string }
+  | { day: string; kind: "service_search"; category: string; filters: string[]; results: number }
+  | { day: string; kind: "service_contact"; category: string; channel: string };
 
 export interface Count {
   value: string;
@@ -69,6 +72,31 @@ export interface DayPoint {
   applies: number;
 }
 
+export interface ServiceClicks {
+  id: string;
+  title: string;
+  views: number;
+  contacts: number;
+}
+
+/** El corte de servicios. Los contadores salen de `service_daily` y las
+ * búsquedas del archivo: ni uno ni otro tiene a nadie adentro. */
+export interface ServicesUsage {
+  published: number;
+  /** Cuántos servicios publicados tuvieron al menos una vista en la ventana. */
+  viewed: number;
+  contacted: number;
+  views: number;
+  contacts: number;
+  searches: number;
+  /** Rubros con más demanda: búsquedas, vistas y contactos juntos. */
+  demand: Labelled[];
+  /** Rubros que se buscaron y no tienen ni un servicio publicado. */
+  unmet: Labelled[];
+  channels: Count[];
+  top: ServiceClicks[];
+}
+
 export interface UsageReport {
   days: number;
   from: string;
@@ -93,6 +121,7 @@ export interface UsageReport {
   categories: Labelled[];
   jobs: JobClicks[];
   daily: DayPoint[];
+  services: ServicesUsage;
 }
 
 /** "otro" no es un puesto del catálogo: es lo que events.ts escribe cuando lo
@@ -171,6 +200,25 @@ export function parseEventLine(raw: unknown): EventLine | null {
     };
   }
 
+  if (row.kind === "service_search") {
+    return {
+      day,
+      kind: "service_search",
+      category: asString(row.category),
+      filters: asStrings(row.filters),
+      results: asNumber(row.results),
+    };
+  }
+
+  if (row.kind === "service_contact") {
+    return {
+      day,
+      kind: "service_contact",
+      category: asString(row.category),
+      channel: asString(row.channel),
+    };
+  }
+
   return null;
 }
 
@@ -213,7 +261,7 @@ export function buildUsageReport(
   stats: StatsLine[],
   events: EventLine[],
   jobs: Job[],
-  options: { days: number; today?: Date } = { days: 30 },
+  options: { days: number; today?: Date; services?: ServiceDailyRow[] } = { days: 30 },
 ): UsageReport {
   const days = Math.max(Math.floor(options.days), 1);
   const end = options.today ?? new Date();
@@ -239,7 +287,7 @@ export function buildUsageReport(
     const point = daily.get(event.day);
     if (!point) continue;
     if (event.kind === "search") point.searches += 1;
-    else point.applies += 1;
+    else if (event.kind === "apply") point.applies += 1;
   }
 
   const byId = new Map(jobs.map((job) => [job.id, job]));
@@ -287,6 +335,52 @@ export function buildUsageReport(
       };
     }),
     daily: [...daily.values()],
+    services: buildServicesUsage(used, options.services ?? []),
+  };
+}
+
+/**
+ * Los servicios publicados con sus contadores de la ventana, más las búsquedas
+ * y los contactos del archivo. Un rubro "sin servicio" es uno que se buscó y
+ * del que no hay ni uno publicado, que es lo que el tablero de ofertas ya
+ * hace con las búsquedas sin resultados.
+ */
+export function buildServicesUsage(events: EventLine[], rows: ServiceDailyRow[]): ServicesUsage {
+  const searches = events.filter((event) => event.kind === "service_search");
+  const contacts = events.filter((event) => event.kind === "service_contact");
+
+  const supply = new Set(rows.map((row) => row.category));
+  const searched = tally(searches.map((event) => event.category));
+
+  const demand = new Map(searched);
+  for (const row of rows) {
+    demand.set(row.category, (demand.get(row.category) ?? 0) + row.views + row.contacts);
+  }
+
+  const unmet = new Map([...searched].filter(([category]) => !supply.has(category)));
+
+  return {
+    published: rows.length,
+    viewed: rows.filter((row) => row.views > 0).length,
+    contacted: rows.filter((row) => row.contacts > 0).length,
+    views: rows.reduce((sum, row) => sum + row.views, 0),
+    contacts: rows.reduce((sum, row) => sum + row.contacts, 0),
+    searches: searches.length,
+    demand: labelled(demand, CATEGORY_LABEL),
+    unmet: labelled(unmet, CATEGORY_LABEL),
+    channels: ranked(tally(contacts.map((event) => event.channel))),
+    top: rows
+      .filter((row) => row.views + row.contacts > 0)
+      .sort(
+        (a, b) => b.contacts - a.contacts || b.views - a.views || a.title.localeCompare(b.title),
+      )
+      .slice(0, TOP)
+      .map((row) => ({
+        id: row.service_id,
+        title: row.title,
+        views: row.views,
+        contacts: row.contacts,
+      })),
   };
 }
 
@@ -341,6 +435,16 @@ export function clearUsageCache(): void {
   caches.clear();
 }
 
+function servicesRows(days: number, today: Date = new Date()): ServiceDailyRow[] {
+  const to = dayOf(today.getTime());
+  const from = dayOf(today.getTime() - (Math.max(Math.floor(days), 1) - 1) * DAY_MS);
+  try {
+    return serviceUsageRows(from, to);
+  } catch {
+    return [];
+  }
+}
+
 /** Lo que lee el panel: los dos archivos más el tablero, que es lo único que
  * le puede poner título a un id de oferta. */
 export async function loadUsage(days: number, today?: Date): Promise<UsageReport> {
@@ -356,6 +460,11 @@ export async function loadUsage(days: number, today?: Date): Promise<UsageReport
     /** Sin tablero el panel sigue: las ofertas salen con el id pelado y todo lo
      * demás se cuenta igual. */
     feed.ok ? feed.value.jobs : [],
-    { days, today },
+    {
+      days,
+      today,
+      /** Sin base todavía (despliegue nuevo) el corte sale vacío en vez de romper el panel. */
+      services: servicesRows(days, today),
+    },
   );
 }
