@@ -1,6 +1,6 @@
-import type { ContentItem, ContentKind } from "@jobit/worker/content/types";
-import { useEffect, useState } from "react";
-import { fetchContent } from "../lib/content.ts";
+import type { ContentItem, ContentKind } from '@jobit/worker/content/types'
+import { useEffect, useState } from 'react'
+import { fetchContent } from '../lib/content.ts'
 
 /**
  * El contenido de un rubro, pedido por tipo. Se pide una sola vez por
@@ -13,35 +13,39 @@ import { fetchContent } from "../lib/content.ts";
  * Los conjuntos de tipos son constantes porque son la clave de la caché: pasar
  * un array nuevo cada render la vaciaría sola.
  */
-export const PRACTICE_KINDS: ContentKind[] = ["faq", "exercise"];
-export const INTERVIEW_KINDS: ContentKind[] = ["faq", "topic"];
+export const PRACTICE_KINDS: ContentKind[] = ['faq', 'exercise']
+export const INTERVIEW_KINDS: ContentKind[] = ['faq', 'topic']
 /** Todo lo de preparación: preguntas, habilidades y ejercicios. */
-export const ALL_PREP_KINDS: ContentKind[] = ["faq", "topic", "exercise"];
+export const ALL_PREP_KINDS: ContentKind[] = ['faq', 'topic', 'exercise']
 /** Recursos del rubro: plataformas, documentación, cursos, videos y podcasts. */
-export const RESOURCE_KINDS: ContentKind[] = ["resource"];
+export const RESOURCE_KINDS: ContentKind[] = ['resource']
 
-const LIMIT = 12;
-const FRESH_MS = 30 * 60_000;
+const LIMIT = 12
+const FRESH_MS = 30 * 60_000
 
 interface Entry {
-  at: number;
-  items: ContentItem[];
+  at: number
+  items: ContentItem[]
 }
 
-const cache = new Map<string, Entry>();
+const cache = new Map<string, Entry>()
 
 export interface PrepState {
-  items: ContentItem[];
-  status: "idle" | "loading" | "ready" | "error";
+  items: ContentItem[]
+  status: 'idle' | 'loading' | 'ready' | 'error'
 }
 
 const keyOf = (category: string, kinds: ContentKind[], limit: number): string =>
-  `${kinds.join(",")}:${limit}:${category}`;
+  `${kinds.join(',')}:${limit}:${category}`
 
-function fresh(category: string, kinds: ContentKind[], limit: number): ContentItem[] | null {
-  const hit = cache.get(keyOf(category, kinds, limit));
-  if (hit && Date.now() - hit.at < FRESH_MS) return hit.items;
-  return null;
+function fresh(
+  category: string,
+  kinds: ContentKind[],
+  limit: number,
+): ContentItem[] | null {
+  const hit = cache.get(keyOf(category, kinds, limit))
+  if (hit && Date.now() - hit.at < FRESH_MS) return hit.items
+  return null
 }
 
 function initial(
@@ -50,9 +54,11 @@ function initial(
   kinds: ContentKind[],
   limit: number,
 ): PrepState {
-  if (!enabled || category === "") return { items: [], status: "idle" };
-  const hit = fresh(category, kinds, limit);
-  return hit ? { items: hit, status: "ready" } : { items: [], status: "loading" };
+  if (!enabled || category === '') return { items: [], status: 'idle' }
+  const hit = fresh(category, kinds, limit)
+  return hit
+    ? { items: hit, status: 'ready' }
+    : { items: [], status: 'loading' }
 }
 
 export function usePrep(
@@ -61,42 +67,52 @@ export function usePrep(
   kinds: ContentKind[] = PRACTICE_KINDS,
   limit: number = LIMIT,
 ): PrepState {
-  const kindsKey = kinds.join(",");
-  const [state, setState] = useState<PrepState>(() => initial(category, enabled, kinds, limit));
+  const kindsKey = kinds.join(',')
+  const [state, setState] = useState<PrepState>(() =>
+    initial(category, enabled, kinds, limit),
+  )
 
   useEffect(() => {
-    const selected = kindsKey.split(",") as ContentKind[];
+    const selected = kindsKey.split(',') as ContentKind[]
 
-    if (!enabled || category === "") {
-      setState({ items: [], status: "idle" });
-      return;
+    if (!enabled || category === '') {
+      setState({ items: [], status: 'idle' })
+      return
     }
 
-    const hit = fresh(category, selected, limit);
+    const hit = fresh(category, selected, limit)
     if (hit) {
-      setState({ items: hit, status: "ready" });
-      return;
+      setState({ items: hit, status: 'ready' })
+      return
     }
 
-    const controller = new AbortController();
-    setState((current) => (current.items.length > 0 ? current : { items: [], status: "loading" }));
+    const controller = new AbortController()
+    setState((current) =>
+      current.items.length > 0 ? current : { items: [], status: 'loading' },
+    )
 
     /** `scope: "rubro"`: las guías de un puesto viven bajo su rubro, pero no
      * son "del rubro" y no deben desplazar a las preguntas generales. */
-    fetchContent({ kinds: selected, category, scope: "rubro", limit }, controller.signal)
+    fetchContent(
+      { kinds: selected, category, scope: 'rubro', limit },
+      controller.signal,
+    )
       .then((page) => {
-        cache.set(keyOf(category, selected, limit), { at: Date.now(), items: page.items });
-        setState({ items: page.items, status: "ready" });
+        cache.set(keyOf(category, selected, limit), {
+          at: Date.now(),
+          items: page.items,
+        })
+        setState({ items: page.items, status: 'ready' })
       })
       .catch((cause: unknown) => {
-        if (cause instanceof DOMException && cause.name === "AbortError") return;
+        if (cause instanceof DOMException && cause.name === 'AbortError') return
         /** Un rubro sin contenido o una API caída no rompen la vista: no se
          * muestra nada, que es mejor que una caja vacía. */
-        setState({ items: [], status: "error" });
-      });
+        setState({ items: [], status: 'error' })
+      })
 
-    return () => controller.abort();
-  }, [category, enabled, kindsKey, limit]);
+    return () => controller.abort()
+  }, [category, enabled, kindsKey, limit])
 
-  return state;
+  return state
 }

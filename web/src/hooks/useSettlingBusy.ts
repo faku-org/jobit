@@ -1,28 +1,31 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react'
 
-const REDUCED = "(prefers-reduced-motion: reduce)";
+const REDUCED = '(prefers-reduced-motion: reduce)'
 
 /** Enough of the busy cycle to read as thinking. The aura's busy spin is 2.6s;
  * a finished answer should not land before one pass has been seen. */
-export const AURA_BUSY_MIN_MS = 2200;
+export const AURA_BUSY_MIN_MS = 2200
 
 /** First beat when a result appears already done: the orb works, then breathes. */
-export const AURA_INTRO_MS = 1200;
+export const AURA_INTRO_MS = 1200
 
 const prefersReduced = (): boolean =>
-  typeof window !== "undefined" && window.matchMedia(REDUCED).matches;
+  typeof window !== 'undefined' && window.matchMedia(REDUCED).matches
 
 export const remainingBusyMs = (started: number, minMs: number): number =>
-  prefersReduced() ? 0 : Math.max(0, minMs - (performance.now() - started));
+  prefersReduced() ? 0 : Math.max(0, minMs - (performance.now() - started))
 
 /** Holds the caller until `minMs` have passed since `started`. */
-export const holdBusy = (started: number, minMs = AURA_BUSY_MIN_MS): Promise<void> => {
-  const wait = remainingBusyMs(started, minMs);
-  if (wait === 0) return Promise.resolve();
+export const holdBusy = (
+  started: number,
+  minMs = AURA_BUSY_MIN_MS,
+): Promise<void> => {
+  const wait = remainingBusyMs(started, minMs)
+  if (wait === 0) return Promise.resolve()
   return new Promise((resolve) => {
-    window.setTimeout(resolve, wait);
-  });
-};
+    window.setTimeout(resolve, wait)
+  })
+}
 
 /**
  * Stays true while `busy` is true, and for a little after it drops, so a
@@ -30,34 +33,37 @@ export const holdBusy = (started: number, minMs = AURA_BUSY_MIN_MS): Promise<voi
  * On mount, with `intro`, it also plays that beat when the answer is already
  * there.
  */
-export function useSettlingBusy(busy: boolean, minMs: number = AURA_INTRO_MS): boolean {
-  const [held, setHeld] = useState(() => busy || minMs > 0);
+export function useSettlingBusy(
+  busy: boolean,
+  minMs: number = AURA_INTRO_MS,
+): boolean {
+  const [held, setHeld] = useState(() => busy || minMs > 0)
   /**
    * Cuándo arrancó la espera que se está aguantando. Lo llena el efecto y no el
    * render: `performance.now()` en el cuerpo es una llamada impura, que además
    * de rearmarse y tirarse en cada render le hace perder al compilador la
    * memoización de todo el componente que use este hook.
    */
-  const started = useRef<number | null>(null);
+  const started = useRef<number | null>(null)
 
   useEffect(() => {
-    if (started.current === null) started.current = performance.now();
+    if (started.current === null) started.current = performance.now()
 
     if (busy) {
-      started.current = performance.now();
-      setHeld(true);
-      return;
+      started.current = performance.now()
+      setHeld(true)
+      return
     }
 
-    const wait = remainingBusyMs(started.current, minMs);
+    const wait = remainingBusyMs(started.current, minMs)
     if (wait === 0) {
-      setHeld(false);
-      return;
+      setHeld(false)
+      return
     }
 
-    const id = window.setTimeout(() => setHeld(false), wait);
-    return () => window.clearTimeout(id);
-  }, [busy, minMs]);
+    const id = window.setTimeout(() => setHeld(false), wait)
+    return () => window.clearTimeout(id)
+  }, [busy, minMs])
 
-  return held;
+  return held
 }

@@ -1,4 +1,4 @@
-@import "./index.css";
+@import './index.css';
 
 /**
  * Las dos legales son una sección aparte del sitio, con su propia navegación:
@@ -80,7 +80,7 @@
     @apply flex-1 rounded-xl px-3 py-2 text-center text-xs font-medium text-muted no-underline transition-colors hover:text-ink;
   }
 
-  .legal-docs a[aria-current="page"] {
+  .legal-docs a[aria-current='page'] {
     @apply bg-panel text-onpanel hover:text-onpanel;
   }
 
@@ -140,7 +140,7 @@
     @apply flex items-baseline gap-2 rounded-lg px-3 py-2.5 text-xs leading-relaxed text-muted no-underline transition-colors hover:bg-wash hover:text-ink lg:py-1.5;
   }
 
-  .legal-toc a[aria-current="true"] {
+  .legal-toc a[aria-current='true'] {
     @apply bg-wash font-medium text-ink;
   }
 
@@ -148,7 +148,7 @@
     @apply text-[10px] text-faint tabular-nums;
   }
 
-  .legal-toc a[aria-current="true"] span {
+  .legal-toc a[aria-current='true'] span {
     @apply text-brand;
   }
 

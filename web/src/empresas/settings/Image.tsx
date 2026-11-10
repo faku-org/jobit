@@ -1,18 +1,18 @@
-import { ImagePlus, Loader2, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
-import type { Company } from "../api.ts";
-import { removeMedia, uploadMedia } from "../api.ts";
-import { AreaCard, quietButton } from "./shared.tsx";
+import { ImagePlus, Loader2, Trash2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import type { Company } from '../api.ts'
+import { removeMedia, uploadMedia } from '../api.ts'
+import { AreaCard, quietButton } from './shared.tsx'
 
 interface AreaProps {
-  company: Company;
-  onUpdated: (company: Company) => void;
-  onFail: (cause: unknown) => void;
+  company: Company
+  onUpdated: (company: Company) => void
+  onFail: (cause: unknown) => void
 }
 
 /** Los tamaños a los que el logo se dibuja en el tablero, para verlo antes de
  * quedarse con una versión que a 24 px no se lee. */
-const LOGO_SIZES = [24, 32, 48, 64];
+const LOGO_SIZES = [24, 32, 48, 64]
 
 /** El logo va arriba y el banner abajo, cada uno a lo ancho de la tarjeta: el
  * banner es apaisado y en dos columnas se desbordaba. Se guardan al subirlos,
@@ -28,26 +28,26 @@ export function AreaImage({ company, onUpdated, onFail }: AreaProps) {
         <BannerPicker company={company} onUpdated={onUpdated} onFail={onFail} />
       </div>
     </AreaCard>
-  );
+  )
 }
 
 function useImage(
   company: Company,
-  kind: "logo" | "banner",
+  kind: 'logo' | 'banner',
   onUpdated: (company: Company) => void,
   onFail: (cause: unknown) => void,
 ) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const url = kind === "logo" ? company.logo : company.banner;
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const url = kind === 'logo' ? company.logo : company.banner
 
   const run = (task: () => Promise<{ company: Company }>) => {
-    setBusy(true);
+    setBusy(true)
     task()
       .then((result) => onUpdated(result.company))
       .catch(onFail)
-      .finally(() => setBusy(false));
-  };
+      .finally(() => setBusy(false))
+  }
 
   const input = (
     <input
@@ -56,12 +56,12 @@ function useImage(
       ref={inputRef}
       type="file"
       onChange={(event) => {
-        const file = event.target.files?.[0];
-        if (file) run(() => uploadMedia(kind, file));
-        event.target.value = "";
+        const file = event.target.files?.[0]
+        if (file) run(() => uploadMedia(kind, file))
+        event.target.value = ''
       }}
     />
-  );
+  )
 
   const actions = (
     <div className="mt-3 flex items-center gap-2">
@@ -71,12 +71,16 @@ function useImage(
         type="button"
         onClick={() => inputRef.current?.click()}
       >
-        {busy ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <ImagePlus aria-hidden className="size-3.5" />}
-        {url ? "Cambiar" : "Subir"}
+        {busy ? (
+          <Loader2 aria-hidden className="size-3.5 animate-spin" />
+        ) : (
+          <ImagePlus aria-hidden className="size-3.5" />
+        )}
+        {url ? 'Cambiar' : 'Subir'}
       </button>
       {url ? (
         <button
-          aria-label={`Quitar ${kind === "logo" ? "el logo" : "el banner"}`}
+          aria-label={`Quitar ${kind === 'logo' ? 'el logo' : 'el banner'}`}
           className="rounded-lg p-2 text-muted hover:bg-mist hover:text-red-600 disabled:opacity-60"
           disabled={busy}
           type="button"
@@ -86,13 +90,24 @@ function useImage(
         </button>
       ) : null}
     </div>
-  );
+  )
 
-  return { url, busy, input, actions, imageSrc: url ? `${url}?v=${encodeURIComponent(company.updated_at)}` : "" };
+  return {
+    url,
+    busy,
+    input,
+    actions,
+    imageSrc: url ? `${url}?v=${encodeURIComponent(company.updated_at)}` : '',
+  }
 }
 
 function LogoPicker({ company, onUpdated, onFail }: AreaProps) {
-  const { input, actions, imageSrc } = useImage(company, "logo", onUpdated, onFail);
+  const { input, actions, imageSrc } = useImage(
+    company,
+    'logo',
+    onUpdated,
+    onFail,
+  )
 
   return (
     <div>
@@ -101,7 +116,11 @@ function LogoPicker({ company, onUpdated, onFail }: AreaProps) {
         <div className="shrink-0">
           <div className="grid size-24 place-items-center overflow-hidden rounded-2xl border border-dashed border-sky/70 bg-mist">
             {imageSrc ? (
-              <img alt="Logo" className="size-full object-cover" src={imageSrc} />
+              <img
+                alt="Logo"
+                className="size-full object-cover"
+                src={imageSrc}
+              />
             ) : (
               <ImagePlus aria-hidden className="size-5 text-faint" />
             )}
@@ -119,9 +138,15 @@ function LogoPicker({ company, onUpdated, onFail }: AreaProps) {
                     className="grid overflow-hidden rounded-lg border border-sky/50 bg-mist"
                     style={{ width: size, height: size }}
                   >
-                    <img alt={`Logo a ${size} píxeles`} className="size-full object-cover" src={imageSrc} />
+                    <img
+                      alt={`Logo a ${size} píxeles`}
+                      className="size-full object-cover"
+                      src={imageSrc}
+                    />
                   </span>
-                  <span className="text-[10px] tabular-nums text-faint">{size}px</span>
+                  <span className="text-[10px] tabular-nums text-faint">
+                    {size}px
+                  </span>
                 </span>
               ))}
             </div>
@@ -130,11 +155,16 @@ function LogoPicker({ company, onUpdated, onFail }: AreaProps) {
       </div>
       {input}
     </div>
-  );
+  )
 }
 
 function BannerPicker({ company, onUpdated, onFail }: AreaProps) {
-  const { input, actions, imageSrc } = useImage(company, "banner", onUpdated, onFail);
+  const { input, actions, imageSrc } = useImage(
+    company,
+    'banner',
+    onUpdated,
+    onFail,
+  )
 
   return (
     <div>
@@ -149,5 +179,5 @@ function BannerPicker({ company, onUpdated, onFail }: AreaProps) {
       {actions}
       {input}
     </div>
-  );
+  )
 }

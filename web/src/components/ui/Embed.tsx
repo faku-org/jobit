@@ -1,21 +1,29 @@
-import { ArrowUpRight, Briefcase, Clock3, Laptop, MapPin, Sparkles, Wallet } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useTheme } from "../../hooks/useTheme.ts";
-import { fetchJob, isAbortError } from "../../lib/api.ts";
+import {
+  ArrowUpRight,
+  Briefcase,
+  Clock3,
+  Laptop,
+  MapPin,
+  Sparkles,
+  Wallet,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useTheme } from '../../hooks/useTheme.ts'
+import { fetchJob, isAbortError } from '../../lib/api.ts'
 import {
   JOB_TYPE_LABEL,
   WORK_MODE_LABEL,
   formatLocation,
   formatSalary,
   relativeDate,
-} from "../../lib/format.ts";
-import { jobLink } from "../../lib/share.ts";
-import { chipClass, mutedChip } from "../../lib/styles.ts";
-import { type Job, type Theme, workMode } from "../../lib/types.ts";
+} from '../../lib/format.ts'
+import { jobLink } from '../../lib/share.ts'
+import { chipClass, mutedChip } from '../../lib/styles.ts'
+import { type Job, type Theme, workMode } from '../../lib/types.ts'
 
 interface EmbedProps {
-  id: string;
-  theme: Theme;
+  id: string
+  theme: Theme
 }
 
 function Frame({ children }: { children: React.ReactNode }) {
@@ -23,12 +31,12 @@ function Frame({ children }: { children: React.ReactNode }) {
     <div className="mx-auto max-w-[560px] rounded-2xl border border-sky/50 bg-surface p-4 text-ink">
       {children}
     </div>
-  );
+  )
 }
 
 function Card({ job }: { job: Job }) {
-  const mode = workMode(job);
-  const salary = formatSalary(job.salary);
+  const mode = workMode(job)
+  const salary = formatSalary(job.salary)
 
   return (
     <Frame>
@@ -43,7 +51,9 @@ function Card({ job }: { job: Job }) {
             {job.title}
           </a>
         </h1>
-        <span className="shrink-0 text-xs text-muted">{relativeDate(job.date_posted)}</span>
+        <span className="shrink-0 text-xs text-muted">
+          {relativeDate(job.date_posted)}
+        </span>
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-soft">
@@ -61,11 +71,17 @@ function Card({ job }: { job: Job }) {
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <span className={mutedChip}>{job.category_label}</span>
-        <span className={job.remote ? `${chipClass} bg-brand/15 text-ink` : mutedChip}>
+        <span
+          className={
+            job.remote ? `${chipClass} bg-brand/15 text-ink` : mutedChip
+          }
+        >
           <Laptop aria-hidden className="size-3.5" />
           {WORK_MODE_LABEL[mode]}
         </span>
-        {job.job_type ? <span className={mutedChip}>{JOB_TYPE_LABEL[job.job_type]}</span> : null}
+        {job.job_type ? (
+          <span className={mutedChip}>{JOB_TYPE_LABEL[job.job_type]}</span>
+        ) : null}
         {job.no_experience ? (
           <span className={`${chipClass} bg-sky/40 text-ink`}>
             <Sparkles aria-hidden className="size-3.5" />
@@ -101,7 +117,7 @@ function Card({ job }: { job: Job }) {
         </a>
       </div>
     </Frame>
-  );
+  )
 }
 
 /**
@@ -109,21 +125,21 @@ function Card({ job }: { job: Job }) {
  * only ever links out, so nothing here touches the stored preferences.
  */
 export function Embed({ id, theme }: EmbedProps) {
-  const [job, setJob] = useState<Job | null>(null);
-  const [error, setError] = useState(false);
+  const [job, setJob] = useState<Job | null>(null)
+  const [error, setError] = useState(false)
 
-  useTheme(theme);
+  useTheme(theme)
 
   useEffect(() => {
-    const controller = new AbortController();
+    const controller = new AbortController()
     fetchJob(id, controller.signal)
       .then(setJob)
       .catch((cause: unknown) => {
-        if (isAbortError(cause)) return;
-        setError(true);
-      });
-    return () => controller.abort();
-  }, [id]);
+        if (isAbortError(cause)) return
+        setError(true)
+      })
+    return () => controller.abort()
+  }, [id])
 
   if (error) {
     return (
@@ -138,7 +154,7 @@ export function Embed({ id, theme }: EmbedProps) {
           Buscar en JobIt
         </a>
       </Frame>
-    );
+    )
   }
 
   if (!job) {
@@ -153,8 +169,8 @@ export function Embed({ id, theme }: EmbedProps) {
           </div>
         </div>
       </Frame>
-    );
+    )
   }
 
-  return <Card job={job} />;
+  return <Card job={job} />
 }

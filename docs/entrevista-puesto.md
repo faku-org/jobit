@@ -5,9 +5,9 @@ rubro"). El nivel rubro (`/entrevista/<rubro>`) ya estaba; esto baja un nivel.
 
 ## Qué hay
 
-| Ruta | Qué muestra |
-|---|---|
-| `/entrevista/<rubro>` | Guía del rubro. Ahora enlaza a las guías de sus puestos ("Guías por puesto"). |
+| Ruta                           | Qué muestra                                                                                                                                           |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/entrevista/<rubro>`          | Guía del rubro. Ahora enlaza a las guías de sus puestos ("Guías por puesto").                                                                         |
 | `/entrevista/<rubro>/<puesto>` | Guía de un puesto: preguntas con respuesta sugerida, habilidades y las ofertas del puesto. `FAQPage` y `BreadcrumbList` en JSON-LD, canonical propio. |
 
 - `<puesto>` es un slug de `worker/src/roles.ts` (`ROLES`), el mismo catálogo con

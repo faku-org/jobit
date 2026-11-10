@@ -1,18 +1,18 @@
-import { describe, expect, test } from "bun:test";
-import { applyEvent, offerApply, offerView, searchEvent } from "./events.ts";
-import { EMPTY_FILTERS, type Job } from "./types.ts";
+import { describe, expect, test } from 'bun:test'
+import { applyEvent, offerApply, offerView, searchEvent } from './events.ts'
+import { EMPTY_FILTERS, type Job } from './types.ts'
 
 const job: Job = {
-  id: "buscojobs:99",
-  source: "buscojobs",
-  source_id: "99",
-  title: "Cajero para supermercado",
-  company: "Super",
-  department: "Canelones",
-  city: "Las Piedras",
-  category: "ventas",
-  category_label: "Ventas y comercial",
-  date_posted: "2026-09-01T00:00:00.000Z",
+  id: 'buscojobs:99',
+  source: 'buscojobs',
+  source_id: '99',
+  title: 'Cajero para supermercado',
+  company: 'Super',
+  department: 'Canelones',
+  city: 'Las Piedras',
+  category: 'ventas',
+  category_label: 'Ventas y comercial',
+  date_posted: '2026-09-01T00:00:00.000Z',
   level: null,
   remote: null,
   job_type: null,
@@ -23,57 +23,68 @@ const job: Job = {
   schedule: null,
   vacancies: null,
   closes_at: null,
-  description: "",
+  description: '',
   requirements: null,
-  apply_url: "https://ejemplo.com/1",
+  apply_url: 'https://ejemplo.com/1',
   duplicates: [],
-};
+}
 
-describe("searchEvent", () => {
-  test("manda el puesto que nombra el texto, no el texto", () => {
-    const event = searchEvent({ ...EMPTY_FILTERS, q: "busco de cajera en Maroñas" }, 12);
-
-    expect(event.role).toBe("cajero");
-    expect(JSON.stringify(event)).not.toContain("Maroñas");
-  });
-
-  test("un texto que no nombra ningún puesto entra como otro", () => {
-    expect(searchEvent({ ...EMPTY_FILTERS, q: "algo cerca de casa" }, 3).role).toBe("otro");
-  });
-
-  test("lista los filtros puestos, sin sus valores", () => {
+describe('searchEvent', () => {
+  test('manda el puesto que nombra el texto, no el texto', () => {
     const event = searchEvent(
-      { ...EMPTY_FILTERS, q: "cajero", department: "Montevideo", noExperience: true, days: 7 },
+      { ...EMPTY_FILTERS, q: 'busco de cajera en Maroñas' },
+      12,
+    )
+
+    expect(event.role).toBe('cajero')
+    expect(JSON.stringify(event)).not.toContain('Maroñas')
+  })
+
+  test('un texto que no nombra ningún puesto entra como otro', () => {
+    expect(
+      searchEvent({ ...EMPTY_FILTERS, q: 'algo cerca de casa' }, 3).role,
+    ).toBe('otro')
+  })
+
+  test('lista los filtros puestos, sin sus valores', () => {
+    const event = searchEvent(
+      {
+        ...EMPTY_FILTERS,
+        q: 'cajero',
+        department: 'Montevideo',
+        noExperience: true,
+        days: 7,
+      },
       40,
-    );
+    )
 
-    expect(event.filters).toEqual(["q", "department", "no_experience", "days"]);
-    expect(JSON.stringify(event)).not.toContain("Montevideo");
-  });
+    expect(event.filters).toEqual(['q', 'department', 'no_experience', 'days'])
+    expect(JSON.stringify(event)).not.toContain('Montevideo')
+  })
 
-  test("acota el total en vez de mandar cualquier número", () => {
-    expect(searchEvent(EMPTY_FILTERS, -5).results).toBe(0);
-    expect(searchEvent(EMPTY_FILTERS, 9_999_999).results).toBe(1_000_000);
-  });
-});
+  test('acota el total en vez de mandar cualquier número', () => {
+    expect(searchEvent(EMPTY_FILTERS, -5).results).toBe(0)
+    expect(searchEvent(EMPTY_FILTERS, 9_999_999).results).toBe(1_000_000)
+  })
+})
 
-describe("applyEvent", () => {
-  test("lleva el aviso y de dónde salió, nada de quien lo abrió", () => {
+describe('applyEvent', () => {
+  test('lleva el aviso y de dónde salió, nada de quien lo abrió', () => {
     expect(applyEvent(job)).toEqual({
-      kind: "apply",
-      job: "buscojobs:99",
-      source: "buscojobs",
-      category: "ventas",
-    });
-  });
-});
+      kind: 'apply',
+      job: 'buscojobs:99',
+      source: 'buscojobs',
+      category: 'ventas',
+    })
+  })
+})
 
-describe("métricas de una oferta propia", () => {
-  test("solo las publicadas acá cuentan", () => {
-    const own: Job = { ...job, id: "f0f0", source: "jobit" };
-    expect(offerView(own)).toEqual({ kind: "offer_view", id: "f0f0" });
-    expect(offerApply(own)).toEqual({ kind: "offer_apply", id: "f0f0" });
-    expect(offerView(job)).toBeNull();
-    expect(offerApply(job)).toBeNull();
-  });
-});
+describe('métricas de una oferta propia', () => {
+  test('solo las publicadas acá cuentan', () => {
+    const own: Job = { ...job, id: 'f0f0', source: 'jobit' }
+    expect(offerView(own)).toEqual({ kind: 'offer_view', id: 'f0f0' })
+    expect(offerApply(own)).toEqual({ kind: 'offer_apply', id: 'f0f0' })
+    expect(offerView(job)).toBeNull()
+    expect(offerApply(job)).toBeNull()
+  })
+})

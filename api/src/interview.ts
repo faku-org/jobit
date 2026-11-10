@@ -1,7 +1,10 @@
-import { CATEGORIES, categoryLabel } from "@jobit/worker/categories";
-import { roleGuideName, roleGuideQuery } from "@jobit/worker/content/role-guides";
-import type { ContentItem } from "@jobit/worker/content/types";
-import { ROLES } from "@jobit/worker/roles";
+import { CATEGORIES, categoryLabel } from '@jobit/worker/categories'
+import {
+  roleGuideName,
+  roleGuideQuery,
+} from '@jobit/worker/content/role-guides'
+import type { ContentItem } from '@jobit/worker/content/types'
+import { ROLES } from '@jobit/worker/roles'
 import {
   escapeHtml,
   faqPageLd,
@@ -10,8 +13,8 @@ import {
   paragraphs,
   publicOrigin,
   type RoleGuideLink,
-} from "./pages.ts";
-import type { Job } from "./types.ts";
+} from './pages.ts'
+import type { Job } from './types.ts'
 
 /**
  * La guía de entrevista de un puesto concreto (`/entrevista/<rubro>/<puesto>`).
@@ -23,14 +26,14 @@ import type { Job } from "./types.ts";
  */
 
 export interface RoleGuideRef extends RoleGuideLink {
-  category: string;
+  category: string
 }
 
-const ROLE_LABEL = new Map(ROLES.map((role) => [role.slug, role.label]));
+const ROLE_LABEL = new Map(ROLES.map((role) => [role.slug, role.label]))
 
 /** Cómo se nombra el puesto: el nombre curado y, si no hay, el del catálogo. */
 export const roleName = (role: string): string =>
-  roleGuideName(role) ?? ROLE_LABEL.get(role) ?? role;
+  roleGuideName(role) ?? ROLE_LABEL.get(role) ?? role
 
 /**
  * Los pares rubro/puesto que tienen guía, sacados del contenido y no de una
@@ -38,25 +41,30 @@ export const roleName = (role: string): string =>
  * que no existen en los catálogos, porque serían URLs que siempre dan 404.
  */
 export function roleGuides(items: ContentItem[]): RoleGuideRef[] {
-  const found = new Map<string, RoleGuideRef>();
+  const found = new Map<string, RoleGuideRef>()
 
   for (const item of items) {
-    if (item.kind !== "faq" && item.kind !== "topic") continue;
+    if (item.kind !== 'faq' && item.kind !== 'topic') continue
     for (const role of item.roles) {
-      if (!ROLE_LABEL.has(role)) continue;
+      if (!ROLE_LABEL.has(role)) continue
       for (const category of item.categories) {
-        if (!CATEGORIES.some((entry) => entry.slug === category)) continue;
-        found.set(`${category}/${role}`, { category, role, name: roleName(role) });
+        if (!CATEGORIES.some((entry) => entry.slug === category)) continue
+        found.set(`${category}/${role}`, {
+          category,
+          role,
+          name: roleName(role),
+        })
       }
     }
   }
 
   const order = (category: string): number =>
-    CATEGORIES.findIndex((entry) => entry.slug === category);
+    CATEGORIES.findIndex((entry) => entry.slug === category)
 
   return [...found.values()].sort(
-    (a, b) => order(a.category) - order(b.category) || a.name.localeCompare(b.name),
-  );
+    (a, b) =>
+      order(a.category) - order(b.category) || a.name.localeCompare(b.name),
+  )
 }
 
 export function roleInterviewPageHtml(
@@ -65,44 +73,44 @@ export function roleInterviewPageHtml(
   jobs: Job[],
   items: ContentItem[],
 ): string {
-  const name = roleName(role);
-  const rubro = categoryLabel(category);
-  const origin = publicOrigin();
-  const path = `/entrevista/${encodeURIComponent(category)}/${encodeURIComponent(role)}`;
-  const query = roleGuideQuery(role) ?? name;
+  const name = roleName(role)
+  const rubro = categoryLabel(category)
+  const origin = publicOrigin()
+  const path = `/entrevista/${encodeURIComponent(category)}/${encodeURIComponent(role)}`
+  const query = roleGuideQuery(role) ?? name
 
-  const questions = items.filter((item) => item.kind === "faq");
-  const topics = items.filter((item) => item.kind === "topic");
+  const questions = items.filter((item) => item.kind === 'faq')
+  const topics = items.filter((item) => item.kind === 'topic')
   const block = (item: ContentItem): string =>
-    `<h3>${escapeHtml(item.title)}</h3>${paragraphs(item.body)}`;
+    `<h3>${escapeHtml(item.title)}</h3>${paragraphs(item.body)}`
 
   const body = `
 <p class="muted"><a href="${escapeHtml(origin)}/entrevista/${encodeURIComponent(category)}">Guía de entrevista de ${escapeHtml(rubro)}</a></p>
 <h1>Preguntas de entrevista de ${escapeHtml(name)} en Uruguay</h1>
 <p>Las preguntas que suelen hacerse en una entrevista de ${escapeHtml(name)}, con una forma de responderlas, y las habilidades que conviene tener a mano.</p>
 <a class="cta" href="${escapeHtml(origin)}/?q=${encodeURIComponent(query)}">Ver las ofertas de ${escapeHtml(name)} en JobIt</a>
-${questions.length > 0 ? `<h2>Preguntas frecuentes</h2>${questions.map(block).join("")}` : ""}
-${topics.length > 0 ? `<h2>Habilidades y temas</h2>${topics.map(block).join("")}` : ""}
+${questions.length > 0 ? `<h2>Preguntas frecuentes</h2>${questions.map(block).join('')}` : ''}
+${topics.length > 0 ? `<h2>Habilidades y temas</h2>${topics.map(block).join('')}` : ''}
 ${
   jobs.length > 0
-    ? `<h2>Ofertas de ${escapeHtml(name)}</h2><ul class="jobs">${jobListHtml(jobs)}</ul><p class="muted">${jobs.length} ofertas${jobs.length > 100 ? " (mostrando las primeras 100)" : ""}.</p>`
-    : ""
-}`;
+    ? `<h2>Ofertas de ${escapeHtml(name)}</h2><ul class="jobs">${jobListHtml(jobs)}</ul><p class="muted">${jobs.length} ofertas${jobs.length > 100 ? ' (mostrando las primeras 100)' : ''}.</p>`
+    : ''
+}`
 
   const breadcrumbs = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "JobIt", item: `${origin}/` },
+      { '@type': 'ListItem', position: 1, name: 'JobIt', item: `${origin}/` },
       {
-        "@type": "ListItem",
+        '@type': 'ListItem',
         position: 2,
         name: `Entrevista de ${rubro}`,
         item: `${origin}/entrevista/${encodeURIComponent(category)}`,
       },
-      { "@type": "ListItem", position: 3, name, item: `${origin}${path}` },
+      { '@type': 'ListItem', position: 3, name, item: `${origin}${path}` },
     ],
-  };
+  }
 
   return layout(
     {
@@ -114,5 +122,5 @@ ${
       ),
     },
     body,
-  );
+  )
 }

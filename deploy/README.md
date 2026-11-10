@@ -9,7 +9,7 @@ Todo lo de acá es de una sola vez, en el VPS.
 
 ## Usuario y carpetas
 
-```bash
+````bash
 sudo useradd --system --home /srv/jobit --shell /usr/sbin/nologin jobit
 sudo mkdir -p /srv/jobit/data /srv/jobit/worker/output /var/www/jobs.wefaber.net
 sudo chown -R jobit:jobit /srv/jobit
@@ -19,15 +19,16 @@ fuera de `/home` (el de hermes vive en `~/.bun` y jobit no puede ejecutarlo):
 
 ```bash
 sudo mkdir -p /opt/bun && sudo cp /home/hermes/.bun/bin/bun /opt/bun/bun
-```
-```
+````
+
+````
 
 El usuario del runner necesita poder escribir en las dos rutas que sincroniza:
 
 ```bash
 sudo setfacl -R -m u:<runner>:rwx /srv/jobit /var/www/jobs.wefaber.net
 sudo setfacl -R -d -m u:<runner>:rwx /srv/jobit /var/www/jobs.wefaber.net
-```
+````
 
 ## Servicio
 

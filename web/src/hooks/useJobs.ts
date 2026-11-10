@@ -1,4 +1,9 @@
-import { startTransition, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  startTransition,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import {
   type JobsQueryOptions,
   MAX_PAGE,
@@ -6,39 +11,39 @@ import {
   fetchJobs,
   isAbortError,
   jobsQueryKey,
-} from "../lib/api.ts";
-import { boardVersion, subscribeBoard } from "../lib/board.ts";
-import { isStale, readJobs, writeJobs } from "../lib/jobsCache.ts";
-import type { Job } from "../lib/types.ts";
+} from '../lib/api.ts'
+import { boardVersion, subscribeBoard } from '../lib/board.ts'
+import { isStale, readJobs, writeJobs } from '../lib/jobsCache.ts'
+import type { Job } from '../lib/types.ts'
 
-type Status = "loading" | "loadingMore" | "ready" | "error";
+type Status = 'loading' | 'loadingMore' | 'ready' | 'error'
 
 interface JobsState {
-  jobs: Job[];
-  total: number;
-  status: Status;
-  error: string | null;
-  hasMore: boolean;
-  loadMore: () => void;
+  jobs: Job[]
+  total: number
+  status: Status
+  error: string | null
+  hasMore: boolean
+  loadMore: () => void
 }
 
 /** Lo que falta pedir. `append` distingue traer más de volver a traer. */
 interface Pending {
-  offset: number;
-  limit: number;
-  append: boolean;
+  offset: number
+  limit: number
+  append: boolean
 }
 
 interface State {
-  key: string;
-  options: JobsQueryOptions;
+  key: string
+  options: JobsQueryOptions
   /** La tanda de ofertas que estas filas describen. */
-  version: string;
-  jobs: Job[];
-  total: number;
-  pending: Pending | null;
-  status: Status;
-  error: string | null;
+  version: string
+  jobs: Job[]
+  total: number
+  pending: Pending | null
+  status: Status
+  error: string | null
 }
 
 /**
@@ -48,7 +53,7 @@ interface State {
  * que tenía para no perder las páginas que se habían cargado.
  */
 function begin(key: string, options: JobsQueryOptions, version: string): State {
-  const hit = readJobs(key);
+  const hit = readJobs(key)
 
   if (hit === undefined) {
     return {
@@ -58,9 +63,9 @@ function begin(key: string, options: JobsQueryOptions, version: string): State {
       jobs: [],
       total: 0,
       pending: { offset: 0, limit: PAGE_SIZE, append: false },
-      status: "loading",
+      status: 'loading',
       error: null,
-    };
+    }
   }
 
   return {
@@ -72,9 +77,9 @@ function begin(key: string, options: JobsQueryOptions, version: string): State {
     pending: isStale(hit)
       ? { offset: 0, limit: Math.min(hit.jobs.length, MAX_PAGE), append: false }
       : null,
-    status: "ready",
+    status: 'ready',
     error: null,
-  };
+  }
 }
 
 /**
@@ -87,62 +92,68 @@ function begin(key: string, options: JobsQueryOptions, version: string): State {
  * collecting are half of the query it would be asking with.
  */
 export function useJobs(options: JobsQueryOptions, enabled = true): JobsState {
-  const key = jobsQueryKey(options);
+  const key = jobsQueryKey(options)
   /** Cuando la API pasa a servir otra tanda, lo guardado ya se tiró y esto
    * vuelve a arrancar la consulta que se esté mirando: es lo que hace que una
    * oferta nueva aparezca sin recargar la página. */
-  const version = useSyncExternalStore(subscribeBoard, boardVersion);
-  const [state, setState] = useState<State>(() => begin(key, options, version));
+  const version = useSyncExternalStore(subscribeBoard, boardVersion)
+  const [state, setState] = useState<State>(() => begin(key, options, version))
 
   if (state.key !== key || state.version !== version) {
-    setState(begin(key, options, version));
+    setState(begin(key, options, version))
   }
 
-  const { key: asked, options: sent, pending } = state;
+  const { key: asked, options: sent, pending } = state
 
   useEffect(() => {
-    if (!enabled || pending === null) return;
+    if (!enabled || pending === null) return
 
-    const controller = new AbortController();
+    const controller = new AbortController()
 
-    fetchJobs({ ...sent, offset: pending.offset, limit: pending.limit }, controller.signal)
+    fetchJobs(
+      { ...sent, offset: pending.offset, limit: pending.limit },
+      controller.signal,
+    )
       .then((response) => {
         /** A page is fifty cards: as a transition React can split the render
          * across frames instead of blocking the tab while it mounts them. */
         startTransition(() => {
           setState((current) => {
-            if (current.key !== asked) return current;
-            const jobs = pending.append ? [...current.jobs, ...response.jobs] : response.jobs;
-            writeJobs(asked, jobs, response.total);
+            if (current.key !== asked) return current
+            const jobs = pending.append
+              ? [...current.jobs, ...response.jobs]
+              : response.jobs
+            writeJobs(asked, jobs, response.total)
             return {
               ...current,
               jobs,
               total: response.total,
               pending: null,
-              status: "ready",
+              status: 'ready',
               error: null,
-            };
-          });
-        });
+            }
+          })
+        })
       })
       .catch((cause: unknown) => {
-        if (isAbortError(cause)) return;
+        if (isAbortError(cause)) return
         setState((current) => {
-          if (current.key !== asked) return current;
+          if (current.key !== asked) return current
           /** Una revalidación que falla no borra lo que se está mirando: la
            * lista guardada sigue siendo verdad hasta que se pruebe lo otro. */
-          if (current.jobs.length > 0) return { ...current, pending: null, status: "ready" };
+          if (current.jobs.length > 0)
+            return { ...current, pending: null, status: 'ready' }
           return {
             ...current,
             pending: null,
-            status: "error",
-            error: cause instanceof Error ? cause.message : "Error desconocido",
-          };
-        });
-      });
+            status: 'error',
+            error: cause instanceof Error ? cause.message : 'Error desconocido',
+          }
+        })
+      })
 
-    return () => controller.abort();
-  }, [asked, sent, pending, enabled]);
+    return () => controller.abort()
+  }, [asked, sent, pending, enabled])
 
   return {
     jobs: state.jobs,
@@ -156,9 +167,13 @@ export function useJobs(options: JobsQueryOptions, enabled = true): JobsState {
           ? current
           : {
               ...current,
-              status: "loadingMore",
-              pending: { offset: current.jobs.length, limit: PAGE_SIZE, append: true },
+              status: 'loadingMore',
+              pending: {
+                offset: current.jobs.length,
+                limit: PAGE_SIZE,
+                append: true,
+              },
             },
       ),
-  };
+  }
 }

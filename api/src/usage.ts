@@ -1,11 +1,11 @@
-import { stat } from "node:fs/promises";
-import { CATEGORIES } from "@jobit/worker/categories";
-import { ROLES } from "@jobit/worker/roles";
-import { eventsFilePath } from "./events.ts";
-import { loadFeed } from "./feed.ts";
-import { type ServiceDailyRow, serviceUsageRows } from "./metrics.ts";
-import { statsFilePath } from "./stats.ts";
-import type { Job } from "./types.ts";
+import { stat } from 'node:fs/promises'
+import { CATEGORIES } from '@jobit/worker/categories'
+import { ROLES } from '@jobit/worker/roles'
+import { eventsFilePath } from './events.ts'
+import { loadFeed } from './feed.ts'
+import { type ServiceDailyRow, serviceUsageRows } from './metrics.ts'
+import { statsFilePath } from './stats.ts'
+import type { Job } from './types.ts'
 
 /**
  * Lo que se recibió en stats.jsonl y events.jsonl, leído de vuelta y sumado
@@ -19,140 +19,159 @@ import type { Job } from "./types.ts";
 /** Una fila del resumen diario, con los campos que puedan faltar en filas
  * viejas ya resueltos en cero. */
 export interface StatsLine {
-  day: string;
-  education: string;
-  degrees: number;
-  courses: number;
-  experienceYears: number | null;
-  saved: number;
-  applications: number;
-  interviews: number;
-  closed: number;
-  sources: string[];
+  day: string
+  education: string
+  degrees: number
+  courses: number
+  experienceYears: number | null
+  saved: number
+  applications: number
+  interviews: number
+  closed: number
+  sources: string[]
 }
 
 export type EventLine =
   | {
-      day: string;
-      kind: "search";
-      role: string;
-      category: string;
-      filters: string[];
-      results: number;
+      day: string
+      kind: 'search'
+      role: string
+      category: string
+      filters: string[]
+      results: number
     }
-  | { day: string; kind: "apply"; job: string; source: string; category: string }
-  | { day: string; kind: "service_search"; category: string; filters: string[]; results: number }
-  | { day: string; kind: "service_contact"; category: string; channel: string };
+  | {
+      day: string
+      kind: 'apply'
+      job: string
+      source: string
+      category: string
+    }
+  | {
+      day: string
+      kind: 'service_search'
+      category: string
+      filters: string[]
+      results: number
+    }
+  | { day: string; kind: 'service_contact'; category: string; channel: string }
 
 export interface Count {
-  value: string;
-  count: number;
+  value: string
+  count: number
 }
 
 /** Lo mismo, cuando existe un catálogo que le pone nombre al slug. */
 export interface Labelled extends Count {
-  label: string;
+  label: string
 }
 
 export interface JobClicks {
-  id: string;
+  id: string
   /** Vacío cuando la oferta ya no está en el tablero: se cayó del scrapeo o se
    * archivó, y el id es lo único que queda de ella. */
-  title: string;
-  company: string;
-  source: string;
-  url: string;
-  count: number;
+  title: string
+  company: string
+  source: string
+  url: string
+  count: number
 }
 
 export interface DayPoint {
-  day: string;
-  summaries: number;
-  searches: number;
-  applies: number;
+  day: string
+  summaries: number
+  searches: number
+  applies: number
 }
 
 export interface ServiceClicks {
-  id: string;
-  title: string;
-  views: number;
-  contacts: number;
+  id: string
+  title: string
+  views: number
+  contacts: number
 }
 
 /** El corte de servicios. Los contadores salen de `service_daily` y las
  * búsquedas del archivo: ni uno ni otro tiene a nadie adentro. */
 export interface ServicesUsage {
-  published: number;
+  published: number
   /** Cuántos servicios publicados tuvieron al menos una vista en la ventana. */
-  viewed: number;
-  contacted: number;
-  views: number;
-  contacts: number;
-  searches: number;
+  viewed: number
+  contacted: number
+  views: number
+  contacts: number
+  searches: number
   /** Rubros con más demanda: búsquedas, vistas y contactos juntos. */
-  demand: Labelled[];
+  demand: Labelled[]
   /** Rubros que se buscaron y no tienen ni un servicio publicado. */
-  unmet: Labelled[];
-  channels: Count[];
-  top: ServiceClicks[];
+  unmet: Labelled[]
+  channels: Count[]
+  top: ServiceClicks[]
 }
 
 export interface UsageReport {
-  days: number;
-  from: string;
-  to: string;
+  days: number
+  from: string
+  to: string
   /** Cuántos resúmenes diarios llegaron: una persona que abre la app tres días
    * manda tres, así que no es gente, es actividad. */
-  summaries: number;
-  searches: number;
-  applies: number;
-  saved: number;
-  applications: number;
-  interviews: number;
-  closed: number;
+  summaries: number
+  searches: number
+  applies: number
+  saved: number
+  applications: number
+  interviews: number
+  closed: number
   /** Búsquedas que no devolvieron ni una oferta. Es lo único que dice qué se
    * está buscando y el tablero no tiene. */
-  empty: number;
-  education: Count[];
-  sources: Count[];
-  roles: Labelled[];
-  emptyRoles: Labelled[];
-  filters: Count[];
-  categories: Labelled[];
-  jobs: JobClicks[];
-  daily: DayPoint[];
-  services: ServicesUsage;
+  empty: number
+  education: Count[]
+  sources: Count[]
+  roles: Labelled[]
+  emptyRoles: Labelled[]
+  filters: Count[]
+  categories: Labelled[]
+  jobs: JobClicks[]
+  daily: DayPoint[]
+  services: ServicesUsage
 }
 
 /** "otro" no es un puesto del catálogo: es lo que events.ts escribe cuando lo
  * que se buscó no nombra ninguno, y en el panel se lee como tal. */
 const ROLE_LABEL = new Map<string, string>([
   ...ROLES.map((role): [string, string] => [role.slug, role.label]),
-  ["otro", "Otro puesto"],
-]);
-const CATEGORY_LABEL = new Map(CATEGORIES.map((category) => [category.slug, category.label]));
+  ['otro', 'Otro puesto'],
+])
+const CATEGORY_LABEL = new Map(
+  CATEGORIES.map((category) => [category.slug, category.label]),
+)
 
 /** Cuántas filas se muestran de cada corte. Más que esto deja de ser una
  * lectura y pasa a ser un volcado del archivo. */
-const TOP = 12;
+const TOP = 12
 
-const DAY_MS = 86_400_000;
+const DAY_MS = 86_400_000
 
-const asString = (value: unknown): string => (typeof value === "string" ? value : "");
+const asString = (value: unknown): string =>
+  typeof value === 'string' ? value : ''
 
 const asNumber = (value: unknown): number =>
-  typeof value === "number" && Number.isFinite(value) ? Math.max(Math.round(value), 0) : 0;
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(Math.round(value), 0)
+    : 0
 
 const asStrings = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : []
 
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const DAY = /^\d{4}-\d{2}-\d{2}$/
 
 export function parseStatsLine(raw: unknown): StatsLine | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const row = raw as Record<string, unknown>;
-  const day = asString(row.day);
-  if (!DAY.test(day)) return null;
+  if (typeof raw !== 'object' || raw === null) return null
+  const row = raw as Record<string, unknown>
+  const day = asString(row.day)
+  if (!DAY.test(day)) return null
 
   return {
     day,
@@ -160,7 +179,9 @@ export function parseStatsLine(raw: unknown): StatsLine | null {
     degrees: asNumber(row.degrees),
     courses: asNumber(row.courses),
     experienceYears:
-      typeof row.experience_years === "number" ? asNumber(row.experience_years) : null,
+      typeof row.experience_years === 'number'
+        ? asNumber(row.experience_years)
+        : null,
     saved: asNumber(row.saved),
     applications: asNumber(row.applications),
     /** Las filas anteriores a la telemetría de desenlaces no traen estos dos:
@@ -168,58 +189,58 @@ export function parseStatsLine(raw: unknown): StatsLine | null {
     interviews: asNumber(row.interviews),
     closed: asNumber(row.closed),
     sources: asStrings(row.sources),
-  };
+  }
 }
 
 export function parseEventLine(raw: unknown): EventLine | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const row = raw as Record<string, unknown>;
-  const day = asString(row.day);
-  if (!DAY.test(day)) return null;
+  if (typeof raw !== 'object' || raw === null) return null
+  const row = raw as Record<string, unknown>
+  const day = asString(row.day)
+  if (!DAY.test(day)) return null
 
-  if (row.kind === "search") {
+  if (row.kind === 'search') {
     return {
       day,
-      kind: "search",
+      kind: 'search',
       role: asString(row.role),
       category: asString(row.category),
       filters: asStrings(row.filters),
       results: asNumber(row.results),
-    };
+    }
   }
 
-  if (row.kind === "apply") {
-    const job = asString(row.job);
-    if (job === "") return null;
+  if (row.kind === 'apply') {
+    const job = asString(row.job)
+    if (job === '') return null
     return {
       day,
-      kind: "apply",
+      kind: 'apply',
       job,
       source: asString(row.source),
       category: asString(row.category),
-    };
+    }
   }
 
-  if (row.kind === "service_search") {
+  if (row.kind === 'service_search') {
     return {
       day,
-      kind: "service_search",
+      kind: 'service_search',
       category: asString(row.category),
       filters: asStrings(row.filters),
       results: asNumber(row.results),
-    };
+    }
   }
 
-  if (row.kind === "service_contact") {
+  if (row.kind === 'service_contact') {
     return {
       day,
-      kind: "service_contact",
+      kind: 'service_contact',
       category: asString(row.category),
       channel: asString(row.channel),
-    };
+    }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -228,29 +249,36 @@ export function parseEventLine(raw: unknown): EventLine | null {
  * educativo sí es una respuesta, y es la más común mientras nadie completa el
  * perfil.
  */
-function tally(values: Iterable<string>, keepEmpty = false): Map<string, number> {
-  const counts = new Map<string, number>();
+function tally(
+  values: Iterable<string>,
+  keepEmpty = false,
+): Map<string, number> {
+  const counts = new Map<string, number>()
   for (const value of values) {
-    if (value === "" && !keepEmpty) continue;
-    counts.set(value, (counts.get(value) ?? 0) + 1);
+    if (value === '' && !keepEmpty) continue
+    counts.set(value, (counts.get(value) ?? 0) + 1)
   }
-  return counts;
+  return counts
 }
 
 const ranked = (counts: Map<string, number>, top = TOP): Count[] =>
   [...counts]
     .map(([value, count]) => ({ value, count }))
     .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
-    .slice(0, top);
+    .slice(0, top)
 
 const labelled = (
   counts: Map<string, number>,
   labels: Map<string, string>,
   top = TOP,
 ): Labelled[] =>
-  ranked(counts, top).map((row) => ({ ...row, label: labels.get(row.value) ?? row.value }));
+  ranked(counts, top).map((row) => ({
+    ...row,
+    label: labels.get(row.value) ?? row.value,
+  }))
 
-const dayOf = (time: number): string => new Date(time).toISOString().slice(0, 10);
+const dayOf = (time: number): string =>
+  new Date(time).toISOString().slice(0, 10)
 
 /**
  * La ventana se arma con los días completos hacia atrás, hoy incluido, y la
@@ -261,41 +289,43 @@ export function buildUsageReport(
   stats: StatsLine[],
   events: EventLine[],
   jobs: Job[],
-  options: { days: number; today?: Date; services?: ServiceDailyRow[] } = { days: 30 },
+  options: { days: number; today?: Date; services?: ServiceDailyRow[] } = {
+    days: 30,
+  },
 ): UsageReport {
-  const days = Math.max(Math.floor(options.days), 1);
-  const end = options.today ?? new Date();
-  const to = dayOf(end.getTime());
-  const from = dayOf(end.getTime() - (days - 1) * DAY_MS);
+  const days = Math.max(Math.floor(options.days), 1)
+  const end = options.today ?? new Date()
+  const to = dayOf(end.getTime())
+  const from = dayOf(end.getTime() - (days - 1) * DAY_MS)
 
-  const inWindow = (day: string): boolean => day >= from && day <= to;
-  const rows = stats.filter((row) => inWindow(row.day));
-  const used = events.filter((event) => inWindow(event.day));
-  const searches = used.filter((event) => event.kind === "search");
-  const applies = used.filter((event) => event.kind === "apply");
+  const inWindow = (day: string): boolean => day >= from && day <= to
+  const rows = stats.filter((row) => inWindow(row.day))
+  const used = events.filter((event) => inWindow(event.day))
+  const searches = used.filter((event) => event.kind === 'search')
+  const applies = used.filter((event) => event.kind === 'apply')
 
-  const daily = new Map<string, DayPoint>();
+  const daily = new Map<string, DayPoint>()
   for (let index = 0; index < days; index += 1) {
-    const day = dayOf(end.getTime() - (days - 1 - index) * DAY_MS);
-    daily.set(day, { day, summaries: 0, searches: 0, applies: 0 });
+    const day = dayOf(end.getTime() - (days - 1 - index) * DAY_MS)
+    daily.set(day, { day, summaries: 0, searches: 0, applies: 0 })
   }
   for (const row of rows) {
-    const point = daily.get(row.day);
-    if (point) point.summaries += 1;
+    const point = daily.get(row.day)
+    if (point) point.summaries += 1
   }
   for (const event of used) {
-    const point = daily.get(event.day);
-    if (!point) continue;
-    if (event.kind === "search") point.searches += 1;
-    else if (event.kind === "apply") point.applies += 1;
+    const point = daily.get(event.day)
+    if (!point) continue
+    if (event.kind === 'search') point.searches += 1
+    else if (event.kind === 'apply') point.applies += 1
   }
 
-  const byId = new Map(jobs.map((job) => [job.id, job]));
-  const clicks = tally(applies.map((event) => event.job));
-  const sourceOf = new Map(applies.map((event) => [event.job, event.source]));
+  const byId = new Map(jobs.map((job) => [job.id, job]))
+  const clicks = tally(applies.map((event) => event.job))
+  const sourceOf = new Map(applies.map((event) => [event.job, event.source]))
 
   const total = (pick: (row: StatsLine) => number): number =>
-    rows.reduce((sum, row) => sum + pick(row), 0);
+    rows.reduce((sum, row) => sum + pick(row), 0)
 
   return {
     days,
@@ -318,25 +348,32 @@ export function buildUsageReport(
     sources: ranked(tally(rows.flatMap((row) => row.sources))),
     roles: labelled(tally(searches.map((event) => event.role)), ROLE_LABEL),
     emptyRoles: labelled(
-      tally(searches.filter((event) => event.results === 0).map((event) => event.role)),
+      tally(
+        searches
+          .filter((event) => event.results === 0)
+          .map((event) => event.role),
+      ),
       ROLE_LABEL,
     ),
     filters: ranked(tally(searches.flatMap((event) => event.filters))),
-    categories: labelled(tally(applies.map((event) => event.category)), CATEGORY_LABEL),
+    categories: labelled(
+      tally(applies.map((event) => event.category)),
+      CATEGORY_LABEL,
+    ),
     jobs: ranked(clicks).map((row) => {
-      const job = byId.get(row.value);
+      const job = byId.get(row.value)
       return {
         id: row.value,
-        title: job?.title ?? "",
-        company: job?.company ?? "",
-        source: job?.source ?? sourceOf.get(row.value) ?? "",
-        url: job?.apply_url ?? "",
+        title: job?.title ?? '',
+        company: job?.company ?? '',
+        source: job?.source ?? sourceOf.get(row.value) ?? '',
+        url: job?.apply_url ?? '',
         count: row.count,
-      };
+      }
     }),
     daily: [...daily.values()],
     services: buildServicesUsage(used, options.services ?? []),
-  };
+  }
 }
 
 /**
@@ -345,19 +382,27 @@ export function buildUsageReport(
  * del que no hay ni uno publicado, que es lo que el tablero de ofertas ya
  * hace con las búsquedas sin resultados.
  */
-export function buildServicesUsage(events: EventLine[], rows: ServiceDailyRow[]): ServicesUsage {
-  const searches = events.filter((event) => event.kind === "service_search");
-  const contacts = events.filter((event) => event.kind === "service_contact");
+export function buildServicesUsage(
+  events: EventLine[],
+  rows: ServiceDailyRow[],
+): ServicesUsage {
+  const searches = events.filter((event) => event.kind === 'service_search')
+  const contacts = events.filter((event) => event.kind === 'service_contact')
 
-  const supply = new Set(rows.map((row) => row.category));
-  const searched = tally(searches.map((event) => event.category));
+  const supply = new Set(rows.map((row) => row.category))
+  const searched = tally(searches.map((event) => event.category))
 
-  const demand = new Map(searched);
+  const demand = new Map(searched)
   for (const row of rows) {
-    demand.set(row.category, (demand.get(row.category) ?? 0) + row.views + row.contacts);
+    demand.set(
+      row.category,
+      (demand.get(row.category) ?? 0) + row.views + row.contacts,
+    )
   }
 
-  const unmet = new Map([...searched].filter(([category]) => !supply.has(category)));
+  const unmet = new Map(
+    [...searched].filter(([category]) => !supply.has(category)),
+  )
 
   return {
     published: rows.length,
@@ -372,7 +417,10 @@ export function buildServicesUsage(events: EventLine[], rows: ServiceDailyRow[])
     top: rows
       .filter((row) => row.views + row.contacts > 0)
       .sort(
-        (a, b) => b.contacts - a.contacts || b.views - a.views || a.title.localeCompare(b.title),
+        (a, b) =>
+          b.contacts - a.contacts ||
+          b.views - a.views ||
+          a.title.localeCompare(b.title),
       )
       .slice(0, TOP)
       .map((row) => ({
@@ -381,78 +429,88 @@ export function buildServicesUsage(events: EventLine[], rows: ServiceDailyRow[])
         views: row.views,
         contacts: row.contacts,
       })),
-  };
+  }
 }
 
 /**
  * Los .jsonl crecen para siempre, así que se lee la cola y no el archivo
  * entero: lo viejo no entra en ninguna ventana que el panel sepa pedir.
  */
-const MAX_BYTES = 4_000_000;
+const MAX_BYTES = 4_000_000
 
 interface FileCache {
-  key: string;
-  rows: unknown[];
+  key: string
+  rows: unknown[]
 }
 
-const caches = new Map<string, FileCache>();
+const caches = new Map<string, FileCache>()
 
 async function readRows(path: string): Promise<unknown[]> {
-  let info: { mtimeMs: number; size: number };
+  let info: { mtimeMs: number; size: number }
   try {
-    info = await stat(path);
+    info = await stat(path)
   } catch {
     /** Que todavía no exista es el estado normal de un despliegue nuevo. */
-    return [];
+    return []
   }
 
-  const key = `${info.mtimeMs}:${info.size}`;
-  const cached = caches.get(path);
-  if (cached?.key === key) return cached.rows;
+  const key = `${info.mtimeMs}:${info.size}`
+  const cached = caches.get(path)
+  if (cached?.key === key) return cached.rows
 
-  const file = Bun.file(path);
-  const tail = info.size > MAX_BYTES;
-  const text = await (tail ? file.slice(info.size - MAX_BYTES).text() : file.text());
-  const lines = text.split("\n");
+  const file = Bun.file(path)
+  const tail = info.size > MAX_BYTES
+  const text = await (tail
+    ? file.slice(info.size - MAX_BYTES).text()
+    : file.text())
+  const lines = text.split('\n')
   /** Cortar por bytes parte una línea al medio; esa se descarta entera. */
-  if (tail) lines.shift();
+  if (tail) lines.shift()
 
-  const rows: unknown[] = [];
+  const rows: unknown[] = []
   for (const line of lines) {
-    if (line.trim() === "") continue;
+    if (line.trim() === '') continue
     try {
-      rows.push(JSON.parse(line));
+      rows.push(JSON.parse(line))
     } catch {
       // Una línea rota no invalida el archivo: se saltea y sigue.
     }
   }
 
-  caches.set(path, { key, rows });
-  return rows;
+  caches.set(path, { key, rows })
+  return rows
 }
 
 export function clearUsageCache(): void {
-  caches.clear();
+  caches.clear()
 }
 
-function servicesRows(days: number, today: Date = new Date()): ServiceDailyRow[] {
-  const to = dayOf(today.getTime());
-  const from = dayOf(today.getTime() - (Math.max(Math.floor(days), 1) - 1) * DAY_MS);
+function servicesRows(
+  days: number,
+  today: Date = new Date(),
+): ServiceDailyRow[] {
+  const to = dayOf(today.getTime())
+  const from = dayOf(
+    today.getTime() - (Math.max(Math.floor(days), 1) - 1) * DAY_MS,
+  )
   try {
-    return serviceUsageRows(from, to);
+    return serviceUsageRows(from, to)
   } catch {
-    return [];
+    return []
   }
 }
 
 /** Lo que lee el panel: los dos archivos más el tablero, que es lo único que
  * le puede poner título a un id de oferta. */
-export async function loadUsage(days: number, today?: Date): Promise<UsageReport> {
+export async function loadUsage(
+  days: number,
+  today?: Date,
+): Promise<UsageReport> {
   const [stats, events, feed] = await Promise.all([
     readRows(statsFilePath()),
     readRows(eventsFilePath()),
     loadFeed(),
-  ]);
+  ])
 
   return buildUsageReport(
     stats.map(parseStatsLine).filter((row): row is StatsLine => row !== null),
@@ -466,7 +524,7 @@ export async function loadUsage(days: number, today?: Date): Promise<UsageReport
       /** Sin base todavía (despliegue nuevo) el corte sale vacío en vez de romper el panel. */
       services: servicesRows(days, today),
     },
-  );
+  )
 }
 
 /**
@@ -474,18 +532,24 @@ export async function loadUsage(days: number, today?: Date): Promise<UsageReport
  * de uso, recortado a lo que una empresa puede ver: qué se busca, nunca quién
  * lo busca. Sale de los eventos anónimos que ya se reciben; no agrega nada.
  */
-export async function topSearchRoles(days: number, today?: Date): Promise<Labelled[]> {
-  const count = Math.max(Math.floor(days), 1);
-  const end = today ?? new Date();
-  const to = dayOf(end.getTime());
-  const from = dayOf(end.getTime() - (count - 1) * DAY_MS);
+export async function topSearchRoles(
+  days: number,
+  today?: Date,
+): Promise<Labelled[]> {
+  const count = Math.max(Math.floor(days), 1)
+  const end = today ?? new Date()
+  const to = dayOf(end.getTime())
+  const from = dayOf(end.getTime() - (count - 1) * DAY_MS)
 
-  const rows = await readRows(eventsFilePath());
+  const rows = await readRows(eventsFilePath())
   const searches = rows
     .map(parseEventLine)
     .filter((row): row is EventLine => row !== null)
-    .filter((event): event is Extract<EventLine, { kind: "search" }> => event.kind === "search")
-    .filter((event) => event.day >= from && event.day <= to);
+    .filter(
+      (event): event is Extract<EventLine, { kind: 'search' }> =>
+        event.kind === 'search',
+    )
+    .filter((event) => event.day >= from && event.day <= to)
 
-  return labelled(tally(searches.map((event) => event.role)), ROLE_LABEL);
+  return labelled(tally(searches.map((event) => event.role)), ROLE_LABEL)
 }

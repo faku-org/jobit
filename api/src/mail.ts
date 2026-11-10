@@ -1,4 +1,4 @@
-import type { Result } from "./types.ts";
+import type { Result } from './types.ts'
 
 /**
  * El envío de correo, por Resend (https://resend.com) sobre `fetch`.
@@ -12,38 +12,41 @@ import type { Result } from "./types.ts";
  * mandado, con el enlace adentro. Así el alta y la verificación se prueban en
  * local sin dar de alta un dominio.
  */
-const ENDPOINT = "https://api.resend.com/emails";
+const ENDPOINT = 'https://api.resend.com/emails'
 
 export interface Mail {
-  to: string;
-  subject: string;
-  text: string;
-  html?: string;
+  to: string
+  subject: string
+  text: string
+  html?: string
 }
 
-const apiKey = (): string => (process.env.RESEND_API_KEY ?? "").trim();
-const from = (): string => (process.env.MAIL_FROM ?? "").trim();
+const apiKey = (): string => (process.env.RESEND_API_KEY ?? '').trim()
+const from = (): string => (process.env.MAIL_FROM ?? '').trim()
 
-export const mailEnabled = (): boolean => apiKey() !== "" && from() !== "";
+export const mailEnabled = (): boolean => apiKey() !== '' && from() !== ''
 
 /** El origen público con el que se arman los enlaces de los correos. */
 export function publicOrigin(): string {
-  return (process.env.PUBLIC_ORIGIN ?? "https://jobs.wefaber.net").replace(/\/+$/, "");
+  return (process.env.PUBLIC_ORIGIN ?? 'https://jobs.wefaber.net').replace(
+    /\/+$/,
+    '',
+  )
 }
 
 export async function sendMail(mail: Mail): Promise<Result<void>> {
   if (!mailEnabled()) {
-    console.log(`[jobit] correo para ${mail.to}: ${mail.subject}\n${mail.text}`);
-    return { ok: true, value: undefined };
+    console.log(`[jobit] correo para ${mail.to}: ${mail.subject}\n${mail.text}`)
+    return { ok: true, value: undefined }
   }
 
-  let response: Response;
+  let response: Response
   try {
     response = await fetch(ENDPOINT, {
-      method: "POST",
+      method: 'POST',
       headers: {
         authorization: `Bearer ${apiKey()}`,
-        "content-type": "application/json",
+        'content-type': 'application/json',
       },
       body: JSON.stringify({
         from: from(),
@@ -52,15 +55,17 @@ export async function sendMail(mail: Mail): Promise<Result<void>> {
         text: mail.text,
         ...(mail.html ? { html: mail.html } : {}),
       }),
-    });
+    })
   } catch {
-    return { ok: false, error: "no se pudo contactar al servicio de correo" };
+    return { ok: false, error: 'no se pudo contactar al servicio de correo' }
   }
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    console.error(`[jobit] resend respondió ${response.status}: ${detail.slice(0, 300)}`);
-    return { ok: false, error: "el servicio de correo rechazó el envío" };
+    const detail = await response.text().catch(() => '')
+    console.error(
+      `[jobit] resend respondió ${response.status}: ${detail.slice(0, 300)}`,
+    )
+    return { ok: false, error: 'el servicio de correo rechazó el envío' }
   }
-  return { ok: true, value: undefined };
+  return { ok: true, value: undefined }
 }

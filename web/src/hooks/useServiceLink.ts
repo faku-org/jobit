@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { isAbortError } from "../lib/api.ts";
-import { type Service, fetchService } from "../lib/services.ts";
-import { setSharedServiceSlug, sharedServiceSlug } from "../lib/share.ts";
+import { useEffect, useState } from 'react'
+import { isAbortError } from '../lib/api.ts'
+import { type Service, fetchService } from '../lib/services.ts'
+import { setSharedServiceSlug, sharedServiceSlug } from '../lib/share.ts'
 
 /**
  * Ata el servicio abierto a la barra de direcciones en los dos sentidos, como
@@ -13,30 +13,30 @@ export function useServiceLink(
   onOpen: (service: Service) => void,
 ): { resolving: boolean } {
   /** Se lee una sola vez al montar: el efecto de abajo reescribe la barra. */
-  const [linked] = useState(sharedServiceSlug);
-  const [resolving, setResolving] = useState(linked !== null);
+  const [linked] = useState(sharedServiceSlug)
+  const [resolving, setResolving] = useState(linked !== null)
 
   useEffect(() => {
-    if (linked === null) return;
+    if (linked === null) return
 
-    const controller = new AbortController();
+    const controller = new AbortController()
     fetchService(linked, controller.signal)
       .then((service) => {
-        onOpen(service);
-        setResolving(false);
+        onOpen(service)
+        setResolving(false)
       })
       .catch((cause: unknown) => {
-        if (isAbortError(cause)) return;
-        setResolving(false);
-      });
+        if (isAbortError(cause)) return
+        setResolving(false)
+      })
 
-    return () => controller.abort();
-  }, [linked, onOpen]);
+    return () => controller.abort()
+  }, [linked, onOpen])
 
   useEffect(() => {
-    if (resolving) return;
-    setSharedServiceSlug(open?.slug ?? null);
-  }, [open, resolving]);
+    if (resolving) return
+    setSharedServiceSlug(open?.slug ?? null)
+  }, [open, resolving])
 
-  return { resolving };
+  return { resolving }
 }

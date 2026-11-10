@@ -1,48 +1,52 @@
-﻿import { type Role, roleOf } from "@jobit/worker/roles";
-import { type SalarySummary, monthlyPayOf, summarize } from "@jobit/worker/salary";
-import { skillsOf } from "@jobit/worker/skills";
-import type { Job, JobType, Level, WorkMode } from "./types.ts";
+﻿import { type Role, roleOf } from '@jobit/worker/roles'
+import {
+  type SalarySummary,
+  monthlyPayOf,
+  summarize,
+} from '@jobit/worker/salary'
+import { skillsOf } from '@jobit/worker/skills'
+import type { Job, JobType, Level, WorkMode } from './types.ts'
 
-const DAY_MS = 86_400_000;
+const DAY_MS = 86_400_000
 
 /** Se reexportan: el resto de la API los importa desde acá. */
-export { type SalarySummary, monthlyPayOf, summarize };
+export { type SalarySummary, monthlyPayOf, summarize }
 
 export interface RoleStat {
-  slug: string;
-  label: string;
-  count: number;
+  slug: string
+  label: string
+  count: number
   /** The rubro most of these offers sit in, for context. */
-  category: string;
-  categoryLabel: string;
-  noExperience: number;
-  salary: SalarySummary | null;
+  category: string
+  categoryLabel: string
+  noExperience: number
+  salary: SalarySummary | null
 }
 
 export interface CategoryStat {
-  value: string;
-  label: string;
-  count: number;
-  noExperience: number;
-  salary: SalarySummary | null;
+  value: string
+  label: string
+  count: number
+  noExperience: number
+  salary: SalarySummary | null
 }
 
 export interface DepartmentStat {
-  value: string;
-  count: number;
-  salary: SalarySummary | null;
+  value: string
+  count: number
+  salary: SalarySummary | null
 }
 
 export interface Breakdown {
-  value: string;
-  count: number;
+  value: string
+  count: number
 }
 
 export interface SkillStat {
-  slug: string;
-  label: string;
-  count: number;
-  salary: SalarySummary | null;
+  slug: string
+  label: string
+  count: number
+  salary: SalarySummary | null
 }
 
 /**
@@ -50,80 +54,91 @@ export interface SkillStat {
  * this is the one screen in the app that is about the market and not about you.
  */
 export interface MarketReport {
-  count: number;
-  scraped_at: string;
+  count: number
+  scraped_at: string
   /** Offers posted in the last 7 and 30 days, to say how fresh the board is. */
-  fresh7: number;
-  fresh30: number;
-  noExperience: number;
+  fresh7: number
+  fresh30: number
+  noExperience: number
   /** Offers that publish a credible salary, out of the total. */
-  withSalary: number;
-  salary: SalarySummary | null;
-  sources: Breakdown[];
-  roles: RoleStat[];
-  categories: CategoryStat[];
-  departments: DepartmentStat[];
-  skills: SkillStat[];
-  levels: Breakdown[];
-  modes: Breakdown[];
-  jobTypes: Breakdown[];
+  withSalary: number
+  salary: SalarySummary | null
+  sources: Breakdown[]
+  roles: RoleStat[]
+  categories: CategoryStat[]
+  departments: DepartmentStat[]
+  skills: SkillStat[]
+  levels: Breakdown[]
+  modes: Breakdown[]
+  jobTypes: Breakdown[]
   /** Rubros where the most offers ask for no experience, as a share. */
-  entryFriendly: { value: string; label: string; count: number; share: number }[];
+  entryFriendly: {
+    value: string
+    label: string
+    count: number
+    share: number
+  }[]
 }
 
-function tally<T extends string>(jobs: Job[], pick: (job: Job) => T | null): Breakdown[] {
-  const counts = new Map<string, number>();
+function tally<T extends string>(
+  jobs: Job[],
+  pick: (job: Job) => T | null,
+): Breakdown[] {
+  const counts = new Map<string, number>()
   for (const job of jobs) {
-    const value = pick(job);
-    if (value !== null) counts.set(value, (counts.get(value) ?? 0) + 1);
+    const value = pick(job)
+    if (value !== null) counts.set(value, (counts.get(value) ?? 0) + 1)
   }
   return [...counts.entries()]
     .map(([value, count]) => ({ value, count }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.count - a.count)
 }
 
 /** Groups jobs by a key, keeping the order the groups first appeared in. */
 function groupBy<K>(jobs: Job[], key: (job: Job) => K | null): Map<K, Job[]> {
-  const groups = new Map<K, Job[]>();
+  const groups = new Map<K, Job[]>()
   for (const job of jobs) {
-    const value = key(job);
-    if (value === null) continue;
-    const bucket = groups.get(value);
-    if (bucket) bucket.push(job);
-    else groups.set(value, [job]);
+    const value = key(job)
+    if (value === null) continue
+    const bucket = groups.get(value)
+    if (bucket) bucket.push(job)
+    else groups.set(value, [job])
   }
-  return groups;
+  return groups
 }
 
 function salaryOf(jobs: Job[]): SalarySummary | null {
-  const values: number[] = [];
+  const values: number[] = []
   for (const job of jobs) {
-    const pay = monthlyPayOf(job);
-    if (pay !== null) values.push(pay);
+    const pay = monthlyPayOf(job)
+    if (pay !== null) values.push(pay)
   }
-  return summarize(values);
+  return summarize(values)
 }
 
-const countNoExperience = (jobs: Job[]): number => jobs.filter((job) => job.no_experience).length;
+const countNoExperience = (jobs: Job[]): number =>
+  jobs.filter((job) => job.no_experience).length
 
 /** The rubro most of a role's offers sit in, so a puesto can be placed. */
 function dominantCategory(jobs: Job[]): { value: string; label: string } {
-  const counts = new Map<string, { label: string; count: number }>();
+  const counts = new Map<string, { label: string; count: number }>()
   for (const job of jobs) {
-    const entry = counts.get(job.category);
-    if (entry) entry.count++;
-    else counts.set(job.category, { label: job.category_label, count: 1 });
+    const entry = counts.get(job.category)
+    if (entry) entry.count++
+    else counts.set(job.category, { label: job.category_label, count: 1 })
   }
-  const best = [...counts.entries()].sort((a, b) => b[1].count - a[1].count)[0];
-  return best ? { value: best[0], label: best[1].label } : { value: "", label: "Sin rubro" };
+  const best = [...counts.entries()].sort((a, b) => b[1].count - a[1].count)[0]
+  return best
+    ? { value: best[0], label: best[1].label }
+    : { value: '', label: 'Sin rubro' }
 }
 
 function roleStats(jobs: Job[]): RoleStat[] {
-  const groups = groupBy<Role>(jobs, (job) => roleOf(job.title));
+  const groups = groupBy<Role>(jobs, (job) => roleOf(job.title))
 
   return [...groups.entries()]
     .map(([role, group]) => {
-      const category = dominantCategory(group);
+      const category = dominantCategory(group)
       return {
         slug: role.slug,
         label: role.label,
@@ -132,13 +147,13 @@ function roleStats(jobs: Job[]): RoleStat[] {
         categoryLabel: category.label,
         noExperience: countNoExperience(group),
         salary: salaryOf(group),
-      };
+      }
     })
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.count - a.count)
 }
 
 function categoryStats(jobs: Job[]): CategoryStat[] {
-  const groups = groupBy(jobs, (job) => job.category || null);
+  const groups = groupBy(jobs, (job) => job.category || null)
 
   return [...groups.entries()]
     .map(([value, group]) => ({
@@ -148,33 +163,37 @@ function categoryStats(jobs: Job[]): CategoryStat[] {
       noExperience: countNoExperience(group),
       salary: salaryOf(group),
     }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.count - a.count)
 }
 
 function departmentStats(jobs: Job[]): DepartmentStat[] {
-  const groups = groupBy(jobs, (job) => job.department);
+  const groups = groupBy(jobs, (job) => job.department)
 
   return [...groups.entries()]
-    .map(([value, group]) => ({ value, count: group.length, salary: salaryOf(group) }))
-    .sort((a, b) => b.count - a.count);
+    .map(([value, group]) => ({
+      value,
+      count: group.length,
+      salary: salaryOf(group),
+    }))
+    .sort((a, b) => b.count - a.count)
 }
 
 /** Una habilidad mencionada en una sola oferta es anÃ©cdota, no demanda. */
-const MIN_SKILL_OFFERS = 5;
+const MIN_SKILL_OFFERS = 5
 
 /**
  * Las habilidades que mÃ¡s se piden. Se mira tÃ­tulo, descripciÃ³n y requisitos:
  * una empresa puede nombrar "Excel" en cualquiera de los tres, y todas cuentan.
  */
 function skillStats(jobs: Job[]): SkillStat[] {
-  const groups = new Map<string, { label: string; jobs: Job[] }>();
+  const groups = new Map<string, { label: string; jobs: Job[] }>()
 
   for (const job of jobs) {
-    const text = `${job.title} ${job.description} ${job.requirements ?? ""}`;
+    const text = `${job.title} ${job.description} ${job.requirements ?? ''}`
     for (const skill of skillsOf(text)) {
-      const entry = groups.get(skill.slug);
-      if (entry) entry.jobs.push(job);
-      else groups.set(skill.slug, { label: skill.label, jobs: [job] });
+      const entry = groups.get(skill.slug)
+      if (entry) entry.jobs.push(job)
+      else groups.set(skill.slug, { label: skill.label, jobs: [job] })
     }
   }
 
@@ -186,7 +205,7 @@ function skillStats(jobs: Job[]): SkillStat[] {
       salary: salaryOf(entry.jobs),
     }))
     .filter((entry) => entry.count >= MIN_SKILL_OFFERS)
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.count - a.count)
 }
 
 /**
@@ -195,8 +214,10 @@ function skillStats(jobs: Job[]): SkillStat[] {
  * A rubro with three such offers out of four is more useful to know about than
  * one with forty out of a thousand.
  */
-function entryFriendly(categories: CategoryStat[]): MarketReport["entryFriendly"] {
-  const MIN_OFFERS = 20;
+function entryFriendly(
+  categories: CategoryStat[],
+): MarketReport['entryFriendly'] {
+  const MIN_OFFERS = 20
 
   return categories
     .filter((entry) => entry.count >= MIN_OFFERS && entry.noExperience > 0)
@@ -206,20 +227,20 @@ function entryFriendly(categories: CategoryStat[]): MarketReport["entryFriendly"
       count: entry.noExperience,
       share: entry.noExperience / entry.count,
     }))
-    .sort((a, b) => b.share - a.share);
+    .sort((a, b) => b.share - a.share)
 }
 
 const isNewerThan = (job: Job, days: number, now: number): boolean => {
-  const posted = Date.parse(job.date_posted);
-  return !Number.isNaN(posted) && now - posted <= days * DAY_MS;
-};
+  const posted = Date.parse(job.date_posted)
+  return !Number.isNaN(posted) && now - posted <= days * DAY_MS
+}
 
 export function buildMarketReport(
   jobs: Job[],
   scrapedAt: string,
   now: number = Date.now(),
 ): MarketReport {
-  const categories = categoryStats(jobs);
+  const categories = categoryStats(jobs)
 
   return {
     count: jobs.length,
@@ -235,8 +256,8 @@ export function buildMarketReport(
     departments: departmentStats(jobs),
     skills: skillStats(jobs),
     levels: tally<Level>(jobs, (job) => job.level),
-    modes: tally<WorkMode>(jobs, (job) => job.remote ?? "onsite"),
+    modes: tally<WorkMode>(jobs, (job) => job.remote ?? 'onsite'),
     jobTypes: tally<JobType>(jobs, (job) => job.job_type),
     entryFriendly: entryFriendly(categories),
-  };
+  }
 }

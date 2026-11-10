@@ -19,13 +19,13 @@ En desarrollo, `web/vite.config.ts` proxea `/api`, `/empleo`, `/mercado`,
 
 ## Entradas
 
-| Archivo | Ruta | Bundle | Para quién |
-|---|---|---|---|
-| `index.html` | `/` | `src/main.tsx` | El tablero. |
-| `empresas.html` | `/empresas` | `src/empresas/main.tsx` | El panel de empresa. |
-| `admin.html` | `/admin` | `src/admin/main.tsx` | El panel de administración. |
-| `terminos.html` | `/terminos` | `src/legal.ts` | Términos. Sin React. |
-| `privacidad.html` | `/privacidad` | `src/legal.ts` | Privacidad. Sin React. |
+| Archivo           | Ruta          | Bundle                  | Para quién                  |
+| ----------------- | ------------- | ----------------------- | --------------------------- |
+| `index.html`      | `/`           | `src/main.tsx`          | El tablero.                 |
+| `empresas.html`   | `/empresas`   | `src/empresas/main.tsx` | El panel de empresa.        |
+| `admin.html`      | `/admin`      | `src/admin/main.tsx`    | El panel de administración. |
+| `terminos.html`   | `/terminos`   | `src/legal.ts`          | Términos. Sin React.        |
+| `privacidad.html` | `/privacidad` | `src/legal.ts`          | Privacidad. Sin React.      |
 
 ## Estructura
 

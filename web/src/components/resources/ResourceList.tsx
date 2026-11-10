@@ -1,15 +1,15 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink } from 'lucide-react'
 import {
   RESOURCE_TYPES,
   RESOURCE_TYPE_LABEL,
   orderResources,
   resourceType,
-} from "@jobit/worker/content/resources";
-import type { ContentItem } from "@jobit/worker/content/types";
-import { externalRel } from "../../lib/content.ts";
+} from '@jobit/worker/content/resources'
+import type { ContentItem } from '@jobit/worker/content/types'
+import { externalRel } from '../../lib/content.ts'
 
 interface ResourceListProps {
-  items: ContentItem[];
+  items: ContentItem[]
 }
 
 /**
@@ -18,13 +18,13 @@ interface ResourceListProps {
  * rotula a la vista y su enlace lleva `rel="sponsored"` (ver `externalRel`).
  */
 export function ResourceList({ items }: ResourceListProps) {
-  const ordered = orderResources(items);
+  const ordered = orderResources(items)
 
   return (
     <div className="space-y-4">
       {RESOURCE_TYPES.map((type) => {
-        const group = ordered.filter((item) => resourceType(item) === type.id);
-        if (group.length === 0) return null;
+        const group = ordered.filter((item) => resourceType(item) === type.id)
+        if (group.length === 0) return null
         return (
           <section key={type.id}>
             <h3 className="text-sm font-medium text-ink">{type.label}</h3>
@@ -46,7 +46,9 @@ export function ResourceList({ items }: ResourceListProps) {
                         <ExternalLink aria-hidden className="size-3.5" />
                       </a>
                     ) : (
-                      <span className="text-sm font-medium text-ink">{item.title}</span>
+                      <span className="text-sm font-medium text-ink">
+                        {item.title}
+                      </span>
                     )}
                     {item.sponsored ? (
                       <span className="rounded-full border border-sky/60 px-2 py-0.5 text-[11px] text-soft">
@@ -56,15 +58,17 @@ export function ResourceList({ items }: ResourceListProps) {
                   </div>
                   <p className="mt-1 text-xs text-muted">
                     {RESOURCE_TYPE_LABEL[type.id]} · {item.source_label}
-                    {item.tags.includes("es") ? " · En español" : ""}
+                    {item.tags.includes('es') ? ' · En español' : ''}
                   </p>
-                  <p className="mt-1 text-sm leading-relaxed text-soft">{item.body}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-soft">
+                    {item.body}
+                  </p>
                 </li>
               ))}
             </ul>
           </section>
-        );
+        )
       })}
     </div>
-  );
+  )
 }

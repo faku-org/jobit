@@ -1,11 +1,11 @@
-import { Trash2 } from "lucide-react";
-import { useState } from "react";
-import { Confirm } from "../ui/Confirm.tsx";
+import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Confirm } from '../ui/Confirm.tsx'
 
 interface DangerZoneProps {
   /** What is about to be lost, listed so the confirmation is informed. */
-  counts: { saved: number; applications: number; dismissed: number };
-  onEraseEverything: () => void;
+  counts: { saved: number; applications: number; dismissed: number }
+  onEraseEverything: () => void
 }
 
 /**
@@ -14,10 +14,10 @@ interface DangerZoneProps {
  * inicial. Un botón aparte para eso decía lo mismo dos veces.
  */
 export function DangerZone({ counts, onEraseEverything }: DangerZoneProps) {
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState(false)
 
   const plural = (count: number, one: string, many: string) =>
-    `${count} ${count === 1 ? one : many}`;
+    `${count} ${count === 1 ? one : many}`
 
   return (
     <div className="space-y-3 border-t border-onpanel/10 pt-3">
@@ -40,15 +40,28 @@ export function DangerZone({ counts, onEraseEverything }: DangerZoneProps) {
           action="Sí, borrar todo"
           losing={
             <>
-              Se borra todo lo que JobIt guarda acá: tu perfil y tus estudios,{" "}
-              {plural(counts.saved, "oferta guardada", "ofertas guardadas")},{" "}
-              {plural(counts.applications, "postulación seguida", "postulaciones seguidas")},{" "}
-              {plural(counts.dismissed, "oferta descartada", "ofertas descartadas")} y todas tus
-              preferencias.
+              Se borra todo lo que JobIt guarda acá: tu perfil y tus estudios,{' '}
+              {plural(
+                counts.saved,
+                'oferta guardada',
+                'ofertas guardadas',
+              )},{' '}
+              {plural(
+                counts.applications,
+                'postulación seguida',
+                'postulaciones seguidas',
+              )}
+              ,{' '}
+              {plural(
+                counts.dismissed,
+                'oferta descartada',
+                'ofertas descartadas',
+              )}{' '}
+              y todas tus preferencias.
               <br />
               <strong className="font-medium text-onpanel/90">
                 No hay copia en ningún servidor: esto no se puede deshacer.
-              </strong>{" "}
+              </strong>{' '}
               Vas a arrancar de cero con el onboarding.
             </>
           }
@@ -57,11 +70,11 @@ export function DangerZone({ counts, onEraseEverything }: DangerZoneProps) {
           tone="danger"
           onCancel={() => setPending(false)}
           onConfirm={() => {
-            onEraseEverything();
-            setPending(false);
+            onEraseEverything()
+            setPending(false)
           }}
         />
       </div>
     </div>
-  );
+  )
 }

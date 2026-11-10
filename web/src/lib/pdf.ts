@@ -5,52 +5,56 @@
  *
  * The file never leaves the page: it is read straight from the File object.
  */
-const MAX_PAGES = 12;
+const MAX_PAGES = 12
 
 interface TextItem {
-  str?: string;
-  hasEOL?: boolean;
+  str?: string
+  hasEOL?: boolean
 }
 
 export async function extractPdfText(file: File): Promise<string> {
-  const pdfjs = await import("pdfjs-dist");
+  const pdfjs = await import('pdfjs-dist')
 
   /** Vite resolves this to a hashed asset and pdf.js runs it off the main thread. */
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
+    'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url,
-  ).toString();
+  ).toString()
 
-  const data = new Uint8Array(await file.arrayBuffer());
-  const document = await pdfjs.getDocument({ data }).promise;
+  const data = new Uint8Array(await file.arrayBuffer())
+  const document = await pdfjs.getDocument({ data }).promise
 
   try {
-    const pages: string[] = [];
+    const pages: string[] = []
 
-    for (let number = 1; number <= Math.min(document.numPages, MAX_PAGES); number++) {
-      const page = await document.getPage(number);
-      const content = await page.getTextContent();
+    for (
+      let number = 1;
+      number <= Math.min(document.numPages, MAX_PAGES);
+      number++
+    ) {
+      const page = await document.getPage(number)
+      const content = await page.getTextContent()
 
       /** pdf.js hands back positioned runs; the EOL flags rebuild the lines. */
-      let line = "";
-      const lines: string[] = [];
+      let line = ''
+      const lines: string[] = []
 
       for (const item of content.items as TextItem[]) {
-        if (typeof item.str !== "string") continue;
-        line += item.str;
+        if (typeof item.str !== 'string') continue
+        line += item.str
         if (item.hasEOL) {
-          lines.push(line.trim());
-          line = "";
+          lines.push(line.trim())
+          line = ''
         }
       }
-      if (line.trim()) lines.push(line.trim());
+      if (line.trim()) lines.push(line.trim())
 
-      pages.push(lines.join("\n"));
-      page.cleanup();
+      pages.push(lines.join('\n'))
+      page.cleanup()
     }
 
-    return pages.join("\n\n");
+    return pages.join('\n\n')
   } finally {
-    document.cleanup();
+    document.cleanup()
   }
 }

@@ -1,24 +1,32 @@
-import { m } from "motion/react";
-import type { CategoryGroup } from "../../lib/types.ts";
+import { m } from 'motion/react'
+import type { CategoryGroup } from '../../lib/types.ts'
 
 interface CategoryChipsProps {
-  groups: CategoryGroup[];
+  groups: CategoryGroup[]
   /** Empty means every rubro. */
-  selected: string;
-  onSelect: (value: string) => void;
+  selected: string
+  onSelect: (value: string) => void
 }
 
 const chip =
-  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors";
+  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors'
 
 /** Rubro filter for the saved list, counted over what is actually saved. */
-export function CategoryChips({ groups, selected, onSelect }: CategoryChipsProps) {
-  if (groups.length < 2) return null;
+export function CategoryChips({
+  groups,
+  selected,
+  onSelect,
+}: CategoryChipsProps) {
+  if (groups.length < 2) return null
 
-  const total = groups.reduce((sum, group) => sum + group.jobs.length, 0);
-  const options = [{ value: "", label: "Todos", count: total }].concat(
-    groups.map((group) => ({ value: group.value, label: group.label, count: group.jobs.length })),
-  );
+  const total = groups.reduce((sum, group) => sum + group.jobs.length, 0)
+  const options = [{ value: '', label: 'Todos', count: total }].concat(
+    groups.map((group) => ({
+      value: group.value,
+      label: group.label,
+      count: group.jobs.length,
+    })),
+  )
 
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -28,8 +36,8 @@ export function CategoryChips({ groups, selected, onSelect }: CategoryChipsProps
           aria-pressed={selected === option.value}
           className={`${chip} ${
             selected === option.value
-              ? "border-panel bg-panel text-onpanel"
-              : "border-sky/60 bg-surface text-muted hover:border-brand hover:text-ink"
+              ? 'border-panel bg-panel text-onpanel'
+              : 'border-sky/60 bg-surface text-muted hover:border-brand hover:text-ink'
           }`}
           type="button"
           whileTap={{ scale: 0.95 }}
@@ -40,5 +48,5 @@ export function CategoryChips({ groups, selected, onSelect }: CategoryChipsProps
         </m.button>
       ))}
     </div>
-  );
+  )
 }

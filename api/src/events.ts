@@ -1,9 +1,9 @@
-import { CATEGORIES } from "@jobit/worker/categories";
-import { appendFile, mkdir } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { t } from "elysia";
-import { ROLES } from "@jobit/worker/roles";
-import { bump, bumpService } from "./metrics.ts";
+import { CATEGORIES } from '@jobit/worker/categories'
+import { appendFile, mkdir } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
+import { t } from 'elysia'
+import { ROLES } from '@jobit/worker/roles'
+import { bump, bumpService } from './metrics.ts'
 
 /**
  * Eventos de uso, al lado del resumen diario de stats.ts. La diferencia con
@@ -19,14 +19,14 @@ export const eventsSchema = t.Object({
   events: t.Array(
     t.Union([
       t.Object({
-        kind: t.Literal("search"),
+        kind: t.Literal('search'),
         role: t.String({ maxLength: 60 }),
         category: t.String({ maxLength: 60 }),
         filters: t.Array(t.String({ maxLength: 20 }), { maxItems: 12 }),
         results: t.Integer({ minimum: 0, maximum: 1_000_000 }),
       }),
       t.Object({
-        kind: t.Literal("apply"),
+        kind: t.Literal('apply'),
         job: t.String({ maxLength: 100 }),
         source: t.String({ maxLength: 40 }),
         category: t.String({ maxLength: 60 }),
@@ -35,29 +35,29 @@ export const eventsSchema = t.Object({
          público de la oferta y sube por el mismo canal anónimo: no hay
          usuario, ni sesión, ni nada que lo ligue a quien lo mandó. */
       t.Object({
-        kind: t.Literal("offer_view"),
+        kind: t.Literal('offer_view'),
         id: t.String({ maxLength: 100 }),
       }),
       t.Object({
-        kind: t.Literal("offer_apply"),
+        kind: t.Literal('offer_apply'),
         id: t.String({ maxLength: 100 }),
       }),
       /* La sección de servicios. Ninguno lleva usuario ni sesión, aunque la
          sesión exista: la regla es la de arriba, una fila es una acción y no
          una persona. Ver y contactar solo suben el contador del servicio. */
       t.Object({
-        kind: t.Literal("service_search"),
+        kind: t.Literal('service_search'),
         category: t.String({ maxLength: 60 }),
         filters: t.Array(t.String({ maxLength: 20 }), { maxItems: 12 }),
         results: t.Integer({ minimum: 0, maximum: 1_000_000 }),
       }),
       t.Object({
-        kind: t.Literal("service_view"),
+        kind: t.Literal('service_view'),
         id: t.String({ maxLength: 100 }),
         category: t.String({ maxLength: 60 }),
       }),
       t.Object({
-        kind: t.Literal("service_contact"),
+        kind: t.Literal('service_contact'),
         id: t.String({ maxLength: 100 }),
         category: t.String({ maxLength: 60 }),
         channel: t.String({ maxLength: 20 }),
@@ -65,142 +65,166 @@ export const eventsSchema = t.Object({
     ]),
     { maxItems: 20 },
   ),
-});
+})
 
-export type EventsBody = typeof eventsSchema.static;
-export type UsageEvent = EventsBody["events"][number];
+export type EventsBody = typeof eventsSchema.static
+export type UsageEvent = EventsBody['events'][number]
 
-const ROLE_SLUGS = new Set(ROLES.map((role) => role.slug));
-const CATEGORY_SLUGS = new Set(CATEGORIES.map((category) => category.slug));
-const SOURCES = new Set(["jobit", "buscojobs", "gallito", "uruguayconcursa"]);
+const ROLE_SLUGS = new Set(ROLES.map((role) => role.slug))
+const CATEGORY_SLUGS = new Set(CATEGORIES.map((category) => category.slug))
+const SOURCES = new Set(['jobit', 'buscojobs', 'gallito', 'uruguayconcursa'])
 
 /** Los nombres de filtro que entiende /api/jobs, para contar cuáles se usan
  * sin guardar con qué valor. */
 const FILTERS = new Set([
-  "q",
-  "category",
-  "department",
-  "level",
-  "remote",
-  "job_type",
-  "salary",
-  "no_experience",
-  "days",
-  "sort",
-  "source",
-]);
+  'q',
+  'category',
+  'department',
+  'level',
+  'remote',
+  'job_type',
+  'salary',
+  'no_experience',
+  'days',
+  'sort',
+  'source',
+])
 
 /** Los filtros que entiende /api/services, con el mismo criterio: cuáles se
  * usan, nunca con qué valor. */
 const SERVICE_FILTERS = new Set([
-  "q",
-  "category",
-  "department",
-  "remote",
-  "price",
-  "currency",
-  "rating",
-  "sort",
-]);
+  'q',
+  'category',
+  'department',
+  'remote',
+  'price',
+  'currency',
+  'rating',
+  'sort',
+])
 
 /** Por dónde se contactó. Lo que no figura acá entra como "otro". */
-export const CONTACT_CHANNELS = ["mensaje", "whatsapp", "email", "telefono", "otro"] as const;
-const CHANNELS = new Set<string>(CONTACT_CHANNELS);
+export const CONTACT_CHANNELS = [
+  'mensaje',
+  'whatsapp',
+  'email',
+  'telefono',
+  'otro',
+] as const
+const CHANNELS = new Set<string>(CONTACT_CHANNELS)
 
-const known = (value: string, vocabulary: Set<string>, fallback: string): string =>
-  vocabulary.has(value) ? value : fallback;
+const known = (
+  value: string,
+  vocabulary: Set<string>,
+  fallback: string,
+): string => (vocabulary.has(value) ? value : fallback)
 
 /** El id de una oferta identifica una oferta, no a quien la miró, así que es
  * lo único que viaja tal cual. Igual se acota por las dudas. */
-const JOB_ID = /^[a-z0-9:_-]{1,80}$/i;
+const JOB_ID = /^[a-z0-9:_-]{1,80}$/i
 
 function normalise(event: UsageEvent): Record<string, unknown> | null {
   /** Los de métricas no van al archivo: se suman a los contadores y listo. */
   if (
-    event.kind === "offer_view" ||
-    event.kind === "offer_apply" ||
-    event.kind === "service_view" ||
-    event.kind === "service_contact"
+    event.kind === 'offer_view' ||
+    event.kind === 'offer_apply' ||
+    event.kind === 'service_view' ||
+    event.kind === 'service_contact'
   ) {
-    return null;
+    return null
   }
 
-  if (event.kind === "service_search") {
+  if (event.kind === 'service_search') {
     return {
-      kind: "service_search",
-      category: known(event.category, CATEGORY_SLUGS, ""),
-      filters: [...new Set(event.filters.filter((name) => SERVICE_FILTERS.has(name)))].sort(),
+      kind: 'service_search',
+      category: known(event.category, CATEGORY_SLUGS, ''),
+      filters: [
+        ...new Set(event.filters.filter((name) => SERVICE_FILTERS.has(name))),
+      ].sort(),
       results: event.results,
-    };
+    }
   }
 
-  if (event.kind === "search") {
+  if (event.kind === 'search') {
     return {
-      kind: "search",
-      role: known(event.role, ROLE_SLUGS, "otro"),
-      category: known(event.category, CATEGORY_SLUGS, ""),
-      filters: [...new Set(event.filters.filter((name) => FILTERS.has(name)))].sort(),
+      kind: 'search',
+      role: known(event.role, ROLE_SLUGS, 'otro'),
+      category: known(event.category, CATEGORY_SLUGS, ''),
+      filters: [
+        ...new Set(event.filters.filter((name) => FILTERS.has(name))),
+      ].sort(),
       results: event.results,
-    };
+    }
   }
 
-  if (!JOB_ID.test(event.job)) return null;
+  if (!JOB_ID.test(event.job)) return null
   return {
-    kind: "apply",
+    kind: 'apply',
     job: event.job,
-    source: known(event.source, SOURCES, "otra"),
-    category: known(event.category, CATEGORY_SLUGS, ""),
-  };
+    source: known(event.source, SOURCES, 'otra'),
+    category: known(event.category, CATEGORY_SLUGS, ''),
+  }
 }
 
 export const eventsFilePath = (): string =>
   process.env.EVENTS_FILE
     ? resolve(process.env.EVENTS_FILE)
-    : resolve(import.meta.dir, "../../data/events.jsonl");
+    : resolve(import.meta.dir, '../../data/events.jsonl')
 
 /** Un objeto JSON por línea, con el día y nunca la hora: dos eventos del mismo
  * navegador quedan indistinguibles de dos de navegadores distintos. */
 export async function appendEvents(events: UsageEvent[]): Promise<number> {
   /** Los de métricas se suman a `offer_daily` y `service_daily`, y no tocan el
    * archivo. */
-  let bumped = 0;
-  const usage: UsageEvent[] = [];
-  const contacts: Record<string, unknown>[] = [];
+  let bumped = 0
+  const usage: UsageEvent[] = []
+  const contacts: Record<string, unknown>[] = []
   for (const event of events) {
-    if (event.kind === "offer_view" || event.kind === "offer_apply") {
-      if (JOB_ID.test(event.id) && bump(event.id, event.kind === "offer_view" ? "view" : "apply")) {
-        bumped += 1;
+    if (event.kind === 'offer_view' || event.kind === 'offer_apply') {
+      if (
+        JOB_ID.test(event.id) &&
+        bump(event.id, event.kind === 'offer_view' ? 'view' : 'apply')
+      ) {
+        bumped += 1
       }
-      continue;
+      continue
     }
     /** El rubro sale de la fila del servicio, no del navegador. El medio de
      * contacto, además de sumar al contador, queda en el archivo sin el id del
      * servicio: dice por dónde se contacta, no a quién ni a quién se contactó. */
-    if (event.kind === "service_view" || event.kind === "service_contact") {
-      if (!JOB_ID.test(event.id)) continue;
-      const category = bumpService(event.id, event.kind === "service_view" ? "view" : "contact");
-      if (category === null) continue;
+    if (event.kind === 'service_view' || event.kind === 'service_contact') {
+      if (!JOB_ID.test(event.id)) continue
+      const category = bumpService(
+        event.id,
+        event.kind === 'service_view' ? 'view' : 'contact',
+      )
+      if (category === null) continue
       /** El contacto ya se cuenta como fila, más abajo. */
-      if (event.kind === "service_view") bumped += 1;
+      if (event.kind === 'service_view') bumped += 1
       else {
         contacts.push({
-          kind: "service_contact",
+          kind: 'service_contact',
           category,
-          channel: known(event.channel, CHANNELS, "otro"),
-        });
+          channel: known(event.channel, CHANNELS, 'otro'),
+        })
       }
-      continue;
+      continue
     }
-    usage.push(event);
+    usage.push(event)
   }
 
-  const rows = [...usage.map(normalise).filter((row) => row !== null), ...contacts];
-  if (rows.length === 0) return bumped;
+  const rows = [
+    ...usage.map(normalise).filter((row) => row !== null),
+    ...contacts,
+  ]
+  if (rows.length === 0) return bumped
 
-  const path = eventsFilePath();
-  await mkdir(dirname(path), { recursive: true });
-  const day = new Date().toISOString().slice(0, 10);
-  const lines = rows.map((row) => `${JSON.stringify({ day, ...row })}\n`).join("");
-  await appendFile(path, lines, "utf8");
-  return rows.length + bumped;
+  const path = eventsFilePath()
+  await mkdir(dirname(path), { recursive: true })
+  const day = new Date().toISOString().slice(0, 10)
+  const lines = rows
+    .map((row) => `${JSON.stringify({ day, ...row })}\n`)
+    .join('')
+  await appendFile(path, lines, 'utf8')
+  return rows.length + bumped
 }

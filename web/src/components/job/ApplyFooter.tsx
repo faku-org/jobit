@@ -1,28 +1,34 @@
-import { ArrowUpRight, CheckCheck } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import { type ReactNode, useState } from "react";
-import { applyEvent, offerApply } from "../../lib/events.ts";
-import { fadeUpTransition } from "../../lib/motion.ts";
-import { chipClass } from "../../lib/styles.ts";
-import { track } from "../../lib/track.ts";
-import type { Job } from "../../lib/types.ts";
+import { ArrowUpRight, CheckCheck } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
+import { type ReactNode, useState } from 'react'
+import { applyEvent, offerApply } from '../../lib/events.ts'
+import { fadeUpTransition } from '../../lib/motion.ts'
+import { chipClass } from '../../lib/styles.ts'
+import { track } from '../../lib/track.ts'
+import type { Job } from '../../lib/types.ts'
 
 interface ApplyFooterProps {
-  job: Job;
-  isApplied: boolean;
-  onApplied: (job: Job) => void;
+  job: Job
+  isApplied: boolean
+  onApplied: (job: Job) => void
   /** Slot for whatever the host wants on the left of the row. */
-  left?: ReactNode;
+  left?: ReactNode
 }
 
-const answerClass = "rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors";
+const answerClass =
+  'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors'
 
 /**
  * Opens the offer on the job board and, back in the tab, asks whether the
  * application was actually sent: only a yes puts it on the follow-up list.
  */
-export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProps) {
-  const [asking, setAsking] = useState(false);
+export function ApplyFooter({
+  job,
+  isApplied,
+  onApplied,
+  left,
+}: ApplyFooterProps) {
+  const [asking, setAsking] = useState(false)
 
   return (
     <div className="space-y-3">
@@ -41,8 +47,8 @@ export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProp
                   className={`${answerClass} bg-panel text-onpanel hover:bg-brand`}
                   type="button"
                   onClick={() => {
-                    onApplied(job);
-                    setAsking(false);
+                    onApplied(job)
+                    setAsking(false)
                   }}
                 >
                   Sí, seguir esta
@@ -78,17 +84,17 @@ export function ApplyFooter({ job, isApplied, onApplied, left }: ApplyFooterProp
             target="_blank"
             whileTap={{ scale: 0.97 }}
             onClick={() => {
-              track(applyEvent(job));
-              const own = offerApply(job);
-              if (own) track(own);
-              setAsking(!isApplied);
+              track(applyEvent(job))
+              const own = offerApply(job)
+              if (own) track(own)
+              setAsking(!isApplied)
             }}
           >
-            {isApplied ? "Ver el aviso" : "Postularme"}
+            {isApplied ? 'Ver el aviso' : 'Postularme'}
             <ArrowUpRight aria-hidden className="size-4" />
           </m.a>
         </div>
       </div>
     </div>
-  );
+  )
 }

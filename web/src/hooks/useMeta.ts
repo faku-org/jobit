@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { fetchMeta } from "../lib/api.ts";
-import { setBoardVersion } from "../lib/board.ts";
-import { expireJobs } from "../lib/jobsCache.ts";
-import type { Meta } from "../lib/types.ts";
-import { clearMarket } from "./useMarket.ts";
+import { useEffect, useState } from 'react'
+import { fetchMeta } from '../lib/api.ts'
+import { setBoardVersion } from '../lib/board.ts'
+import { expireJobs } from '../lib/jobsCache.ts'
+import type { Meta } from '../lib/types.ts'
+import { clearMarket } from './useMarket.ts'
 
 /**
  * Cada cuánto se vuelve a preguntar mientras la pestaña está a la vista.
@@ -13,7 +13,7 @@ import { clearMarket } from "./useMarket.ts";
  * scraper corre unas pocas veces por día, así que cinco minutos alcanzan para
  * que una tanda nueva aparezca sola y no son nada para la API.
  */
-const CHECK_MS = 5 * 60_000;
+const CHECK_MS = 5 * 60_000
 
 /**
  * Lo que la API dice del tablero, y el único lugar que se entera de que hubo
@@ -26,43 +26,43 @@ const CHECK_MS = 5 * 60_000;
  * las ofertas nuevas solo aparecían recargando la página.
  */
 export function useMeta(): Meta | null {
-  const [meta, setMeta] = useState<Meta | null>(null);
+  const [meta, setMeta] = useState<Meta | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController();
-    let asked = 0;
+    const controller = new AbortController()
+    let asked = 0
 
     const check = (): void => {
-      if (document.hidden) return;
+      if (document.hidden) return
 
-      const now = Date.now();
+      const now = Date.now()
       /** Volver a la pestaña diez veces en un minuto es una sola pregunta. */
-      if (now - asked < CHECK_MS) return;
-      asked = now;
+      if (now - asked < CHECK_MS) return
+      asked = now
 
       fetchMeta(controller.signal)
         .then((next) => {
-          setMeta(next);
+          setMeta(next)
           setBoardVersion(next.scraped_at, () => {
-            expireJobs();
-            clearMarket();
-          });
+            expireJobs()
+            clearMarket()
+          })
         })
         /** Que falle no borra lo que se está mostrando: se vuelve a preguntar
          * en la próxima vuelta. */
-        .catch(() => {});
-    };
+        .catch(() => {})
+    }
 
-    check();
-    const timer = setInterval(check, CHECK_MS);
-    document.addEventListener("visibilitychange", check);
+    check()
+    const timer = setInterval(check, CHECK_MS)
+    document.addEventListener('visibilitychange', check)
 
     return () => {
-      controller.abort();
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", check);
-    };
-  }, []);
+      controller.abort()
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', check)
+    }
+  }, [])
 
-  return meta;
+  return meta
 }

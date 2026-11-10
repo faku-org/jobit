@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia } from 'elysia'
 
 /**
  * Apoyo voluntario (#33): un enlace, sin cuenta y sin seguimiento.
@@ -20,17 +20,21 @@ import { Elysia } from "elysia";
  * URL web común. Vacío o inválido es "no hay enlace", no un error: la sección
  * simplemente no muestra el botón.
  */
-export function supportUrl(raw: string | undefined = process.env.SUPPORT_URL): string | null {
-  const value = raw?.trim();
-  if (!value) return null;
+export function supportUrl(
+  raw: string | undefined = process.env.SUPPORT_URL,
+): string | null {
+  const value = raw?.trim()
+  if (!value) return null
 
   try {
-    const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password) return null;
-    return url.toString();
+    const url = new URL(value)
+    if (url.protocol !== 'https:' || url.username || url.password) return null
+    return url.toString()
   } catch {
-    return null;
+    return null
   }
 }
 
-export const support = new Elysia().get("/api/support", () => ({ url: supportUrl() }));
+export const support = new Elysia().get('/api/support', () => ({
+  url: supportUrl(),
+}))

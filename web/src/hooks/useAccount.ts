@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
-import { type Account, NoSession, fetchMe, logout as sendLogout } from "../lib/account.ts";
+import { useCallback, useEffect, useState } from 'react'
+import {
+  type Account,
+  NoSession,
+  fetchMe,
+  logout as sendLogout,
+} from '../lib/account.ts'
 
 export interface AccountState {
-  account: Account | null;
+  account: Account | null
   /** Mientras no se sabe si hay sesión, el alta de un servicio no se ofrece
    * ni se niega: se espera, que es medio segundo y no una pantalla en falso. */
-  checking: boolean;
-  setAccount: (account: Account | null) => void;
-  logout: () => void;
+  checking: boolean
+  setAccount: (account: Account | null) => void
+  logout: () => void
 }
 
 /**
@@ -16,28 +21,28 @@ export interface AccountState {
  * preguntarle a la API quién soy.
  */
 export function useAccount(enabled: boolean): AccountState {
-  const [account, setAccount] = useState<Account | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [asked, setAsked] = useState(false);
+  const [account, setAccount] = useState<Account | null>(null)
+  const [checking, setChecking] = useState(false)
+  const [asked, setAsked] = useState(false)
 
   useEffect(() => {
-    if (!enabled || asked) return;
+    if (!enabled || asked) return
 
-    setAsked(true);
-    setChecking(true);
+    setAsked(true)
+    setChecking(true)
     fetchMe()
       .then((me) => setAccount(me.user))
       .catch((cause: unknown) => {
         /** Sin sesión no es un error: es no haber entrado todavía. */
-        if (!(cause instanceof NoSession)) setAccount(null);
+        if (!(cause instanceof NoSession)) setAccount(null)
       })
-      .finally(() => setChecking(false));
-  }, [enabled, asked]);
+      .finally(() => setChecking(false))
+  }, [enabled, asked])
 
   const logout = useCallback(() => {
-    setAccount(null);
-    void sendLogout().catch(() => {});
-  }, []);
+    setAccount(null)
+    void sendLogout().catch(() => {})
+  }, [])
 
-  return { account, checking, setAccount, logout };
+  return { account, checking, setAccount, logout }
 }

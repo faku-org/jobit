@@ -1,7 +1,7 @@
-import { Elysia, t } from "elysia";
-import { serviceMetrics } from "./metrics.ts";
-import * as queue from "./queue.ts";
-import * as services from "./services.ts";
+import { Elysia, t } from 'elysia'
+import { serviceMetrics } from './metrics.ts'
+import * as queue from './queue.ts'
+import * as services from './services.ts'
 import {
   CURRENCIES,
   MAX_SERVICES_PER_USER,
@@ -11,9 +11,9 @@ import {
   RESPONSE_TIMES,
   WORK_MODES,
   WORK_STYLES,
-} from "./services.ts";
-import { type CookieJar, sessionToken } from "./session.ts";
-import * as users from "./users.ts";
+} from './services.ts'
+import { type CookieJar, sessionToken } from './session.ts'
+import * as users from './users.ts'
 
 /**
  * Lo que hace quien publica con lo suyo. Todo pide sesión y todo mira al
@@ -21,7 +21,8 @@ import * as users from "./users.ts";
  *
  * Lo público (la lista, la ficha, las facetas) no vive acá.
  */
-const literals = (values: readonly string[]) => t.Union(values.map((value) => t.Literal(value)));
+const literals = (values: readonly string[]) =>
+  t.Union(values.map((value) => t.Literal(value)))
 
 const priceSchema = t.Object({
   kind: t.Optional(literals(PRICE_KINDS)),
@@ -30,13 +31,13 @@ const priceSchema = t.Object({
   currency: literals(CURRENCIES),
   unit: t.Optional(literals(PRICE_UNITS)),
   notes: t.Optional(t.String({ maxLength: 400 })),
-});
+})
 
 const hourSchema = t.Object({
   weekday: t.Number({ minimum: 0, maximum: 6 }),
   from: t.String({ maxLength: 5 }),
   to: t.String({ maxLength: 5 }),
-});
+})
 
 const serviceBody = t.Object({
   title: t.String({ maxLength: 200 }),
@@ -56,14 +57,14 @@ const serviceBody = t.Object({
   skills: t.Optional(t.Array(t.String({ maxLength: 80 }), { maxItems: 40 })),
   prices: t.Optional(t.Array(priceSchema, { maxItems: 20 })),
   hours: t.Optional(t.Array(hourSchema, { maxItems: 40 })),
-});
+})
 
 /** El saneo de services.ts recorta y descarta; acá solo hace falta que la
  * forma sea la esperada, como ya pasa con las ofertas del panel. */
-type ServiceBody = typeof serviceBody.static;
+type ServiceBody = typeof serviceBody.static
 
 const toInput = (body: Partial<ServiceBody>): Partial<services.ServiceInput> =>
-  body as Partial<services.ServiceInput>;
+  body as Partial<services.ServiceInput>
 
 /**
  * Mandar algo a la cola lo hace pasar por el filtro. Lo que vuelve es el
@@ -71,17 +72,17 @@ const toInput = (body: Partial<ServiceBody>): Partial<services.ServiceInput> =>
  * ve en el acto y no se queda esperando una aprobación que no va a llegar.
  */
 function moderated(service: services.Service): services.Service {
-  if (service.status !== "pending") return service;
+  if (service.status !== 'pending') return service
 
-  queue.submit(service);
-  return services.byId(service.id) ?? service;
+  queue.submit(service)
+  return services.byId(service.id) ?? service
 }
 
 export const publish = new Elysia()
   .guard({
     beforeHandle({ cookie, status }) {
       if (!users.sessionUser(sessionToken(cookie as CookieJar))) {
-        return status(401, { error: "no hay sesión" });
+        return status(401, { error: 'no hay sesión' })
       }
     },
   })
@@ -89,44 +90,51 @@ export const publish = new Elysia()
     /** El guard de arriba ya se aseguró de que exista. */
     me: users.sessionUser(sessionToken(cookie as CookieJar)) as users.User,
   }))
-  .get("/api/services/mine", ({ me }) => ({
+  .get('/api/services/mine', ({ me }) => ({
     services: services.list({ user_id: me.id }),
     max: MAX_SERVICES_PER_USER,
   }))
   .post(
-    "/api/services",
+    '/api/services',
     ({ body, me, status }) => {
-      const created = services.create(me.id, { ...toInput(body), title: body.title });
+      const created = services.create(me.id, {
+        ...toInput(body),
+        title: body.title,
+      })
       return created.ok
         ? status(201, moderated(created.value))
-        : status(422, { error: created.error });
+        : status(422, { error: created.error })
     },
     { body: serviceBody },
   )
   .patch(
-    "/api/services/:id",
+    '/api/services/:id',
     ({ body, me, params, status }) => {
-      const updated = services.update(params.id, me.id, toInput(body));
-      if (updated.ok) return moderated(updated.value);
+      const updated = services.update(params.id, me.id, toInput(body))
+      if (updated.ok) return moderated(updated.value)
 
       /** El servicio de otra persona y el que no existe contestan lo mismo:
        * saber cuál es cuál diría qué ids existen. */
-      return updated.error === "ese servicio no existe"
+      return updated.error === 'ese servicio no existe'
         ? status(404, { error: updated.error })
-        : status(422, { error: updated.error });
+        : status(422, { error: updated.error })
     },
     { body: t.Partial(serviceBody) },
   )
   /** Lo que ve quien publica: contadores por día, no eventos. */
   .get(
-    "/api/services/mine/:id/metrics",
+    '/api/services/mine/:id/metrics',
     ({ me, params, query, status }) =>
       serviceMetrics(params.id, me.id, query.days ?? 30) ??
-      status(404, { error: "ese servicio no existe" }),
-    { query: t.Object({ days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })) }) },
+      status(404, { error: 'ese servicio no existe' }),
+    {
+      query: t.Object({
+        days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })),
+      }),
+    },
   )
-  .delete("/api/services/:id", ({ me, params, status }) =>
+  .delete('/api/services/:id', ({ me, params, status }) =>
     services.remove(params.id, me.id)
-      ? { status: "ok" }
-      : status(404, { error: "ese servicio no existe" }),
-  );
+      ? { status: 'ok' }
+      : status(404, { error: 'ese servicio no existe' }),
+  )

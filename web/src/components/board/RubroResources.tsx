@@ -1,14 +1,14 @@
-import { ChevronDown, Compass } from "lucide-react";
-import { RESOURCE_KINDS, usePrep } from "../../hooks/usePrep.ts";
-import { ResourceList } from "../resources/ResourceList.tsx";
+import { ChevronDown, Compass } from 'lucide-react'
+import { RESOURCE_KINDS, usePrep } from '../../hooks/usePrep.ts'
+import { ResourceList } from '../resources/ResourceList.tsx'
 
 interface RubroResourcesProps {
-  category: string;
-  label: string;
+  category: string
+  label: string
 }
 
 /** Los recursos de un rubro caben todos en una página; 60 es el tope de la API. */
-const RESOURCE_LIMIT = 60;
+const RESOURCE_LIMIT = 60
 
 /**
  * Al filtrar por un rubro, el tablero ofrece los recursos para aprender y
@@ -17,14 +17,21 @@ const RESOURCE_LIMIT = 60;
  * recursos no dibuja nada.
  */
 export function RubroResources({ category, label }: RubroResourcesProps) {
-  const resources = usePrep(category, category !== "", RESOURCE_KINDS, RESOURCE_LIMIT);
-  if (resources.items.length === 0) return null;
+  const resources = usePrep(
+    category,
+    category !== '',
+    RESOURCE_KINDS,
+    RESOURCE_LIMIT,
+  )
+  if (resources.items.length === 0) return null
 
   return (
     <details className="group rounded-2xl border border-sky/50 bg-surface">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
         <Compass aria-hidden className="size-4 shrink-0 text-brand" />
-        <span className="text-sm font-medium text-ink">Recursos para practicar en {label}</span>
+        <span className="text-sm font-medium text-ink">
+          Recursos para practicar en {label}
+        </span>
         <ChevronDown
           aria-hidden
           className="ml-auto size-4 shrink-0 text-muted transition-transform group-open:rotate-180"
@@ -40,5 +47,5 @@ export function RubroResources({ category, label }: RubroResourcesProps) {
         </a>
       </div>
     </details>
-  );
+  )
 }

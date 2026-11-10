@@ -10,12 +10,12 @@ variable de entorno.
 
 ## Herramientas
 
-| Herramienta | Llama a | Qué devuelve |
-|---|---|---|
-| `search_jobs` | `GET /api/jobs` | Ofertas filtradas y paginadas: `{ total, offset, limit, jobs }`. |
-| `get_job` | `GET /api/jobs/:id` | Una oferta completa, con su descripción y su enlace. |
-| `market_overview` | `GET /api/market` | El tablero resumido: puestos, rubros, zonas y sueldos. |
-| `list_filters` | `GET /api/meta` | Rubros, departamentos, fuentes y total. |
+| Herramienta       | Llama a             | Qué devuelve                                                     |
+| ----------------- | ------------------- | ---------------------------------------------------------------- |
+| `search_jobs`     | `GET /api/jobs`     | Ofertas filtradas y paginadas: `{ total, offset, limit, jobs }`. |
+| `get_job`         | `GET /api/jobs/:id` | Una oferta completa, con su descripción y su enlace.             |
+| `market_overview` | `GET /api/market`   | El tablero resumido: puestos, rubros, zonas y sueldos.           |
+| `list_filters`    | `GET /api/meta`     | Rubros, departamentos, fuentes y total.                          |
 
 Todas son de lectura. El MCP no escribe nada y no toca lo guardado en el
 navegador de nadie, que vive del lado del cliente.

@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { db } from "./db.ts";
+import { readFileSync } from 'node:fs'
+import { db } from './db.ts'
 
 /**
  * Una sola persona administra esto, así que no hay tabla de usuarios: la
@@ -24,88 +24,98 @@ import { db } from "./db.ts";
  * desarrollo, escapando cada `$` como `\$`.
  */
 export function adminPasswordHash(): string {
-  const path = process.env.ADMIN_PASSWORD_HASH_FILE;
+  const path = process.env.ADMIN_PASSWORD_HASH_FILE
   if (path) {
     try {
-      return readFileSync(path, "utf8").trim();
+      return readFileSync(path, 'utf8').trim()
     } catch {
       // Un archivo ilegible deja el panel apagado, que es como tiene que fallar.
-      return "";
+      return ''
     }
   }
-  return (process.env.ADMIN_PASSWORD_HASH ?? "").trim();
+  return (process.env.ADMIN_PASSWORD_HASH ?? '').trim()
 }
 
-export const adminEnabled = (): boolean => adminPasswordHash().length > 0;
+export const adminEnabled = (): boolean => adminPasswordHash().length > 0
 
-const SESSION_HOURS = 12;
-const HOUR_MS = 3_600_000;
+const SESSION_HOURS = 12
+const HOUR_MS = 3_600_000
 
-export const SESSION_COOKIE = "jobit_admin";
+export const SESSION_COOKIE = 'jobit_admin'
 
 export const sha256 = (value: string): string =>
-  new Bun.CryptoHasher("sha256").update(value).digest("hex");
+  new Bun.CryptoHasher('sha256').update(value).digest('hex')
 
 /**
  * Compara contra el hash del entorno. argon2id ya es lento y de tiempo
  * constante, que es justo lo que hace falta acá.
  */
 export async function verifyPassword(password: string): Promise<boolean> {
-  const hash = adminPasswordHash();
-  if (!hash) return false;
+  const hash = adminPasswordHash()
+  if (!hash) return false
 
   try {
-    return await Bun.password.verify(password, hash);
+    return await Bun.password.verify(password, hash)
   } catch {
     // Un hash mal escrito en el entorno no es una credencial válida.
-    return false;
+    return false
   }
 }
 
 export interface Session {
-  token: string;
-  expiresAt: string;
+  token: string
+  expiresAt: string
 }
 
 export function createSession(now: Date = new Date()): Session {
-  const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
-  const expiresAt = new Date(now.getTime() + SESSION_HOURS * HOUR_MS).toISOString();
-  const stamp = now.toISOString();
+  const token = Buffer.from(
+    crypto.getRandomValues(new Uint8Array(32)),
+  ).toString('base64url')
+  const expiresAt = new Date(
+    now.getTime() + SESSION_HOURS * HOUR_MS,
+  ).toISOString()
+  const stamp = now.toISOString()
 
   db().run(
     `INSERT INTO admin_sessions (token_hash, created_at, expires_at, last_seen)
      VALUES (?, ?, ?, ?)`,
     [sha256(token), stamp, expiresAt, stamp],
-  );
+  )
 
-  return { token, expiresAt };
+  return { token, expiresAt }
 }
 
 /** Aprovecha cada visita para sacar las sesiones que ya vencieron. */
-export function sessionValid(token: string | undefined, now: Date = new Date()): boolean {
-  if (!token) return false;
+export function sessionValid(
+  token: string | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!token) return false
 
-  const stamp = now.toISOString();
-  db().run("DELETE FROM admin_sessions WHERE expires_at <= ?", [stamp]);
+  const stamp = now.toISOString()
+  db().run('DELETE FROM admin_sessions WHERE expires_at <= ?', [stamp])
 
   const row = db()
     .query<{ token_hash: string }, [string, string]>(
-      "SELECT token_hash FROM admin_sessions WHERE token_hash = ? AND expires_at > ?",
+      'SELECT token_hash FROM admin_sessions WHERE token_hash = ? AND expires_at > ?',
     )
-    .get(sha256(token), stamp);
+    .get(sha256(token), stamp)
 
-  if (!row) return false;
+  if (!row) return false
 
-  db().run("UPDATE admin_sessions SET last_seen = ? WHERE token_hash = ?", [stamp, sha256(token)]);
-  return true;
+  db().run('UPDATE admin_sessions SET last_seen = ? WHERE token_hash = ?', [
+    stamp,
+    sha256(token),
+  ])
+  return true
 }
 
 export function destroySession(token: string | undefined): void {
-  if (!token) return;
-  db().run("DELETE FROM admin_sessions WHERE token_hash = ?", [sha256(token)]);
+  if (!token) return
+  db().run('DELETE FROM admin_sessions WHERE token_hash = ?', [sha256(token)])
 }
 
 /** Cierra todo lo abierto: sirve si se cambia la clave o se sospecha una fuga. */
 export function destroyAllSessions(): void {
-  db().run("DELETE FROM admin_sessions");
+  db().run('DELETE FROM admin_sessions')
 }

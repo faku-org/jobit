@@ -1,6 +1,6 @@
-import { Megaphone } from "lucide-react";
-import { FEATURED_HINT, FEATURED_LABEL } from "../../lib/services.ts";
-import { chipClass } from "../../lib/styles.ts";
+import { Megaphone } from 'lucide-react'
+import { FEATURED_HINT, FEATURED_LABEL } from '../../lib/services.ts'
+import { chipClass } from '../../lib/styles.ts'
 
 /**
  * La marca de un destacado. Va con texto y con ícono, nunca solo con color, y
@@ -14,5 +14,5 @@ export function FeaturedBadge() {
       {FEATURED_LABEL}
       <span className="sr-only">. {FEATURED_HINT}</span>
     </span>
-  );
+  )
 }

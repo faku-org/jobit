@@ -4,13 +4,13 @@ Plan de construcción de los cinco issues abiertos que quedan, en el orden en qu
 se van a ejecutar. Cada issue vive en su propia rama (`feat/*`) creada desde
 `develop`, con su worktree, y se integra por PR.
 
-| # | Rama | Estado de ejecución |
-|---|---|---|
-| 1 | `feat/mcp` | **Ejecutar ahora** |
-| 4 | `feat/ejercicios` | **Ejecutar ahora** |
-| 3 | `feat/faq-rubros` | Planificado |
-| 5 | `feat/recursos` | Planificado |
-| 7 | `feat/analista` | Planificado |
+| #   | Rama              | Estado de ejecución |
+| --- | ----------------- | ------------------- |
+| 1   | `feat/mcp`        | **Ejecutar ahora**  |
+| 4   | `feat/ejercicios` | **Ejecutar ahora**  |
+| 3   | `feat/faq-rubros` | Planificado         |
+| 5   | `feat/recursos`   | Planificado         |
+| 7   | `feat/analista`   | Planificado         |
 
 Los issues 3, 5 y 7 comparten una pieza que hoy no existe: un **sistema de
 contenido** (traer, normalizar y servir contenido curado por rubro/puesto). Se
@@ -56,27 +56,27 @@ fuentes (URLs base)  →  ingesta (adapters)  →  content.json + seed  →  API
 
 ```ts
 export type ContentKind =
-  | "faq"       // preguntas frecuentes de entrevista (issue 3)
-  | "topic"     // habilidades/temas por rubro (issue 3)
-  | "exercise"  // ejercicios de práctica (issue 4)
-  | "resource"  // cursos, docs, podcasts, videos (issue 5)
-  | "context";  // noticias, entrevistas, política (issue 7)
+  | 'faq' // preguntas frecuentes de entrevista (issue 3)
+  | 'topic' // habilidades/temas por rubro (issue 3)
+  | 'exercise' // ejercicios de práctica (issue 4)
+  | 'resource' // cursos, docs, podcasts, videos (issue 5)
+  | 'context' // noticias, entrevistas, política (issue 7)
 
 export interface ContentItem {
-  id: string;              // estable: hash de source+url
-  kind: ContentKind;
-  title: string;
-  body: string;            // texto o markdown corto; nunca la página ajena entera
-  url: string | null;      // fuente original
-  source: string;          // id de la fuente
-  source_label: string;
-  license: string | null;
-  sponsored: boolean;      // true → rel="sponsored"
-  categories: string[];    // slugs de rubro (worker/src/categories.ts)
-  roles: string[];         // slugs de puesto (worker/src/roles.ts)
-  level: "entry" | "mid" | "senior" | null;
-  tags: string[];
-  fetched_at: string;
+  id: string // estable: hash de source+url
+  kind: ContentKind
+  title: string
+  body: string // texto o markdown corto; nunca la página ajena entera
+  url: string | null // fuente original
+  source: string // id de la fuente
+  source_label: string
+  license: string | null
+  sponsored: boolean // true → rel="sponsored"
+  categories: string[] // slugs de rubro (worker/src/categories.ts)
+  roles: string[] // slugs de puesto (worker/src/roles.ts)
+  level: 'entry' | 'mid' | 'senior' | null
+  tags: string[]
+  fetched_at: string
 }
 ```
 
@@ -84,16 +84,16 @@ export interface ContentItem {
 
 ```ts
 export interface ContentSource {
-  id: string;
-  label: string;
-  base: string;                       // p. ej. https://www.w3schools.com
-  kind: ContentKind;
-  adapter: "rss" | "html-links" | "json" | "manual";
-  categories: string[];               // a qué rubros se aplica lo traído
-  roles?: string[];
-  sponsored?: boolean;
-  license?: string;
-  config?: Record<string, unknown>;   // selector, patrón de link, mapeo de campos
+  id: string
+  label: string
+  base: string // p. ej. https://www.w3schools.com
+  kind: ContentKind
+  adapter: 'rss' | 'html-links' | 'json' | 'manual'
+  categories: string[] // a qué rubros se aplica lo traído
+  roles?: string[]
+  sponsored?: boolean
+  license?: string
+  config?: Record<string, unknown> // selector, patrón de link, mapeo de campos
 }
 ```
 
@@ -167,13 +167,13 @@ contrato versionado, es lo que deja crecer los dos por separado.
 
 ### Contrato mínimo que hay que pedirle a LearnIt
 
-| Ruta propuesta | Para qué | Auth |
-|---|---|---|
-| `GET /api/catalog` | Materias/taxonomía y metadata de path. | Pública, read-only |
-| `POST /api/service/assessments` | Crear una prueba para un tema/nivel de una oferta. | Token de servicio |
-| `GET /api/service/assessments/:id` | Resultado: aprobado/no, puntaje, temas fallados agregados. | Token de servicio |
-| `GET /api/service/credentials/:token` | Credencial firmada y verificable que la persona comparte. | Pública |
-| `POST /api/service/link` | Vincular la cuenta de JobIt con la de LearnIt (código de un solo uso). | Sesión + código |
+| Ruta propuesta                        | Para qué                                                               | Auth               |
+| ------------------------------------- | ---------------------------------------------------------------------- | ------------------ |
+| `GET /api/catalog`                    | Materias/taxonomía y metadata de path.                                 | Pública, read-only |
+| `POST /api/service/assessments`       | Crear una prueba para un tema/nivel de una oferta.                     | Token de servicio  |
+| `GET /api/service/assessments/:id`    | Resultado: aprobado/no, puntaje, temas fallados agregados.             | Token de servicio  |
+| `GET /api/service/credentials/:token` | Credencial firmada y verificable que la persona comparte.              | Pública            |
+| `POST /api/service/link`              | Vincular la cuenta de JobIt con la de LearnIt (código de un solo uso). | Sesión + código    |
 
 ### Privacidad: el punto que hay que decidir antes de escribir código
 
@@ -444,7 +444,7 @@ ya hay en Mercado; lo nuevo es el contexto externo y la proyección.
   traídas por el sistema de contenido, asociadas a rubros. Cada una con fuente y
   fecha; nada sin fuente.
 - **UI:** la vista existe como pestaña propia (`analista`) o dentro de Mercado,
-  con dos bloques: *El mercado en el tiempo* (tendencias) y *Contexto* (notas
+  con dos bloques: _El mercado en el tiempo_ (tendencias) y _Contexto_ (notas
   enlazadas). Exportable como CSV/XLSX junto al informe actual.
 
 ### Tareas

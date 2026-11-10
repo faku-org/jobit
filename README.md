@@ -16,21 +16,21 @@ ofertas piden más nivel del que tiene.
 
 ## Estructura
 
-| Carpeta | Qué hace |
-|---|---|
-| `worker/` | Scrapers de portales uruguayos y del contenido curado. Escribe `worker/output/`. |
-| `api/` | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado. |
-| `web/` | React 19 + Vite + TailwindCSS v4. Interfaz en español, panel de empresa en `/empresas` y panel de administración en `/admin`. |
-| `mcp/` | Servidor MCP: la misma búsqueda, para el agente de alguien. |
-| `docs/` | Documentación por sección, con pasos y FAQ. |
+| Carpeta   | Qué hace                                                                                                                      |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `worker/` | Scrapers de portales uruguayos y del contenido curado. Escribe `worker/output/`.                                              |
+| `api/`    | Bun + Elysia. Sirve el JSON con filtros, facetas y paginado.                                                                  |
+| `web/`    | React 19 + Vite + TailwindCSS v4. Interfaz en español, panel de empresa en `/empresas` y panel de administración en `/admin`. |
+| `mcp/`    | Servidor MCP: la misma búsqueda, para el agente de alguien.                                                                   |
+| `docs/`   | Documentación por sección, con pasos y FAQ.                                                                                   |
 
 ## Documentación
 
-| Documento | Qué cubre |
-|---|---|
-| [`Architecture.md`](Architecture.md) | Cómo está armado el sistema y por qué. |
-| [`DESIGN.md`](DESIGN.md) | Principios, tokens y convenciones de interfaz. |
-| [`docs/`](docs/) | API, web, worker, base de datos, panel de empresa, deploy, FAQ y [roadmap](docs/roadmap.md). |
+| Documento                            | Qué cubre                                                                                    |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| [`Architecture.md`](Architecture.md) | Cómo está armado el sistema y por qué.                                                       |
+| [`DESIGN.md`](DESIGN.md)             | Principios, tokens y convenciones de interfaz.                                               |
+| [`docs/`](docs/)                     | API, web, worker, base de datos, panel de empresa, deploy, FAQ y [roadmap](docs/roadmap.md). |
 
 ## Uso
 
@@ -69,76 +69,76 @@ termina donde termina la de verdad.
 
 ## API
 
-| Endpoint | Descripción |
-|---|---|
-| `GET /health` | Estado del servicio. |
-| `GET /api/jobs` | Ofertas filtradas y paginadas. Con `format=txt` o `Accept: text/plain` sale el mismo listado en texto. |
-| `GET /api/jobs.txt` | Ese listado ya en texto, para `curl` y para grep. Mismos parámetros. |
-| `GET /api/cli` | La URL del tablero en texto: entiende `view` y `job` además de los filtros. |
-| `GET /api/jobs/:id` | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción. |
-| `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento. |
-| `GET /api/empresas` | Las empresas del tablero (con `rubro`, solo las de ese rubro), para el selector. |
-| `GET /api/empresas/:slug` | La ficha de una empresa: conteo, sueldo medio, puestos, zonas y últimas ofertas. |
-| `GET /api/market` | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos. |
-| `GET /api/market.csv` | Ese mismo informe como CSV, todas las tablas bajo un encabezado. |
-| `GET /api/market.xlsx` | Ese mismo informe como planilla, una pestaña por tabla. |
-| `GET /api/content` | El contenido curado por rubro y puesto (FAQ, ejercicios, recursos). |
-| `POST /api/stats` | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`. |
-| `POST /api/events` | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`. |
-| `GET /api/admin/usage` | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión. |
-| `POST /api/ingest/jobs` | Recibe el `jobs.json` del worker corriendo en otra máquina. Pide token. |
-| `POST /api/auth/register` | Crea la cuenta y devuelve, una sola vez, los códigos de respaldo. |
-| `POST /api/auth/login` | Entra; si la cuenta tiene 2FA, pide el segundo paso en vez de abrir sesión. |
-| `POST /api/auth/totp` | El segundo paso: cierra el ingreso con el código de seis dígitos. |
-| `POST /api/auth/recover` | Entra con un código de respaldo. |
-| `POST /api/auth/logout` | Cierra la sesión y borra la cookie. |
-| `GET` / `PATCH` / `DELETE /api/me` | Quién soy, editar la cuenta y borrarla de verdad. |
-| `POST` / `DELETE /api/me/totp` | Activar y desactivar el segundo paso. |
-| `GET` / `PUT` / `DELETE /api/me/sync` | Bajar, guardar o borrar lo que la cuenta sincroniza entre navegadores. |
-| `POST /api/empresas/auth/register` | Alta autogestionada. Nace pendiente y pide el segundo paso antes de abrir sesión. |
-| `POST /api/empresas/auth/login` | Entra con el correo o con el slug; el paso siguiente es el TOTP, que es obligatorio. |
-| `POST /api/empresas/auth/totp/setup` | Sin `code` genera la clave; con `code` la confirma, abre sesión y devuelve los códigos de respaldo. |
-| `POST /api/empresas/auth/totp` | El segundo paso del ingreso, con el código de seis dígitos. |
-| `POST /api/empresas/auth/recover` | Entra con un código de respaldo. |
-| `POST /api/empresas/auth/recover/email` | Manda el enlace de recuperación al correo alterno verificado. |
-| `POST /api/empresas/auth/recover/reset` | Cambia la contraseña con el token del enlace y vuelve a pedir el segundo paso. |
-| `POST /api/empresas/auth/logout` | Cierra la sesión de la empresa. |
-| `GET /api/empresas/session` | Qué empresa está detrás de la sesión, con perfil, correos y miembros. |
-| `PATCH /api/empresas/me` | Perfil (nombre, teléfono con país, sitio, redes, privacidad) y contraseña, que pide 2FA + código por correo. |
-| `POST /api/empresas/me/password/email` | Manda el código de 6 dígitos para cambiar la contraseña. |
-| `POST /api/empresas/me/totp/setup` | Cambiar el segundo paso: sin `code` genera el secreto nuevo, con `code` lo confirma y renueva los códigos de respaldo. |
-| `POST /api/empresas/me/lockdown` | Cierra la sesión en todos los dispositivos y renueva los códigos de respaldo (emergencia). |
-| `POST /api/empresas/me/deactivate` | Desactiva la cuenta y manda el enlace de recuperación; para desactivarla el correo de recuperación tiene que estar verificado. |
-| `POST /api/empresas/me/website/verify` | Consulta el TXT del dominio; sin registro, la URL deja de estar vigente. |
-| `GET` / `PUT` / `DELETE /api/empresas/emails/:kind` | Correos de facturación, contacto, soporte y recuperación, con su verificación. |
-| `POST /api/empresas/emails/:kind/resend` | Reenvía el enlace de verificación de ese correo. |
-| `GET /api/empresas/verify` | El enlace que llega por mail; confirma y vuelve al panel. |
-| `POST` / `DELETE /api/empresas/media/:kind` | Sube o quita el logo o el banner. `GET` público sirve el archivo. |
-| `GET` / `POST` / `DELETE /api/empresas/members[/:userId]` | Designa como miembros a usuarios de JobIt, o los quita. |
-| `GET /api/empresas/offers` | Las publicaciones propias, con su estado. |
-| `POST` / `PATCH` / `DELETE /api/empresas/offers[/:id]` | CRUD de sus publicaciones, acotado a la empresa de la sesión. |
-| `GET /api/empresas/metrics` | Visitas, postulaciones, serie diaria, palabras clave y puestos más buscados, agregados y anónimos. |
+| Endpoint                                                  | Descripción                                                                                                                    |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /health`                                             | Estado del servicio.                                                                                                           |
+| `GET /api/jobs`                                           | Ofertas filtradas y paginadas. Con `format=txt` o `Accept: text/plain` sale el mismo listado en texto.                         |
+| `GET /api/jobs.txt`                                       | Ese listado ya en texto, para `curl` y para grep. Mismos parámetros.                                                           |
+| `GET /api/cli`                                            | La URL del tablero en texto: entiende `view` y `job` además de los filtros.                                                    |
+| `GET /api/jobs/:id`                                       | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción.                                           |
+| `GET /api/meta`                                           | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento.                                                            |
+| `GET /api/empresas`                                       | Las empresas del tablero (con `rubro`, solo las de ese rubro), para el selector.                                               |
+| `GET /api/empresas/:slug`                                 | La ficha de una empresa: conteo, sueldo medio, puestos, zonas y últimas ofertas.                                               |
+| `GET /api/market`                                         | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos.                                                         |
+| `GET /api/market.csv`                                     | Ese mismo informe como CSV, todas las tablas bajo un encabezado.                                                               |
+| `GET /api/market.xlsx`                                    | Ese mismo informe como planilla, una pestaña por tabla.                                                                        |
+| `GET /api/content`                                        | El contenido curado por rubro y puesto (FAQ, ejercicios, recursos).                                                            |
+| `POST /api/stats`                                         | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`.                                                             |
+| `POST /api/events`                                        | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`.                                                |
+| `GET /api/admin/usage`                                    | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión.                                                           |
+| `POST /api/ingest/jobs`                                   | Recibe el `jobs.json` del worker corriendo en otra máquina. Pide token.                                                        |
+| `POST /api/auth/register`                                 | Crea la cuenta y devuelve, una sola vez, los códigos de respaldo.                                                              |
+| `POST /api/auth/login`                                    | Entra; si la cuenta tiene 2FA, pide el segundo paso en vez de abrir sesión.                                                    |
+| `POST /api/auth/totp`                                     | El segundo paso: cierra el ingreso con el código de seis dígitos.                                                              |
+| `POST /api/auth/recover`                                  | Entra con un código de respaldo.                                                                                               |
+| `POST /api/auth/logout`                                   | Cierra la sesión y borra la cookie.                                                                                            |
+| `GET` / `PATCH` / `DELETE /api/me`                        | Quién soy, editar la cuenta y borrarla de verdad.                                                                              |
+| `POST` / `DELETE /api/me/totp`                            | Activar y desactivar el segundo paso.                                                                                          |
+| `GET` / `PUT` / `DELETE /api/me/sync`                     | Bajar, guardar o borrar lo que la cuenta sincroniza entre navegadores.                                                         |
+| `POST /api/empresas/auth/register`                        | Alta autogestionada. Nace pendiente y pide el segundo paso antes de abrir sesión.                                              |
+| `POST /api/empresas/auth/login`                           | Entra con el correo o con el slug; el paso siguiente es el TOTP, que es obligatorio.                                           |
+| `POST /api/empresas/auth/totp/setup`                      | Sin `code` genera la clave; con `code` la confirma, abre sesión y devuelve los códigos de respaldo.                            |
+| `POST /api/empresas/auth/totp`                            | El segundo paso del ingreso, con el código de seis dígitos.                                                                    |
+| `POST /api/empresas/auth/recover`                         | Entra con un código de respaldo.                                                                                               |
+| `POST /api/empresas/auth/recover/email`                   | Manda el enlace de recuperación al correo alterno verificado.                                                                  |
+| `POST /api/empresas/auth/recover/reset`                   | Cambia la contraseña con el token del enlace y vuelve a pedir el segundo paso.                                                 |
+| `POST /api/empresas/auth/logout`                          | Cierra la sesión de la empresa.                                                                                                |
+| `GET /api/empresas/session`                               | Qué empresa está detrás de la sesión, con perfil, correos y miembros.                                                          |
+| `PATCH /api/empresas/me`                                  | Perfil (nombre, teléfono con país, sitio, redes, privacidad) y contraseña, que pide 2FA + código por correo.                   |
+| `POST /api/empresas/me/password/email`                    | Manda el código de 6 dígitos para cambiar la contraseña.                                                                       |
+| `POST /api/empresas/me/totp/setup`                        | Cambiar el segundo paso: sin `code` genera el secreto nuevo, con `code` lo confirma y renueva los códigos de respaldo.         |
+| `POST /api/empresas/me/lockdown`                          | Cierra la sesión en todos los dispositivos y renueva los códigos de respaldo (emergencia).                                     |
+| `POST /api/empresas/me/deactivate`                        | Desactiva la cuenta y manda el enlace de recuperación; para desactivarla el correo de recuperación tiene que estar verificado. |
+| `POST /api/empresas/me/website/verify`                    | Consulta el TXT del dominio; sin registro, la URL deja de estar vigente.                                                       |
+| `GET` / `PUT` / `DELETE /api/empresas/emails/:kind`       | Correos de facturación, contacto, soporte y recuperación, con su verificación.                                                 |
+| `POST /api/empresas/emails/:kind/resend`                  | Reenvía el enlace de verificación de ese correo.                                                                               |
+| `GET /api/empresas/verify`                                | El enlace que llega por mail; confirma y vuelve al panel.                                                                      |
+| `POST` / `DELETE /api/empresas/media/:kind`               | Sube o quita el logo o el banner. `GET` público sirve el archivo.                                                              |
+| `GET` / `POST` / `DELETE /api/empresas/members[/:userId]` | Designa como miembros a usuarios de JobIt, o los quita.                                                                        |
+| `GET /api/empresas/offers`                                | Las publicaciones propias, con su estado.                                                                                      |
+| `POST` / `PATCH` / `DELETE /api/empresas/offers[/:id]`    | CRUD de sus publicaciones, acotado a la empresa de la sesión.                                                                  |
+| `GET /api/empresas/metrics`                               | Visitas, postulaciones, serie diaria, palabras clave y puestos más buscados, agregados y anónimos.                             |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
-| Parámetro | Valores |
-|---|---|
-| `q` | Texto libre sobre título, empresa, ubicación, rubro y descripción. |
-| `category` | Slug de rubro (`ventas`, `oficios`, `salud`, ...). |
-| `department` | Departamento tal cual lo publica la fuente. |
-| `company` | Slug de empresa (o varios separados por coma); sale de `/api/empresas`. |
-| `title` | Solo el título del puesto (atajo `puesto:`). |
-| `place` | Ciudad o departamento (atajo `ubicacion:`). |
-| `level` | `entry`, `mid`, `senior`. |
-| `remote` | `onsite`, `remote`, `hybrid`. |
-| `job_type` | `full_time`, `part_time`, `internship`. |
-| `no_experience` | `true` para ofertas que no piden experiencia previa. |
-| `days` | Solo ofertas de los últimos N días. |
-| `source` | Fuentes separadas por coma (`jobit`, `buscojobs`, `uruguayconcursa`). |
-| `sort` | `recent` (por defecto) o `closing`, que ordena por fecha de cierre. |
-| `ids` | Lista de ids separados por coma. |
-| `limit` / `offset` | Paginado. `limit` por defecto 50, máximo 200. |
-| `format` | `json` (por defecto) o `txt`. El texto es para leerlo o grepearlo desde la CLI. |
+| Parámetro          | Valores                                                                         |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `q`                | Texto libre sobre título, empresa, ubicación, rubro y descripción.              |
+| `category`         | Slug de rubro (`ventas`, `oficios`, `salud`, ...).                              |
+| `department`       | Departamento tal cual lo publica la fuente.                                     |
+| `company`          | Slug de empresa (o varios separados por coma); sale de `/api/empresas`.         |
+| `title`            | Solo el título del puesto (atajo `puesto:`).                                    |
+| `place`            | Ciudad o departamento (atajo `ubicacion:`).                                     |
+| `level`            | `entry`, `mid`, `senior`.                                                       |
+| `remote`           | `onsite`, `remote`, `hybrid`.                                                   |
+| `job_type`         | `full_time`, `part_time`, `internship`.                                         |
+| `no_experience`    | `true` para ofertas que no piden experiencia previa.                            |
+| `days`             | Solo ofertas de los últimos N días.                                             |
+| `source`           | Fuentes separadas por coma (`jobit`, `buscojobs`, `uruguayconcursa`).           |
+| `sort`             | `recent` (por defecto) o `closing`, que ordena por fecha de cierre.             |
+| `ids`              | Lista de ids separados por coma.                                                |
+| `limit` / `offset` | Paginado. `limit` por defecto 50, máximo 200.                                   |
+| `format`           | `json` (por defecto) o `txt`. El texto es para leerlo o grepearlo desde la CLI. |
 
 `category`, `level`, `remote` y `job_type` aceptan varios valores separados por
 coma y la oferta matchea con cualquiera de ellos. Una oferta sin teletrabajo
@@ -231,18 +231,18 @@ conoce. Se combinan con el texto libre y entre sí; si un atajo y un filtro
 manual dicen algo de la misma dimensión, gana el atajo. Los atajos que se
 reconocen se muestran como chips debajo del buscador y se pueden quitar.
 
-| Atajo | Qué filtra |
-|---|---|
-| `@empresa` | La empresa (una o varias); el `@` despliega las que coinciden. |
-| `puesto:soporte` | Solo el título. |
-| `ubicacion:montevideo` | Ciudad o departamento. |
-| `rubro:tecnologia` | El rubro. |
-| `nivel:junior` | `junior`, `semi` o `senior`. |
-| `modalidad:remoto` | `presencial`, `remoto` o `híbrido`. |
-| `jornada:completa` | `completa`, `medio` o `pasantía`. |
-| `sueldo:30000` | Desde ese sueldo. |
-| `sin-experiencia` | Que no pidan experiencia. |
-| `dias:7` | Publicadas en los últimos N días. |
+| Atajo                  | Qué filtra                                                     |
+| ---------------------- | -------------------------------------------------------------- |
+| `@empresa`             | La empresa (una o varias); el `@` despliega las que coinciden. |
+| `puesto:soporte`       | Solo el título.                                                |
+| `ubicacion:montevideo` | Ciudad o departamento.                                         |
+| `rubro:tecnologia`     | El rubro.                                                      |
+| `nivel:junior`         | `junior`, `semi` o `senior`.                                   |
+| `modalidad:remoto`     | `presencial`, `remoto` o `híbrido`.                            |
+| `jornada:completa`     | `completa`, `medio` o `pasantía`.                              |
+| `sueldo:30000`         | Desde ese sueldo.                                              |
+| `sin-experiencia`      | Que no pidan experiencia.                                      |
+| `dias:7`               | Publicadas en los últimos N días.                              |
 
 El **?** del buscador muestra la tabla. La URL guarda el texto tal cual, así el
 enlace reproduce la búsqueda.
@@ -262,6 +262,7 @@ empleados ni de la empresa por fuera del tablero.
 En el perfil se pueden marcar **empresas donde trabajé**; con el interruptor "De
 mi experiencia" el tablero se recorta a esas empresas. Esas empresas viven en el
 navegador y viajan por el sync de la cuenta, cifradas.
+
 ## Desde un agente (MCP)
 
 `mcp/` es un servidor MCP que expone la búsqueda para que un agente encuentre
@@ -277,20 +278,19 @@ También corre por stdio para quien lo prefiera local: es un proceso aparte que
 llama a la API por HTTP con `JOBIT_API_URL` (por defecto
 `https://jobs.wefaber.net`).
 
-| Herramienta | Qué hace |
-|---|---|
-| `search_jobs` | `GET /api/jobs`: ofertas filtradas y paginadas. |
-| `get_job` | `GET /api/jobs/:id`: una oferta completa. |
-| `market_overview` | `GET /api/market`: el tablero resumido. |
-| `list_filters` | `GET /api/meta`: rubros, departamentos y fuentes. |
+| Herramienta       | Qué hace                                          |
+| ----------------- | ------------------------------------------------- |
+| `search_jobs`     | `GET /api/jobs`: ofertas filtradas y paginadas.   |
+| `get_job`         | `GET /api/jobs/:id`: una oferta completa.         |
+| `market_overview` | `GET /api/market`: el tablero resumido.           |
+| `list_filters`    | `GET /api/meta`: rubros, departamentos y fuentes. |
 
 ```bash
 bun run --cwd mcp start        # local, por stdio
 bun run --cwd mcp start:http   # el que corre hosteado
 ```
 
-Detrás de nginx (`location = /mcp`) corre como `jobit-mcp.service` en el puerto
-3300. El detalle y los JSON de configuración están en `mcp/README.md`.
+Detrás de nginx (`location = /mcp`) corre como `jobit-mcp.service` en el puerto 3300. El detalle y los JSON de configuración están en `mcp/README.md`.
 
 ## Perfil y estadísticas
 
@@ -365,9 +365,9 @@ Cada oferta tiene un botón de compartir, tanto en la tarjeta como en el panel:
 mandarla con el menú del sistema, copiar el enlace, pasarla por WhatsApp o
 copiar el iframe para pegarla en otra página.
 
-| URL | Qué muestra |
-|---|---|
-| `/?job=<id>` | La app con esa oferta abierta. |
+| URL            | Qué muestra                                                   |
+| -------------- | ------------------------------------------------------------- |
+| `/?job=<id>`   | La app con esa oferta abierta.                                |
 | `/?embed=<id>` | Solo esa oferta, sin el resto de la interfaz, para un iframe. |
 
 El embed acepta `&theme=light` o `&theme=dark`; sin el parámetro sigue el
@@ -396,16 +396,16 @@ ejecutan nada.
 Por eso el contenido que se busca con intención alta tiene su propia dirección,
 servida por la API y puesta delante de la app por nginx (`api/src/site.ts`):
 
-| Ruta | Qué muestra |
-|---|---|
-| `/empleo/<id>` | La ficha de una oferta, con su descripción y su JSON-LD. Es la URL que se comparte. |
-| `/mercado` | El informe del mercado. |
-| `/rubro/<slug>` | Las ofertas de un rubro. |
-| `/departamento/<nombre>` | Las ofertas de un departamento. |
-| `/puesto/<slug>` | Las ofertas de un puesto. |
-| `/servicios/<slug>` | La ficha de un servicio publicado, con `Service` y `ProfilePage` en JSON-LD. |
-| `/sitemap.xml` | El sitemap, armado al vuelo con las fichas publicadas. |
-| `/entrevista/<rubro>` | La guía de entrevista de un rubro: preguntas frecuentes, habilidades y sus ofertas, con `FAQPage`. |
+| Ruta                     | Qué muestra                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------------------------- |
+| `/empleo/<id>`           | La ficha de una oferta, con su descripción y su JSON-LD. Es la URL que se comparte.                |
+| `/mercado`               | El informe del mercado.                                                                            |
+| `/rubro/<slug>`          | Las ofertas de un rubro.                                                                           |
+| `/departamento/<nombre>` | Las ofertas de un departamento.                                                                    |
+| `/puesto/<slug>`         | Las ofertas de un puesto.                                                                          |
+| `/servicios/<slug>`      | La ficha de un servicio publicado, con `Service` y `ProfilePage` en JSON-LD.                       |
+| `/sitemap.xml`           | El sitemap, armado al vuelo con las fichas publicadas.                                             |
+| `/entrevista/<rubro>`    | La guía de entrevista de un rubro: preguntas frecuentes, habilidades y sus ofertas, con `FAQPage`. |
 
 Son documentos HTML sueltos, sin React: el mismo patrón que `/terminos`. Un
 scraper los lee enteros, así que un enlace compartido ya no previsualiza como la
@@ -658,11 +658,11 @@ herramientas de IA— están en [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Fuentes
 
-| Fuente | Estado |
-|---|---|
-| BuscoJobs Uruguay | Activa. El worker sale por el egress de la PC para que no le conteste 403 (ver abajo). |
-| Uruguay Concursa | Activa. Llamados del Estado abiertos y próximos, con fecha de cierre. |
-| Gallito | Pendiente. El sitio responde 403 detrás de Cloudflare y necesita un navegador headless. |
+| Fuente            | Estado                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| BuscoJobs Uruguay | Activa. El worker sale por el egress de la PC para que no le conteste 403 (ver abajo).  |
+| Uruguay Concursa  | Activa. Llamados del Estado abiertos y próximos, con fecha de cierre.                   |
+| Gallito           | Pendiente. El sitio responde 403 detrás de Cloudflare y necesita un navegador headless. |
 
 El worker consulta de a una petición por vez, con pausa entre pedidos, y cachea
 las descripciones en `worker/cache/` para no volver a pedirlas. Es una

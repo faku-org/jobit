@@ -1,6 +1,6 @@
-import { db } from "./db.ts";
-import * as users from "./users.ts";
-import type { Result } from "./types.ts";
+import { db } from './db.ts'
+import * as users from './users.ts'
+import type { Result } from './types.ts'
 
 /**
  * Quiénes de JobIt forman parte de la empresa.
@@ -10,13 +10,13 @@ import type { Result } from "./types.ts";
  * panel ni publica por estar acá. Por eso no hay roles: estar o no estar.
  */
 export interface CompanyMember {
-  user_id: string;
-  handle: string;
-  display_name: string;
-  created_at: string;
+  user_id: string
+  handle: string
+  display_name: string
+  created_at: string
 }
 
-const MAX_MEMBERS = 200;
+const MAX_MEMBERS = 200
 
 export function list(companyId: string): CompanyMember[] {
   return db()
@@ -26,17 +26,17 @@ export function list(companyId: string): CompanyMember[] {
         WHERE m.company_id = ?
         ORDER BY u.display_name COLLATE NOCASE`,
     )
-    .all(companyId);
+    .all(companyId)
 }
 
 function count(companyId: string): number {
   return (
     db()
       .query<{ n: number }, [string]>(
-        "SELECT COUNT(*) AS n FROM company_members WHERE company_id = ?",
+        'SELECT COUNT(*) AS n FROM company_members WHERE company_id = ?',
       )
       .get(companyId)?.n ?? 0
-  );
+  )
 }
 
 export function add(
@@ -44,26 +44,30 @@ export function add(
   handle: string,
   now: Date = new Date(),
 ): Result<CompanyMember> {
-  const user = users.byHandle(handle);
-  if (!user) return { ok: false, error: "no hay ninguna cuenta de JobIt con ese handle" };
+  const user = users.byHandle(handle)
+  if (!user)
+    return { ok: false, error: 'no hay ninguna cuenta de JobIt con ese handle' }
 
   const existing = db()
     .query<{ user_id: string }, [string, string]>(
-      "SELECT user_id FROM company_members WHERE company_id = ? AND user_id = ?",
+      'SELECT user_id FROM company_members WHERE company_id = ? AND user_id = ?',
     )
-    .get(companyId, user.id);
-  if (existing) return { ok: false, error: "esa persona ya figura en la empresa" };
+    .get(companyId, user.id)
+  if (existing)
+    return { ok: false, error: 'esa persona ya figura en la empresa' }
 
   if (count(companyId) >= MAX_MEMBERS) {
-    return { ok: false, error: `una empresa no puede tener más de ${MAX_MEMBERS} miembros` };
+    return {
+      ok: false,
+      error: `una empresa no puede tener más de ${MAX_MEMBERS} miembros`,
+    }
   }
 
-  const stamp = now.toISOString();
-  db().run("INSERT INTO company_members (company_id, user_id, created_at) VALUES (?, ?, ?)", [
-    companyId,
-    user.id,
-    stamp,
-  ]);
+  const stamp = now.toISOString()
+  db().run(
+    'INSERT INTO company_members (company_id, user_id, created_at) VALUES (?, ?, ?)',
+    [companyId, user.id, stamp],
+  )
 
   return {
     ok: true,
@@ -73,14 +77,14 @@ export function add(
       display_name: user.display_name,
       created_at: stamp,
     },
-  };
+  }
 }
 
 export function remove(companyId: string, userId: string): boolean {
   return (
-    db().run("DELETE FROM company_members WHERE company_id = ? AND user_id = ?", [
-      companyId,
-      userId,
-    ]).changes > 0
-  );
+    db().run(
+      'DELETE FROM company_members WHERE company_id = ? AND user_id = ?',
+      [companyId, userId],
+    ).changes > 0
+  )
 }

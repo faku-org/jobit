@@ -1,39 +1,49 @@
-import { Check, ExternalLink, Loader2, Pause, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { type Company, type CompanyStatus, STATUS_LABEL } from "./api.ts";
+import { Check, ExternalLink, Loader2, Pause, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { type Company, type CompanyStatus, STATUS_LABEL } from './api.ts'
 
 const BADGE: Record<CompanyStatus, string> = {
-  pending: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-800",
-  suspended: "bg-wash text-muted",
-};
-
-interface Props {
-  company: Company;
-  busy: boolean;
-  onSetStatus: (status: CompanyStatus) => void;
-  onSetNotes: (notes: string) => void;
-  onRemove: () => void;
+  pending: 'bg-amber-100 text-amber-800',
+  approved: 'bg-emerald-100 text-emerald-800',
+  suspended: 'bg-wash text-muted',
 }
 
-export function CompanyRow({ company, busy, onSetStatus, onSetNotes, onRemove }: Props) {
-  const [notes, setNotes] = useState(company.notes);
-  /** Un borrado no se deshace, así que el botón pide una segunda vez. */
-  const [confirming, setConfirming] = useState(false);
+interface Props {
+  company: Company
+  busy: boolean
+  onSetStatus: (status: CompanyStatus) => void
+  onSetNotes: (notes: string) => void
+  onRemove: () => void
+}
 
-  const notesChanged = notes.trim() !== company.notes;
+export function CompanyRow({
+  company,
+  busy,
+  onSetStatus,
+  onSetNotes,
+  onRemove,
+}: Props) {
+  const [notes, setNotes] = useState(company.notes)
+  /** Un borrado no se deshace, así que el botón pide una segunda vez. */
+  const [confirming, setConfirming] = useState(false)
+
+  const notesChanged = notes.trim() !== company.notes
 
   return (
     <li className="rounded-xl border border-sky/60 bg-surface p-4 shadow-[var(--shadow-hairline)]">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <h3 className="text-sm font-semibold tracking-tight text-ink">{company.name}</h3>
+        <h3 className="text-sm font-semibold tracking-tight text-ink">
+          {company.name}
+        </h3>
         <span
           className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${BADGE[company.status]}`}
         >
           {STATUS_LABEL[company.status]}
         </span>
         <code className="text-[11px] text-faint">/{company.slug}</code>
-        {busy ? <Loader2 aria-hidden className="size-3.5 animate-spin text-faint" /> : null}
+        {busy ? (
+          <Loader2 aria-hidden className="size-3.5 animate-spin text-faint" />
+        ) : null}
       </div>
 
       {company.email || company.website ? (
@@ -73,24 +83,24 @@ export function CompanyRow({ company, busy, onSetStatus, onSetNotes, onRemove }:
           </button>
         ) : null}
 
-        {company.status !== "approved" ? (
+        {company.status !== 'approved' ? (
           <button
             className="inline-flex items-center gap-1.5 rounded-lg border border-sky/70 px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-mist"
             disabled={busy}
             type="button"
-            onClick={() => onSetStatus("approved")}
+            onClick={() => onSetStatus('approved')}
           >
             <Check aria-hidden className="size-3.5" />
             Aprobar
           </button>
         ) : null}
 
-        {company.status !== "suspended" ? (
+        {company.status !== 'suspended' ? (
           <button
             className="inline-flex items-center gap-1.5 rounded-lg border border-sky/70 px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-mist"
             disabled={busy}
             type="button"
-            onClick={() => onSetStatus("suspended")}
+            onClick={() => onSetStatus('suspended')}
           >
             <Pause aria-hidden className="size-3.5" />
             Suspender
@@ -105,9 +115,9 @@ export function CompanyRow({ company, busy, onSetStatus, onSetNotes, onRemove }:
           onClick={() => (confirming ? onRemove() : setConfirming(true))}
         >
           <Trash2 aria-hidden className="size-3.5" />
-          {confirming ? "Confirmá" : "Borrar"}
+          {confirming ? 'Confirmá' : 'Borrar'}
         </button>
       </div>
     </li>
-  );
+  )
 }

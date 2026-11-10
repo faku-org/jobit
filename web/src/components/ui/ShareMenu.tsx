@@ -1,17 +1,28 @@
-import { Check, Code2, Link2, MessageCircle, Share2, Upload } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
-import { useEffect, useState } from "react";
-import { useDismissable } from "../../hooks/useDismissable.ts";
-import { fadeUpTransition } from "../../lib/motion.ts";
-import { type ShareTarget, canShare, copyText, share } from "../../lib/share.ts";
-import { iconButtonClass, menuItemClass, popoverClass } from "../../lib/styles.ts";
+import {
+  Check,
+  Code2,
+  Link2,
+  MessageCircle,
+  Share2,
+  Upload,
+} from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
+import { useEffect, useState } from 'react'
+import { useDismissable } from '../../hooks/useDismissable.ts'
+import { fadeUpTransition } from '../../lib/motion.ts'
+import { type ShareTarget, canShare, copyText, share } from '../../lib/share.ts'
+import {
+  iconButtonClass,
+  menuItemClass,
+  popoverClass,
+} from '../../lib/styles.ts'
 
 interface ShareMenuProps {
   /** Lo que se comparte, ya armado por quien lo comparte: el menú es el mismo
    * para una oferta y para un servicio. */
-  target: ShareTarget;
+  target: ShareTarget
   /** Where the menu hangs from, so it never runs off the right edge. */
-  align?: "left" | "right";
+  align?: 'left' | 'right'
 }
 
 function MenuItem({
@@ -19,54 +30,59 @@ function MenuItem({
   children,
   onClick,
 }: {
-  icon: typeof Link2;
-  children: React.ReactNode;
-  onClick: () => void;
+  icon: typeof Link2
+  children: React.ReactNode
+  onClick: () => void
 }) {
   return (
-    <button className={menuItemClass} role="menuitem" type="button" onClick={onClick}>
+    <button
+      className={menuItemClass}
+      role="menuitem"
+      type="button"
+      onClick={onClick}
+    >
       <Icon aria-hidden className="size-3.5 shrink-0 text-brand" />
       {children}
     </button>
-  );
+  )
 }
 
 /** How long the "copied" line stays up before the menu closes itself. */
-const NOTE_MS = 1400;
+const NOTE_MS = 1400
 
 /**
  * Passes the offer along: the system share sheet, a plain link, WhatsApp, or
  * the iframe snippet for whoever wants it on their own page.
  */
-export function ShareMenu({ target, align = "right" }: ShareMenuProps) {
-  const [open, setOpen] = useState(false);
-  const [note, setNote] = useState("");
-  const [failed, setFailed] = useState(false);
-  const container = useDismissable<HTMLSpanElement>(open, () => setOpen(false));
-  const native = canShare();
+export function ShareMenu({ target, align = 'right' }: ShareMenuProps) {
+  const [open, setOpen] = useState(false)
+  const [note, setNote] = useState('')
+  const [failed, setFailed] = useState(false)
+  const container = useDismissable<HTMLSpanElement>(open, () => setOpen(false))
+  const native = canShare()
 
   useEffect(() => {
-    if (!note) return;
+    if (!note) return
     const timer = setTimeout(() => {
-      setNote("");
-      if (!failed) setOpen(false);
-    }, NOTE_MS);
-    return () => clearTimeout(timer);
-  }, [note, failed]);
+      setNote('')
+      if (!failed) setOpen(false)
+    }, NOTE_MS)
+    return () => clearTimeout(timer)
+  }, [note, failed])
 
   const copy = (value: string, done: string) => {
     void copyText(value).then((ok) => {
-      setFailed(!ok);
-      setNote(ok ? done : "No se pudo copiar");
-    });
-  };
+      setFailed(!ok)
+      setNote(ok ? done : 'No se pudo copiar')
+    })
+  }
 
   const hand = () => {
     void share(target).then((result) => {
-      if (result === "unsupported") copy(target.url, "Enlace copiado");
-      else setOpen(false);
-    });
-  };
+      if (result === 'unsupported') copy(target.url, 'Enlace copiado')
+      else setOpen(false)
+    })
+  }
 
   return (
     <span ref={container} className="relative inline-flex">
@@ -74,7 +90,7 @@ export function ShareMenu({ target, align = "right" }: ShareMenuProps) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={target.label}
-        className={`${iconButtonClass} ${open ? "border-brand text-ink" : ""}`}
+        className={`${iconButtonClass} ${open ? 'border-brand text-ink' : ''}`}
         type="button"
         whileTap={{ scale: 0.9 }}
         onClick={() => setOpen((current) => !current)}
@@ -86,7 +102,7 @@ export function ShareMenu({ target, align = "right" }: ShareMenuProps) {
         {open ? (
           <m.div
             animate={{ opacity: 1, y: 0 }}
-            className={`${popoverClass} top-full mt-1 w-56 ${align === "right" ? "right-0" : "left-0"}`}
+            className={`${popoverClass} top-full mt-1 w-56 ${align === 'right' ? 'right-0' : 'left-0'}`}
             exit={{ opacity: 0, y: -4 }}
             initial={{ opacity: 0, y: -4 }}
             role="menu"
@@ -98,7 +114,10 @@ export function ShareMenu({ target, align = "right" }: ShareMenuProps) {
               </MenuItem>
             ) : null}
 
-            <MenuItem icon={Link2} onClick={() => copy(target.url, "Enlace copiado")}>
+            <MenuItem
+              icon={Link2}
+              onClick={() => copy(target.url, 'Enlace copiado')}
+            >
               Copiar enlace
             </MenuItem>
 
@@ -110,11 +129,17 @@ export function ShareMenu({ target, align = "right" }: ShareMenuProps) {
               target="_blank"
               onClick={() => setOpen(false)}
             >
-              <MessageCircle aria-hidden className="size-3.5 shrink-0 text-brand" />
+              <MessageCircle
+                aria-hidden
+                className="size-3.5 shrink-0 text-brand"
+              />
               Mandar por WhatsApp
             </a>
 
-            <MenuItem icon={Code2} onClick={() => copy(target.embed, "Código copiado")}>
+            <MenuItem
+              icon={Code2}
+              onClick={() => copy(target.embed, 'Código copiado')}
+            >
               Copiar código para embeber
             </MenuItem>
 
@@ -123,7 +148,7 @@ export function ShareMenu({ target, align = "right" }: ShareMenuProps) {
                 <m.p
                   animate={{ opacity: 1 }}
                   className={`flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium ${
-                    failed ? "text-muted" : "text-brand"
+                    failed ? 'text-muted' : 'text-brand'
                   }`}
                   exit={{ opacity: 0 }}
                   initial={{ opacity: 0 }}
@@ -138,5 +163,5 @@ export function ShareMenu({ target, align = "right" }: ShareMenuProps) {
         ) : null}
       </AnimatePresence>
     </span>
-  );
+  )
 }

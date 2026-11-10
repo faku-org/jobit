@@ -1,6 +1,6 @@
-import { findProfileMatches } from "./perks.ts";
-import { EDUCATION_LABEL, type Profile, meetsEducation } from "./profile.ts";
-import type { Job } from "./types.ts";
+import { findProfileMatches } from './perks.ts'
+import { EDUCATION_LABEL, type Profile, meetsEducation } from './profile.ts'
+import type { Job } from './types.ts'
 
 /**
  * Whether the person clears the bar the offer sets. Only the requirements that
@@ -8,117 +8,123 @@ import type { Job } from "./types.ts";
  * prose and the app knows about two of them, so the answer is deliberately
  * narrow and says so.
  */
-export type CheckStatus = "ok" | "short" | "unknown";
+export type CheckStatus = 'ok' | 'short' | 'unknown'
 
 export interface Check {
-  id: string;
+  id: string
   /** What the offer asks for. */
-  asks: string;
+  asks: string
   /** What the person has, against it. */
-  yours: string;
-  status: CheckStatus;
+  yours: string
+  status: CheckStatus
 }
 
 export interface Fit {
-  checks: Check[];
+  checks: Check[]
   /** Catalog entries of theirs that the offer names outright. */
-  matched: string[];
+  matched: string[]
   /** "short" as soon as one checkable requirement is not met. */
-  status: CheckStatus;
+  status: CheckStatus
   /** True when the profile is too empty for any of this to mean anything. */
-  unknownProfile: boolean;
+  unknownProfile: boolean
 }
 
 function educationCheck(job: Job, profile: Profile): Check | null {
-  if (!job.education_level) return null;
-  const meets = meetsEducation(job, profile);
+  if (!job.education_level) return null
+  const meets = meetsEducation(job, profile)
 
   return {
-    id: "education",
+    id: 'education',
     asks: job.education_level,
     yours:
-      profile.education === ""
-        ? "No cargaste tu nivel educativo"
+      profile.education === ''
+        ? 'No cargaste tu nivel educativo'
         : EDUCATION_LABEL[profile.education],
-    status: meets === null ? "unknown" : meets ? "ok" : "short",
-  };
+    status: meets === null ? 'unknown' : meets ? 'ok' : 'short',
+  }
 }
 
-const years = (count: number): string => (count === 1 ? "1 año" : `${count} años`);
+const years = (count: number): string =>
+  count === 1 ? '1 año' : `${count} años`
 
 const yoursExperience = (count: number | null): string => {
-  if (count === null) return "No cargaste tus años de experiencia";
-  if (count === 0) return "No tenés experiencia";
-  return `Tenés ${years(count)}`;
-};
+  if (count === null) return 'No cargaste tus años de experiencia'
+  if (count === 0) return 'No tenés experiencia'
+  return `Tenés ${years(count)}`
+}
 
 function experienceCheck(job: Job, profile: Profile): Check | null {
   if (job.no_experience) {
     return {
-      id: "experience",
-      asks: "No pide experiencia previa",
-      yours: "",
-      status: "ok",
-    };
+      id: 'experience',
+      asks: 'No pide experiencia previa',
+      yours: '',
+      status: 'ok',
+    }
   }
 
-  if (job.experience_years_min === null) return null;
+  if (job.experience_years_min === null) return null
 
   return {
-    id: "experience",
+    id: 'experience',
     asks: `${years(job.experience_years_min)} de experiencia`,
     yours: yoursExperience(profile.experienceYears),
     status:
       profile.experienceYears === null
-        ? "unknown"
+        ? 'unknown'
         : profile.experienceYears >= job.experience_years_min
-          ? "ok"
-          : "short",
-  };
+          ? 'ok'
+          : 'short',
+  }
 }
 
 /** The offer's own words, where a requirement can hide outside its own field. */
-const requirementText = (job: Job): string => [job.requirements ?? "", job.description].join("\n");
+const requirementText = (job: Job): string =>
+  [job.requirements ?? '', job.description].join('\n')
 
 export function assessFit(job: Job, profile: Profile): Fit {
-  const checks = [educationCheck(job, profile), experienceCheck(job, profile)].filter(
-    (check): check is Check => check !== null,
-  );
+  const checks = [
+    educationCheck(job, profile),
+    experienceCheck(job, profile),
+  ].filter((check): check is Check => check !== null)
 
-  const matched = findProfileMatches(requirementText(job), profile);
+  const matched = findProfileMatches(requirementText(job), profile)
   const unknownProfile =
-    profile.education === "" && profile.experienceYears === null && profile.courses.length === 0;
+    profile.education === '' &&
+    profile.experienceYears === null &&
+    profile.courses.length === 0
 
-  const status: CheckStatus = checks.some((check) => check.status === "short")
-    ? "short"
-    : checks.some((check) => check.status === "ok")
-      ? "ok"
-      : "unknown";
+  const status: CheckStatus = checks.some((check) => check.status === 'short')
+    ? 'short'
+    : checks.some((check) => check.status === 'ok')
+      ? 'ok'
+      : 'unknown'
 
-  return { checks, matched, status, unknownProfile };
+  return { checks, matched, status, unknownProfile }
 }
 
 /** The one line at the top of the sheet, before anything is read in detail. */
 export function fitHeadline(fit: Fit): string {
-  if (fit.status === "short") return "Te falta algo de lo que pide";
-  if (fit.status === "ok") {
+  if (fit.status === 'short') return 'Te falta algo de lo que pide'
+  if (fit.status === 'ok') {
     return fit.matched.length > 0
-      ? "Cumplís lo que se puede verificar, y pide cosas que tenés"
-      : "Cumplís lo que se puede verificar";
+      ? 'Cumplís lo que se puede verificar, y pide cosas que tenés'
+      : 'Cumplís lo que se puede verificar'
   }
-  if (fit.matched.length > 0) return "Pide cosas que tenés en tu perfil";
-  return "No hay datos para saber si cumplís";
+  if (fit.matched.length > 0) return 'Pide cosas que tenés en tu perfil'
+  return 'No hay datos para saber si cumplís'
 }
 
 /** Whether the sheet has anything worth saying about the fit at all. */
-export const hasFit = (fit: Fit): boolean => fit.checks.length > 0 || fit.matched.length > 0;
+export const hasFit = (fit: Fit): boolean =>
+  fit.checks.length > 0 || fit.matched.length > 0
 
 /** The education gap in plain words, for the one case people ask about most. */
 export function educationGap(job: Job, profile: Profile): string | null {
-  if (!job.education_level || profile.education === "") return null;
-  const meets = meetsEducation(job, profile);
-  if (meets !== false) return null;
+  if (!job.education_level || profile.education === '') return null
+  const meets = meetsEducation(job, profile)
+  if (meets !== false) return null
   return `Pide ${job.education_level.toLowerCase()} y cargaste ${EDUCATION_LABEL[
     profile.education
-  ].toLowerCase()}. Igual podés postularte: muchos avisos lo ponen como deseable.`;
+  ].toLowerCase()}. Igual podés postularte: muchos avisos lo ponen como deseable.`
 }

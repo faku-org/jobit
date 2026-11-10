@@ -3,17 +3,17 @@
 Todo lo que hace falta para levantar, usar y mantener JobIt. Cada documento es
 una sección y arranca con los pasos para ejecutarla.
 
-| Documento | Qué cubre |
-|---|---|
-| [`api.md`](api.md) | La API: correrla, variables de entorno, endpoints, límites. |
-| [`web.md`](web.md) | La web: entradas, dev, build, estructura. |
-| [`worker.md`](worker.md) | Los scrapers, el egress y la agenda. |
-| [`database.md`](database.md) | El esquema SQLite, las migraciones y los respaldos. |
-| [`company-panel.md`](company-panel.md) | El panel de empresa de punta a punta. |
-| [`deploy.md`](deploy.md) | Puesta en producción (resumen; el detalle está en `deploy/`). |
-| [`faq.md`](faq.md) | Preguntas frecuentes. |
+| Documento                                          | Qué cubre                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [`api.md`](api.md)                                 | La API: correrla, variables de entorno, endpoints, límites.                     |
+| [`web.md`](web.md)                                 | La web: entradas, dev, build, estructura.                                       |
+| [`worker.md`](worker.md)                           | Los scrapers, el egress y la agenda.                                            |
+| [`database.md`](database.md)                       | El esquema SQLite, las migraciones y los respaldos.                             |
+| [`company-panel.md`](company-panel.md)             | El panel de empresa de punta a punta.                                           |
+| [`deploy.md`](deploy.md)                           | Puesta en producción (resumen; el detalle está en `deploy/`).                   |
+| [`faq.md`](faq.md)                                 | Preguntas frecuentes.                                                           |
 | [`plan-implementacion.md`](plan-implementacion.md) | Orden de lo pendiente (roadmap, issues, PRs) y la revisión de UX/accesibilidad. |
-| [`estado-y-expansion.md`](estado-y-expansion.md) | Qué está construido hoy, qué fases siguen y qué implica cada una. |
+| [`estado-y-expansion.md`](estado-y-expansion.md)   | Qué está construido hoy, qué fases siguen y qué implica cada una.               |
 
 Para el panorama general ver [`../Architecture.md`](../Architecture.md) y para
 las convenciones de interfaz [`../DESIGN.md`](../DESIGN.md).
@@ -45,11 +45,11 @@ bun run dev           # API en :3000 y web en :5173
 
 Abrí `http://localhost:5173`. La web proxea `/api` hacia la API.
 
-| URL | Qué es |
-|---|---|
-| `http://localhost:5173/` | El tablero. |
-| `http://localhost:5173/empresas` | El panel de empresa. |
-| `http://localhost:5173/admin` | El panel de administración. |
+| URL                              | Qué es                      |
+| -------------------------------- | --------------------------- |
+| `http://localhost:5173/`         | El tablero.                 |
+| `http://localhost:5173/empresas` | El panel de empresa.        |
+| `http://localhost:5173/admin`    | El panel de administración. |
 
 ## Comandos de la raíz
 

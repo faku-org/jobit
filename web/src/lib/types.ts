@@ -1,112 +1,115 @@
-import { employerSlug } from "./employers.ts";
+import { employerSlug } from './employers.ts'
 
 /** Sin acentos ni mayúsculas, para comparar texto. */
 const foldText = (value: string): string =>
   value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
 
 const textIncludes = (haystack: string, needle: string): boolean => {
-  const folded = foldText(haystack);
+  const folded = foldText(haystack)
   return foldText(needle)
     .split(/\s+/)
     .filter(Boolean)
-    .every((term) => folded.includes(term));
-};
+    .every((term) => folded.includes(term))
+}
 
-export type Level = "entry" | "mid" | "senior";
-export type Remote = "remote" | "hybrid";
-export type JobType = "full_time" | "part_time" | "internship";
+export type Level = 'entry' | 'mid' | 'senior'
+export type Remote = 'remote' | 'hybrid'
+export type JobType = 'full_time' | 'part_time' | 'internship'
 
 /** Remote is null on offers that are worked from the employer's site. */
-export type WorkMode = Remote | "onsite";
+export type WorkMode = Remote | 'onsite'
 
 export interface Salary {
-  min: number | null;
-  max: number | null;
-  currency: string;
+  min: number | null
+  max: number | null
+  currency: string
 }
 
 export interface DuplicateRef {
-  source: string;
-  apply_url: string;
+  source: string
+  apply_url: string
 }
 
 export interface Job {
-  id: string;
-  source: string;
-  source_id: string;
-  title: string;
-  company: string | null;
-  department: string | null;
-  city: string | null;
-  category: string;
-  category_label: string;
-  date_posted: string;
-  level: Level | null;
-  remote: Remote | null;
-  job_type: JobType | null;
-  salary: Salary | null;
-  experience_years_min: number | null;
-  no_experience: boolean;
-  education_level: string | null;
-  schedule: string | null;
-  vacancies: number | null;
+  id: string
+  source: string
+  source_id: string
+  title: string
+  company: string | null
+  department: string | null
+  city: string | null
+  category: string
+  category_label: string
+  date_posted: string
+  level: Level | null
+  remote: Remote | null
+  job_type: JobType | null
+  salary: Salary | null
+  experience_years_min: number | null
+  no_experience: boolean
+  education_level: string | null
+  schedule: string | null
+  vacancies: number | null
   /** Deadline to apply, only published by the public-sector source. */
-  closes_at: string | null;
-  description: string;
-  requirements: string | null;
-  apply_url: string;
-  duplicates: DuplicateRef[];
+  closes_at: string | null
+  description: string
+  requirements: string | null
+  apply_url: string
+  duplicates: DuplicateRef[]
 }
 
 export interface JobsResponse {
-  total: number;
-  offset: number;
-  limit: number;
-  jobs: Job[];
+  total: number
+  offset: number
+  limit: number
+  jobs: Job[]
 }
 
 export interface Facet {
-  value: string;
-  label: string;
-  count: number;
+  value: string
+  label: string
+  count: number
 }
 
 export interface Meta {
-  count: number;
-  scraped_at: string;
-  sources: string[];
-  categories: Facet[];
-  departments: Facet[];
-  no_experience_count: number;
+  count: number
+  scraped_at: string
+  sources: string[]
+  categories: Facet[]
+  departments: Facet[]
+  no_experience_count: number
 }
 
 /** Colour scheme; "system" follows the OS setting. */
-export type Theme = "light" | "dark" | "system";
+export type Theme = 'light' | 'dark' | 'system'
 
-export type ApplicationStatus = "applied" | "interview" | "closed";
+export type ApplicationStatus = 'applied' | 'interview' | 'closed'
 
 /**
  * An offer the person told us they actually applied to. The job fields are a
  * snapshot: the follow-up list has to survive the offer leaving the feed.
  */
 export interface Application {
-  id: string;
-  status: ApplicationStatus;
-  appliedAt: string;
-  title: string;
-  company: string | null;
-  category: string;
-  categoryLabel: string;
-  source: string;
-  applyUrl: string;
+  id: string
+  status: ApplicationStatus
+  appliedAt: string
+  title: string
+  company: string | null
+  category: string
+  categoryLabel: string
+  source: string
+  applyUrl: string
 }
 
-export const toApplication = (job: Job, at: string = new Date().toISOString()): Application => ({
+export const toApplication = (
+  job: Job,
+  at: string = new Date().toISOString(),
+): Application => ({
   id: job.id,
-  status: "applied",
+  status: 'applied',
   appliedAt: at,
   title: job.title,
   company: job.company,
@@ -114,104 +117,122 @@ export const toApplication = (job: Job, at: string = new Date().toISOString()): 
   categoryLabel: job.category_label,
   source: job.source,
   applyUrl: job.apply_url,
-});
+})
 
 /**
  * Applications the person already sent that say something about this offer:
  * same employer first, same rubro second.
  */
 export interface RelatedApplications {
-  company: Application[];
-  category: Application[];
+  company: Application[]
+  category: Application[]
 }
 
 const sameCompany = (a: string | null, b: string | null): boolean =>
-  a !== null && b !== null && a.trim().toLowerCase() === b.trim().toLowerCase();
+  a !== null && b !== null && a.trim().toLowerCase() === b.trim().toLowerCase()
 
-export function relatedApplications(job: Job, applications: Application[]): RelatedApplications {
-  const others = applications.filter((entry) => entry.id !== job.id);
-  const company = others.filter((entry) => sameCompany(entry.company, job.company));
-  const inCompany = new Set(company.map((entry) => entry.id));
+export function relatedApplications(
+  job: Job,
+  applications: Application[],
+): RelatedApplications {
+  const others = applications.filter((entry) => entry.id !== job.id)
+  const company = others.filter((entry) =>
+    sameCompany(entry.company, job.company),
+  )
+  const inCompany = new Set(company.map((entry) => entry.id))
 
   return {
     company,
-    category: others.filter((entry) => entry.category === job.category && !inCompany.has(entry.id)),
-  };
+    category: others.filter(
+      (entry) => entry.category === job.category && !inCompany.has(entry.id),
+    ),
+  }
 }
 
 /** The lists the main area can show. */
-export type View = "all" | "saved" | "tracking" | "state" | "services" | "market" | "news";
+export type View =
+  | 'all'
+  | 'saved'
+  | 'tracking'
+  | 'state'
+  | 'services'
+  | 'market'
+  | 'news'
 
 /** How the feed is ordered: newest, best fit, or nearest deadline. */
-export type Sort = "recent" | "match" | "closing";
+export type Sort = 'recent' | 'match' | 'closing'
 
 /** The job board that publishes the public-sector calls. */
-export const STATE_SOURCE = "uruguayconcursa";
+export const STATE_SOURCE = 'uruguayconcursa'
 
 export interface Filters {
-  q: string;
-  category: string;
-  department: string;
+  q: string
+  category: string
+  department: string
   /** Slug de una empresa; vacío es "todas". Puede traer varias con comas. */
-  company: string;
+  company: string
   /** Solo el título (atajo `puesto:`). */
-  title: string;
+  title: string
   /** Ciudad o departamento (atajo `ubicacion:`). */
-  place: string;
+  place: string
   /** Sueldo mínimo mensual (atajo `sueldo:`). */
-  salaryMin: number | null;
-  level: Level | "";
-  mode: WorkMode | "";
-  jobType: JobType | "";
-  noExperience: boolean;
-  days: number | null;
+  salaryMin: number | null
+  level: Level | ''
+  mode: WorkMode | ''
+  jobType: JobType | ''
+  noExperience: boolean
+  days: number | null
   /** Filtra a las empresas donde trabajó la persona (viven en el perfil). */
-  myCompanies: boolean;
+  myCompanies: boolean
 }
 
 export const EMPTY_FILTERS: Filters = {
-  q: "",
-  category: "",
-  department: "",
-  company: "",
-  title: "",
-  place: "",
+  q: '',
+  category: '',
+  department: '',
+  company: '',
+  title: '',
+  place: '',
   salaryMin: null,
-  level: "",
-  mode: "",
-  jobType: "",
+  level: '',
+  mode: '',
+  jobType: '',
   noExperience: false,
   days: null,
   myCompanies: false,
-};
+}
 
 export const hasActiveFilters = (filters: Filters): boolean =>
-  filters.q !== "" ||
-  filters.category !== "" ||
-  filters.department !== "" ||
-  filters.company !== "" ||
-  filters.title !== "" ||
-  filters.place !== "" ||
+  filters.q !== '' ||
+  filters.category !== '' ||
+  filters.department !== '' ||
+  filters.company !== '' ||
+  filters.title !== '' ||
+  filters.place !== '' ||
   filters.salaryMin !== null ||
-  filters.level !== "" ||
-  filters.mode !== "" ||
-  filters.jobType !== "" ||
+  filters.level !== '' ||
+  filters.mode !== '' ||
+  filters.jobType !== '' ||
   filters.noExperience ||
   filters.days !== null ||
-  filters.myCompanies;
+  filters.myCompanies
 
 /** A monthly pay range in pesos; null on an end means it is not bounded. */
 export interface SalaryPreference {
-  min: number | null;
-  max: number | null;
+  min: number | null
+  max: number | null
   /** Most offers publish no pay: this says whether they stay in the list. */
-  includeUnknown: boolean;
+  includeUnknown: boolean
 }
 
-export const EMPTY_SALARY: SalaryPreference = { min: null, max: null, includeUnknown: true };
+export const EMPTY_SALARY: SalaryPreference = {
+  min: null,
+  max: null,
+  includeUnknown: true,
+}
 
 export const hasSalaryPreference = (salary: SalaryPreference): boolean =>
-  salary.min !== null || salary.max !== null || !salary.includeUnknown;
+  salary.min !== null || salary.max !== null || !salary.includeUnknown
 
 /**
  * What the person is looking for, as opposed to the one-off filters above.
@@ -224,30 +245,30 @@ export const hasSalaryPreference = (salary: SalaryPreference): boolean =>
  * emptying the board.
  */
 export interface Preferences {
-  modes: WorkMode[];
+  modes: WorkMode[]
   /** Rubros wanted, most wanted first. */
-  categories: string[];
+  categories: string[]
   /** Rubros the person never wants to see. */
-  hiddenCategories: string[];
+  hiddenCategories: string[]
   /** Departamentos wanted, most wanted first. */
-  departments: string[];
-  hiddenDepartments: string[];
-  levels: Level[];
-  jobTypes: JobType[];
-  salary: SalaryPreference;
+  departments: string[]
+  hiddenDepartments: string[]
+  levels: Level[]
+  jobTypes: JobType[]
+  salary: SalaryPreference
   /** Order the feed by fit instead of by date. */
-  rankByFit: boolean;
+  rankByFit: boolean
   /** How tightly “Para vos” and the match sort follow the profile. */
-  mix: Mix;
+  mix: Mix
 }
 
 /** broad = every preference hit; focused = a short list of the best hits. */
-export type Mix = "broad" | "balanced" | "focused";
+export type Mix = 'broad' | 'balanced' | 'focused'
 
-export const MIXES: Mix[] = ["broad", "balanced", "focused"];
+export const MIXES: Mix[] = ['broad', 'balanced', 'focused']
 
 export const isMix = (value: unknown): value is Mix =>
-  typeof value === "string" && (MIXES as readonly string[]).includes(value);
+  typeof value === 'string' && (MIXES as readonly string[]).includes(value)
 
 export const EMPTY_PREFERENCES: Preferences = {
   modes: [],
@@ -259,35 +280,42 @@ export const EMPTY_PREFERENCES: Preferences = {
   jobTypes: [],
   salary: EMPTY_SALARY,
   rankByFit: true,
-  mix: "balanced",
-};
+  mix: 'balanced',
+}
 
 /** Adds or removes a value from one of the preference lists. */
 export const toggleValue = <T extends string>(list: T[], value: T): T[] =>
-  list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+  list.includes(value)
+    ? list.filter((item) => item !== value)
+    : [...list, value]
 
-export const workMode = (job: Job): WorkMode => job.remote ?? "onsite";
+export const workMode = (job: Job): WorkMode => job.remote ?? 'onsite'
 
 /** Offers sharing a rubro, used by the saved view. */
 export interface CategoryGroup {
-  value: string;
-  label: string;
-  jobs: Job[];
+  value: string
+  label: string
+  jobs: Job[]
 }
 
 /** Groups a list by rubro, biggest group first. */
 export function groupByCategory(jobs: Job[]): CategoryGroup[] {
-  const groups = new Map<string, CategoryGroup>();
+  const groups = new Map<string, CategoryGroup>()
 
   for (const job of jobs) {
-    const group = groups.get(job.category);
-    if (group) group.jobs.push(job);
-    else groups.set(job.category, { value: job.category, label: job.category_label, jobs: [job] });
+    const group = groups.get(job.category)
+    if (group) group.jobs.push(job)
+    else
+      groups.set(job.category, {
+        value: job.category,
+        label: job.category_label,
+        jobs: [job],
+      })
   }
 
   return [...groups.values()].sort(
     (a, b) => b.jobs.length - a.jobs.length || a.label.localeCompare(b.label),
-  );
+  )
 }
 
 /** What the person told the app they want, for the badge on the island. */
@@ -297,95 +325,129 @@ export const preferenceCount = (preferences: Preferences): number =>
   preferences.departments.length +
   preferences.levels.length +
   preferences.jobTypes.length +
-  (hasSalaryPreference(preferences.salary) ? 1 : 0);
+  (hasSalaryPreference(preferences.salary) ? 1 : 0)
 
 /** What the person told the app to keep out; counted apart, it reads as a
  * different kind of setting and it is the only one that removes offers. */
 export const hiddenCount = (preferences: Preferences): number =>
-  preferences.hiddenCategories.length + preferences.hiddenDepartments.length;
+  preferences.hiddenCategories.length + preferences.hiddenDepartments.length
 
 /** Moves an entry of an ordered preference list one place up or down. */
 export function reorder<T>(list: T[], from: number, to: number): T[] {
-  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list;
-  const next = [...list];
-  const [moved] = next.splice(from, 1);
-  if (moved === undefined) return list;
-  next.splice(to, 0, moved);
-  return next;
+  if (
+    from === to ||
+    from < 0 ||
+    to < 0 ||
+    from >= list.length ||
+    to >= list.length
+  )
+    return list
+  const next = [...list]
+  const [moved] = next.splice(from, 1)
+  if (moved === undefined) return list
+  next.splice(to, 0, moved)
+  return next
 }
 
-export function matchesPreferences(job: Job, preferences: Preferences): boolean {
-  const { modes, categories, levels, jobTypes } = preferences;
-  if (modes.length > 0 && !modes.includes(workMode(job))) return false;
-  if (categories.length > 0 && !categories.includes(job.category)) return false;
-  if (levels.length > 0 && (job.level === null || !levels.includes(job.level))) return false;
-  if (jobTypes.length > 0 && (job.job_type === null || !jobTypes.includes(job.job_type))) {
-    return false;
+export function matchesPreferences(
+  job: Job,
+  preferences: Preferences,
+): boolean {
+  const { modes, categories, levels, jobTypes } = preferences
+  if (modes.length > 0 && !modes.includes(workMode(job))) return false
+  if (categories.length > 0 && !categories.includes(job.category)) return false
+  if (levels.length > 0 && (job.level === null || !levels.includes(job.level)))
+    return false
+  if (
+    jobTypes.length > 0 &&
+    (job.job_type === null || !jobTypes.includes(job.job_type))
+  ) {
+    return false
   }
-  return true;
+  return true
 }
 
 /** The dimensions a job chip can act on. */
-export type TagDimension = "category" | "level" | "mode" | "jobType" | "noExperience";
+export type TagDimension =
+  | 'category'
+  | 'level'
+  | 'mode'
+  | 'jobType'
+  | 'noExperience'
 
 /** A chip on a job card, tied to the filter and preference dimension behind it. */
 export interface Tag {
-  dimension: TagDimension;
+  dimension: TagDimension
   /** Unused by the boolean dimensions. */
-  value: string;
-  label: string;
+  value: string
+  label: string
 }
 
 /** Every dimension but one can be starred. Wanting the offers that ask for no
  * experience is what the profile already says with "ninguna", so that chip
  * filters and nothing more. */
-export const canPrefer = (tag: Tag): boolean => tag.dimension !== "noExperience";
+export const canPrefer = (tag: Tag): boolean => tag.dimension !== 'noExperience'
 
 export function isPreferredTag(tag: Tag, preferences: Preferences): boolean {
   switch (tag.dimension) {
-    case "category":
-      return preferences.categories.includes(tag.value);
-    case "level":
-      return preferences.levels.includes(tag.value as Level);
-    case "mode":
-      return preferences.modes.includes(tag.value as WorkMode);
-    case "jobType":
-      return preferences.jobTypes.includes(tag.value as JobType);
-    case "noExperience":
-      return false;
+    case 'category':
+      return preferences.categories.includes(tag.value)
+    case 'level':
+      return preferences.levels.includes(tag.value as Level)
+    case 'mode':
+      return preferences.modes.includes(tag.value as WorkMode)
+    case 'jobType':
+      return preferences.jobTypes.includes(tag.value as JobType)
+    case 'noExperience':
+      return false
   }
 }
 
 /** Starring a chip: the tag joins the preferences and starts pulling matching
  * offers forward. */
-export function togglePreferredTag(preferences: Preferences, tag: Tag): Preferences {
+export function togglePreferredTag(
+  preferences: Preferences,
+  tag: Tag,
+): Preferences {
   switch (tag.dimension) {
-    case "category":
-      return { ...preferences, categories: toggleValue(preferences.categories, tag.value) };
-    case "level":
-      return { ...preferences, levels: toggleValue(preferences.levels, tag.value as Level) };
-    case "mode":
-      return { ...preferences, modes: toggleValue(preferences.modes, tag.value as WorkMode) };
-    case "jobType":
-      return { ...preferences, jobTypes: toggleValue(preferences.jobTypes, tag.value as JobType) };
-    case "noExperience":
-      return preferences;
+    case 'category':
+      return {
+        ...preferences,
+        categories: toggleValue(preferences.categories, tag.value),
+      }
+    case 'level':
+      return {
+        ...preferences,
+        levels: toggleValue(preferences.levels, tag.value as Level),
+      }
+    case 'mode':
+      return {
+        ...preferences,
+        modes: toggleValue(preferences.modes, tag.value as WorkMode),
+      }
+    case 'jobType':
+      return {
+        ...preferences,
+        jobTypes: toggleValue(preferences.jobTypes, tag.value as JobType),
+      }
+    case 'noExperience':
+      return preferences
   }
 }
 
 /** Clicking through a chip: the list narrows to offers carrying that tag. */
 export function applyTagToFilters(filters: Filters, tag: Tag): Filters {
   switch (tag.dimension) {
-    case "category":
-      return { ...filters, category: tag.value };
-    case "level":
-      return { ...filters, level: tag.value as Level };
-    case "mode":
-      return { ...filters, mode: tag.value as WorkMode };
-    case "jobType":
-      return { ...filters, jobType: tag.value as JobType };
-    case "noExperience":
-      return { ...filters, noExperience: true };
+    case 'category':
+      return { ...filters, category: tag.value }
+    case 'level':
+      return { ...filters, level: tag.value as Level }
+    case 'mode':
+      return { ...filters, mode: tag.value as WorkMode }
+    case 'jobType':
+      return { ...filters, jobType: tag.value as JobType }
+    case 'noExperience':
+      return { ...filters, noExperience: true }
   }
 }
 
@@ -394,48 +456,67 @@ export function applyTagToFilters(filters: Filters, tag: Tag): Filters {
  * exclusive by construction: wanting something removes it from the hidden
  * list and the other way round, so the two lists can never disagree.
  */
-export type Stance = "wanted" | "neutral" | "hidden";
+export type Stance = 'wanted' | 'neutral' | 'hidden'
 
 export interface StanceLists {
-  wanted: string[];
-  hidden: string[];
+  wanted: string[]
+  hidden: string[]
 }
 
-export const stanceOf = ({ wanted, hidden }: StanceLists, value: string): Stance =>
-  hidden.includes(value) ? "hidden" : wanted.includes(value) ? "wanted" : "neutral";
+export const stanceOf = (
+  { wanted, hidden }: StanceLists,
+  value: string,
+): Stance =>
+  hidden.includes(value)
+    ? 'hidden'
+    : wanted.includes(value)
+      ? 'wanted'
+      : 'neutral'
 
-export function setStance(lists: StanceLists, value: string, stance: Stance): StanceLists {
-  const wanted = lists.wanted.filter((item) => item !== value);
-  const hidden = lists.hidden.filter((item) => item !== value);
+export function setStance(
+  lists: StanceLists,
+  value: string,
+  stance: Stance,
+): StanceLists {
+  const wanted = lists.wanted.filter((item) => item !== value)
+  const hidden = lists.hidden.filter((item) => item !== value)
 
-  if (stance === "wanted") return { wanted: [...wanted, value], hidden };
-  if (stance === "hidden") return { wanted, hidden: [...hidden, value] };
-  return { wanted, hidden };
+  if (stance === 'wanted') return { wanted: [...wanted, value], hidden }
+  if (stance === 'hidden') return { wanted, hidden: [...hidden, value] }
+  return { wanted, hidden }
 }
 
 /** Cycles a chip: neutral to wanted, wanted to hidden, hidden back to neutral. */
 export const nextStance = (stance: Stance): Stance =>
-  stance === "neutral" ? "wanted" : stance === "wanted" ? "hidden" : "neutral";
+  stance === 'neutral' ? 'wanted' : stance === 'wanted' ? 'hidden' : 'neutral'
 
 export const categoryStances = (preferences: Preferences): StanceLists => ({
   wanted: preferences.categories,
   hidden: preferences.hiddenCategories,
-});
+})
 
 export const departmentStances = (preferences: Preferences): StanceLists => ({
   wanted: preferences.departments,
   hidden: preferences.hiddenDepartments,
-});
+})
 
 export const withCategoryStances = (
   preferences: Preferences,
   { wanted, hidden }: StanceLists,
-): Preferences => ({ ...preferences, categories: wanted, hiddenCategories: hidden });
+): Preferences => ({
+  ...preferences,
+  categories: wanted,
+  hiddenCategories: hidden,
+})
 
 export const withDepartmentStances = (
   preferences: Preferences,
   { wanted, hidden }: StanceLists,
-): Preferences => ({ ...preferences, departments: wanted, hiddenDepartments: hidden });
+): Preferences => ({
+  ...preferences,
+  departments: wanted,
+  hiddenDepartments: hidden,
+})
 
 /**
  * Whether an offer satisfies the one-off filters. The API answers this for the
@@ -444,45 +525,55 @@ export const withDepartmentStances = (
  * together.
  */
 export function matchesFilters(job: Job, filters: Filters): boolean {
-  if (filters.category && job.category !== filters.category) return false;
-  if (filters.department && job.department !== filters.department) return false;
-  if (filters.company && employerSlug(job.company ?? "") !== filters.company) return false;
-  if (filters.title && !textIncludes(job.title, filters.title)) return false;
+  if (filters.category && job.category !== filters.category) return false
+  if (filters.department && job.department !== filters.department) return false
+  if (filters.company && employerSlug(job.company ?? '') !== filters.company)
+    return false
+  if (filters.title && !textIncludes(job.title, filters.title)) return false
   if (
     filters.place &&
-    !textIncludes([job.city ?? "", job.department ?? ""].join(" "), filters.place)
+    !textIncludes(
+      [job.city ?? '', job.department ?? ''].join(' '),
+      filters.place,
+    )
   ) {
-    return false;
+    return false
   }
   if (filters.salaryMin !== null) {
-    const low = job.salary?.min ?? job.salary?.max ?? null;
-    if (low === null || low < filters.salaryMin) return false;
+    const low = job.salary?.min ?? job.salary?.max ?? null
+    if (low === null || low < filters.salaryMin) return false
   }
-  if (filters.level && job.level !== filters.level) return false;
-  if (filters.mode && workMode(job) !== filters.mode) return false;
-  if (filters.jobType && job.job_type !== filters.jobType) return false;
-  if (filters.noExperience && !job.no_experience) return false;
+  if (filters.level && job.level !== filters.level) return false
+  if (filters.mode && workMode(job) !== filters.mode) return false
+  if (filters.jobType && job.job_type !== filters.jobType) return false
+  if (filters.noExperience && !job.no_experience) return false
 
   if (filters.days !== null) {
-    const posted = Date.parse(job.date_posted);
-    if (Number.isNaN(posted) || Date.now() - posted > filters.days * 86_400_000) return false;
+    const posted = Date.parse(job.date_posted)
+    if (Number.isNaN(posted) || Date.now() - posted > filters.days * 86_400_000)
+      return false
   }
 
-  const needle = filters.q.trim();
+  const needle = filters.q.trim()
   if (needle) {
-    const haystack = [job.title, job.company ?? "", job.city ?? "", job.description]
-      .join(" ")
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .toLowerCase();
+    const haystack = [
+      job.title,
+      job.company ?? '',
+      job.city ?? '',
+      job.description,
+    ]
+      .join(' ')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
     const terms = needle
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
       .toLowerCase()
       .split(/\s+/)
-      .filter(Boolean);
-    if (!terms.every((term) => haystack.includes(term))) return false;
+      .filter(Boolean)
+    if (!terms.every((term) => haystack.includes(term))) return false
   }
 
-  return true;
+  return true
 }

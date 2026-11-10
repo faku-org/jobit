@@ -1,6 +1,6 @@
-import { Heart } from "lucide-react";
-import { useEffect, useState } from "react";
-import { fetchSupportUrl } from "../../lib/services.ts";
+import { Heart } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { fetchSupportUrl } from '../../lib/services.ts'
 
 /**
  * Apoyo voluntario: un enlace a una página de afuera, sin cuenta y sin
@@ -10,23 +10,24 @@ import { fetchSupportUrl } from "../../lib/services.ts";
  * algo a cambio dejaría de ser apoyo y pasaría a ser un plan pago.
  */
 export function SupportLink() {
-  const [url, setUrl] = useState<string | null>(null);
+  const [url, setUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController();
+    const controller = new AbortController()
     fetchSupportUrl(controller.signal)
       .then(setUrl)
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
 
-  if (!url) return null;
+  if (!url) return null
 
   return (
     <aside className="rounded-2xl border border-dashed border-sky bg-surface/60 px-5 py-4 text-sm text-soft">
       <p>
-        Publicar en JobIt es gratis y no vende tu información. Si querés, podés apoyar el proyecto.
-        No te da nada a cambio: ni distintivo, ni lugar en la lista.
+        Publicar en JobIt es gratis y no vende tu información. Si querés, podés
+        apoyar el proyecto. No te da nada a cambio: ni distintivo, ni lugar en
+        la lista.
       </p>
       <a
         className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl border border-sky/70 bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-brand hover:bg-mist"
@@ -38,5 +39,5 @@ export function SupportLink() {
         Apoyar a JobIt
       </a>
     </aside>
-  );
+  )
 }

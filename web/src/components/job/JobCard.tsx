@@ -1,32 +1,39 @@
-import { Bookmark, Building2, EyeOff, MapPin, Target, Undo2 } from "lucide-react";
-import { m } from "motion/react";
-import { fadeUpTransition } from "../../lib/motion.ts";
-import { formatLocation } from "../../lib/format.ts";
-import { jobShare } from "../../lib/share.ts";
-import { chipClass, iconButtonClass } from "../../lib/styles.ts";
-import type { Job } from "../../lib/types.ts";
-import { ApplyFooter } from "./ApplyFooter.tsx";
-import { WorkedBadge } from "./WorkedBadge.tsx";
-import { JobChips, type TagActions } from "./JobChips.tsx";
-import { ShareMenu } from "../ui/ShareMenu.tsx";
+import {
+  Bookmark,
+  Building2,
+  EyeOff,
+  MapPin,
+  Target,
+  Undo2,
+} from 'lucide-react'
+import { m } from 'motion/react'
+import { fadeUpTransition } from '../../lib/motion.ts'
+import { formatLocation } from '../../lib/format.ts'
+import { jobShare } from '../../lib/share.ts'
+import { chipClass, iconButtonClass } from '../../lib/styles.ts'
+import type { Job } from '../../lib/types.ts'
+import { ApplyFooter } from './ApplyFooter.tsx'
+import { WorkedBadge } from './WorkedBadge.tsx'
+import { JobChips, type TagActions } from './JobChips.tsx'
+import { ShareMenu } from '../ui/ShareMenu.tsx'
 
 interface JobCardProps {
-  job: Job;
-  isSaved: boolean;
-  isDismissed: boolean;
+  job: Job
+  isSaved: boolean
+  isDismissed: boolean
   /** Matches the saved preferences, so it gets pulled forward visually. */
-  isMatch: boolean;
-  isApplied: boolean;
+  isMatch: boolean
+  isApplied: boolean
   /** La empresa es una que la persona cargó como suya; solo una marca. */
-  worked?: boolean;
+  worked?: boolean
   /** What the chips of this card can do to the list. */
-  tagActions: TagActions;
-  onOpen: (job: Job) => void;
+  tagActions: TagActions
+  onOpen: (job: Job) => void
   /** Abre el stand de la empresa de esta oferta. */
-  onOpenEmployer?: () => void;
-  onToggleSaved: (id: string) => void;
-  onToggleDismissed: (id: string) => void;
-  onApplied: (job: Job) => void;
+  onOpenEmployer?: () => void
+  onToggleSaved: (id: string) => void
+  onToggleDismissed: (id: string) => void
+  onApplied: (job: Job) => void
 }
 
 /**
@@ -34,15 +41,16 @@ interface JobCardProps {
  * that containment: the bloom paints outside the box, and paint-containment
  * clips it to a hard rectangle.
  */
-const cardShell = "rounded-2xl [contain-intrinsic-size:auto_260px] [content-visibility:auto]";
+const cardShell =
+  'rounded-2xl [contain-intrinsic-size:auto_260px] [content-visibility:auto]'
 
 const cardBody =
-  "relative z-[1] rounded-2xl border bg-surface p-5 transition-[border-color,box-shadow,opacity]";
+  'relative z-[1] rounded-2xl border bg-surface p-5 transition-[border-color,box-shadow,opacity]'
 
 function bodyClass(isDismissed: boolean, isMatch: boolean): string {
-  if (isDismissed) return "border-sky/40 opacity-55";
-  if (isMatch) return "border-transparent bg-clip-padding";
-  return "border-sky/50 hover:border-brand hover:shadow-[var(--shadow-card)]";
+  if (isDismissed) return 'border-sky/40 opacity-55'
+  if (isMatch) return 'border-transparent bg-clip-padding'
+  return 'border-sky/50 hover:border-brand hover:shadow-[var(--shadow-card)]'
 }
 
 export function JobCard({
@@ -60,7 +68,9 @@ export function JobCard({
   onApplied,
 }: JobCardProps) {
   return (
-    <article className={isMatch && !isDismissed ? "aura-edge rounded-2xl" : cardShell}>
+    <article
+      className={isMatch && !isDismissed ? 'aura-edge rounded-2xl' : cardShell}
+    >
       <div className={`${cardBody} ${bodyClass(isDismissed, isMatch)}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -89,19 +99,24 @@ export function JobCard({
           <div className="flex shrink-0 gap-1.5">
             <ShareMenu target={jobShare(job)} />
             <m.button
-              aria-label={isSaved ? "Quitar de guardadas" : "Guardar oferta"}
+              aria-label={isSaved ? 'Quitar de guardadas' : 'Guardar oferta'}
               aria-pressed={isSaved}
               className={`${iconButtonClass} ${
-                isSaved ? "border-panel bg-panel text-onpanel hover:text-onpanel" : ""
+                isSaved
+                  ? 'border-panel bg-panel text-onpanel hover:text-onpanel'
+                  : ''
               }`}
               type="button"
               whileTap={{ scale: 0.9 }}
               onClick={() => onToggleSaved(job.id)}
             >
-              <Bookmark aria-hidden className={`size-4 ${isSaved ? "fill-current" : ""}`} />
+              <Bookmark
+                aria-hidden
+                className={`size-4 ${isSaved ? 'fill-current' : ''}`}
+              />
             </m.button>
             <m.button
-              aria-label={isDismissed ? "Recuperar oferta" : "Descartar oferta"}
+              aria-label={isDismissed ? 'Recuperar oferta' : 'Descartar oferta'}
               className={iconButtonClass}
               type="button"
               whileTap={{ scale: 0.9 }}
@@ -156,5 +171,5 @@ export function JobCard({
         </div>
       </div>
     </article>
-  );
+  )
 }

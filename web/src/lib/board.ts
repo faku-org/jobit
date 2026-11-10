@@ -12,17 +12,17 @@
  * revalida el `meta`. Se lee con `useSyncExternalStore`, así que un cambio
  * repinta lo que haya montado sin que nadie tenga que pasarse el dato.
  */
-let version = "";
+let version = ''
 
-const listeners = new Set<() => void>();
+const listeners = new Set<() => void>()
 
-export const boardVersion = (): string => version;
+export const boardVersion = (): string => version
 
 export function subscribeBoard(listener: () => void): () => void {
-  listeners.add(listener);
+  listeners.add(listener)
   return () => {
-    listeners.delete(listener);
-  };
+    listeners.delete(listener)
+  }
 }
 
 /**
@@ -35,18 +35,18 @@ export function subscribeBoard(listener: () => void): () => void {
  * nada de antes.
  */
 export function setBoardVersion(next: string, invalidate: () => void): void {
-  if (next === "" || next === version) return;
+  if (next === '' || next === version) return
 
-  const first = version === "";
-  version = next;
-  if (first) return;
+  const first = version === ''
+  version = next
+  if (first) return
 
-  invalidate();
-  for (const listener of listeners) listener();
+  invalidate()
+  for (const listener of listeners) listener()
 }
 
 /** Solo para los tests: deja el módulo como recién cargado. */
 export function resetBoardVersion(): void {
-  version = "";
-  listeners.clear();
+  version = ''
+  listeners.clear()
 }

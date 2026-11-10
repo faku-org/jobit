@@ -1,74 +1,81 @@
-import { Loader2, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Loader2, Pencil, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import {
   type MyServices as MyServicesData,
   deleteService,
   fetchMyServices,
-} from "../../lib/account.ts";
+} from '../../lib/account.ts'
 import {
   FEATURED_LABEL,
   SERVICE_STATUS_LABEL,
   type Service,
   formatServiceDay,
-} from "../../lib/services.ts";
-import { chipClass, mutedChip } from "../../lib/styles.ts";
+} from '../../lib/services.ts'
+import { chipClass, mutedChip } from '../../lib/styles.ts'
 
 interface MyServicesProps {
   /** Sube cada vez que algo se guarda, para volver a pedir la lista. */
-  reload: number;
-  onEdit: (service: Service) => void;
-  onNew: () => void;
+  reload: number
+  onEdit: (service: Service) => void
+  onNew: () => void
 }
 
 /** Lo que publicó quien está en sesión, con el estado de cada uno dicho como
  * es: un borrador no se ve, uno en revisión todavía tampoco. */
 export function MyServices({ reload, onEdit, onNew }: MyServicesProps) {
-  const [data, setData] = useState<MyServicesData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [data, setData] = useState<MyServicesData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   useEffect(() => {
-    let alive = true;
-    setLoading(true);
+    let alive = true
+    setLoading(true)
     fetchMyServices()
       .then((mine) => {
-        if (alive) setData(mine);
+        if (alive) setData(mine)
       })
       .catch(() => {})
       .finally(() => {
-        if (alive) setLoading(false);
-      });
+        if (alive) setLoading(false)
+      })
 
     return () => {
-      alive = false;
-    };
-  }, [reload]);
+      alive = false
+    }
+  }, [reload])
 
   const remove = (service: Service) => {
-    setBusyId(service.id);
+    setBusyId(service.id)
     deleteService(service.id)
       .then(() =>
         setData((current) =>
           current
-            ? { ...current, services: current.services.filter((entry) => entry.id !== service.id) }
+            ? {
+                ...current,
+                services: current.services.filter(
+                  (entry) => entry.id !== service.id,
+                ),
+              }
             : current,
         ),
       )
       .catch(() => {})
-      .finally(() => setBusyId(null));
-  };
-
-  if (loading && data === null) {
-    return <p className="text-xs text-muted">Cargando lo tuyo…</p>;
+      .finally(() => setBusyId(null))
   }
 
-  const services = data?.services ?? [];
-  const full = data !== null && services.length >= data.max;
+  if (loading && data === null) {
+    return <p className="text-xs text-muted">Cargando lo tuyo…</p>
+  }
+
+  const services = data?.services ?? []
+  const full = data !== null && services.length >= data.max
 
   return (
     <div className="rounded-2xl border border-sky/50 bg-surface p-5 shadow-[var(--shadow-hairline)]">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold text-ink">Lo que publicaste</h2>
+        <h2 className="text-[15px] font-semibold text-ink">
+          Lo que publicaste
+        </h2>
         <button
           className="rounded-xl border border-sky/70 bg-surface px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:border-brand hover:bg-mist disabled:opacity-60"
           disabled={full}
@@ -81,7 +88,8 @@ export function MyServices({ reload, onEdit, onNew }: MyServicesProps) {
 
       {full ? (
         <p className="mt-1 text-xs text-muted">
-          Llegaste al tope de {data?.max} servicios por cuenta. Borrá alguno para publicar otro.
+          Llegaste al tope de {data?.max} servicios por cuenta. Borrá alguno
+          para publicar otro.
         </p>
       ) : null}
 
@@ -94,11 +102,16 @@ export function MyServices({ reload, onEdit, onNew }: MyServicesProps) {
               key={service.id}
               className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-sky/50 px-3 py-2.5"
             >
-              <span className="min-w-0 flex-1 truncate text-sm text-ink">{service.title}</span>
-              <span className={mutedChip}>{SERVICE_STATUS_LABEL[service.status]}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-ink">
+                {service.title}
+              </span>
+              <span className={mutedChip}>
+                {SERVICE_STATUS_LABEL[service.status]}
+              </span>
               {service.featured && service.boost_until ? (
                 <span className={`${chipClass} bg-mist text-brand`}>
-                  {FEATURED_LABEL} hasta el {formatServiceDay(service.boost_until)}
+                  {FEATURED_LABEL} hasta el{' '}
+                  {formatServiceDay(service.boost_until)}
                 </span>
               ) : null}
               <button
@@ -127,5 +140,5 @@ export function MyServices({ reload, onEdit, onNew }: MyServicesProps) {
         </ul>
       )}
     </div>
-  );
+  )
 }

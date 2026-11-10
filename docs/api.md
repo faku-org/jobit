@@ -19,41 +19,41 @@ La configuración va en **`api/.env`** (no en la raíz): la API arranca con
 
 ## Variables de entorno
 
-| Variable | Por defecto | Qué hace |
-|---|---|---|
-| `PORT` | `3000` | Puerto. En el VPS es `3200`. |
-| `HOST` | `127.0.0.1` | Interfaz. No lo abras salvo que sepas por qué. |
-| `CORS_ORIGIN` | `http://localhost:5173` | Orígenes permitidos, separados por coma. |
-| `JOBS_FILE` | `worker/output/jobs.json` | El JSON del scraper. |
-| `DB_FILE` | `data/jobit.db` | SQLite de empresas, ofertas y cuentas. |
-| `STATS_FILE` | `data/stats.jsonl` | Resúmenes anónimos de uso. |
-| `EVENTS_FILE` | `data/events.jsonl` | Eventos anónimos de uso. |
-| `UPLOADS_DIR` | `data/uploads` | Logo y banner de empresas. |
-| `ADMIN_PASSWORD_HASH_FILE` | — | Archivo con el hash del panel. Sin él, `/api/admin` da 404. |
-| `ADMIN_PASSWORD_HASH` | — | El hash inline (hay que escapar cada `$` como `\$`). |
-| `ADMIN_INSECURE_COOKIES` | — | `true` saca `Secure` de las cookies. Solo desarrollo. |
-| `INGEST_TOKEN_FILE` | — | Token de ingesta. Sin él, `/api/ingest` da 404. |
-| `INGEST_TOKEN` | — | El token inline. |
-| `JOBIT_SECRET_KEY_FILE` | — | Clave de 32 bytes que cifra email, TOTP y sync. |
-| `JOBIT_SECRET_KEY` | — | La clave inline (base64, base64url o hex). |
-| `RESEND_API_KEY` | — | Clave de Resend. Sin ella, los correos van al log. |
-| `MAIL_FROM` | — | Remitente de los correos, con dominio verificado en Resend. |
-| `PUBLIC_ORIGIN` | `https://jobs.wefaber.net` | Origen de los enlaces en correos y del canonical. |
+| Variable                   | Por defecto                | Qué hace                                                    |
+| -------------------------- | -------------------------- | ----------------------------------------------------------- |
+| `PORT`                     | `3000`                     | Puerto. En el VPS es `3200`.                                |
+| `HOST`                     | `127.0.0.1`                | Interfaz. No lo abras salvo que sepas por qué.              |
+| `CORS_ORIGIN`              | `http://localhost:5173`    | Orígenes permitidos, separados por coma.                    |
+| `JOBS_FILE`                | `worker/output/jobs.json`  | El JSON del scraper.                                        |
+| `DB_FILE`                  | `data/jobit.db`            | SQLite de empresas, ofertas y cuentas.                      |
+| `STATS_FILE`               | `data/stats.jsonl`         | Resúmenes anónimos de uso.                                  |
+| `EVENTS_FILE`              | `data/events.jsonl`        | Eventos anónimos de uso.                                    |
+| `UPLOADS_DIR`              | `data/uploads`             | Logo y banner de empresas.                                  |
+| `ADMIN_PASSWORD_HASH_FILE` | —                          | Archivo con el hash del panel. Sin él, `/api/admin` da 404. |
+| `ADMIN_PASSWORD_HASH`      | —                          | El hash inline (hay que escapar cada `$` como `\$`).        |
+| `ADMIN_INSECURE_COOKIES`   | —                          | `true` saca `Secure` de las cookies. Solo desarrollo.       |
+| `INGEST_TOKEN_FILE`        | —                          | Token de ingesta. Sin él, `/api/ingest` da 404.             |
+| `INGEST_TOKEN`             | —                          | El token inline.                                            |
+| `JOBIT_SECRET_KEY_FILE`    | —                          | Clave de 32 bytes que cifra email, TOTP y sync.             |
+| `JOBIT_SECRET_KEY`         | —                          | La clave inline (base64, base64url o hex).                  |
+| `RESEND_API_KEY`           | —                          | Clave de Resend. Sin ella, los correos van al log.          |
+| `MAIL_FROM`                | —                          | Remitente de los correos, con dominio verificado en Resend. |
+| `PUBLIC_ORIGIN`            | `https://jobs.wefaber.net` | Origen de los enlaces en correos y del canonical.           |
 
 ## Endpoints
 
 ### Públicos del tablero
 
-| Ruta | Descripción |
-|---|---|
-| `GET /health` | Estado. |
-| `GET /api/jobs` | Ofertas filtradas y paginadas (`format=txt` para texto). |
-| `GET /api/jobs.txt` | El mismo listado en texto. |
-| `GET /api/jobs/:id` | Una oferta completa. |
-| `GET /api/meta` | Conteo, fecha de scrape, fuentes y facetas. |
-| `GET /api/market` | El informe del mercado. |
-| `GET /api/market.csv` / `.xlsx` | Ese informe para bajar. |
-| `GET /api/cli` | La URL del tablero, en texto, para `curl`. |
+| Ruta                            | Descripción                                              |
+| ------------------------------- | -------------------------------------------------------- |
+| `GET /health`                   | Estado.                                                  |
+| `GET /api/jobs`                 | Ofertas filtradas y paginadas (`format=txt` para texto). |
+| `GET /api/jobs.txt`             | El mismo listado en texto.                               |
+| `GET /api/jobs/:id`             | Una oferta completa.                                     |
+| `GET /api/meta`                 | Conteo, fecha de scrape, fuentes y facetas.              |
+| `GET /api/market`               | El informe del mercado.                                  |
+| `GET /api/market.csv` / `.xlsx` | Ese informe para bajar.                                  |
+| `GET /api/cli`                  | La URL del tablero, en texto, para `curl`.               |
 
 Parámetros de `/api/jobs`: `q`, `category`, `department`, `level`, `remote`,
 `job_type`, `no_experience`, `days`, `source`, `sort`, `ids`, `limit`, `offset`,
@@ -83,22 +83,22 @@ y edición de empresas y ofertas, y `/api/admin/usage` con el uso agregado.
 
 ### Ingesta y estadísticas
 
-| Ruta | Descripción |
-|---|---|
+| Ruta                    | Descripción                         |
+| ----------------------- | ----------------------------------- |
 | `POST /api/ingest/jobs` | Recibe el `jobs.json` (pide token). |
-| `POST /api/stats` | Resumen anónimo de uso. |
-| `POST /api/events` | Lote de hasta 20 eventos anónimos. |
+| `POST /api/stats`       | Resumen anónimo de uso.             |
+| `POST /api/events`      | Lote de hasta 20 eventos anónimos.  |
 
 ## Límites de peticiones
 
 Por dirección y en memoria (`api/src/limit.ts`):
 
-| Bucket | Ventana | Máximo |
-|---|---|---|
-| Lecturas | 1 minuto | 120 |
-| Escrituras | 1 hora | 20 |
-| Eventos | 1 hora | 60 |
-| Auth (login, alta, TOTP) | 15 minutos | 10 |
+| Bucket                   | Ventana    | Máximo |
+| ------------------------ | ---------- | ------ |
+| Lecturas                 | 1 minuto   | 120    |
+| Escrituras               | 1 hora     | 20     |
+| Eventos                  | 1 hora     | 60     |
+| Auth (login, alta, TOTP) | 15 minutos | 10     |
 
 ## Test
 

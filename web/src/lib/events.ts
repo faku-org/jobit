@@ -1,5 +1,5 @@
-import { roleOf } from "@jobit/worker/roles";
-import type { Filters, Job } from "./types.ts";
+import { roleOf } from '@jobit/worker/roles'
+import type { Filters, Job } from './types.ts'
 
 /**
  * Eventos de uso, al lado del resumen diario de stats.ts. Se arman acá, en un
@@ -11,19 +11,19 @@ import type { Filters, Job } from "./types.ts";
  * "otro" cuando no nombra ninguno.
  */
 export interface SearchEvent {
-  kind: "search";
-  role: string;
-  category: string;
-  filters: string[];
-  results: number;
+  kind: 'search'
+  role: string
+  category: string
+  filters: string[]
+  results: number
 }
 
 /** El id de la oferta, que identifica un aviso público y no a quien lo abrió. */
 export interface ApplyEvent {
-  kind: "apply";
-  job: string;
-  source: string;
-  category: string;
+  kind: 'apply'
+  job: string
+  source: string
+  category: string
 }
 
 /**
@@ -32,13 +32,13 @@ export interface ApplyEvent {
  * usuario ni nada que lo ligue a quien lo mandó.
  */
 export interface OfferViewEvent {
-  kind: "offer_view";
-  id: string;
+  kind: 'offer_view'
+  id: string
 }
 
 export interface OfferApplyEvent {
-  kind: "offer_apply";
-  id: string;
+  kind: 'offer_apply'
+  id: string
 }
 
 /**
@@ -46,23 +46,23 @@ export interface OfferApplyEvent {
  * contactar, el medio: nunca texto libre, usuario ni sesión.
  */
 export interface ServiceSearchEvent {
-  kind: "service_search";
-  category: string;
-  filters: string[];
-  results: number;
+  kind: 'service_search'
+  category: string
+  filters: string[]
+  results: number
 }
 
 export interface ServiceViewEvent {
-  kind: "service_view";
-  id: string;
-  category: string;
+  kind: 'service_view'
+  id: string
+  category: string
 }
 
 export interface ServiceContactEvent {
-  kind: "service_contact";
-  id: string;
-  category: string;
-  channel: string;
+  kind: 'service_contact'
+  id: string
+  category: string
+  channel: string
 }
 
 export type UsageEvent =
@@ -72,46 +72,46 @@ export type UsageEvent =
   | OfferApplyEvent
   | ServiceSearchEvent
   | ServiceViewEvent
-  | ServiceContactEvent;
+  | ServiceContactEvent
 
 /** Los nombres de los filtros puestos, sin sus valores: sirve para saber cuáles
  * se usan, no qué buscó nadie en particular. */
 function activeFilters(filters: Filters): string[] {
-  const names: string[] = [];
-  if (filters.q.trim() !== "") names.push("q");
-  if (filters.category !== "") names.push("category");
-  if (filters.department !== "") names.push("department");
-  if (filters.level !== "") names.push("level");
-  if (filters.mode !== "") names.push("remote");
-  if (filters.jobType !== "") names.push("job_type");
-  if (filters.noExperience) names.push("no_experience");
-  if (filters.days !== null) names.push("days");
-  return names;
+  const names: string[] = []
+  if (filters.q.trim() !== '') names.push('q')
+  if (filters.category !== '') names.push('category')
+  if (filters.department !== '') names.push('department')
+  if (filters.level !== '') names.push('level')
+  if (filters.mode !== '') names.push('remote')
+  if (filters.jobType !== '') names.push('job_type')
+  if (filters.noExperience) names.push('no_experience')
+  if (filters.days !== null) names.push('days')
+  return names
 }
 
 export function searchEvent(filters: Filters, results: number): SearchEvent {
   return {
-    kind: "search",
-    role: roleOf(filters.q)?.slug ?? "otro",
+    kind: 'search',
+    role: roleOf(filters.q)?.slug ?? 'otro',
     category: filters.category,
     filters: activeFilters(filters),
     results: Math.min(Math.max(Math.round(results), 0), 1_000_000),
-  };
+  }
 }
 
 export const applyEvent = (job: Job): ApplyEvent => ({
-  kind: "apply",
+  kind: 'apply',
   job: job.id,
   source: job.source,
   category: job.category,
-});
+})
 
 /**
  * Solo las ofertas publicadas en JobIt tienen una empresa del otro lado
  * mirando estas cuentas; las scrapeadas no, así que no mandan nada.
  */
 export const offerView = (job: Job): OfferViewEvent | null =>
-  job.source === "jobit" ? { kind: "offer_view", id: job.id } : null;
+  job.source === 'jobit' ? { kind: 'offer_view', id: job.id } : null
 
 export const offerApply = (job: Job): OfferApplyEvent | null =>
-  job.source === "jobit" ? { kind: "offer_apply", id: job.id } : null;
+  job.source === 'jobit' ? { kind: 'offer_apply', id: job.id } : null

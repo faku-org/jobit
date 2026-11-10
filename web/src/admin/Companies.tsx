@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react'
 import {
   COMPANY_STATUSES,
   type Company,
@@ -10,74 +10,78 @@ import {
   deleteCompany,
   listCompanies,
   updateCompany,
-} from "./api.ts";
-import { CompanyForm } from "./CompanyForm.tsx";
-import { CompanyRow } from "./CompanyRow.tsx";
+} from './api.ts'
+import { CompanyForm } from './CompanyForm.tsx'
+import { CompanyRow } from './CompanyRow.tsx'
 
-const NO_COUNTS: Counts = { pending: 0, approved: 0, suspended: 0 };
+const NO_COUNTS: Counts = { pending: 0, approved: 0, suspended: 0 }
 
 interface Props {
-  onFail: (cause: unknown) => void;
-  onCount: (total: number) => void;
+  onFail: (cause: unknown) => void
+  onCount: (total: number) => void
 }
 
 export function Companies({ onFail, onCount }: Props) {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [counts, setCounts] = useState<Counts>(NO_COUNTS);
-  const [status, setStatus] = useState<CompanyStatus | "">("");
-  const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [counts, setCounts] = useState<Counts>(NO_COUNTS)
+  const [status, setStatus] = useState<CompanyStatus | ''>('')
+  const [q, setQ] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   const refresh = useCallback(
     () =>
       listCompanies(status, q)
         .then((data) => {
-          setCompanies(data.companies);
-          setCounts(data.counts);
-          onCount(data.counts.pending + data.counts.approved + data.counts.suspended);
+          setCompanies(data.companies)
+          setCounts(data.counts)
+          onCount(
+            data.counts.pending + data.counts.approved + data.counts.suspended,
+          )
         })
         .catch(onFail)
         .finally(() => setLoading(false)),
     [status, q, onFail, onCount],
-  );
+  )
 
   useEffect(() => {
-    const timer = setTimeout(refresh, q ? 250 : 0);
-    return () => clearTimeout(timer);
-  }, [refresh, q]);
+    const timer = setTimeout(refresh, q ? 250 : 0)
+    return () => clearTimeout(timer)
+  }, [refresh, q])
 
   /** Cada acción sobre una fila termina releyendo el listado: los contadores y
    * el orden dependen del estado, así que cambiarlo mueve la lista entera. */
   const act = (id: string, run: () => Promise<unknown>) => {
-    setBusyId(id);
+    setBusyId(id)
     run()
       .then(refresh)
       .catch(onFail)
-      .finally(() => setBusyId(null));
-  };
+      .finally(() => setBusyId(null))
+  }
 
-  const create = (input: CompanyInput) => createCompany(input).then(refresh);
+  const create = (input: CompanyInput) => createCompany(input).then(refresh)
 
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <button
-          className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${status === "" ? "bg-panel text-onpanel" : "border border-sky/70 text-ink hover:bg-mist"}`}
+          className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${status === '' ? 'bg-panel text-onpanel' : 'border border-sky/70 text-ink hover:bg-mist'}`}
           type="button"
-          onClick={() => setStatus("")}
+          onClick={() => setStatus('')}
         >
           Todas
         </button>
         {COMPANY_STATUSES.map((value) => (
           <button
             key={value}
-            className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${status === value ? "bg-panel text-onpanel" : "border border-sky/70 text-ink hover:bg-mist"}`}
+            className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${status === value ? 'bg-panel text-onpanel' : 'border border-sky/70 text-ink hover:bg-mist'}`}
             type="button"
             onClick={() => setStatus(value)}
           >
             {STATUS_LABEL[value]}
-            <span className="ml-1.5 tabular-nums opacity-60">{counts[value]}</span>
+            <span className="ml-1.5 tabular-nums opacity-60">
+              {counts[value]}
+            </span>
           </button>
         ))}
 
@@ -98,8 +102,8 @@ export function Companies({ onFail, onCount }: Props) {
       ) : companies.length === 0 ? (
         <p className="mt-6 rounded-xl border border-dashed border-sky/70 px-4 py-8 text-center text-xs text-muted">
           {q || status
-            ? "Nada que coincida con eso."
-            : "Todavía no hay empresas. Agregá la primera."}
+            ? 'Nada que coincida con eso.'
+            : 'Todavía no hay empresas. Agregá la primera.'}
         </p>
       ) : (
         <ul className="mt-4 space-y-3">
@@ -109,14 +113,18 @@ export function Companies({ onFail, onCount }: Props) {
               busy={busyId === company.id}
               company={company}
               onRemove={() => act(company.id, () => deleteCompany(company.id))}
-              onSetNotes={(notes) => act(company.id, () => updateCompany(company.id, { notes }))}
+              onSetNotes={(notes) =>
+                act(company.id, () => updateCompany(company.id, { notes }))
+              }
               onSetStatus={(next) =>
-                act(company.id, () => updateCompany(company.id, { status: next }))
+                act(company.id, () =>
+                  updateCompany(company.id, { status: next }),
+                )
               }
             />
           ))}
         </ul>
       )}
     </>
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import type { Result } from "./types.ts";
+import type { Result } from './types.ts'
 
 /**
  * La capa de pagos (#33), como interfaz y sin proveedor real todavía.
@@ -30,125 +30,129 @@ import type { Result } from "./types.ts";
  * - Zero Data: una `Order` no lleva quién paga. Eso lo sabe la pasarela, que
  *   es quien lo recolecta; acá solo queda qué se compró y por cuánto.
  */
-export const PROVIDER_IDS = ["mercadopago", "stripe"] as const;
-export type ProviderId = (typeof PROVIDER_IDS)[number];
+export const PROVIDER_IDS = ['mercadopago', 'stripe'] as const
+export type ProviderId = (typeof PROVIDER_IDS)[number]
 
-export type PaymentCurrency = "UYU" | "USD";
+export type PaymentCurrency = 'UYU' | 'USD'
 
 /** Tasa con la que se convirtió, si hubo conversión. Va al lado del monto. */
 export interface AppliedRate {
-  pair: "USD/UYU";
-  rate: number;
+  pair: 'USD/UYU'
+  rate: number
   /** El día de la tasa (YYYY-MM-DD). */
-  day: string;
+  day: string
 }
 
 export interface Amount {
   /** En la unidad mayor de la moneda, entero, como los precios de servicios. */
-  value: number;
-  currency: PaymentCurrency;
-  rate: AppliedRate | null;
+  value: number
+  currency: PaymentCurrency
+  rate: AppliedRate | null
 }
 
 /** País del prestador y del cliente, régimen y tasa vigentes al momento de la
  * operación. Los países van en ISO 3166-1 alfa-2. */
 export interface Jurisdiction {
-  provider_country: string;
-  customer_country: string;
-  regime: string;
+  provider_country: string
+  customer_country: string
+  regime: string
   /** Fracción, no porcentaje: 0.22 es 22 %. */
-  tax_rate: number;
+  tax_rate: number
 }
 
 export interface ExternalRef {
-  provider: ProviderId;
-  external_id: string;
+  provider: ProviderId
+  external_id: string
 }
 
 export interface Order {
-  id: string;
+  id: string
   /** Qué se compró. Hoy solo la visibilidad destacada de un servicio. */
-  item: { kind: "boost"; service_id: string; days: number };
-  amount: Amount;
-  jurisdiction: Jurisdiction;
+  item: { kind: 'boost'; service_id: string; days: number }
+  amount: Amount
+  jurisdiction: Jurisdiction
   /** El día, nunca la hora. */
-  day: string;
+  day: string
 }
 
 export interface CheckoutSession {
-  ref: ExternalRef;
+  ref: ExternalRef
   /** A donde se manda al navegador. Los datos de tarjeta van de ahí a la
    * pasarela y nunca tocan este servidor (alcance PCI SAQ A). */
-  url: string;
+  url: string
 }
 
 export interface Payout {
-  ref: ExternalRef;
-  amount: Amount;
+  ref: ExternalRef
+  amount: Amount
 }
 
 export interface PaymentEvent {
-  ref: ExternalRef;
-  order_id: string;
-  type: "paid" | "failed" | "refunded";
-  amount: Amount;
+  ref: ExternalRef
+  order_id: string
+  type: 'paid' | 'failed' | 'refunded'
+  amount: Amount
 }
 
 export interface PaymentProvider {
-  readonly id: ProviderId;
+  readonly id: ProviderId
   /** Requisito excluyente. El tipo es `true` y no `boolean` para que un
    * proveedor sin split nativo ni compile; `register` lo vuelve a chequear en
    * ejecución por si llega uno con un cast. */
-  readonly nativeSplit: true;
+  readonly nativeSplit: true
   /** Si este proveedor puede operar en esa jurisdicción. */
-  supports(jurisdiction: Jurisdiction): boolean;
-  createCheckout(order: Order): Promise<Result<CheckoutSession>>;
-  splitPayout(order: Order): Promise<Result<Payout>>;
+  supports(jurisdiction: Jurisdiction): boolean
+  createCheckout(order: Order): Promise<Result<CheckoutSession>>
+  splitPayout(order: Order): Promise<Result<Payout>>
   /** Asíncrono porque hace falta leer el cuerpo crudo de la petición para
    * verificar la firma; con la firma mala no devuelve ningún evento. */
-  verifyWebhook(req: Request): Promise<Result<PaymentEvent>>;
+  verifyWebhook(req: Request): Promise<Result<PaymentEvent>>
 }
 
 export interface PaymentRegistry {
-  register(provider: PaymentProvider): Result<PaymentProvider>;
-  providerFor(jurisdiction: Jurisdiction): Result<PaymentProvider>;
+  register(provider: PaymentProvider): Result<PaymentProvider>
+  providerFor(jurisdiction: Jurisdiction): Result<PaymentProvider>
   /** Por id, para el webhook: llega a /webhooks/:provider y no trae jurisdicción. */
-  byId(id: ProviderId): PaymentProvider | null;
-  createCheckout(order: Order): Promise<Result<CheckoutSession>>;
+  byId(id: ProviderId): PaymentProvider | null
+  createCheckout(order: Order): Promise<Result<CheckoutSession>>
 }
 
 export function createPaymentRegistry(): PaymentRegistry {
-  const providers = new Map<ProviderId, PaymentProvider>();
+  const providers = new Map<ProviderId, PaymentProvider>()
 
   const providerFor = (jurisdiction: Jurisdiction): Result<PaymentProvider> => {
     for (const provider of providers.values()) {
-      if (provider.supports(jurisdiction)) return { ok: true, value: provider };
+      if (provider.supports(jurisdiction)) return { ok: true, value: provider }
     }
-    return { ok: false, error: "no hay un proveedor de pago para esa jurisdicción" };
-  };
+    return {
+      ok: false,
+      error: 'no hay un proveedor de pago para esa jurisdicción',
+    }
+  }
 
   return {
     register(provider) {
       if ((provider.nativeSplit as boolean) !== true) {
         return {
           ok: false,
-          error: "el proveedor no tiene split nativo: la plataforma quedaría custodiando fondos",
-        };
+          error:
+            'el proveedor no tiene split nativo: la plataforma quedaría custodiando fondos',
+        }
       }
       if (providers.has(provider.id))
-        return { ok: false, error: "ese proveedor ya está registrado" };
+        return { ok: false, error: 'ese proveedor ya está registrado' }
 
-      providers.set(provider.id, provider);
-      return { ok: true, value: provider };
+      providers.set(provider.id, provider)
+      return { ok: true, value: provider }
     },
     providerFor,
     byId: (id) => providers.get(id) ?? null,
     async createCheckout(order) {
-      const found = providerFor(order.jurisdiction);
-      return found.ok ? found.value.createCheckout(order) : found;
+      const found = providerFor(order.jurisdiction)
+      return found.ok ? found.value.createCheckout(order) : found
     },
-  };
+  }
 }
 
 /** El registro del proceso. Vacío hasta que exista el primer proveedor. */
-export const payments = createPaymentRegistry();
+export const payments = createPaymentRegistry()

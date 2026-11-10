@@ -7,15 +7,15 @@ está en el código desde el primer día.
 
 ## Qué hay
 
-| Pieza | Dónde |
-|---|---|
-| Catálogo curado (41 enlaces, 15 rubros) | `worker/src/content/resources.ts` (entra al seed) |
-| Verificador de enlaces (manual) | `bun run --cwd worker content:verify` |
-| Consulta | `GET /api/content?kind=resource&category=<rubro>` (ya existía, #40) |
-| Página indexable | `/recursos/<rubro>` y el índice `/recursos` (`api/src/resources.ts`, `api/src/site.ts`) |
-| Sitemap | `/recursos` y una entrada por rubro con recursos |
-| Bloque en la app | "Recursos para practicar en <rubro>" al filtrar por rubro (`RubroResources`) |
-| nginx / vite | `location = /recursos` y `location ^~ /recursos/`; proxy `/recursos` en dev |
+| Pieza                                   | Dónde                                                                                   |
+| --------------------------------------- | --------------------------------------------------------------------------------------- |
+| Catálogo curado (41 enlaces, 15 rubros) | `worker/src/content/resources.ts` (entra al seed)                                       |
+| Verificador de enlaces (manual)         | `bun run --cwd worker content:verify`                                                   |
+| Consulta                                | `GET /api/content?kind=resource&category=<rubro>` (ya existía, #40)                     |
+| Página indexable                        | `/recursos/<rubro>` y el índice `/recursos` (`api/src/resources.ts`, `api/src/site.ts`) |
+| Sitemap                                 | `/recursos` y una entrada por rubro con recursos                                        |
+| Bloque en la app                        | "Recursos para practicar en <rubro>" al filtrar por rubro (`RubroResources`)            |
+| nginx / vite                            | `location = /recursos` y `location ^~ /recursos/`; proxy `/recursos` en dev             |
 
 Un rubro sin recursos da 404 (no una página vacía) y el bloque de la app no se
 dibuja. Rubros sin recursos hoy: `otros`.

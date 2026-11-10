@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react'
 import {
   type Decision,
   type QueueItem,
@@ -6,11 +6,11 @@ import {
   decideReview,
   decideService,
   listServiceQueue,
-} from "./api.ts";
-import { ServiceRow } from "./ServiceRow.tsx";
+} from './api.ts'
+import { ServiceRow } from './ServiceRow.tsx'
 
 interface Props {
-  onFail: (cause: unknown) => void;
+  onFail: (cause: unknown) => void
 }
 
 /**
@@ -19,53 +19,62 @@ interface Props {
  * lo que se ve sea lo que el filtro dijo.
  */
 export function Services({ onFail }: Props) {
-  const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [counts, setCounts] = useState({ pending: 0, reported: 0, reported_reviews: 0 });
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [counts, setCounts] = useState({
+    pending: 0,
+    reported: 0,
+    reported_reviews: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   const refresh = useCallback(
     () =>
       listServiceQueue()
         .then((data) => {
-          setQueue(data.queue);
-          setCounts(data.counts);
+          setQueue(data.queue)
+          setCounts(data.counts)
         })
         .catch(onFail)
         .finally(() => setLoading(false)),
     [onFail],
-  );
+  )
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void refresh()
+  }, [refresh])
 
   const decide = (id: string, decision: Decision) => {
-    setBusyId(id);
+    setBusyId(id)
     decideService(id, decision)
       .then(refresh)
       .catch(onFail)
-      .finally(() => setBusyId(null));
-  };
+      .finally(() => setBusyId(null))
+  }
 
   /** La fila que se bloquea es la del servicio: la calificación se decide
    * adentro y el resto de la tarjeta tiene que esperar igual. */
-  const decideFlagged = (serviceId: string, reviewId: string, status: ReviewStatus) => {
-    setBusyId(serviceId);
+  const decideFlagged = (
+    serviceId: string,
+    reviewId: string,
+    status: ReviewStatus,
+  ) => {
+    setBusyId(serviceId)
     decideReview(reviewId, status)
       .then(refresh)
       .catch(onFail)
-      .finally(() => setBusyId(null));
-  };
+      .finally(() => setBusyId(null))
+  }
 
   return (
     <>
       <p className="text-xs text-muted">
-        {counts.pending} {counts.pending === 1 ? "servicio esperando" : "servicios esperando"}
-        {counts.reported > 0 ? ` · ${counts.reported} con denuncias` : ""}
+        {counts.pending}{' '}
+        {counts.pending === 1 ? 'servicio esperando' : 'servicios esperando'}
+        {counts.reported > 0 ? ` · ${counts.reported} con denuncias` : ''}
         {counts.reported_reviews > 0
-          ? ` · ${counts.reported_reviews} ${counts.reported_reviews === 1 ? "calificación denunciada" : "calificaciones denunciadas"}`
-          : ""}
+          ? ` · ${counts.reported_reviews} ${counts.reported_reviews === 1 ? 'calificación denunciada' : 'calificaciones denunciadas'}`
+          : ''}
       </p>
 
       {loading ? (
@@ -90,5 +99,5 @@ export function Services({ onFail }: Props) {
         </ul>
       )}
     </>
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import { db } from "./db.ts";
+import { db } from './db.ts'
 import {
   type Print,
   type Review,
@@ -6,25 +6,30 @@ import {
   minhash,
   review,
   textHash,
-} from "./moderation.ts";
-import * as reviews from "./reviews.ts";
-import type { Review as ServiceReview } from "./reviews.ts";
-import * as services from "./services.ts";
-import type { Service } from "./services.ts";
+} from './moderation.ts'
+import * as reviews from './reviews.ts'
+import type { Review as ServiceReview } from './reviews.ts'
+import * as services from './services.ts'
+import type { Service } from './services.ts'
 
 /**
  * La cola de moderación: lo que el filtro dejó anotado y lo que alguien tiene
  * que mirar. El filtro vive en moderation.ts y es puro; acá está lo que se
  * guarda y en qué orden se muestra.
  */
-export const DECISIONS = ["approved", "rejected", "suspended"] as const;
-export type Decision = (typeof DECISIONS)[number];
+export const DECISIONS = ['approved', 'rejected', 'suspended'] as const
+export type Decision = (typeof DECISIONS)[number]
 
 /** Una lista corta: la denuncia no lleva texto libre de un desconocido. */
-export const REPORT_REASONS = ["spam", "enganoso", "inapropiado", "no-es-un-servicio"] as const;
-export type ReportReason = (typeof REPORT_REASONS)[number];
+export const REPORT_REASONS = [
+  'spam',
+  'enganoso',
+  'inapropiado',
+  'no-es-un-servicio',
+] as const
+export type ReportReason = (typeof REPORT_REASONS)[number]
 
-const day = (now: Date): string => now.toISOString().slice(0, 10);
+const day = (now: Date): string => now.toISOString().slice(0, 10)
 
 export const textOf = (service: Service): ServiceText => ({
   title: service.title,
@@ -32,55 +37,57 @@ export const textOf = (service: Service): ServiceText => ({
   description: service.description,
   category: service.category,
   skills: service.skills,
-});
+})
 
 const bodyOf = (text: ServiceText): string =>
-  [text.title, text.summary, text.description, text.skills.join(" ")].join("\n");
+  [text.title, text.summary, text.description, text.skills.join(' ')].join('\n')
 
 /** Lo ya visto, sin el servicio que se está revisando: parecerse a uno mismo
  * no es parecerse a nada. */
-export function prints(excludeServiceId = ""): Print[] {
+export function prints(excludeServiceId = ''): Print[] {
   return db()
     .query<Print, [string]>(
-      "SELECT service_id, kind, text_hash, signature FROM moderation_prints WHERE service_id <> ?",
+      'SELECT service_id, kind, text_hash, signature FROM moderation_prints WHERE service_id <> ?',
     )
-    .all(excludeServiceId);
+    .all(excludeServiceId)
 }
 
 /** Lo que dijo el filtro (`queue`, `reject`) o lo que decidió una persona. */
-export type StoredDecision = Review["decision"] | Decision;
+export type StoredDecision = Review['decision'] | Decision
 
-export interface StoredReview extends Omit<Review, "decision"> {
-  decision: StoredDecision;
-  service_id: string;
+export interface StoredReview extends Omit<Review, 'decision'> {
+  decision: StoredDecision
+  service_id: string
   /** Vacío cuando la decisión la tomó el filtro y no una persona. */
-  decided_by: string;
-  decided_at: string;
+  decided_by: string
+  decided_at: string
 }
 
 interface ReviewRow {
-  service_id: string;
-  score: number;
-  reasons: string;
-  decision: string;
-  decided_by: string;
-  decided_at: string;
+  service_id: string
+  score: number
+  reasons: string
+  decision: string
+  decided_by: string
+  decided_at: string
 }
 
 const hydrate = (row: ReviewRow): StoredReview => ({
   service_id: row.service_id,
   score: row.score,
-  reasons: JSON.parse(row.reasons) as Review["reasons"],
+  reasons: JSON.parse(row.reasons) as Review['reasons'],
   decision: row.decision as StoredDecision,
   decided_by: row.decided_by,
   decided_at: row.decided_at,
-});
+})
 
 export function reviewOf(serviceId: string): StoredReview | null {
   const row = db()
-    .query<ReviewRow, [string]>("SELECT * FROM moderation_reviews WHERE service_id = ?")
-    .get(serviceId);
-  return row ? hydrate(row) : null;
+    .query<ReviewRow, [string]>(
+      'SELECT * FROM moderation_reviews WHERE service_id = ?',
+    )
+    .get(serviceId)
+  return row ? hydrate(row) : null
 }
 
 function save(
@@ -88,14 +95,14 @@ function save(
   score: number,
   reasons: unknown,
   decision: string,
-  by = "",
-  at = "",
+  by = '',
+  at = '',
 ): void {
   db().run(
     `INSERT OR REPLACE INTO moderation_reviews (service_id, score, reasons, decision, decided_by, decided_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [serviceId, score, JSON.stringify(reasons), decision, by, at],
-  );
+  )
 }
 
 /**
@@ -106,42 +113,51 @@ function save(
  * discutir.
  */
 export function submit(service: Service, now: Date = new Date()): StoredReview {
-  const text = textOf(service);
-  const result = review(text, prints(service.id));
+  const text = textOf(service)
+  const result = review(text, prints(service.id))
 
-  if (result.decision === "reject") {
-    save(service.id, result.score, result.reasons, "rejected", "", day(now));
-    services.setStatus(service.id, "draft", now);
-    remember(service, "rejected", now);
+  if (result.decision === 'reject') {
+    save(service.id, result.score, result.reasons, 'rejected', '', day(now))
+    services.setStatus(service.id, 'draft', now)
+    remember(service, 'rejected', now)
   } else {
-    save(service.id, result.score, result.reasons, "queue");
+    save(service.id, result.score, result.reasons, 'queue')
   }
 
   return (
-    reviewOf(service.id) ?? { ...result, service_id: service.id, decided_by: "", decided_at: "" }
-  );
+    reviewOf(service.id) ?? {
+      ...result,
+      service_id: service.id,
+      decided_by: '',
+      decided_at: '',
+    }
+  )
 }
 
 /**
  * Se acuerda del texto sin guardarlo: el hash para reconocer el mismo texto y
  * la firma para reconocer el parecido.
  */
-export function remember(service: Service, kind: Print["kind"], now: Date = new Date()): void {
-  const text = textOf(service);
+export function remember(
+  service: Service,
+  kind: Print['kind'],
+  now: Date = new Date(),
+): void {
+  const text = textOf(service)
   db().run(
     `INSERT OR REPLACE INTO moderation_prints (text_hash, service_id, kind, signature, created_at)
      VALUES (?, ?, ?, ?, ?)`,
     [textHash(text), service.id, kind, minhash(bodyOf(text)), day(now)],
-  );
+  )
 }
 
 export interface QueueItem {
-  service: Service;
-  review: StoredReview | null;
-  reports: number;
+  service: Service
+  review: StoredReview | null
+  reports: number
   /** Las calificaciones denunciadas de ese servicio, que se miran de a una:
    * el servicio sigue publicado y lo que hay para decidir es una fila. */
-  reported_reviews: ServiceReview[];
+  reported_reviews: ServiceReview[]
 }
 
 /**
@@ -150,7 +166,7 @@ export interface QueueItem {
  * puntaje, que es para lo que sirve el puntaje.
  */
 export function pending(): QueueItem[] {
-  const waiting = services.list({ status: "pending" });
+  const waiting = services.list({ status: 'pending' })
 
   const autoRejected = db()
     .query<{ service_id: string }, []>(
@@ -158,27 +174,35 @@ export function pending(): QueueItem[] {
     )
     .all()
     .map((row) => services.byId(row.service_id))
-    .filter((service): service is Service => service !== null && service.status === "draft");
+    .filter(
+      (service): service is Service =>
+        service !== null && service.status === 'draft',
+    )
 
   const reported = db()
     .query<{ service_id: string }, []>(
-      "SELECT DISTINCT service_id FROM service_reports WHERE handled = 0",
+      'SELECT DISTINCT service_id FROM service_reports WHERE handled = 0',
     )
     .all()
     .map((row) => services.byId(row.service_id))
-    .filter((service): service is Service => service !== null);
+    .filter((service): service is Service => service !== null)
 
   const withReportedReviews = db()
     .query<{ service_id: string }, []>(
-      "SELECT DISTINCT service_id FROM review_reports WHERE handled = 0",
+      'SELECT DISTINCT service_id FROM review_reports WHERE handled = 0',
     )
     .all()
     .map((row) => services.byId(row.service_id))
-    .filter((service): service is Service => service !== null);
+    .filter((service): service is Service => service !== null)
 
-  const byId = new Map<string, Service>();
-  for (const service of [...waiting, ...autoRejected, ...reported, ...withReportedReviews]) {
-    byId.set(service.id, service);
+  const byId = new Map<string, Service>()
+  for (const service of [
+    ...waiting,
+    ...autoRejected,
+    ...reported,
+    ...withReportedReviews,
+  ]) {
+    byId.set(service.id, service)
   }
 
   return [...byId.values()]
@@ -190,29 +214,31 @@ export function pending(): QueueItem[] {
     }))
     .sort(
       (a, b) =>
-        b.reports + b.reported_reviews.length - (a.reports + a.reported_reviews.length) ||
+        b.reports +
+          b.reported_reviews.length -
+          (a.reports + a.reported_reviews.length) ||
         (b.review?.score ?? 0) - (a.review?.score ?? 0) ||
         a.service.updated_at.localeCompare(b.service.updated_at),
-    );
+    )
 }
 
 /** Las calificaciones denunciadas que todavía nadie miró. */
 export function reportedReviews(serviceId: string): ServiceReview[] {
   return db()
     .query<{ review_id: string }, [string]>(
-      "SELECT DISTINCT review_id FROM review_reports WHERE service_id = ? AND handled = 0",
+      'SELECT DISTINCT review_id FROM review_reports WHERE service_id = ? AND handled = 0',
     )
     .all(serviceId)
     .map((row) => reviews.byId(row.review_id))
-    .filter((found): found is ServiceReview => found !== null);
+    .filter((found): found is ServiceReview => found !== null)
 }
 
 export const reportCount = (serviceId: string): number =>
   db()
     .query<{ n: number }, [string]>(
-      "SELECT COUNT(*) AS n FROM service_reports WHERE service_id = ? AND handled = 0",
+      'SELECT COUNT(*) AS n FROM service_reports WHERE service_id = ? AND handled = 0',
     )
-    .get(serviceId)?.n ?? 0;
+    .get(serviceId)?.n ?? 0
 
 /**
  * La decisión de una persona. Aprobar publica; rechazar devuelve a borrador,
@@ -222,36 +248,52 @@ export const reportCount = (serviceId: string): number =>
 export function decide(
   serviceId: string,
   decision: Decision,
-  by = "admin",
+  by = 'admin',
   now: Date = new Date(),
 ): boolean {
-  const service = services.byId(serviceId);
-  if (!service) return false;
+  const service = services.byId(serviceId)
+  if (!service) return false
 
   const status =
-    decision === "approved" ? "published" : decision === "rejected" ? "draft" : "suspended";
-  services.setStatus(serviceId, status, now);
+    decision === 'approved'
+      ? 'published'
+      : decision === 'rejected'
+        ? 'draft'
+        : 'suspended'
+  services.setStatus(serviceId, status, now)
 
-  const current = reviewOf(serviceId);
-  save(serviceId, current?.score ?? 0, current?.reasons ?? [], decision, by, day(now));
+  const current = reviewOf(serviceId)
+  save(
+    serviceId,
+    current?.score ?? 0,
+    current?.reasons ?? [],
+    decision,
+    by,
+    day(now),
+  )
 
   /** Lo aprobado y lo rechazado se recuerdan: el dedupe compara contra las dos
    * cosas. Lo suspendido también, que es un rechazo más tarde. */
-  remember(service, decision === "approved" ? "published" : "rejected", now);
+  remember(service, decision === 'approved' ? 'published' : 'rejected', now)
 
-  db().run("UPDATE service_reports SET handled = 1 WHERE service_id = ?", [serviceId]);
-  return true;
+  db().run('UPDATE service_reports SET handled = 1 WHERE service_id = ?', [
+    serviceId,
+  ])
+  return true
 }
 
-export function report(serviceId: string, reason: ReportReason, now: Date = new Date()): boolean {
-  if (!services.byId(serviceId)) return false;
+export function report(
+  serviceId: string,
+  reason: ReportReason,
+  now: Date = new Date(),
+): boolean {
+  if (!services.byId(serviceId)) return false
 
-  db().run("INSERT INTO service_reports (service_id, reason, created_at) VALUES (?, ?, ?)", [
-    serviceId,
-    reason,
-    day(now),
-  ]);
-  return true;
+  db().run(
+    'INSERT INTO service_reports (service_id, reason, created_at) VALUES (?, ?, ?)',
+    [serviceId, reason, day(now)],
+  )
+  return true
 }
 
 /**
@@ -263,14 +305,14 @@ export function reportReview(
   reason: ReportReason,
   now: Date = new Date(),
 ): boolean {
-  const review = reviews.byId(reviewId);
-  if (!review || review.status !== "visible") return false;
+  const review = reviews.byId(reviewId)
+  if (!review || review.status !== 'visible') return false
 
   db().run(
-    "INSERT INTO review_reports (review_id, service_id, reason, created_at) VALUES (?, ?, ?, ?)",
+    'INSERT INTO review_reports (review_id, service_id, reason, created_at) VALUES (?, ?, ?, ?)',
     [reviewId, review.service_id, reason, day(now)],
-  );
-  return true;
+  )
+  return true
 }
 
 /**
@@ -278,25 +320,34 @@ export function reportReview(
  * saca del promedio; dejarla solo cierra la denuncia. En las dos la denuncia
  * queda atendida: si no, vuelve a la cola para siempre.
  */
-export function decideReview(reviewId: string, status: reviews.ReviewStatus): boolean {
-  if (!reviews.setStatus(reviewId, status)) return false;
+export function decideReview(
+  reviewId: string,
+  status: reviews.ReviewStatus,
+): boolean {
+  if (!reviews.setStatus(reviewId, status)) return false
 
-  db().run("UPDATE review_reports SET handled = 1 WHERE review_id = ?", [reviewId]);
-  return true;
+  db().run('UPDATE review_reports SET handled = 1 WHERE review_id = ?', [
+    reviewId,
+  ])
+  return true
 }
 
-export const counts = (): { pending: number; reported: number; reported_reviews: number } => ({
+export const counts = (): {
+  pending: number
+  reported: number
+  reported_reviews: number
+} => ({
   pending: services.counts().pending,
   reported:
     db()
       .query<{ n: number }, []>(
-        "SELECT COUNT(DISTINCT service_id) AS n FROM service_reports WHERE handled = 0",
+        'SELECT COUNT(DISTINCT service_id) AS n FROM service_reports WHERE handled = 0',
       )
       .get()?.n ?? 0,
   reported_reviews:
     db()
       .query<{ n: number }, []>(
-        "SELECT COUNT(DISTINCT review_id) AS n FROM review_reports WHERE handled = 0",
+        'SELECT COUNT(DISTINCT review_id) AS n FROM review_reports WHERE handled = 0',
       )
       .get()?.n ?? 0,
-});
+})

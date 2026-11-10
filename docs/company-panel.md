@@ -57,7 +57,7 @@ La sección de Seguridad son cuatro acciones sueltas, cada una con su tarjeta y
 su propio pedido. Ninguna comparte formulario con las demás.
 
 - **Cambiar el segundo paso.** `POST /api/empresas/me/totp/setup { password }`
-  genera un secreto nuevo y lo deja *pendiente*; con
+  genera un secreto nuevo y lo deja _pendiente_; con
   `{ password, code }` lo confirma. El secreto viejo sigue activo hasta ese
   momento, así que abandonar el cambio no deja la cuenta sin 2FA. Al confirmar
   se cierran las demás sesiones y se renuevan los códigos de respaldo.
@@ -80,28 +80,28 @@ respaldo: la única salida es el enlace del correo de recuperación.
 El panel de la empresa se divide en áreas separadas, una por vez, cada una con
 su propio guardado. Nunca es un scroll largo.
 
-| Área | Qué tiene | Endpoint |
-|---|---|---|
-| Imagen | Logo y banner (se guardan al subir). | `POST`/`DELETE /api/empresas/media/:kind` |
-| Identidad | Nombre, teléfono con país y sitio + verificación. | `PATCH /api/empresas/me` |
-| Redes | LinkedIn, Instagram, Facebook, X, YouTube, TikTok, WhatsApp. | `PATCH /api/empresas/me` |
-| Correos | Facturación, contacto, soporte y recuperación, con verificación. | `/api/empresas/emails/:kind` |
-| Privacidad | Qué se muestra en la ficha pública. | `PATCH /api/empresas/me` |
-| Miembros | Usuarios de JobIt designados. | `/api/empresas/members` |
-| Seguridad | Cambiar 2FA, cambiar contraseña, lockdown y desactivar cuenta. | `/api/empresas/me/totp/setup`, `/me/lockdown`, `/me/deactivate`, `/me` |
+| Área       | Qué tiene                                                        | Endpoint                                                               |
+| ---------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Imagen     | Logo y banner (se guardan al subir).                             | `POST`/`DELETE /api/empresas/media/:kind`                              |
+| Identidad  | Nombre, teléfono con país y sitio + verificación.                | `PATCH /api/empresas/me`                                               |
+| Redes      | LinkedIn, Instagram, Facebook, X, YouTube, TikTok, WhatsApp.     | `PATCH /api/empresas/me`                                               |
+| Correos    | Facturación, contacto, soporte y recuperación, con verificación. | `/api/empresas/emails/:kind`                                           |
+| Privacidad | Qué se muestra en la ficha pública.                              | `PATCH /api/empresas/me`                                               |
+| Miembros   | Usuarios de JobIt designados.                                    | `/api/empresas/members`                                                |
+| Seguridad  | Cambiar 2FA, cambiar contraseña, lockdown y desactivar cuenta.   | `/api/empresas/me/totp/setup`, `/me/lockdown`, `/me/deactivate`, `/me` |
 
 ### Redes: usuario o URL
 
 Se puede cargar el usuario (`acme`, `@acme`) o el enlace completo, con o sin
 `https://`. El servidor decide y normaliza:
 
-| Entrada | Resultado |
-|---|---|
-| `acme` en Instagram | `https://www.instagram.com/acme` |
-| `acme` en LinkedIn | `https://www.linkedin.com/company/acme` |
-| `in/alguien` en LinkedIn | `https://www.linkedin.com/in/alguien` |
-| `facebook.com/acme` | `https://facebook.com/acme` |
-| `+598 99 123 456` en WhatsApp | `https://wa.me/59899123456` |
+| Entrada                       | Resultado                               |
+| ----------------------------- | --------------------------------------- |
+| `acme` en Instagram           | `https://www.instagram.com/acme`        |
+| `acme` en LinkedIn            | `https://www.linkedin.com/company/acme` |
+| `in/alguien` en LinkedIn      | `https://www.linkedin.com/in/alguien`   |
+| `facebook.com/acme`           | `https://facebook.com/acme`             |
+| `+598 99 123 456` en WhatsApp | `https://wa.me/59899123456`             |
 
 Un esquema que no sea http(s) (`javascript:`, `mailto:`) se rechaza.
 

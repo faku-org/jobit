@@ -9,18 +9,20 @@
  */
 export interface DevFlags {
   /** Show the onboarding from its first screen, whatever storage says. */
-  onboarding: boolean;
+  onboarding: boolean
 }
 
-export const NO_DEV: DevFlags = { onboarding: false };
+export const NO_DEV: DevFlags = { onboarding: false }
 
 /** Comma separated, so `?dev=onboarding` today survives a second switch. */
-export function readDevFlags(search: string = window.location.search): DevFlags {
+export function readDevFlags(
+  search: string = window.location.search,
+): DevFlags {
   const asked = new URLSearchParams(search)
-    .get("dev")
-    ?.split(",")
-    .map((entry) => entry.trim());
+    .get('dev')
+    ?.split(',')
+    .map((entry) => entry.trim())
 
-  if (!asked) return NO_DEV;
-  return { onboarding: asked.includes("onboarding") || asked.includes("all") };
+  if (!asked) return NO_DEV
+  return { onboarding: asked.includes('onboarding') || asked.includes('all') }
 }
