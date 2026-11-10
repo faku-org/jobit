@@ -76,15 +76,16 @@ jobs:
           sudo systemctl status jobit-api --no-pager || true
           exit 1
 
-      # Misma regla de sudoers que la API, con jobit-mcp:
-      #   <runner> ALL=(root) NOPASSWD: /bin/systemctl restart jobit-mcp
+      # Mismo sudoers que la API. El MCP escucha en :3301 y no en :3300
+      # porque ese puerto lo ocupa wefaber-status.service en este host
+      # (ver Environment=PORT en jobit-mcp.service).
       - name: Restart MCP
         run: sudo systemctl restart jobit-mcp
 
       - name: Check MCP
         run: |
           for attempt in $(seq 1 10); do
-            if curl -fsS http://127.0.0.1:3300/health > /dev/null; then
+            if curl -fsS http://127.0.0.1:3301/health > /dev/null; then
               echo "MCP arriba"
               exit 0
             fi
