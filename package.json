@@ -26,7 +26,8 @@
     "push": "bun run --cwd worker push",
     "egress": "bun run --cwd worker egress",
     "mcp": "bun run --cwd mcp start",
-    "scrape:push": "bun run --cwd worker scrape && bun run --cwd worker push"
+    "scrape:push": "bun run --cwd worker scrape && bun run --cwd worker push",
+    "embed": "bun run --cwd api embed"
   },
   "devDependencies": {
     "oxfmt": "^0.63.0",
