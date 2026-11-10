@@ -208,8 +208,9 @@ span {
 }
 
 /* El halo de afuera: el mismo cometa, borroso, detrás de la superficie. Solo
-   se ve lo que sobresale del filo, y como el cometa es un arco el resplandor
-   también lo es. */
+   se ve lo que sobresale del filo. El `--aura-hair` debajo del cometa hace que
+   el resplandor cubra el perímetro entero de la sección, no solo el arco que
+   recorre el cometa en ese momento. */
 .aura::before {
   content: '';
   position: absolute;
@@ -217,7 +218,8 @@ span {
   z-index: -2;
   border-radius: inherit;
   pointer-events: none;
-  background: var(--aura-gradient);
+  background:
+    var(--aura-gradient), linear-gradient(var(--aura-hair), var(--aura-hair));
   opacity: 0.55;
   filter: blur(12px);
   /* Entre trabajando y en calma hay un salto de brillo. Sin esto se lee como
@@ -264,7 +266,8 @@ span {
   inset: 0;
   border-radius: inherit;
   padding: 7px;
-  background: var(--aura-gradient);
+  background:
+    var(--aura-gradient), linear-gradient(var(--aura-hair), var(--aura-hair));
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
