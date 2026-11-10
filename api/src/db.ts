@@ -393,6 +393,21 @@ CREATE TABLE IF NOT EXISTS service_daily (
 );
 
 CREATE INDEX IF NOT EXISTS service_daily_service ON service_daily (service_id);
+
+/* Los vectores para la búsqueda semántica. Viven acá y no en el JSON del
+   scraper porque son caros de calcular: el worker reescribe su archivo entero
+   en cada corrida y se llevaría puesto el trabajo de embeber. Un vector por
+   oferta del modelo vigente, sin clave foránea a offers: el tablero mezcla las
+   ofertas propias con las scrapeadas, y estas últimas no están en esa tabla. */
+CREATE TABLE IF NOT EXISTS offer_embeddings (
+  offer_id   TEXT PRIMARY KEY,
+  model      TEXT NOT NULL,
+  dim        INTEGER NOT NULL,
+  vec        BLOB NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS offer_embeddings_model ON offer_embeddings (model);
 `
 
 /**

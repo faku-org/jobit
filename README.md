@@ -76,6 +76,8 @@ termina donde termina la de verdad.
 | `GET /api/jobs.txt`                                       | Ese listado ya en texto, para `curl` y para grep. Mismos parámetros.                                                           |
 | `GET /api/cli`                                            | La URL del tablero en texto: entiende `view` y `job` además de los filtros.                                                    |
 | `GET /api/jobs/:id`                                       | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción.                                           |
+| `GET /api/search`                                         | Búsqueda por significado: embebe `q` y ordena por coseno. Acepta los mismos filtros que `/api/jobs`.                           |
+| `GET /api/offers/:id/similar`                             | Ofertas parecidas a una, por el vector que ya tiene guardado.                                                                  |
 | `GET /api/meta`                                           | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento.                                                            |
 | `GET /api/empresas`                                       | Las empresas del tablero (con `rubro`, solo las de ese rubro), para el selector.                                               |
 | `GET /api/empresas/:slug`                                 | La ficha de una empresa: conteo, sueldo medio, puestos, zonas y últimas ofertas.                                               |
@@ -217,12 +219,31 @@ ingesta; sin él `/api/ingest` responde 404), `JOBIT_SECRET_KEY_FILE` (archivo
 con la clave de 32 bytes que cifra el email y el secreto TOTP de las cuentas;
 sin ella, el alta sin email sigue andando pero el email y el 2FA quedan
 apagados) y `PUBLIC_ORIGIN` (origen que va en los canonical y og:url de las
-páginas server-rendered; por defecto el de producción).
+páginas server-rendered; por defecto el de producción), `EMBEDDER_URL`
+(`http://127.0.0.1:8891/v1/embeddings`), `EMBEDDER_MODEL` (`embeddinggemma-2`),
+`EMBEDDER_BATCH` (16) y `EMBEDDER_TIMEOUT_MS` (30000).
 
 El scrapeo (worker) además guarda una fila por día con agregados del mercado en
 `data/market-history.jsonl` (`MARKET_HISTORY_FILE` para cambiarla): totales,
 puesto, rubro, departamento y sueldo, nunca ofertas ni personas. Correr el
 scrapeo dos veces el mismo día reemplaza la fila de ese día.
+
+## Búsqueda semántica
+
+`/api/search` entiende la consulta aunque las palabras no estén en el aviso:
+embebe `q` con el embedder propio (EmbeddingGemma 2) y ordena por coseno contra
+el vector de cada oferta. Acepta los mismos filtros que `/api/jobs`; si además
+llegan los `rank_*`, mezcla el parecido con el ranking del feed (`SEMANTIC_WEIGHT`,
+0.6 por defecto). Compara a fuerza bruta (miles de vectores en milisegundos, ver
+el comentario en `api/src/search.ts`). Sin embedder responde 503 y el resto de la
+API sigue funcionando igual.
+
+Los vectores viven en la tabla `offer_embeddings` y se llenan con:
+
+```bash
+bun run embed          # solo las ofertas nuevas
+bun run embed --force  # reembebe todo
+```
 
 ## Búsqueda con atajos
 

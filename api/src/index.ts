@@ -7,6 +7,7 @@ import { catalog } from './catalog.ts'
 import { ingest, ingestEnabled } from './ingest.ts'
 import { publish } from './publish.ts'
 import { ratings } from './ratings.ts'
+import { EmbedderError } from './embeddings.ts'
 import { empresas } from './empresas.ts'
 import {
   contentFilePath,
@@ -30,6 +31,7 @@ import { type Ranking, isEmptyRanking, isMix } from './rank.ts'
 import { appendEvents, eventsFilePath, eventsSchema } from './events.ts'
 import { appendStats, statsFilePath, statsSchema } from './stats.ts'
 import { loadFeed, lookupJob } from './feed.ts'
+import { searchBoard, similarBoard } from './search.ts'
 import { employerFacets, employerProfile } from './employers.ts'
 import { site } from './site.ts'
 import { support } from './support.ts'
@@ -363,6 +365,77 @@ export const app = new Elysia()
         : found
     },
     { query: jobsQuerySchema },
+  )
+  /**
+   * Búsqueda por significado. `q` se embebe y se ordena por coseno; los demás
+   * parámetros son los filtros del feed y, si vienen los `rank_*`, se mezclan
+   * los dos scores (ver search.ts). Sin embedder responde 503 y el resto de la
+   * API sigue igual.
+   */
+  .get(
+    '/api/search',
+    async ({ query, status }) => {
+      const file = await loadFeed()
+      if (!file.ok) return status(503, { error: unavailable(file.error) })
+
+      if (!query.q?.trim()) {
+        return status(422, { error: 'falta el texto de búsqueda' })
+      }
+
+      const params = jobsQueryFrom(query)
+      if (!params.ok) return status(422, { error: params.error })
+
+      const ranking = readRanking(query)
+      try {
+        return await searchBoard(file.value.jobs, {
+          query: { ...params.value, ranking },
+          ranking,
+          limit: params.value.limit,
+          offset: params.value.offset,
+        })
+      } catch (cause) {
+        if (cause instanceof EmbedderError) {
+          console.error(
+            `[jobit] búsqueda semántica no disponible: ${cause.message}`,
+          )
+          return status(503, {
+            error: 'la búsqueda semántica no está disponible en este momento',
+          })
+        }
+        throw cause
+      }
+    },
+    { query: jobsQuerySchema },
+  )
+  /** Las más parecidas a una oferta, por el vector que ya tiene guardado. */
+  .get(
+    '/api/offers/:id/similar',
+    async ({ params, query, status }) => {
+      const file = await loadFeed()
+      if (!file.ok) return status(503, { error: unavailable(file.error) })
+
+      const result = similarBoard(
+        file.value.jobs,
+        params.id,
+        clamp(Math.floor(query.limit ?? DEFAULT_LIMIT), 1, MAX_LIMIT),
+        Math.max(Math.floor(query.offset ?? 0), 0),
+      )
+      if (!result.ok) {
+        return status(404, {
+          error:
+            result.error === 'not-found'
+              ? 'oferta no encontrada'
+              : 'esa oferta todavía no está indexada',
+        })
+      }
+      return result.value
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.Numeric()),
+        offset: t.Optional(t.Numeric()),
+      }),
+    },
   )
   .get(
     '/api/jobs.txt',
