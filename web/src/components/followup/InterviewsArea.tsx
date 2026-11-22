@@ -158,6 +158,7 @@ function InterviewForm({
           </label>
           <input
             aria-describedby={`${fieldId('date')}-error`}
+            aria-label="Día"
             aria-invalid={errorOf('date') ? true : undefined}
             className={fieldClassFor('date')}
             id={fieldId('date')}
@@ -183,6 +184,7 @@ function InterviewForm({
           </label>
           <input
             aria-describedby={`${fieldId('time')}-error`}
+            aria-label="Hora"
             aria-invalid={errorOf('time') ? true : undefined}
             className={fieldClassFor('time')}
             id={fieldId('time')}
@@ -209,6 +211,7 @@ function InterviewForm({
         </label>
         <input
           aria-describedby={`${fieldId('place')}-help`}
+          aria-label="Lugar"
           className={`${fieldClass} mt-1 px-3 py-2`}
           id={fieldId('place')}
           maxLength={MAX_PLACE}
@@ -263,6 +266,7 @@ function InterviewForm({
         </label>
         <input
           aria-describedby={`${fieldId('contact')}-help`}
+          aria-label="Con quién"
           className={`${fieldClass} mt-1 px-3 py-2`}
           id={fieldId('contact')}
           maxLength={MAX_CONTACT}

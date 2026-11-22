@@ -57,30 +57,23 @@ export function useFollowUp(): FollowUp {
   return {
     state,
     addNote: useCallback((applicationId, body) => {
+      /** El id y la hora se resuelven afuera: el updater puede correr dos veces. */
+      const id = crypto.randomUUID()
+      const now = new Date().toISOString()
       setState((current) =>
-        addNote(current, {
-          id: crypto.randomUUID(),
-          applicationId,
-          text: body,
-          now: new Date().toISOString(),
-        }),
+        addNote(current, { id, applicationId, text: body, now }),
       )
     }, []),
     editNote: useCallback((id, body) => {
-      setState((current) =>
-        editNote(current, id, body, new Date().toISOString()),
-      )
+      const now = new Date().toISOString()
+      setState((current) => editNote(current, id, body, now))
     }, []),
     removeNote: useCallback((id) => {
       setState((current) => removeNote(current, id))
     }, []),
     saveInterview: useCallback((draft) => {
-      setState((current) =>
-        saveInterview(current, {
-          ...draft,
-          id: draft.id ?? crypto.randomUUID(),
-        }),
-      )
+      const id = draft.id ?? crypto.randomUUID()
+      setState((current) => saveInterview(current, { ...draft, id }))
     }, []),
     removeInterview: useCallback((id) => {
       setState((current) => removeInterview(current, id))
