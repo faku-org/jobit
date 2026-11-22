@@ -10,6 +10,7 @@ describe('readViewState', () => {
   test('lands on the section the link names', () => {
     expect(readViewState('?view=market').view).toBe('market')
     expect(readViewState('?view=state').view).toBe('state')
+    expect(readViewState('?view=test').view).toBe('test')
   })
 
   test('falls back to the board on a section that does not exist', () => {

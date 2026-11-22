@@ -30,6 +30,7 @@ const VIEWS: View[] = [
   'services',
   'market',
   'news',
+  'test',
 ]
 const LEVELS: Level[] = ['entry', 'mid', 'senior']
 const MODES: WorkMode[] = ['onsite', 'remote', 'hybrid']

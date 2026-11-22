@@ -11,6 +11,7 @@ una sección y arranca con los pasos para ejecutarla.
 | [`database.md`](database.md)                                    | El esquema SQLite, las migraciones y los respaldos.                                |
 | [`company-panel.md`](company-panel.md)                          | El panel de empresa de punta a punta.                                              |
 | [`deploy.md`](deploy.md)                                        | Puesta en producción (resumen; el detalle está en `deploy/`).                      |
+| [`autoconocimiento.md`](autoconocimiento.md)                    | El test de autoconocimiento laboral (IPIP-50): puntaje, guardado y privacidad.     |
 | [`faq.md`](faq.md)                                              | Preguntas frecuentes.                                                              |
 | [`plan-implementacion.md`](plan-implementacion.md)              | Orden de lo pendiente (roadmap, issues, PRs) y la revisión de UX/accesibilidad.    |
 | [`estado-y-expansion.md`](estado-y-expansion.md)                | Qué está construido hoy, qué fases siguen y qué implica cada una.                  |

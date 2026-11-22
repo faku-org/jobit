@@ -56,8 +56,9 @@ export function DangerZone({ counts, onEraseEverything }: DangerZoneProps) {
                 counts.dismissed,
                 'oferta descartada',
                 'ofertas descartadas',
-              )}{' '}
-              y todas tus preferencias.
+              )}
+              , tus respuestas del test de autoconocimiento y todas tus
+              preferencias.
               <br />
               <strong className="font-medium text-onpanel/90">
                 No hay copia en ningún servidor: esto no se puede deshacer.
