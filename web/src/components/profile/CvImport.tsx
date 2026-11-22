@@ -211,7 +211,9 @@ export function CvImport({
       await holdBusy(performance.now(), BEAT.answered.ms)
       if (ticket !== readTicket.current) return
       finish(found)
-    } catch {
+    } catch (cause) {
+      /** The message stays generic; the console keeps the real reason. */
+      console.error('CV import failed', cause)
       if (ticket !== readTicket.current) return
       setStage('idle')
       setError(
