@@ -1,0 +1,3 @@
+# Todo el texto en LF, también en checkouts de Windows con core.autocrlf=true:
+# oxfmt espera LF y el gate de commit corre format:check sobre el repo entero.
+* text=auto eol=lf
