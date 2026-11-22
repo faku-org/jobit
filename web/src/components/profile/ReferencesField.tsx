@@ -15,6 +15,18 @@ interface ReferencesFieldProps {
 
 const EMPTY: ResumeReference = { name: '', relation: '', contact: '' }
 
+/** Una clave por referencia a partir de su contenido; si dos son idénticas, la
+ * segunda suma un contador. La lista sólo se agrega o se quita, no se reordena. */
+function referenceKeys(list: ResumeReference[]): string[] {
+  const seen = new Map<string, number>()
+  return list.map((entry) => {
+    const base = [entry.name, entry.relation, entry.contact].join('\u0000')
+    const count = (seen.get(base) ?? 0) + 1
+    seen.set(base, count)
+    return count === 1 ? base : `${base}\u0000${count}`
+  })
+}
+
 /**
  * Referencias laborales. Son datos de otra persona, por eso el aviso va arriba
  * del formulario y no en letra chica: avisarle y pedirle permiso antes de
@@ -25,6 +37,7 @@ export function ReferencesField({ value, onChange }: ReferencesFieldProps) {
   const [draft, setDraft] = useState<ResumeReference>(EMPTY)
   const [error, setError] = useState('')
   const full = value.length >= MAX_REFERENCES
+  const keys = referenceKeys(value)
 
   const set = (key: keyof ResumeReference, text: string) => {
     setDraft((current) => ({ ...current, [key]: text }))
@@ -67,7 +80,7 @@ export function ReferencesField({ value, onChange }: ReferencesFieldProps) {
         <ul className="space-y-1.5">
           {value.map((entry, index) => (
             <li
-              key={`${entry.name}-${index}`}
+              key={keys[index]}
               className="flex items-center gap-2 rounded-xl bg-onpanel-wash px-3 py-2"
             >
               <div className="min-w-0 flex-1">

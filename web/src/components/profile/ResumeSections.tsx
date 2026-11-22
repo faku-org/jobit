@@ -96,10 +96,11 @@ export function ResumeSections({
     URL.revokeObjectURL(url)
   }
 
+  const chosenLevels = new Set<string>(preferences.levels)
   const searchSummary = [
     resume.role,
     resume.lead ? 'Jefatura' : '',
-    ...LEVEL_OPTIONS.filter((o) => preferences.levels.includes(o.value)).map(
+    ...LEVEL_OPTIONS.filter((o) => chosenLevels.has(o.value)).map(
       (o) => o.label,
     ),
   ]

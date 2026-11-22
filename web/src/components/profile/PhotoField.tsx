@@ -21,7 +21,6 @@ interface Source {
   image: HTMLImageElement
   width: number
   height: number
-  url: string
 }
 
 /**
@@ -50,14 +49,6 @@ export function PhotoField({ value, onChange }: PhotoFieldProps) {
     context.drawImage(source.image, sx, sy, size, size, 0, 0, PREVIEW, PREVIEW)
   }, [source, crop])
 
-  /* Libera la URL del archivo elegido cuando se cierra el editor. */
-  useEffect(
-    () => () => {
-      if (source) URL.revokeObjectURL(source.url)
-    },
-    [source],
-  )
-
   const close = () => {
     setSource(null)
     setCrop(CENTERED)
@@ -77,13 +68,15 @@ export function PhotoField({ value, onChange }: PhotoFieldProps) {
     setError('')
     const url = URL.createObjectURL(file)
     const image = new Image()
+    /* La URL sólo hace falta hasta que el navegador decodifica la imagen:
+       después se dibuja desde el elemento, así que se libera enseguida. */
     image.onload = () => {
+      URL.revokeObjectURL(url)
       setCrop(CENTERED)
       setSource({
         image,
         width: image.naturalWidth,
         height: image.naturalHeight,
-        url,
       })
     }
     image.onerror = () => {
