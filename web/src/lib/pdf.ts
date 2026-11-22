@@ -15,11 +15,17 @@ interface TextItem {
 export async function extractPdfText(file: File): Promise<string> {
   const pdfjs = await import('pdfjs-dist')
 
-  /** Vite resolves this to a hashed asset and pdf.js runs it off the main thread. */
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString()
+  /**
+   * The worker goes through Vite's `?worker` so it ships as a `.js` chunk.
+   * Served as `.mjs`, nginx sends it as `application/octet-stream`; with
+   * `nosniff` the browser refuses it as a module and every PDF fails to open.
+   * One worker per page, reused on later reads.
+   */
+  if (!pdfjs.GlobalWorkerOptions.workerPort) {
+    const { default: PdfWorker } =
+      await import('pdfjs-dist/build/pdf.worker.min.mjs?worker')
+    pdfjs.GlobalWorkerOptions.workerPort = new PdfWorker()
+  }
 
   const data = new Uint8Array(await file.arrayBuffer())
   const document = await pdfjs.getDocument({ data }).promise
