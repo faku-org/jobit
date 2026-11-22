@@ -242,7 +242,9 @@ describe('el orden de la lista', () => {
 describe('lo público no filtra el trato', () => {
   test('publicView lleva featured pero no la fecha ni la clase', () => {
     const id = publish('A')
-    boosts.grant(id, 'featured', 7, NOW)
+    /** `byId` mira el reloj real, así que el destacado arranca hoy y no en NOW:
+     * con NOW fijo, el test vencía solo a los siete días. */
+    boosts.grant(id, 'featured', 7, new Date())
 
     const view = services.publicView(services.byId(id) as Service)
     expect(view.featured).toBe(true)
