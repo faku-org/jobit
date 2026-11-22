@@ -4,12 +4,21 @@ import {
   GraduationCap,
   Loader2,
   Maximize2,
+  NotebookPen,
   Trash2,
 } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
+import { useState } from 'react'
+import type { FollowUp } from '../../hooks/useFollowUp.ts'
+import { interviewsFor, notesFor } from '../../lib/followup.ts'
 import { APPLICATION_STATUS_LABEL, formatDay } from '../../lib/format.ts'
 import { fadeUpTransition, stagger } from '../../lib/motion.ts'
 import type { Application, ApplicationStatus } from '../../lib/types.ts'
+import { ConfirmDelete } from '../followup/ConfirmDelete.tsx'
+import { FollowUpPanel } from '../followup/FollowUpPanel.tsx'
+
+const pillClass =
+  'inline-flex items-center gap-1.5 rounded-full bg-mist px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-sky/40 hover:text-ink'
 
 interface TrackingProps {
   applications: Application[]
@@ -20,6 +29,8 @@ interface TrackingProps {
   onOpen: (application: Application) => void
   /** Abre el contenido de práctica del rubro de esa postulación. */
   onPractice: (application: Application) => void
+  /** Notas y entrevistas: solo del navegador, no viajan con la cuenta. */
+  followUp: FollowUp
   onSetStatus: (id: string, status: ApplicationStatus) => void
   onRemove: (id: string) => void
 }
@@ -68,9 +79,18 @@ export function Tracking({
   goneIds,
   onOpen,
   onPractice,
+  followUp,
   onSetStatus,
   onRemove,
 }: TrackingProps) {
+  /** Una postulación abierta a la vez: el seguimiento no es una pared de
+   * formularios. */
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
+  const countFor = (id: string) =>
+    notesFor(followUp.state, id).length +
+    interviewsFor(followUp.state, id).length
+
   if (applications.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-sky bg-surface/60 px-6 py-16 text-center">
@@ -192,27 +212,73 @@ export function Tracking({
                         aria-label="Quitar del seguimiento"
                         className="inline-flex size-8 items-center justify-center rounded-lg text-faint transition-colors hover:bg-mist hover:text-ink"
                         type="button"
-                        onClick={() => onRemove(entry.id)}
+                        onClick={() =>
+                          countFor(entry.id) > 0
+                            ? setRemovingId(entry.id)
+                            : onRemove(entry.id)
+                        }
                       >
                         <Trash2 aria-hidden className="size-4" />
                       </button>
                     </div>
                   </div>
 
+                  {removingId === entry.id ? (
+                    <ConfirmDelete
+                      question={`Con la postulación se borran sus ${countFor(entry.id)} notas y entrevistas, y no hay copia. ¿Quitarla?`}
+                      onCancel={() => setRemovingId(null)}
+                      onConfirm={() => {
+                        setRemovingId(null)
+                        onRemove(entry.id)
+                      }}
+                    />
+                  ) : null}
+
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                     <StatusPicker
                       status={entry.status}
                       onSetStatus={(status) => onSetStatus(entry.id, status)}
                     />
-                    <button
-                      className="inline-flex items-center gap-1.5 rounded-full bg-mist px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-sky/40 hover:text-ink"
-                      type="button"
-                      onClick={() => onPractice(entry)}
-                    >
-                      <GraduationCap aria-hidden className="size-3.5" />
-                      Practicar
-                    </button>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        aria-controls={`followup-${entry.id}`}
+                        aria-expanded={openId === entry.id}
+                        className={`${pillClass} ${
+                          openId === entry.id ? 'bg-sky/40 text-ink' : ''
+                        }`}
+                        type="button"
+                        onClick={() =>
+                          setOpenId((current) =>
+                            current === entry.id ? null : entry.id,
+                          )
+                        }
+                      >
+                        <NotebookPen aria-hidden className="size-3.5" />
+                        Notas y entrevistas
+                        {countFor(entry.id) > 0 ? (
+                          <span className="tabular-nums">
+                            {countFor(entry.id)}
+                          </span>
+                        ) : null}
+                      </button>
+                      <button
+                        className={pillClass}
+                        type="button"
+                        onClick={() => onPractice(entry)}
+                      >
+                        <GraduationCap aria-hidden className="size-3.5" />
+                        Practicar
+                      </button>
+                    </div>
                   </div>
+
+                  {openId === entry.id ? (
+                    <FollowUpPanel
+                      application={entry}
+                      followUp={followUp}
+                      id={`followup-${entry.id}`}
+                    />
+                  ) : null}
                 </m.article>
               ))}
             </AnimatePresence>

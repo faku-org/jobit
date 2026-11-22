@@ -21,6 +21,7 @@ import {
 import type { TagActions } from './components/job/JobChips.tsx'
 import { ViewTabs } from './components/board/ViewTabs.tsx'
 import { useAccountSync } from './hooks/useAccountSync.ts'
+import { useFollowUp } from './hooks/useFollowUp.ts'
 import { useJobPrefs } from './hooks/useJobPrefs.ts'
 import { useJobLink } from './hooks/useJobLink.ts'
 import { useJobs } from './hooks/useJobs.ts'
@@ -168,6 +169,8 @@ export default function App() {
   } | null>(null)
 
   const prefs = useJobPrefs()
+  /** Notas y entrevistas: su propia clave, fuera de lo que viaja por la cuenta. */
+  const followUp = useFollowUp()
   /** QuiÃ©n estÃ¡ adentro y quÃ© eligiÃ³ sincronizar. Va acÃ¡, arriba de la isla,
    * porque el sync toca las mismas preferencias que el resto del panel. */
   const session = useSession()
@@ -499,7 +502,10 @@ export default function App() {
         onChangeSources={prefs.setSources}
         onChangeFeeds={prefs.setFeeds}
         onChangeTheme={prefs.setTheme}
-        onEraseEverything={prefs.eraseEverything}
+        onEraseEverything={() => {
+          prefs.eraseEverything()
+          followUp.erase()
+        }}
         onImportCv={(nextProfile, nextPreferences) => {
           prefs.setProfile(nextProfile)
           prefs.setPreferences(nextPreferences)
@@ -533,6 +539,7 @@ export default function App() {
               <Suspense fallback={<JobListSkeleton />}>
                 <Tracking
                   applications={prefs.applications}
+                  followUp={followUp}
                   goneIds={goneIds}
                   openingId={openingId}
                   onOpen={openTracked}
@@ -543,7 +550,10 @@ export default function App() {
                       label: entry.categoryLabel,
                     })
                   }
-                  onRemove={prefs.removeApplication}
+                  onRemove={(id) => {
+                    prefs.removeApplication(id)
+                    followUp.removeForApplication(id)
+                  }}
                   onSetStatus={prefs.setApplicationStatus}
                 />
               </Suspense>

@@ -36,6 +36,7 @@ src/
   index.css           tokens de Tailwind (@theme) y base
   components/
     board/            isla, filtros, pestañas, seguimiento
+    followup/         notas y entrevistas de una postulación (ver abajo)
     job/              tarjeta y ficha de una oferta
     market/           el informe del mercado
     profile/          onboarding, perfil y preferencias
@@ -47,6 +48,25 @@ src/
   hooks/              hooks de React
   legal.ts            el JS mínimo de las legales
 ```
+
+## Notas y entrevistas
+
+Cada postulación del seguimiento abre un panel con dos áreas: notas y
+entrevistas (fecha, hora, lugar, enlace, con quién). Zero Data Policy: todo
+vive en `localStorage` bajo `jobit.followup.v1` y **no** entra en
+`Application` ni en `SyncedState`, así que no viaja con la cuenta ni llega a la
+API. "Borrar todos mis datos" lo limpia y quitar una postulación borra sus notas
+y entrevistas (con confirmación si tiene).
+
+- `lib/followup.ts`: tipos, validación, lectura saneada y reductores puros.
+- `hooks/useFollowUp.ts`: estado y persistencia; lo crea `App.tsx`.
+- `lib/ics.ts`: arma el `.ics` (RFC 5545: CRLF, escape de `\ ; ,` y saltos,
+  líneas a 75 octetos, UID estable, `DTSTAMP`, `America/Montevideo` con su
+  `VTIMEZONE`, `VALARM` el día anterior, `SEQUENCE` sube al editar).
+- `components/followup/`: `FollowUpPanel`, `NotesArea`, `InterviewsArea`,
+  `ConfirmDelete`.
+
+Conectar Google Calendar / Outlook (paso 2 del issue #73) no está hecho.
 
 ## Estilo
 
