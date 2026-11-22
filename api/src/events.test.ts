@@ -106,3 +106,29 @@ describe('el id de la oferta', () => {
     expect(await appendEvents([apply({ job: 'juan perez' })])).toBe(0)
   })
 })
+
+describe('test de autoconocimiento', () => {
+  test('guarda solo el día y el tipo', async () => {
+    expect(await appendEvents([{ kind: 'test_done' }])).toBe(1)
+
+    const [row] = rows()
+    expect(Object.keys(row ?? {}).sort()).toEqual(['day', 'kind'])
+    expect(row?.kind).toBe('test_done')
+  })
+
+  test('si llegaran respuestas o puntajes, no se escriben', async () => {
+    await appendEvents([
+      {
+        kind: 'test_done',
+        answers: { e1: 5 },
+        scores: { apertura: 80 },
+        user_id: 'abc',
+      } as never,
+    ])
+
+    const text = readFileSync(FILE, 'utf8')
+    expect(text).not.toContain('answers')
+    expect(text).not.toContain('apertura')
+    expect(text).not.toContain('user_id')
+  })
+})

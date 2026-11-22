@@ -56,6 +56,11 @@ export const eventsSchema = t.Object({
         id: t.String({ maxLength: 100 }),
         category: t.String({ maxLength: 60 }),
       }),
+      /* El test de autoconocimiento terminado: solo el aviso. Ni respuestas
+         ni puntajes viajan, y el servidor no los acepta aunque lleguen. */
+      t.Object({
+        kind: t.Literal('test_done'),
+      }),
       t.Object({
         kind: t.Literal('service_contact'),
         id: t.String({ maxLength: 100 }),
@@ -133,6 +138,8 @@ function normalise(event: UsageEvent): Record<string, unknown> | null {
   ) {
     return null
   }
+
+  if (event.kind === 'test_done') return { kind: 'test_done' }
 
   if (event.kind === 'service_search') {
     return {
