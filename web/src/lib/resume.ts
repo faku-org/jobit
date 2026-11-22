@@ -10,6 +10,13 @@ import { EMPTY_FILTERS, type Filters, type Preferences } from './types.ts'
  * archivo que la persona se descarga con el botón de exportar.
  */
 export interface Resume {
+  /** Cómo se firma la persona en una postulación. Vacío hasta que lo escribe. */
+  name: string
+  /** Qué adjunta ("mi CV y mi certificado"); vacío usa "mi CV". */
+  attachments: string
+  /** Las variantes del mensaje de postulación que la persona editó y guardó. Lo
+   * que no está acá usa la plantilla de fábrica. */
+  messages: Partial<Record<MessageKind, string>>
   /** Data URL de la foto ya recortada y comprimida, o vacío. */
   photo: string
   /** Departamento de donde vive, del mismo vocabulario que el tablero. */
@@ -26,6 +33,10 @@ export interface Resume {
   references: ResumeReference[]
   disability: ResumeDisability
 }
+
+export type MessageKind = 'formal' | 'short' | 'first'
+
+export const MESSAGE_KINDS: MessageKind[] = ['formal', 'short', 'first']
 
 export type LanguageLevel = 'basic' | 'intermediate' | 'advanced' | 'native'
 
@@ -55,6 +66,9 @@ export interface ResumeDisability {
 }
 
 export const EMPTY_RESUME: Resume = {
+  name: '',
+  attachments: '',
+  messages: {},
   photo: '',
   department: '',
   city: '',
@@ -130,6 +144,9 @@ export const LINK_KIND_LABEL: Record<LinkKind, string> = {
 export const MAX_LANGUAGES = 8
 export const MAX_LINKS = 6
 export const MAX_REFERENCES = 4
+/** Un mensaje de postulación largo no entra en un `mailto`; esto corta lo que
+ * alguien haya pegado a mano en el almacenamiento. */
+export const MAX_MESSAGE_CHARS = 1500
 /** Una foto de 400 px en JPEG pesa ~40 KB; esto deja margen y corta lo que
  * alguien haya pegado a mano en el almacenamiento. */
 export const MAX_PHOTO_CHARS = 250_000
@@ -238,7 +255,20 @@ export function sanitizeResume(raw: unknown): Resume {
     ? (source.department as string)
     : ''
 
+  const saved =
+    typeof source.messages === 'object' && source.messages !== null
+      ? (source.messages as Record<string, unknown>)
+      : {}
+  const messages: Resume['messages'] = {}
+  for (const kind of MESSAGE_KINDS) {
+    const text = clip(saved[kind], MAX_MESSAGE_CHARS)
+    if (text !== '') messages[kind] = text
+  }
+
   return {
+    name: clip(source.name, 80),
+    attachments: clip(source.attachments, 120),
+    messages,
     photo,
     department,
     city: clip(source.city, 60),
@@ -373,6 +403,7 @@ export function buildExport(
       sueldo: preferences.salary,
     },
     contacto: {
+      nombre: rest.name,
       departamento: rest.department,
       ciudad: rest.city,
       links: rest.links,

@@ -16,8 +16,12 @@ que hoy. Elegir es de la persona.
 
 ## Postular sin salir de JobIt
 
-- [ ] Postulación con mensaje armado ("Hola, soy X, me postulo a Y, les adjunto Z") y
-      adjuntos, por `mailto` o para copiar. #71
+- [~] Postulación con mensaje armado ("Hola, soy X, me postulo a Y, les adjunto Z") y
+  adjuntos, por `mailto` o para copiar. #71
+  Hecho en v0.5.0 (`docs/postulacion.md`): botón "Armar mensaje", plantillas Formal /
+  Corta / Primer empleo editables y guardadas en el dispositivo, `mailto:` si la oferta
+  trae mail y copiar + abrir el aviso si no. Probado por lógica (plantilla, detección de
+  mail, `mailto`, sanitizado). Falta verlo en el navegador: cliente de correo y portapapeles.
 - [ ] BuscoJobs: importar el CV, "copiar para BuscoJobs" y contacto para un acuerdo de
       postulación. Nunca pedir su usuario y contraseña. #76
 

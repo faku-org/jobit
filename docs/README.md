@@ -8,6 +8,7 @@ una sección y arranca con los pasos para ejecutarla.
 | [`api.md`](api.md)                                              | La API: correrla, variables de entorno, endpoints, límites.                        |
 | [`web.md`](web.md)                                              | La web: entradas, dev, build, estructura.                                          |
 | [`perfil.md`](perfil.md)                                        | El perfil completo: campos, dónde se guarda, import de CV y export JSON.           |
+| [`postulacion.md`](postulacion.md)                              | El mensaje de postulación: plantillas, mail de la oferta, `mailto` y copiar.       |
 | [`worker.md`](worker.md)                                        | Los scrapers, el egress y la agenda.                                               |
 | [`database.md`](database.md)                                    | El esquema SQLite, las migraciones y los respaldos.                                |
 | [`company-panel.md`](company-panel.md)                          | El panel de empresa de punta a punta.                                              |

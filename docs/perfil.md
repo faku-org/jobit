@@ -42,6 +42,9 @@ Ningún campo nuevo llega a la API (Zero Data Policy).
   persona antes de cargarla.
 - **Discapacidad**: opcional y apagada por defecto. Sin la marca no se guarda la
   nota.
+- **Nombre, adjuntos y mensajes**: los usa el mensaje de postulación (ver
+  [`postulacion.md`](postulacion.md)). Se piden al armar el mensaje, no en el
+  formulario del perfil.
 
 ## El botón "Ver ofertas con esto"
 
