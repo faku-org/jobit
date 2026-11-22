@@ -23,9 +23,13 @@ que hoy. Elegir es de la persona.
 
 ## Perfil
 
-- [ ] Perfil completo: foto, ubicación, idiomas, preferencias laborales (puesto,
-      jerarquía), web y redes, referencias y situación de discapacidad. En el dispositivo; la
-      sincronización es opcional y discapacidad nunca se sincroniza sin elegirlo aparte. #72
+- [~] Perfil completo: foto, ubicación, idiomas, preferencias laborales (puesto,
+  jerarquía), web y redes, referencias y situación de discapacidad. En el dispositivo; la
+  sincronización es opcional y discapacidad nunca se sincroniza sin elegirlo aparte. #72
+  Hecho en v0.2.0 (`docs/perfil.md`): todos los campos en el dispositivo, import de CV con
+  idiomas y links, botón que lleva al tablero con filtros y export JSON; probado con tests
+  de lógica, falta verlo en el navegador. Pendiente: sincronización entre dispositivos y
+  export PDF.
 - [ ] Test de autoconocimiento laboral (IPIP Big Five), con resultado en el dispositivo y
       aviso de que no es un psicotécnico. #75
 

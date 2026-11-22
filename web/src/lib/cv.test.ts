@@ -192,6 +192,63 @@ describe('readCv ubicación', () => {
   })
 })
 
+describe('readCv idiomas', () => {
+  test('toma el nivel que el CV le puso a cada idioma', () => {
+    const reading = read(`
+      Idiomas
+      Español: nativo
+      Inglés (B2)
+      Portugués básico
+    `)
+    expect(reading.languages).toEqual([
+      { name: 'Español', level: 'native' },
+      { name: 'Inglés', level: 'advanced' },
+      { name: 'Portugués', level: 'basic' },
+    ])
+  })
+
+  test('en una misma línea el nivel no se le pasa al idioma de al lado', () => {
+    const reading = read('Idiomas\nInglés avanzado, Portugués intermedio')
+    expect(reading.languages).toEqual([
+      { name: 'Inglés', level: 'advanced' },
+      { name: 'Portugués', level: 'intermediate' },
+    ])
+  })
+
+  test('un idioma sin nivel no se anota', () => {
+    expect(read('Idiomas\nInglés\nFrancés').languages).toEqual([])
+  })
+
+  test('un nivel lejos del idioma no cuenta', () => {
+    expect(read('Inglés\nAtención al cliente avanzada').languages).toEqual([])
+  })
+})
+
+describe('readCv links', () => {
+  test('LinkedIn, GitHub y una web propia, tal cual están escritos', () => {
+    const reading = read(`
+      Facundo Presa
+      linkedin.com/in/FakuPresa
+      https://github.com/faku-org
+      Portfolio: https://faku.dev/proyectos.
+    `)
+    expect(reading.links).toEqual([
+      { kind: 'linkedin', url: 'https://linkedin.com/in/FakuPresa' },
+      { kind: 'github', url: 'https://github.com/faku-org' },
+      { kind: 'other', url: 'https://faku.dev/proyectos' },
+    ])
+  })
+
+  test('un mail no es un link', () => {
+    expect(read('Contacto: faku@hotmail.com').links).toEqual([])
+  })
+
+  test('un CV con solo idiomas o links ya no está vacío', () => {
+    expect(isEmptyReading(read('Inglés avanzado'))).toBe(false)
+    expect(isEmptyReading(read('https://github.com/faku'))).toBe(false)
+  })
+})
+
 describe('splitCv', () => {
   test('cada línea pertenece al último encabezado leído', () => {
     const blocks = splitCv(

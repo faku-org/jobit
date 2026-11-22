@@ -55,6 +55,7 @@ import { fadeUpTransition } from './lib/motion.ts'
 import { pluralOffers } from './lib/format.ts'
 import { readDevFlags } from './lib/dev.ts'
 import { isOnboarded } from './lib/profile.ts'
+import { filtersFromSearch, mergeReading } from './lib/resume.ts'
 import { pickHighlights } from './lib/match.ts'
 import { toRanking } from './lib/ranking.ts'
 import type { Service } from './lib/services.ts'
@@ -500,9 +501,16 @@ export default function App() {
         onChangeFeeds={prefs.setFeeds}
         onChangeTheme={prefs.setTheme}
         onEraseEverything={prefs.eraseEverything}
-        onImportCv={(nextProfile, nextPreferences) => {
+        resume={prefs.resume}
+        onChangeResume={prefs.setResume}
+        onImportCv={(nextProfile, nextPreferences, found) => {
           prefs.setProfile(nextProfile)
           prefs.setPreferences(nextPreferences)
+          prefs.setResume(mergeReading(prefs.resume, found))
+        }}
+        onSearchBoard={() => {
+          setView('all')
+          setFilters(filtersFromSearch(prefs.resume, prefs.preferences))
         }}
         onOpenHelp={() => setHelpOpen(true)}
         onPrefetchHelp={() => void loadHelp()}

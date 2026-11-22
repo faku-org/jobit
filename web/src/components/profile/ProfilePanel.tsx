@@ -11,12 +11,14 @@ import {
   withDegrees,
 } from '../../lib/profile.ts'
 import { type Usage, anonymousStats } from '../../lib/stats.ts'
+import type { Resume, ResumeFound } from '../../lib/resume.ts'
 import { pendingEvents } from '../../lib/track.ts'
 import type { Facet, Preferences, Theme } from '../../lib/types.ts'
 import { Combobox } from '../ui/Combobox.tsx'
 import { DangerZone } from './DangerZone.tsx'
 import { ExperienceField } from './ExperienceField.tsx'
 import { PanelChip, PanelGroup } from './PanelControls.tsx'
+import { ResumeSections } from './ResumeSections.tsx'
 
 interface ProfilePanelProps {
   profile: Profile
@@ -30,8 +32,17 @@ interface ProfilePanelProps {
   /** How the app looks, which is not a search preference: it lives here with
    * the rest of what this browser knows about the person. */
   theme: Theme
-  onImportCv: (profile: Profile, preferences: Preferences) => void
+  /** Lo que la persona cargó para el CV; vive sólo en este navegador. */
+  resume: Resume
+  onImportCv: (
+    profile: Profile,
+    preferences: Preferences,
+    found: ResumeFound,
+  ) => void
   onChange: (profile: Profile) => void
+  onChangeResume: (resume: Resume) => void
+  onChangePreferences: (preferences: Preferences) => void
+  onSearchBoard: () => void
   onChangeTheme: (theme: Theme) => void
   onEraseEverything: () => void
 }
@@ -58,9 +69,13 @@ export function ProfilePanel({
   preferences,
   categories,
   theme,
+  resume,
   onChange,
+  onChangeResume,
+  onChangePreferences,
   onChangeTheme,
   onImportCv,
+  onSearchBoard,
   onEraseEverything,
 }: ProfilePanelProps) {
   const [showPayload, setShowPayload] = useState(false)
@@ -131,6 +146,17 @@ export function ProfilePanel({
             onApply={onImportCv}
           />
         </Suspense>
+      </div>
+
+      <div className="border-t border-onpanel/10 pt-3">
+        <ResumeSections
+          preferences={preferences}
+          profile={profile}
+          resume={resume}
+          onChange={onChangeResume}
+          onChangePreferences={onChangePreferences}
+          onSearchBoard={onSearchBoard}
+        />
       </div>
 
       <div className="border-t border-onpanel/10 pt-3">
