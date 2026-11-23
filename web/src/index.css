@@ -59,6 +59,13 @@
   /* The island and every filled button, with its own foreground. */
   --color-panel: #0d47a1;
   --color-onpanel: #ffffff;
+
+  /* Lo que borra de verdad: texto y borde (danger) y el relleno del botón de
+     confirmar (danger-solid) con su propio texto. Sigue el tema como el resto,
+     no el esquema del sistema. */
+  --color-danger: #b91c1c;
+  --color-danger-solid: #b91c1c;
+  --color-ondanger: #ffffff;
 }
 
 :root {
@@ -143,6 +150,10 @@
   --color-surface: #111c2e;
   --color-panel: #17243a;
   --color-onpanel: #e6effb;
+
+  --color-danger: #fca5a5;
+  --color-danger-solid: #ef4444;
+  --color-ondanger: #450a0a;
 
   --shadow-panel: 0 8px 30px rgba(6, 16, 36, 0.58);
   --shadow-card: 0 2px 10px rgba(6, 16, 36, 0.48);

@@ -231,6 +231,13 @@ export function levelOf(percent: number): Level {
   return 'mid'
 }
 
+/** Cómo se lee un puntaje: hacia qué extremo del rasgo se acerca. */
+export function levelPhrase(score: TraitScore): string {
+  const trait = TRAITS.find((entry) => entry.key === score.key)
+  if (!trait || score.level === 'mid') return 'En el medio'
+  return `Más cerca de ${score.level === 'high' ? trait.high : trait.low}`
+}
+
 /**
  * Puntaje de los cinco rasgos. Devuelve `null` si falta alguna respuesta: un
  * resultado a medias sería una lectura inventada.
