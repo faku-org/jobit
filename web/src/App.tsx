@@ -21,6 +21,7 @@ import {
 import type { TagActions } from './components/job/JobChips.tsx'
 import { ViewTabs } from './components/board/ViewTabs.tsx'
 import { useAccountSync } from './hooks/useAccountSync.ts'
+import { useFollowUp } from './hooks/useFollowUp.ts'
 import { useJobPrefs } from './hooks/useJobPrefs.ts'
 import { useJobLink } from './hooks/useJobLink.ts'
 import { useJobs } from './hooks/useJobs.ts'
@@ -97,6 +98,10 @@ const loadNews = () =>
   import('./components/news/News.tsx').then((module) => ({
     default: module.News,
   }))
+const loadSelfTest = () =>
+  import('./components/test/SelfTest.tsx').then((module) => ({
+    default: module.SelfTest,
+  }))
 const loadHelp = () =>
   import('./components/help/Help.tsx').then((module) => ({
     default: module.Help,
@@ -107,6 +112,7 @@ const Market = lazy(loadMarket)
 const JobModal = lazy(loadJobModal)
 const Tracking = lazy(loadTracking)
 const News = lazy(loadNews)
+const SelfTest = lazy(loadSelfTest)
 const Help = lazy(loadHelp)
 
 /**
@@ -126,6 +132,8 @@ const VIEW_HINT: Record<View, string> = {
   services: '',
   market: '',
   news: '',
+  /** El test tiene su propia pantalla, con su aviso y su avance. */
+  test: '',
 }
 
 /** La ventana del tablero que mira Novedades para recomendar. */
@@ -169,6 +177,8 @@ export default function App() {
   } | null>(null)
 
   const prefs = useJobPrefs()
+  /** Notas y entrevistas: su propia clave, fuera de lo que viaja por la cuenta. */
+  const followUp = useFollowUp()
   /** QuiÃ©n estÃ¡ adentro y quÃ© eligiÃ³ sincronizar. Va acÃ¡, arriba de la isla,
    * porque el sync toca las mismas preferencias que el resto del panel. */
   const session = useSession()
@@ -216,6 +226,7 @@ export default function App() {
   const isMarketView = view === 'market'
   const isServicesView = view === 'services'
   const isNewsView = view === 'news'
+  const isTestView = view === 'test'
   /**
    * The pile is reviewed in one place only. Discarding works anywhere, but the
    * pile is global: offering it inside Estado would show a count of offers most
@@ -500,7 +511,10 @@ export default function App() {
         onChangeSources={prefs.setSources}
         onChangeFeeds={prefs.setFeeds}
         onChangeTheme={prefs.setTheme}
-        onEraseEverything={prefs.eraseEverything}
+        onEraseEverything={() => {
+          prefs.eraseEverything()
+          followUp.erase()
+        }}
         resume={prefs.resume}
         onChangeResume={prefs.setResume}
         onImportCv={(nextProfile, nextPreferences, found) => {
@@ -513,19 +527,26 @@ export default function App() {
           setFilters(filtersFromSearch(prefs.resume, prefs.preferences))
         }}
         onOpenHelp={() => setHelpOpen(true)}
+        onOpenTest={() => changeView('test')}
         onPrefetchHelp={() => void loadHelp()}
+        onPrefetchTest={() => void loadSelfTest()}
       />
 
       <main className="mx-auto max-w-3xl px-5 pt-24 pb-16 sm:pt-28">
-        <FadeUp>
-          <ViewTabs
-            savedCount={prefs.saved.size}
-            trackedCount={prefs.applications.length}
-            view={view}
-            onChange={changeView}
-            onPrefetch={prefetchView}
-          />
-        </FadeUp>
+        {/* El test es una pantalla aparte, no una pestaña más: con siete ya no
+            entran en el ancho del tablero en tablet. Mientras se hace no hay
+            pestañas, y salir (o el botón Atrás) lleva al listado. */}
+        {isTestView ? null : (
+          <FadeUp>
+            <ViewTabs
+              savedCount={prefs.saved.size}
+              trackedCount={prefs.applications.length}
+              view={view}
+              onChange={changeView}
+              onPrefetch={prefetchView}
+            />
+          </FadeUp>
+        )}
 
         {VIEW_HINT[view] ? (
           <FadeUp delay={0.03}>
@@ -541,6 +562,7 @@ export default function App() {
               <Suspense fallback={<JobListSkeleton />}>
                 <Tracking
                   applications={prefs.applications}
+                  followUp={followUp}
                   goneIds={goneIds}
                   openingId={openingId}
                   onOpen={openTracked}
@@ -551,12 +573,26 @@ export default function App() {
                       label: entry.categoryLabel,
                     })
                   }
-                  onRemove={prefs.removeApplication}
+                  onRemove={(id) => {
+                    prefs.removeApplication(id)
+                    followUp.removeForApplication(id)
+                  }}
                   onSetStatus={prefs.setApplicationStatus}
                 />
               </Suspense>
             </FadeUp>
           </div>
+        ) : isTestView ? (
+          <Suspense fallback={<JobListSkeleton />}>
+            <SelfTest
+              categories={meta?.categories ?? []}
+              onBack={() => changeView('all')}
+              onExploreCategory={(category) => {
+                changeView('all')
+                setFilters({ ...EMPTY_FILTERS, category })
+              }}
+            />
+          </Suspense>
         ) : isServicesView ? (
           <Services active={!showIntro} onOpen={setOpenService} />
         ) : isMarketView ? (

@@ -65,7 +65,19 @@ export interface ServiceContactEvent {
   channel: string
 }
 
+/**
+ * El test de autoconocimiento terminado. No lleva nada: ni respuestas, ni
+ * puntajes, ni el perfil que dio. El servidor solo suma una fila con el día, y
+ * eso alcanza para saber cuántas personas lo completan por día.
+ */
+export interface TestDoneEvent {
+  kind: 'test_done'
+}
+
+export const testDoneEvent = (): TestDoneEvent => ({ kind: 'test_done' })
+
 export type UsageEvent =
+  | TestDoneEvent
   | SearchEvent
   | ApplyEvent
   | OfferViewEvent
