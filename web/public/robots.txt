@@ -2,7 +2,9 @@
 User-agent: *
 Allow: /
 
-# La API sirve JSON, no páginas: no hay nada que indexar ahí.
+# La API sirve JSON, no páginas: no hay nada que indexar ahí. Salvo el listado
+# en texto, que la home y llms.txt enlazan para que un agente lo lea.
+Allow: /api/jobs.txt
 Disallow: /api/
 
 Sitemap: https://jobs.wefaber.net/sitemap.xml

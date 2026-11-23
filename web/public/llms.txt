@@ -5,6 +5,11 @@
 ## Sitio
 
 - [Tablero de ofertas](https://jobs.wefaber.net/): filtros, guardadas y seguimiento
+- [Mercado laboral](https://jobs.wefaber.net/mercado): cuántas ofertas hay, sueldos publicados, rubros y departamentos, del último scrapeo
+- [Ofertas por departamento](https://jobs.wefaber.net/departamento/Montevideo): `/departamento/<departamento>`, por ejemplo Montevideo, Canelones, Maldonado
+- [Ofertas por rubro](https://jobs.wefaber.net/rubro/ventas): `/rubro/<rubro>`
+- [Guías de entrevista por rubro](https://jobs.wefaber.net/entrevista/ventas): `/entrevista/<rubro>`
+- Cada oferta tiene su ficha en `/empleo/<id>`; la lista completa está en el [sitemap](https://jobs.wefaber.net/sitemap.xml)
 - [Publicar ofertas (empresas)](https://jobs.wefaber.net/publicar): qué hace el panel de empresa
 - [Términos del servicio](https://jobs.wefaber.net/terminos)
 - [Política de privacidad](https://jobs.wefaber.net/privacidad)
