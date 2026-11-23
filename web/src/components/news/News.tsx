@@ -17,6 +17,7 @@ import { type NewsMatch, buildNews, isEntryProfile } from '../../lib/news.ts'
 import type { Profile } from '../../lib/profile.ts'
 import { type Job, type Preferences, preferenceCount } from '../../lib/types.ts'
 import { chipClass } from '../../lib/styles.ts'
+import { PageHeader } from '../page/PageHeader.tsx'
 import { FadeUp } from '../ui/FadeUp.tsx'
 
 interface NewsProps {
@@ -29,6 +30,7 @@ interface NewsProps {
   onOpen: (job: Job) => void
   /** Llevar al tablero filtrado por el rubro de una tendencia. */
   onExplore: (category: string) => void
+  onBack: () => void
 }
 
 /** Una tarjeta con su título y su bajada, como las de Mercado. */
@@ -162,6 +164,7 @@ export function News({
   status,
   onOpen,
   onExplore,
+  onBack,
 }: NewsProps) {
   const news = useMemo(
     () => buildNews({ jobs, followed, preferences, market }),
@@ -192,18 +195,12 @@ export function News({
 
   return (
     <div className="space-y-4">
-      <FadeUp>
-        <header className="px-1">
-          <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-ink">
-            <BellRing aria-hidden className="size-4 text-brand" />
-            Novedades
-          </h2>
-          <p className="mt-1 text-xs leading-relaxed text-muted">
-            Lo que se movió en el tablero y lo que te puede servir, según lo que
-            contaste.
-          </p>
-        </header>
-      </FadeUp>
+      <PageHeader
+        icon={<BellRing aria-hidden className="size-5" />}
+        lead="Lo que se movió en el tablero y lo que te puede servir, según lo que contaste."
+        title="Novedades"
+        onBack={onBack}
+      />
 
       {nothing ? (
         <FadeUp>

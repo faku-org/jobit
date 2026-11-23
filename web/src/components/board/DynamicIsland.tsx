@@ -1,129 +1,48 @@
-import { HelpCircle, SlidersHorizontal } from 'lucide-react'
+import { Bell, HelpCircle, SlidersHorizontal } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
-import type { AccountSync } from '../../hooks/useAccountSync.ts'
 import { useScrolledPast } from '../../hooks/useScrolledPast.ts'
-import type { CustomFeed, FeedResult } from '../../lib/feed.ts'
 import { islandTransition } from '../../lib/motion.ts'
-import { type Profile, profileCount } from '../../lib/profile.ts'
-import type { Resume, ResumeFound } from '../../lib/resume.ts'
-import type { SessionUser } from '../../lib/session.ts'
-import type { Usage } from '../../lib/stats.ts'
-import {
-  type Facet,
-  type Meta,
-  type Preferences,
-  type Theme,
-  hiddenCount,
-  preferenceCount,
-} from '../../lib/types.ts'
-import { AccountSection } from '../account/AccountSection.tsx'
-import { McpSection } from '../account/McpSection.tsx'
-import { PreferencesPanel } from '../profile/Preferences.tsx'
-import { ProfilePanel } from '../profile/ProfilePanel.tsx'
+import type { View } from '../../lib/types.ts'
 
 interface DynamicIslandProps {
-  meta: Meta | null
-  categories: Facet[]
-  departments: Facet[]
-  preferences: Preferences
-  sources: string[]
-  feeds: CustomFeed[]
-  feedResults: FeedResult[]
-  feedsLoading: boolean
-  theme: Theme
-  profile: Profile
-  usage: Usage
-  /** What the danger zone would erase, passed through to the profile sheet. */
-  counts: { saved: number; applications: number; dismissed: number }
-  /** La sesión y el sync se resuelven arriba, en App, así la cuenta y los datos
-   * miran el mismo estado. */
-  session: {
-    user: SessionUser | null
-    ready: boolean
-    setUser: (user: SessionUser | null) => void
-  }
-  sync: AccountSync
-  onChangePreferences: (preferences: Preferences) => void
-  onChangeSources: (sources: string[]) => void
-  onChangeFeeds: (feeds: CustomFeed[]) => void
-  onChangeTheme: (theme: Theme) => void
-  onChangeProfile: (profile: Profile) => void
-  onEraseEverything: () => void
-  onImportCv: (
-    profile: Profile,
-    preferences: Preferences,
-    found: ResumeFound,
-  ) => void
-  resume: Resume
-  onChangeResume: (resume: Resume) => void
-  /** Lleva al tablero con el puesto y la jornada del perfil como filtros. */
-  onSearchBoard: () => void
-  /** Abre la ayuda general, que vive en App como capa sobre todo lo demás. */
+  /** La página abierta: su botón se ve encendido y avisa que es la actual. */
+  view: View
+  /** Preferencias de búsqueda cargadas (y rubros o zonas ocultas). */
+  count: number
+  onOpenNews: () => void
   onOpenHelp: () => void
-  /** Abre el test de autoconocimiento, que es una pantalla del tablero. */
-  onOpenTest: () => void
-  /** Deja el test cargado antes del clic. */
-  onPrefetchTest: () => void
-  /** Deja la ayuda cargada antes del clic. */
+  onOpenProfile: () => void
+  /** Dejan la página cargada antes del clic. */
+  onPrefetchNews: () => void
   onPrefetchHelp: () => void
+  onPrefetchProfile: () => void
 }
 
-type Tab = 'search' | 'profile' | 'account' | 'agents'
+const iconButton = (active: boolean) =>
+  `grid size-8 shrink-0 place-items-center rounded-full transition-colors ${
+    active
+      ? 'bg-sky text-ink hover:bg-sky/80'
+      : 'bg-onpanel-wash text-onpanel/80 hover:bg-onpanel/20 hover:text-onpanel'
+  }`
 
 /**
- * A floating header, detached from the top of the page: wide at rest, shrunk
- * to a pill once the list scrolls, and expanded into a sheet that holds every
- * setting, from the search preferences to the theme and the sources.
+ * Un encabezado flotante, despegado del borde de la página: ancho en reposo y
+ * reducido a una píldora cuando el listado scrollea. Solo lleva la marca y tres
+ * accesos —novedades, ayuda y perfil—, cada uno una página con su enlace: ya no
+ * se despliega una hoja con todo adentro.
  */
 export function DynamicIsland({
-  meta,
-  categories,
-  departments,
-  preferences,
-  sources,
-  feeds,
-  feedResults,
-  feedsLoading,
-  theme,
-  profile,
-  usage,
-  counts,
-  session,
-  sync,
-  onChangePreferences,
-  onChangeSources,
-  onChangeFeeds,
-  onChangeTheme,
-  onChangeProfile,
-  onEraseEverything,
-  onImportCv,
-  resume,
-  onChangeResume,
-  onSearchBoard,
+  view,
+  count,
+  onOpenNews,
   onOpenHelp,
-  onOpenTest,
+  onOpenProfile,
+  onPrefetchNews,
   onPrefetchHelp,
-  onPrefetchTest,
+  onPrefetchProfile,
 }: DynamicIslandProps) {
-  const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState<Tab>('search')
-  const condensed = useScrolledPast(24)
-
-  /**
-   * El panel arranca arriba en cada pestaña. Mide lo que mide su contenido,
-   * hasta el 70% de la pantalla: una pestaña corta no deja un hueco vacío, y
-   * una larga scrollea adentro. El header tiene `layout`, así que el cambio de
-   * alto entre pestañas se anima solo.
-   */
-  const scroller = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    scroller.current?.scrollTo({ top: 0 })
-  }, [tab])
-
-  const count = preferenceCount(preferences) + hiddenCount(preferences)
-  const studies = profileCount(profile)
-  const compact = condensed && !open
+  const compact = useScrolledPast(24)
+  const profileActive = view === 'profile'
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4 sm:top-4">
@@ -136,7 +55,10 @@ export function DynamicIsland({
         animate={{ opacity: 1, y: 0 }}
         transition={islandTransition}
       >
-        <m.div layout className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+        <m.div
+          layout
+          className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4"
+        >
           <m.span
             layout
             className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-white"
@@ -151,9 +73,9 @@ export function DynamicIsland({
           </m.span>
 
           <m.div layout className="min-w-0 flex-1">
-            <h1 className="text-[15px] leading-tight font-semibold tracking-tight">
+            <p className="text-[15px] leading-tight font-semibold tracking-tight">
               JobIt
-            </h1>
+            </p>
             <AnimatePresence initial={false} mode="popLayout">
               {compact ? null : (
                 <m.p
@@ -171,8 +93,23 @@ export function DynamicIsland({
 
           <m.button
             layout
+            aria-current={view === 'news' ? 'page' : undefined}
+            aria-label="Novedades"
+            className={iconButton(view === 'news')}
+            type="button"
+            onClick={onOpenNews}
+            onFocus={onPrefetchNews}
+            onMouseEnter={onPrefetchNews}
+            onPointerDown={onPrefetchNews}
+          >
+            <Bell aria-hidden className="size-4" />
+          </m.button>
+
+          <m.button
+            layout
+            aria-current={view === 'help' ? 'page' : undefined}
             aria-label="Ayuda"
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-onpanel-wash text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+            className={iconButton(view === 'help')}
             type="button"
             onClick={onOpenHelp}
             onFocus={onPrefetchHelp}
@@ -184,119 +121,30 @@ export function DynamicIsland({
 
           <m.button
             layout
-            aria-expanded={open}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              open || count > 0
+            aria-current={profileActive ? 'page' : undefined}
+            aria-label={
+              count > 0
+                ? `Perfil y preferencias (${count})`
+                : 'Perfil y preferencias'
+            }
+            className={`inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full text-xs font-medium transition-colors sm:px-3 ${
+              count > 0 ? 'min-w-8 px-2' : 'w-8 sm:w-auto'
+            } ${
+              profileActive || count > 0
                 ? 'bg-sky text-ink hover:bg-sky/80'
                 : 'bg-onpanel-wash text-onpanel/80 hover:bg-onpanel/20 hover:text-onpanel'
             }`}
             type="button"
-            onClick={() => setOpen((current) => !current)}
+            onClick={onOpenProfile}
+            onFocus={onPrefetchProfile}
+            onMouseEnter={onPrefetchProfile}
+            onPointerDown={onPrefetchProfile}
           >
             <SlidersHorizontal aria-hidden className="size-3.5" />
             <span className="hidden sm:inline">Preferencias</span>
-            {count > 0 ? <span>({count})</span> : null}
+            {count > 0 ? <span className="tabular-nums">({count})</span> : null}
           </m.button>
         </m.div>
-
-        <AnimatePresence initial={false}>
-          {open ? (
-            <m.div
-              key="panel"
-              initial={{ gridTemplateRows: '0fr', opacity: 0 }}
-              animate={{ gridTemplateRows: '1fr', opacity: 1 }}
-              /* Sin opacidad en la salida: el panel se pliega, no se desvanece
-                 primero y después se encoge, que es lo que se sentía en dos
-                 pasos. La entrada sí aparece. */
-              exit={{ gridTemplateRows: '0fr' }}
-              className="grid overflow-hidden"
-              transition={islandTransition}
-            >
-              <div
-                className="max-h-[70svh] min-h-0 overflow-y-auto"
-                ref={scroller}
-              >
-                <div className="sticky top-0 z-10 flex gap-1 bg-panel px-4 pt-1 pb-2">
-                  {(
-                    [
-                      ['search', 'Búsqueda', count],
-                      ['profile', 'Perfil', studies],
-                      ['account', 'Cuenta', 0],
-                      ['agents', 'Agentes', 0],
-                    ] as const
-                  ).map(([value, label, badge]) => (
-                    <button
-                      key={value}
-                      aria-pressed={tab === value}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                        tab === value
-                          ? 'bg-onpanel/15 text-onpanel'
-                          : 'text-onpanel/55 hover:text-onpanel'
-                      }`}
-                      type="button"
-                      onClick={() => setTab(value)}
-                    >
-                      {label}
-                      {badge > 0 ? (
-                        <span className="ml-1 tabular-nums">({badge})</span>
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
-
-                {tab === 'search' ? (
-                  <PreferencesPanel
-                    categories={categories}
-                    departments={departments}
-                    meta={meta}
-                    feedResults={feedResults}
-                    feeds={feeds}
-                    feedsLoading={feedsLoading}
-                    preferences={preferences}
-                    sources={sources}
-                    onChange={onChangePreferences}
-                    onChangeFeeds={onChangeFeeds}
-                    onChangeSources={onChangeSources}
-                  />
-                ) : tab === 'profile' ? (
-                  <ProfilePanel
-                    categories={categories}
-                    counts={counts}
-                    preferences={preferences}
-                    profile={profile}
-                    theme={theme}
-                    usage={usage}
-                    resume={resume}
-                    onChange={onChangeProfile}
-                    onChangePreferences={onChangePreferences}
-                    onChangeResume={onChangeResume}
-                    onChangeTheme={onChangeTheme}
-                    onEraseEverything={onEraseEverything}
-                    onImportCv={onImportCv}
-                    onSearchBoard={() => {
-                      setOpen(false)
-                      onSearchBoard()
-                    }}
-                    onOpenTest={() => {
-                      setOpen(false)
-                      onOpenTest()
-                    }}
-                    onPrefetchTest={onPrefetchTest}
-                  />
-                ) : tab === 'account' ? (
-                  <AccountSection
-                    ready={session.ready}
-                    sync={sync}
-                    user={session.user}
-                    onUser={session.setUser}
-                  />
-                ) : (
-                  <McpSection />
-                )}
-              </div>
-            </m.div>
-          ) : null}
-        </AnimatePresence>
       </m.header>
     </div>
   )

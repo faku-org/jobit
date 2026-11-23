@@ -75,6 +75,26 @@ La política vive en `web/src/lib/motion.ts` y `motionFeatures.ts`:
 
 ## Patrones de interfaz
 
+### Navegación: una view propia antes que un modal
+
+Lo nuevo va como **view propia con su URL** (`?view=profile`, `?view=help`,
+`?view=news`, `?view=test`), no como modal, panel con submenús ni pestaña de más.
+Una página aguanta más contenido, se puede enlazar y el botón Atrás vuelve al
+listado. Reglas:
+
+- Una view propia no lleva pestañas: tiene `PageHeader` con "Volver a las ofertas"
+  (`web/src/components/page/PageHeader.tsx`), se carga lazy y se precarga al apuntar.
+- Las secciones largas de una página llevan título visible y ancla (`#preferencias`,
+  `#cv`), sin acordeones anidados.
+- Lo que son dos momentos de lo mismo comparte pestaña y se elige con `&tab=`
+  (Guardadas / Seguimiento). Un criterio de una lista es un filtro con su parámetro
+  (Estado en Ofertas: `source=uruguayconcursa`), no otra pestaña.
+- Las pestañas del tablero son las listas: Ofertas, Servicios, Guardadas, Mercado.
+- Los modales quedan para **confirmar** o para un **vistazo rápido**. La ficha de
+  oferta sigue siendo modal.
+- Una URL vieja que cambió de lugar se lee como lo que es hoy y se reescribe sola
+  (`LEGACY` en `web/src/lib/url.ts`); no se rompen enlaces compartidos.
+
 ### Áreas, no scroll infinito
 
 Todo panel con varias cosas se divide en **áreas separadas** (por ejemplo,

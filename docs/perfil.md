@@ -2,7 +2,8 @@
 
 Lo que la persona carga además de estudios y experiencia: foto, dónde vive,
 idiomas, qué busca, links, referencias y, si quiere, discapacidad. Vive en la
-pestaña Perfil de la isla (`ResumeSections`).
+página de Perfil (`?view=profile`, `ProfilePage` + `ResumeSections`), como una
+sección más con ancla (`#cv`).
 
 ## Dónde se guarda
 

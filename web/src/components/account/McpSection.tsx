@@ -78,7 +78,7 @@ export function McpSection() {
   )
 
   return (
-    <div className="space-y-4 px-4 pt-1 pb-4">
+    <div className="space-y-4">
       <div className="flex gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <Plug aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
         <p className="text-[11px] leading-relaxed text-onpanel/75">
