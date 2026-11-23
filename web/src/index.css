@@ -75,12 +75,27 @@
      cola que sube y cabeza clara) en vez de un anillo entero, así el color
      queda localizado y no baña el contenido. Gira con --aura-angle.
      --aura-hair es el pelo quieto que mantiene el filo cuando el cometa está
-     del otro lado. */
+     del otro lado.
+
+     `--aura-gradient` NO se declara acá: una custom property sin registrar
+     resuelve su `var()` donde se declara, y en `:root` `--aura-angle` vale
+     siempre 0deg. El `aura-spin` anima el ángulo en cada caja, pero el
+     gradiente heredado ya venía resuelto y el cometa se quedaba clavado en el
+     lado izquierdo. Se declara en las cajas que giran (más abajo). */
   --aura-1: var(--color-brand);
   --aura-2: var(--color-brand-300);
   --aura-3: color-mix(in srgb, var(--color-sky) 35%, #fff);
   --aura-4: var(--color-brand-400);
   --aura-hair: color-mix(in srgb, var(--color-brand) 22%, transparent);
+}
+
+/* El cometa. Va en cada elemento que anima `--aura-angle` (y en sus
+   pseudo-elementos), así el ángulo se lee ya animado. Los hijos (`::before`,
+   `.aura-glass-light`) lo heredan resuelto desde la caja. */
+.aura,
+.aura-edge,
+.aura-edge::before,
+.aura-edge::after {
   --aura-gradient: conic-gradient(
     from var(--aura-angle),
     transparent 0deg,
@@ -362,6 +377,15 @@ span {
   .aura-edge::before,
   .aura-edge::after {
     animation: none;
+  }
+
+  /* Quieto, el cometa queda arriba (de 290° a 90° desde las 12) y el pelo
+     cubre el resto del perímetro. */
+  .aura,
+  .aura-edge,
+  .aura-edge::before,
+  .aura-edge::after {
+    --aura-angle: 90deg;
   }
 
   .aura::before {
