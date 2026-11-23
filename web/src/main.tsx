@@ -1,10 +1,11 @@
-import { LazyMotion, MotionConfig } from 'motion/react'
+import { LazyMotion } from 'motion/react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { ServiceEmbed } from './components/service/ServiceEmbed.tsx'
 import { Embed } from './components/ui/Embed.tsx'
+import { MotionPreference } from './components/ui/MotionPreference.tsx'
 import { markEmbedNotIndexable } from './lib/meta.ts'
 import { embedRequest, embedServiceRequest } from './lib/share.ts'
 
@@ -29,7 +30,7 @@ createRoot(document.getElementById('root')!).render(
         note. */}
     <LazyMotion features={features} strict>
       {/* Drops the movement out of every animation when the OS asks for it. */}
-      <MotionConfig reducedMotion="user">
+      <MotionPreference>
         {embed ? (
           <Embed id={embed.id} theme={embed.theme} />
         ) : embedService ? (
@@ -37,7 +38,7 @@ createRoot(document.getElementById('root')!).render(
         ) : (
           <App />
         )}
-      </MotionConfig>
+      </MotionPreference>
     </LazyMotion>
   </StrictMode>,
 )

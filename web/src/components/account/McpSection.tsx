@@ -31,14 +31,16 @@ function ConfigBlock({ hint, config }: { hint: string; config: string }) {
 
   return (
     <div>
-      <p className="mt-1 text-[11px] leading-relaxed text-onpanel/70">{hint}</p>
+      <p className="mt-1 text-[0.6875rem] leading-relaxed text-onpanel/70">
+        {hint}
+      </p>
       <div className="relative mt-2">
-        <pre className="overflow-x-auto rounded-xl border border-onpanel/15 bg-onpanel-wash px-3 py-2.5 text-[11px] leading-relaxed text-onpanel/85">
+        <pre className="overflow-x-auto rounded-xl border border-onpanel/15 bg-onpanel-wash px-3 py-2.5 text-[0.6875rem] leading-relaxed text-onpanel/85">
           {config}
         </pre>
         <button
           aria-label="Copiar la configuración"
-          className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-lg border border-onpanel/20 bg-panel/80 px-2 py-1 text-[10px] font-medium text-onpanel/80 transition-colors hover:border-sky hover:text-onpanel"
+          className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-lg border border-onpanel/20 bg-panel/80 px-2 py-1 text-[0.625rem] font-medium text-onpanel/80 transition-colors hover:border-sky hover:text-onpanel"
           type="button"
           onClick={copy}
         >
@@ -81,7 +83,7 @@ export function McpSection() {
     <div className="space-y-4">
       <div className="flex gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <Plug aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
-        <p className="text-[11px] leading-relaxed text-onpanel/75">
+        <p className="text-[0.6875rem] leading-relaxed text-onpanel/75">
           Conectá tu agente a JobIt por{' '}
           <strong className="font-medium text-onpanel">MCP</strong> para que
           busque ofertas, vea una ficha entera o pida el resumen del mercado sin
@@ -90,7 +92,7 @@ export function McpSection() {
       </div>
 
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Conectar por URL
         </p>
         <ConfigBlock
@@ -100,7 +102,7 @@ export function McpSection() {
       </div>
 
       <details className="border-t border-onpanel/10 pt-3">
-        <summary className="cursor-pointer text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase transition-colors hover:text-onpanel">
+        <summary className="cursor-pointer text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase transition-colors hover:text-onpanel">
           Correrlo en tu máquina
         </summary>
         <ConfigBlock
@@ -110,7 +112,7 @@ export function McpSection() {
       </details>
 
       <div className="border-t border-onpanel/10 pt-3">
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Qué puede hacer
         </p>
         <dl className="mt-2 divide-y divide-onpanel/10 overflow-hidden rounded-xl border border-onpanel/10">
@@ -119,16 +121,16 @@ export function McpSection() {
               key={tool.name}
               className="flex items-baseline justify-between gap-3 px-3 py-2"
             >
-              <dt className="shrink-0 font-mono text-[11px] font-medium text-sky">
+              <dt className="shrink-0 font-mono text-[0.6875rem] font-medium text-sky">
                 {tool.name}
               </dt>
-              <dd className="min-w-0 text-right text-[11px] text-onpanel/70">
+              <dd className="min-w-0 text-right text-[0.6875rem] text-onpanel/70">
                 {tool.description}
               </dd>
             </div>
           ))}
         </dl>
-        <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
+        <p className="mt-2 text-[0.6875rem] leading-relaxed text-onpanel-faint">
           Son de solo lectura: el agente no escribe nada ni toca lo guardado en
           este navegador.
         </p>

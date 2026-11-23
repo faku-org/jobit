@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ThinkingOrb, type OrbState } from 'thinking-orbs'
+import { useMotionReduced } from '../../hooks/useDisplay.ts'
 import { AURA_INTRO_MS, useSettlingBusy } from '../../hooks/useSettlingBusy.ts'
 
 interface AuraProps {
@@ -71,6 +72,24 @@ export function AuraSpark({
 }) {
   const shownBusy = useSettlingBusy(busy, intro ? AURA_INTRO_MS : 0)
   const orbState = state ?? (shownBusy ? 'working' : 'breathing')
+  const still = useMotionReduced()
+
+  /* El orbe es un canvas que solo escucha al sistema operativo: con "Reducir
+     movimiento" de Preferencias se cambia por un punto quieto del mismo
+     tamaño y color. */
+  if (still)
+    return (
+      <span
+        aria-hidden
+        className={`grid size-5 shrink-0 place-items-center ${className}`.trim()}
+      >
+        <span
+          className={`size-3.5 rounded-full border-2 ${
+            tone === 'panel' ? 'border-onpanel' : 'border-ink'
+          }`}
+        />
+      </span>
+    )
 
   return (
     <ThinkingOrb

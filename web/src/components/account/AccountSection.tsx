@@ -54,7 +54,9 @@ export function AccountSection({
   }
 
   if (!ready) {
-    return <p className="text-[11px] text-onpanel-faint">Cargando tu cuenta…</p>
+    return (
+      <p className="text-[0.6875rem] text-onpanel-faint">Cargando tu cuenta…</p>
+    )
   }
 
   return (
@@ -95,7 +97,7 @@ function SignedOut({
     <div className="space-y-4">
       <div className="flex gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
-        <p className="text-[11px] leading-relaxed text-onpanel/75">
+        <p className="text-[0.6875rem] leading-relaxed text-onpanel/75">
           Esta cuenta es lo único del panel que vive en el servidor; todo lo
           demás queda en este navegador. Se guarda lo mínimo y se puede borrar
           entero cuando quieras.
@@ -103,10 +105,10 @@ function SignedOut({
       </div>
 
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Para publicar
         </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-onpanel/70">
+        <p className="mt-1 text-[0.6875rem] leading-relaxed text-onpanel/70">
           Publicar servicios va a pedir una cuenta: un handle, tu nombre visible
           y una contraseña. El email es opcional y solo sirve para recuperarla.
         </p>
@@ -129,10 +131,10 @@ function SignedOut({
       </div>
 
       <div className="border-t border-onpanel/10 pt-3">
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           ¿No podés entrar?
         </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-onpanel/70">
+        <p className="mt-1 text-[0.6875rem] leading-relaxed text-onpanel/70">
           Si perdiste la contraseña se entra con un código de respaldo. Sin
           email cargado no hay otra forma de recuperar la cuenta.
         </p>
@@ -169,12 +171,12 @@ function SignedIn({
           <p className="truncate text-sm font-medium text-onpanel">
             {user.display_name}
           </p>
-          <p className="text-[11px] text-onpanel-faint">
+          <p className="text-[0.6875rem] text-onpanel-faint">
             @{user.handle} · cuenta desde {formatDay(user.created_at)}
           </p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[0.625rem] font-semibold ${
             user.totp_enabled
               ? 'bg-sky text-ink'
               : 'bg-onpanel-wash text-onpanel-faint'
@@ -185,7 +187,7 @@ function SignedIn({
       </div>
 
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Datos guardados en el servidor
         </p>
         <dl className="mt-2 divide-y divide-onpanel/10 overflow-hidden rounded-xl border border-onpanel/10">
@@ -205,7 +207,7 @@ function SignedIn({
           />
           <Row label="Creada" value={formatDay(user.created_at)} />
         </dl>
-        <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
+        <p className="mt-2 text-[0.6875rem] leading-relaxed text-onpanel-faint">
           Nada de IP, user agent ni historial de inicios: las filas se estampan
           con el día y nunca con la hora. El email y la clave del segundo paso
           van cifrados.
@@ -213,7 +215,7 @@ function SignedIn({
       </div>
 
       <div className="border-t border-onpanel/10 pt-3">
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Seguridad y acceso
         </p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -249,7 +251,7 @@ function SignedIn({
       </div>
 
       <div className="border-t border-onpanel/10 pt-3">
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Sincronización
         </p>
         <label className="mt-2 flex cursor-pointer items-start gap-2.5">
@@ -262,7 +264,7 @@ function SignedIn({
               void (event.target.checked ? sync.enable() : sync.disable())
             }
           />
-          <span className="text-[11px] leading-relaxed text-onpanel/75">
+          <span className="text-[0.6875rem] leading-relaxed text-onpanel/75">
             Llevar mis datos entre navegadores. Guarda en tu cuenta lo que
             marcaste, tus postulaciones, tus preferencias y tu perfil, para
             tenerlos en cualquier navegador donde entres. En el servidor va{' '}
@@ -271,17 +273,17 @@ function SignedIn({
           </span>
         </label>
         {sync.error ? (
-          <p className="mt-1.5 text-[11px] leading-relaxed text-red-400">
+          <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-red-400">
             {sync.error}
           </p>
         ) : null}
       </div>
 
       <div className="border-t border-red-400/20 pt-3">
-        <p className="text-[11px] font-semibold tracking-wide text-red-400 uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-red-400 uppercase">
           Zona peligrosa
         </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-onpanel/70">
+        <p className="mt-1 text-[0.6875rem] leading-relaxed text-onpanel/70">
           Borrar la cuenta se lleva del servidor tu usuario, tus sesiones, tus
           códigos y lo que hayas publicado. No se puede deshacer.
         </p>
@@ -297,7 +299,7 @@ function SignedIn({
 
       {/* Las legales también acá: es donde alguien mira qué se guarda de su
           cuenta y puede querer leer el detalle. */}
-      <p className="border-t border-onpanel/10 pt-3 text-[11px] text-onpanel/50">
+      <p className="border-t border-onpanel/10 pt-3 text-[0.6875rem] text-onpanel/50">
         <a
           className="underline underline-offset-2 transition-colors hover:text-onpanel"
           href="/privacidad"
@@ -314,8 +316,8 @@ function SignedIn({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 px-3 py-2">
-      <dt className="shrink-0 text-[11px] text-onpanel-faint">{label}</dt>
-      <dd className="min-w-0 truncate text-[12px] font-medium text-onpanel">
+      <dt className="shrink-0 text-[0.6875rem] text-onpanel-faint">{label}</dt>
+      <dd className="min-w-0 truncate text-[0.75rem] font-medium text-onpanel">
         {value}
       </dd>
     </div>
@@ -333,7 +335,7 @@ function ActionButton({
 }) {
   return (
     <button
-      className="inline-flex items-center gap-2 rounded-xl border border-onpanel/15 px-3 py-2 text-left text-[12px] font-medium text-onpanel/80 transition-colors hover:border-sky hover:text-onpanel"
+      className="inline-flex items-center gap-2 rounded-xl border border-onpanel/15 px-3 py-2 text-left text-[0.75rem] font-medium text-onpanel/80 transition-colors hover:border-sky hover:text-onpanel"
       type="button"
       onClick={onClick}
     >

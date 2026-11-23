@@ -36,11 +36,11 @@ export function CompanyRow({
           {company.name}
         </h3>
         <span
-          className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${BADGE[company.status]}`}
+          className={`rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium ${BADGE[company.status]}`}
         >
           {STATUS_LABEL[company.status]}
         </span>
-        <code className="text-[11px] text-faint">/{company.slug}</code>
+        <code className="text-[0.6875rem] text-faint">/{company.slug}</code>
         {busy ? (
           <Loader2 aria-hidden className="size-3.5 animate-spin text-faint" />
         ) : null}

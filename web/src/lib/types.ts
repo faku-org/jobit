@@ -158,6 +158,7 @@ export type View =
   | 'news'
   | 'test'
   | 'profile'
+  | 'settings'
   | 'help'
 
 /** Las dos listas que viven bajo Guardadas. */

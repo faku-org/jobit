@@ -38,7 +38,7 @@ export function ExperienceField({
   return (
     <div>
       <p
-        className={`text-[11px] font-semibold tracking-wide uppercase ${muted}`}
+        className={`text-[0.6875rem] font-semibold tracking-wide uppercase ${muted}`}
       >
         Años de experiencia
       </p>

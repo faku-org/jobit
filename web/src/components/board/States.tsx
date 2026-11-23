@@ -75,7 +75,7 @@ export function EmptyState(props: EmptyStateProps) {
   return (
     <div className="rounded-2xl border border-dashed border-sky bg-surface/60 px-6 py-16 text-center">
       <SearchX aria-hidden className="mx-auto size-7 text-brand" />
-      <p className="mt-4 text-[15px] font-medium text-ink">{title}</p>
+      <p className="mt-4 text-[0.9375rem] font-medium text-ink">{title}</p>
       <p className="mt-1 text-sm text-muted">{hint}</p>
       {props.canReset ? (
         <button
@@ -94,7 +94,7 @@ export function ErrorState({ message }: { message: string }) {
   return (
     <div className="rounded-2xl border border-brand bg-mist px-6 py-12 text-center">
       <TriangleAlert aria-hidden className="mx-auto size-7 text-brand" />
-      <p className="mt-4 text-[15px] font-medium text-ink">
+      <p className="mt-4 text-[0.9375rem] font-medium text-ink">
         No se pudieron cargar las ofertas
       </p>
       <p className="mt-1 text-sm text-soft">{message}</p>

@@ -37,20 +37,20 @@ export function Confirm({
           transition={fadeUpTransition}
         >
           <div className="mt-2 min-h-0 overflow-hidden rounded-xl border border-onpanel/20 bg-onpanel-wash px-3 py-3">
-            <p className="flex gap-2 text-[11px] leading-relaxed font-medium text-onpanel">
+            <p className="flex gap-2 text-[0.6875rem] leading-relaxed font-medium text-onpanel">
               <TriangleAlert
                 aria-hidden
                 className="mt-0.5 size-3.5 shrink-0 text-sky"
               />
               {title}
             </p>
-            <div className="mt-2 pl-5.5 text-[11px] leading-relaxed text-onpanel/70">
+            <div className="mt-2 pl-5.5 text-[0.6875rem] leading-relaxed text-onpanel/70">
               {losing}
             </div>
 
             <div className="mt-3 flex gap-2 pl-5.5">
               <button
-                className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                className={`rounded-lg px-3 py-1.5 text-[0.6875rem] font-semibold transition-colors ${
                   tone === 'danger'
                     ? 'bg-onpanel text-panel hover:bg-onpanel/85'
                     : 'bg-sky text-ink hover:bg-sky/85'
@@ -61,7 +61,7 @@ export function Confirm({
                 {action}
               </button>
               <button
-                className="rounded-lg px-3 py-1.5 text-[11px] font-medium text-onpanel/60 transition-colors hover:bg-onpanel-wash hover:text-onpanel"
+                className="rounded-lg px-3 py-1.5 text-[0.6875rem] font-medium text-onpanel/60 transition-colors hover:bg-onpanel-wash hover:text-onpanel"
                 type="button"
                 onClick={onCancel}
               >

@@ -60,7 +60,7 @@ export function FollowUpPanel({
             </button>
           ))}
         </div>
-        <p className="flex items-center gap-1.5 text-[11px] text-muted">
+        <p className="flex items-center gap-1.5 text-[0.6875rem] text-muted">
           <Lock aria-hidden className="size-3" />
           Solo en este navegador: no se envía ni se sincroniza.
         </p>

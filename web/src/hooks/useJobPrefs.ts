@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isCourseId, isDegreeId } from '../lib/catalog.ts'
+import { DEFAULT_DISPLAY, type Display, readDisplay } from '../lib/display.ts'
 import { type CustomFeed, MAX_FEEDS, isFeedUrl } from '../lib/feed.ts'
 import {
   EDUCATION_LEVELS,
@@ -40,6 +41,8 @@ interface Stored {
   /** Empresas donde trabajó la persona, por slug; para "De mi experiencia". */
   companies: string[]
   theme: Theme
+  /** Escala, movimiento, contraste y enlaces: del dispositivo, como el tema. */
+  display: Display
   profile: Profile
   /** Foto, idiomas, links y referencias del CV. Solo de este navegador: no
    * entra en `SyncedState` ni en las estadísticas. */
@@ -64,6 +67,7 @@ const EMPTY: Stored = {
   feeds: [],
   companies: [],
   theme: 'system',
+  display: DEFAULT_DISPLAY,
   profile: EMPTY_PROFILE,
   resume: EMPTY_RESUME,
   statsSentAt: '',
@@ -254,6 +258,7 @@ function parseStored(parsed: Record<string, unknown>): Stored {
     feeds: readFeeds(parsed.feeds),
     companies: unique(parsed.companies),
     theme: oneOf(parsed.theme, THEMES, 'system'),
+    display: readDisplay(parsed.display),
     profile: withMigratedExperience(
       readProfile(parsed.profile),
       parsed.preferences,
@@ -308,6 +313,7 @@ export interface JobPrefs {
   /** Empresas donde trabajó la persona, por slug. */
   companies: string[]
   theme: Theme
+  display: Display
   profile: Profile
   resume: Resume
   statsSentAt: string
@@ -325,6 +331,7 @@ export interface JobPrefs {
   setFeeds: (feeds: CustomFeed[]) => void
   setCompanies: (companies: string[]) => void
   setTheme: (theme: Theme) => void
+  setDisplay: (display: Display) => void
   setProfile: (profile: Profile) => void
   setResume: (resume: Resume) => void
   setPracticeAlways: (value: boolean) => void
@@ -443,6 +450,10 @@ export function useJobPrefs(): JobPrefs {
     setStored((current) => ({ ...current, theme }))
   }, [])
 
+  const setDisplay = useCallback((display: Display) => {
+    setStored((current) => ({ ...current, display }))
+  }, [])
+
   const setProfile = useCallback((profile: Profile) => {
     setStored((current) => ({ ...current, profile }))
   }, [])
@@ -535,6 +546,7 @@ export function useJobPrefs(): JobPrefs {
     feeds: stored.feeds,
     companies: stored.companies,
     theme: stored.theme,
+    display: stored.display,
     profile: stored.profile,
     resume: stored.resume,
     statsSentAt: stored.statsSentAt,
@@ -550,6 +562,7 @@ export function useJobPrefs(): JobPrefs {
     setFeeds,
     setCompanies,
     setTheme,
+    setDisplay,
     setProfile,
     setResume,
     setPracticeAlways,

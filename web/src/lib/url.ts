@@ -34,6 +34,7 @@ const VIEWS: View[] = [
   'news',
   'test',
   'profile',
+  'settings',
   'help',
 ]
 
@@ -47,6 +48,14 @@ const LEGACY: Record<string, { view: View; tab?: SavedTab; stateOnly?: true }> =
     tracking: { view: 'saved', tab: 'tracking' },
     state: { view: 'all', stateOnly: true },
   }
+
+/**
+ * Apariencia vivía en el perfil (`?view=profile#apariencia`) y pasó a
+ * Preferencias, que es su propia página. El ancla viejo se lee como la view
+ * nueva; la barra se reescribe sola porque el ancla de una view que no es el
+ * perfil se descarta.
+ */
+const MOVED_ANCHORS: Record<string, View> = { apariencia: 'settings' }
 const LEVELS: Level[] = ['entry', 'mid', 'senior']
 const MODES: WorkMode[] = ['onsite', 'remote', 'hybrid']
 const JOB_TYPES: JobType[] = ['full_time', 'part_time', 'internship']
@@ -85,6 +94,7 @@ const positiveInteger = (raw: string | null): number | null => {
 
 export function readViewState(
   search: string = window.location.search,
+  hash: string = typeof window === 'undefined' ? '' : window.location.hash,
 ): ViewState {
   const params = new URLSearchParams(search)
 
@@ -95,8 +105,13 @@ export function readViewState(
 
   const named = params.get(PARAM.view) ?? ''
   const legacy = Object.hasOwn(LEGACY, named) ? LEGACY[named] : undefined
-  const view: View =
+  const requested: View =
     legacy?.view ?? VIEWS.find((value) => value === named) ?? linkedService
+  const anchor = hash.slice(1)
+  const moved = Object.hasOwn(MOVED_ANCHORS, anchor)
+    ? MOVED_ANCHORS[anchor]
+    : undefined
+  const view: View = requested === 'profile' && moved ? moved : requested
 
   return {
     view,

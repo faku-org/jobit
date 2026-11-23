@@ -1,4 +1,4 @@
-import { ChevronDown, Compass, Monitor, Moon, Sun } from 'lucide-react'
+import { ChevronDown, Compass } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { lazy, Suspense, useState } from 'react'
 import { COURSES, DEGREES } from '../../lib/catalog.ts'
@@ -13,7 +13,7 @@ import {
 import { type Usage, anonymousStats } from '../../lib/stats.ts'
 import type { Resume, ResumeFound } from '../../lib/resume.ts'
 import { pendingEvents } from '../../lib/track.ts'
-import type { Facet, Preferences, Theme } from '../../lib/types.ts'
+import type { Facet, Preferences } from '../../lib/types.ts'
 import { Combobox } from '../ui/Combobox.tsx'
 import { DangerZone } from './DangerZone.tsx'
 import { ExperienceField } from './ExperienceField.tsx'
@@ -48,13 +48,6 @@ interface TestEntryProps {
   onPrefetchTest: () => void
 }
 
-interface AppearanceBlockProps {
-  /** How the app looks, which is not a search preference: it lives here with
-   * the rest of what this browser knows about the person. */
-  theme: Theme
-  onChangeTheme: (theme: Theme) => void
-}
-
 interface PrivacyBlockProps {
   profile: Profile
   usage: Usage
@@ -68,12 +61,6 @@ interface PrivacyBlockProps {
 const CvImport = lazy(() =>
   import('./CvImport.tsx').then((module) => ({ default: module.CvImport })),
 )
-
-const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: 'light', label: 'Claro', icon: Sun },
-  { value: 'dark', label: 'Oscuro', icon: Moon },
-  { value: 'system', label: 'Sistema', icon: Monitor },
-]
 
 /**
  * What the person studied, used to order the list and to tell whether an offer
@@ -177,32 +164,12 @@ export function TestEntry({ onOpenTest, onPrefetchTest }: TestEntryProps) {
         <span className="block text-sm font-medium text-onpanel">
           Test de autoconocimiento laboral
         </span>
-        <span className="mt-0.5 block text-[11px] leading-relaxed text-onpanel/75">
+        <span className="mt-0.5 block text-[0.6875rem] leading-relaxed text-onpanel/75">
           50 frases, unos 10 minutos. Las respuestas quedan en este navegador y
           no se suben a ningún lado.
         </span>
       </span>
     </button>
-  )
-}
-
-export function AppearanceBlock({
-  theme,
-  onChangeTheme,
-}: AppearanceBlockProps) {
-  return (
-    <PanelGroup title="Tema">
-      {THEME_OPTIONS.map((option) => (
-        <PanelChip
-          key={option.value}
-          active={theme === option.value}
-          onClick={() => onChangeTheme(option.value)}
-        >
-          <option.icon aria-hidden className="size-3.5" />
-          {option.label}
-        </PanelChip>
-      ))}
-    </PanelGroup>
   )
 }
 
@@ -236,7 +203,7 @@ export function PrivacyBlock({
               onChange({ ...profile, shareStats: event.target.checked })
             }
           />
-          <span className="text-[11px] leading-relaxed text-onpanel/75">
+          <span className="text-[0.6875rem] leading-relaxed text-onpanel/75">
             Compartir estadísticas anónimas de uso. Una vez por día: tu nivel
             educativo y cuántos títulos, cursos, guardadas y postulaciones
             tenés. Y mientras navegás: qué puesto estás buscando, qué filtros
@@ -248,7 +215,7 @@ export function PrivacyBlock({
 
         <button
           aria-expanded={showPayload}
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-onpanel/60 transition-colors hover:text-onpanel"
+          className="inline-flex items-center gap-1 text-[0.6875rem] font-medium text-onpanel/60 transition-colors hover:text-onpanel"
           type="button"
           onClick={() => setShowPayload((current) => !current)}
         >
@@ -266,7 +233,7 @@ export function PrivacyBlock({
               className="grid overflow-hidden"
               transition={fadeUpTransition}
             >
-              <pre className="min-h-0 overflow-x-auto rounded-lg bg-onpanel-wash p-2.5 text-[10px] leading-relaxed text-onpanel/80">
+              <pre className="min-h-0 overflow-x-auto rounded-lg bg-onpanel-wash p-2.5 text-[0.625rem] leading-relaxed text-onpanel/80">
                 {JSON.stringify({ resumen: payload, eventos: events }, null, 2)}
               </pre>
             </m.div>
@@ -278,7 +245,7 @@ export function PrivacyBlock({
 
       {/* Las legales van acá y no en un pie de página: es el único lugar de la
           app donde alguien está mirando qué se guarda y qué se comparte. */}
-      <p className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-onpanel/60">
+      <p className="flex flex-wrap gap-x-3 gap-y-1 text-[0.6875rem] text-onpanel/60">
         <a
           className="underline underline-offset-2 transition-colors hover:text-onpanel"
           href="/privacidad"

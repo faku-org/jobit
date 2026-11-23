@@ -54,7 +54,9 @@ function Card({
   return (
     <section className="rounded-xl border border-sky/70 bg-surface p-4">
       <h2 className="text-xs font-semibold tracking-tight text-ink">{title}</h2>
-      {note ? <p className="mt-0.5 text-[11px] text-muted">{note}</p> : null}
+      {note ? (
+        <p className="mt-0.5 text-[0.6875rem] text-muted">{note}</p>
+      ) : null}
       <div className="mt-3">{children}</div>
     </section>
   )
@@ -71,11 +73,11 @@ function Stat({
 }) {
   return (
     <div className="rounded-xl border border-sky/70 bg-surface px-3.5 py-3">
-      <p className="text-[11px] text-muted">{label}</p>
+      <p className="text-[0.6875rem] text-muted">{label}</p>
       <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight text-ink">
         {counter.format(value)}
       </p>
-      {note ? <p className="text-[11px] text-muted">{note}</p> : null}
+      {note ? <p className="text-[0.6875rem] text-muted">{note}</p> : null}
     </div>
   )
 }
@@ -90,7 +92,7 @@ interface Row {
 
 function Bars({ rows, empty }: { rows: Row[]; empty: string }) {
   if (rows.length === 0)
-    return <p className="py-2 text-[11px] text-muted">{empty}</p>
+    return <p className="py-2 text-[0.6875rem] text-muted">{empty}</p>
   const max = Math.max(...rows.map((row) => row.count))
 
   return (
@@ -112,7 +114,7 @@ function Bars({ rows, empty }: { rows: Row[]; empty: string }) {
                 {row.label}
               </span>
             )}
-            <span className="shrink-0 text-[11px] text-muted tabular-nums">
+            <span className="shrink-0 text-[0.6875rem] text-muted tabular-nums">
               {row.note ? `${row.note} · ` : ''}
               {counter.format(row.count)}
             </span>
@@ -168,7 +170,7 @@ function Daily({ report }: { report: UsageReport }) {
         })}
       </ol>
 
-      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted">
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-[0.6875rem] text-muted">
         <span className="flex items-center gap-1.5">
           <i className="size-2 rounded-[2px] bg-brand" /> Búsquedas
         </span>
@@ -440,7 +442,7 @@ export function Usage({ onFail }: { onFail: (cause: unknown) => void }) {
         </Card>
       </div>
 
-      <p className="mt-4 text-[11px] text-muted">
+      <p className="mt-4 text-[0.6875rem] text-muted">
         Sale de <code>stats.jsonl</code> y <code>events.jsonl</code>, que se
         escriben sin identificador y con el día y nunca la hora: son filas
         contadas, no personas.

@@ -33,7 +33,7 @@ export function Admin({ onLeft }: { onLeft: () => void }) {
     <div className="min-h-svh">
       <header className="border-b border-sky/60 bg-surface">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-3.5">
-          <h1 className="text-[15px] font-semibold tracking-tight text-ink">
+          <h1 className="text-[0.9375rem] font-semibold tracking-tight text-ink">
             JobIt · Panel
           </h1>
           <span className="text-xs text-muted">

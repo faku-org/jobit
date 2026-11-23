@@ -23,6 +23,7 @@ import { SavedTabs } from './components/board/SavedTabs.tsx'
 import { ViewTabs } from './components/board/ViewTabs.tsx'
 import { useAccountSync } from './hooks/useAccountSync.ts'
 import { useFollowUp } from './hooks/useFollowUp.ts'
+import { useDisplay } from './hooks/useDisplay.ts'
 import { useJobPrefs } from './hooks/useJobPrefs.ts'
 import { useJobLink } from './hooks/useJobLink.ts'
 import { useJobs } from './hooks/useJobs.ts'
@@ -108,6 +109,10 @@ const loadHelp = () =>
   import('./components/help/HelpPage.tsx').then((module) => ({
     default: module.HelpPage,
   }))
+const loadSettings = () =>
+  import('./components/settings/SettingsPage.tsx').then((module) => ({
+    default: module.SettingsPage,
+  }))
 const loadProfile = () =>
   import('./components/profile/ProfilePage.tsx').then((module) => ({
     default: module.ProfilePage,
@@ -121,6 +126,7 @@ const News = lazy(loadNews)
 const SelfTest = lazy(loadSelfTest)
 const HelpPage = lazy(loadHelp)
 const ProfilePage = lazy(loadProfile)
+const SettingsPage = lazy(loadSettings)
 
 /**
  * One line under the tabs saying what each list is for. The shortlist and the
@@ -222,6 +228,7 @@ export default function App() {
    */
   const showIntro = !isOnboarded(prefs.profile) || replayingIntro
   useTheme(prefs.theme)
+  useDisplay(prefs.display)
   useJobLink(openJob, setOpenJob)
   useServiceLink(openService, setOpenService)
   useViewLink(
@@ -251,8 +258,10 @@ export default function App() {
   const isTestView = view === 'test'
   const isProfileView = view === 'profile'
   const isHelpView = view === 'help'
+  const isSettingsView = view === 'settings'
   /** Páginas propias: sin pestañas, con su botón para volver al listado. */
-  const isPageView = isNewsView || isTestView || isProfileView || isHelpView
+  const isPageView =
+    isNewsView || isTestView || isProfileView || isHelpView || isSettingsView
   /**
    * The pile is reviewed in one place only. Discarding works anywhere, but the
    * pile is global: offering it inside Estado would show a count of offers most
@@ -526,16 +535,13 @@ export default function App() {
   return (
     <div className="min-h-svh">
       <DynamicIsland
-        count={
-          preferenceCount(prefs.preferences) + hiddenCount(prefs.preferences)
-        }
         view={view}
         onOpenHelp={() => changeView('help')}
         onOpenNews={() => changeView('news')}
-        onOpenProfile={() => changeView('profile')}
+        onOpenSettings={() => changeView('settings')}
         onPrefetchHelp={() => void loadHelp()}
         onPrefetchNews={() => prefetchView('news')}
-        onPrefetchProfile={() => void loadProfile()}
+        onPrefetchSettings={() => void loadSettings()}
       />
 
       <main className="mx-auto max-w-3xl px-5 pt-24 pb-16 sm:pt-28">
@@ -599,7 +605,6 @@ export default function App() {
               session={session}
               sources={prefs.sources}
               sync={accountSync}
-              theme={prefs.theme}
               usage={usage}
               onBack={() => changeView('all')}
               onChangePreferences={prefs.setPreferences}
@@ -607,7 +612,6 @@ export default function App() {
               onChangeResume={prefs.setResume}
               onChangeSources={prefs.setSources}
               onChangeFeeds={prefs.setFeeds}
-              onChangeTheme={prefs.setTheme}
               onEraseEverything={() => {
                 prefs.eraseEverything()
                 followUp.erase()
@@ -623,6 +627,18 @@ export default function App() {
                 changeView('all')
                 setFilters(filtersFromSearch(prefs.resume, prefs.preferences))
               }}
+            />
+          </Suspense>
+        ) : isSettingsView ? (
+          <Suspense fallback={<JobListSkeleton />}>
+            <SettingsPage
+              display={prefs.display}
+              theme={prefs.theme}
+              onBack={() => changeView('all')}
+              onChangeDisplay={prefs.setDisplay}
+              onChangeTheme={prefs.setTheme}
+              onOpenProfile={() => changeView('profile')}
+              onPrefetchProfile={() => void loadProfile()}
             />
           </Suspense>
         ) : isHelpView ? (
