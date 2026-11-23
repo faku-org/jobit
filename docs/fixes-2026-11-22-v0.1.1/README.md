@@ -13,6 +13,10 @@ que hoy. Elegir es de la persona.
   worker `.mjs` de pdf.js como `application/octet-stream` + `nosniff` y el navegador lo
   rechaza. Arreglo en PR #70 (worker como chunk `.js`), verificado en local con los headers
   y el CSP de prod. Falta probarlo en jobs.wefaber.net después del deploy.
+- [~] En la ficha de una oferta, la zona de "Postularme" se podía scrollear. Causa: el pie
+  era hijo del flex con `overflow-y-auto` y se achicaba. Ahora es un pill que flota sobre
+  el borde de abajo y solo scrollea el compositor del mensaje. Verificado en local con
+  Edge headless (desktop oscuro y mobile claro). Falta probarlo en prod después del deploy.
 
 ## Postular sin salir de JobIt
 
