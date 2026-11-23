@@ -140,3 +140,16 @@ export const mailSubject = (job: Job, name: string): string =>
   name.trim() === ''
     ? `Postulación: ${job.title}`
     : `Postulación: ${job.title} - ${name.trim()}`
+
+/**
+ * Lo que dice "Qué adjuntás" partido en piezas, para mostrarlas como adjuntos
+ * en la vista previa: "mi CV, carta y certificados" son tres. Vacío vale "mi CV",
+ * igual que `{adjuntos}` en la plantilla.
+ */
+export function attachmentList(text: string): string[] {
+  const parts = text
+    .split(/\s*(?:,|;|\sy\s|\se\s)\s*/i)
+    .map((part) => part.trim())
+    .filter((part) => part !== '')
+  return parts.length > 0 ? parts : ['mi CV']
+}

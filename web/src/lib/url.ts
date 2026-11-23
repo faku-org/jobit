@@ -66,6 +66,8 @@ const PARAM = {
   jobType: 'job_type',
   noExperience: 'no_experience',
   days: 'days',
+  /** La página de armar mensaje de la ficha abierta (`?job=…&apply=1`). */
+  apply: 'apply',
 } as const
 
 const MAX_QUERY = 200
@@ -163,4 +165,28 @@ export function writeViewState(state: ViewState, push: boolean): void {
   if (next === window.location.href) return
   if (push) window.history.pushState(null, '', next)
   else window.history.replaceState(null, '', next)
+}
+
+/**
+ * La ficha de una oferta tiene dos páginas: la oferta y el armado del mensaje.
+ * `apply=1` es la segunda, así el enlace de "armar mensaje" se puede compartir
+ * o recargar y cae en la misma página. Va junto a `job` y, como él, no suma un
+ * paso al historial: Atrás sale de la ficha, no de una página de la ficha.
+ */
+export const readApplyOpen = (
+  search: string = window.location.search,
+): boolean => new URLSearchParams(search).get(PARAM.apply) === '1'
+
+/** Escribe o saca `apply` y deja todo lo demás de la dirección como estaba. */
+export function applyApplyOpen(url: URL, open: boolean): void {
+  if (open) url.searchParams.set(PARAM.apply, '1')
+  else url.searchParams.delete(PARAM.apply)
+}
+
+export function writeApplyOpen(open: boolean): void {
+  const url = new URL(window.location.href)
+  applyApplyOpen(url, open)
+
+  const next = url.toString()
+  if (next !== window.location.href) window.history.replaceState(null, '', next)
 }

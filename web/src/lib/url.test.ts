@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { STATE_SOURCE, EMPTY_FILTERS } from './types.ts'
-import { applyViewState, readViewState } from './url.ts'
+import {
+  applyApplyOpen,
+  applyViewState,
+  readApplyOpen,
+  readViewState,
+} from './url.ts'
 
 describe('readViewState', () => {
   test('opens the board with nothing in the address bar', () => {
@@ -164,5 +169,34 @@ describe('Guardadas y el filtro Estado', () => {
         filters: { ...EMPTY_FILTERS, stateOnly: true },
       }),
     ).toBe('?view=market')
+  })
+})
+
+describe('la página de armar mensaje (apply)', () => {
+  test('solo apply=1 la abre', () => {
+    expect(readApplyOpen('?job=abc&apply=1')).toBe(true)
+    expect(readApplyOpen('?job=abc')).toBe(false)
+    expect(readApplyOpen('?job=abc&apply=true')).toBe(false)
+    expect(readApplyOpen('?job=abc&apply=0')).toBe(false)
+    expect(readApplyOpen('')).toBe(false)
+  })
+
+  test('se escribe y se saca sin tocar el resto de la dirección', () => {
+    const url = new URL('https://jobs.wefaber.net/?view=saved&job=abc')
+    applyApplyOpen(url, true)
+    expect(url.search).toBe('?view=saved&job=abc&apply=1')
+    applyApplyOpen(url, false)
+    expect(url.search).toBe('?view=saved&job=abc')
+  })
+
+  test('las vistas no la leen ni la pisan', () => {
+    const state = readViewState('?job=abc&apply=1')
+    expect(state.view).toBe('all')
+    expect(state.filters).toEqual(EMPTY_FILTERS)
+
+    const url = new URL('https://jobs.wefaber.net/?job=abc&apply=1')
+    applyViewState(url, { view: 'saved', tab: 'saved', filters: EMPTY_FILTERS })
+    expect(url.searchParams.get('apply')).toBe('1')
+    expect(url.searchParams.get('job')).toBe('abc')
   })
 })
