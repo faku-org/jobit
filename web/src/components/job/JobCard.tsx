@@ -9,10 +9,10 @@ import {
 import { m } from 'motion/react'
 import { fadeUpTransition } from '../../lib/motion.ts'
 import { formatLocation } from '../../lib/format.ts'
-import type { Resume } from '../../lib/resume.ts'
 import { jobShare } from '../../lib/share.ts'
 import { chipClass, iconButtonClass } from '../../lib/styles.ts'
 import type { Job } from '../../lib/types.ts'
+import { useApplyFlow } from '../../hooks/useApplyFlow.ts'
 import { ApplyFooter } from './ApplyFooter.tsx'
 import { WorkedBadge } from './WorkedBadge.tsx'
 import { JobChips, type TagActions } from './JobChips.tsx'
@@ -30,14 +30,13 @@ interface JobCardProps {
   /** What the chips of this card can do to the list. */
   tagActions: TagActions
   onOpen: (job: Job) => void
+  /** "Armar mensaje": abre la ficha directo en la página de componer. */
+  onCompose: (job: Job) => void
   /** Abre el stand de la empresa de esta oferta. */
   onOpenEmployer?: () => void
   onToggleSaved: (id: string) => void
   onToggleDismissed: (id: string) => void
   onApplied: (job: Job) => void
-  /** El currículum del dispositivo: de ahí sale el mensaje de postulación. */
-  resume: Resume
-  onChangeResume: (resume: Resume) => void
 }
 
 /**
@@ -66,13 +65,14 @@ export function JobCard({
   worked = false,
   tagActions,
   onOpen,
+  onCompose,
   onOpenEmployer,
   onToggleSaved,
   onToggleDismissed,
   onApplied,
-  resume,
-  onChangeResume,
 }: JobCardProps) {
+  const flow = useApplyFlow(job, isApplied, onApplied)
+
   return (
     <article
       className={isMatch && !isDismissed ? 'aura-edge rounded-2xl' : cardShell}
@@ -161,6 +161,7 @@ export function JobCard({
 
         <div className="mt-4">
           <ApplyFooter
+            flow={flow}
             isApplied={isApplied}
             job={job}
             left={
@@ -172,9 +173,7 @@ export function JobCard({
                 Ver descripción y tips
               </button>
             }
-            resume={resume}
-            onApplied={onApplied}
-            onChangeResume={onChangeResume}
+            onCompose={() => onCompose(job)}
           />
         </div>
       </div>

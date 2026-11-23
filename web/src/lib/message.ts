@@ -140,3 +140,45 @@ export const mailSubject = (job: Job, name: string): string =>
   name.trim() === ''
     ? `Postulación: ${job.title}`
     : `Postulación: ${job.title} - ${name.trim()}`
+
+/**
+ * Lo que dice "Qué adjuntás" partido en piezas, para mostrarlas como adjuntos
+ * en la vista previa: "mi CV, carta y certificados" son tres. Vacío vale "mi CV",
+ * igual que `{adjuntos}` en la plantilla.
+ */
+export function attachmentList(text: string): string[] {
+  const parts = text
+    .split(/\s*(?:,|;|\sy\s|\se\s)\s*/i)
+    .map((part) => part.trim())
+    .filter((part) => part !== '')
+  return parts.length > 0 ? parts : ['mi CV']
+}
+
+/**
+ * Lo que dice el pie de la página de armar: la nota (copiado, guardado…) manda;
+ * sin nombre no dice nada (el pie pide el nombre); si no, a dónde va. Con `null`
+ * la pantalla muestra "falta tu nombre".
+ */
+export function sendStatus(
+  note: string,
+  ready: boolean,
+  email: string | null,
+  mailto: string | null,
+): string | null {
+  if (note) return note
+  if (!ready) return null
+  if (email === null)
+    return 'Sin mail en el aviso: se copia y se abre el aviso.'
+  if (mailto === null)
+    return 'Es largo para el correo: copialo y pegalo en un mail.'
+  return `Va a ${email}.`
+}
+
+/** La aclaración bajo la vista previa: cómo sale y qué queda de tu lado. */
+export function sendHint(email: string | null, mailto: string | null): string {
+  if (email === null)
+    return 'Este aviso no trae un mail: se copia el mensaje y se abre el aviso, donde lo pegás.'
+  if (mailto === null)
+    return `Es demasiado largo para abrirlo en el correo. Copialo y pegalo en un mail a ${email}.`
+  return 'Los adjuntos los sumás vos en tu correo: un enlace de mail no puede llevarlos.'
+}

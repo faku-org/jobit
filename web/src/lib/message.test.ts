@@ -2,11 +2,14 @@ import { describe, expect, test } from 'bun:test'
 import {
   DEFAULT_TEMPLATES,
   MAX_MAILTO_CHARS,
+  attachmentList,
   buildMailto,
   fillTemplate,
   findContactEmail,
   mailSubject,
   messageValues,
+  sendHint,
+  sendStatus,
   templateFor,
 } from './message.ts'
 import { EMPTY_RESUME, MAX_MESSAGE_CHARS, sanitizeResume } from './resume.ts'
@@ -246,5 +249,47 @@ describe('el mensaje en el currículum', () => {
   test('una forma rara de messages no rompe nada', () => {
     expect(sanitizeResume({ messages: 'hola' }).messages).toEqual({})
     expect(sanitizeResume({ messages: [1, 2] }).messages).toEqual({})
+  })
+})
+
+describe('attachmentList', () => {
+  test('parte lo que la persona escribió en adjuntos', () => {
+    expect(
+      attachmentList('mi CV, carta de presentación y certificados'),
+    ).toEqual(['mi CV', 'carta de presentación', 'certificados'])
+    expect(attachmentList('CV; foto')).toEqual(['CV', 'foto'])
+  })
+
+  test('una sola cosa queda entera, también con una "y" adentro de la palabra', () => {
+    expect(attachmentList('mi CV')).toEqual(['mi CV'])
+    expect(attachmentList('Curriculum Vitae')).toEqual(['Curriculum Vitae'])
+  })
+
+  test('vacío vale "mi CV", como en la plantilla', () => {
+    expect(attachmentList('')).toEqual(['mi CV'])
+    expect(attachmentList('  ,  ')).toEqual(['mi CV'])
+  })
+})
+
+describe('sendStatus y sendHint', () => {
+  test('la nota manda; sin nombre el pie queda en null', () => {
+    expect(sendStatus('Mensaje copiado.', false, null, null)).toBe(
+      'Mensaje copiado.',
+    )
+    expect(sendStatus('', false, 'a@b.com', 'mailto:a@b.com')).toBeNull()
+  })
+
+  test('dice a dónde va según haya mail y entre en el mailto', () => {
+    expect(sendStatus('', true, 'a@b.com', 'mailto:a@b.com')).toBe(
+      'Va a a@b.com.',
+    )
+    expect(sendStatus('', true, 'a@b.com', null)).toContain('largo')
+    expect(sendStatus('', true, null, null)).toContain('Sin mail')
+  })
+
+  test('la aclaración cubre los tres casos', () => {
+    expect(sendHint(null, null)).toContain('no trae un mail')
+    expect(sendHint('a@b.com', null)).toContain('a@b.com')
+    expect(sendHint('a@b.com', 'mailto:a@b.com')).toContain('adjuntos')
   })
 })

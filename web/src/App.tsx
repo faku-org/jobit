@@ -161,6 +161,17 @@ export default function App() {
   /** The saved view filters by rubro on the client, over its own chips. */
   const [savedCategory, setSavedCategory] = useState('')
   const [openJob, setOpenJob] = useState<Job | null>(null)
+  /** La oferta que se abrió desde "Armar mensaje" de su tarjeta: la ficha
+   * arranca en la página de componer en vez de la oferta. */
+  const [composeId, setComposeId] = useState<string | null>(null)
+  const openComposer = (job: Job) => {
+    setComposeId(job.id)
+    setOpenJob(job)
+  }
+  const closeJob = () => {
+    setOpenJob(null)
+    setComposeId(null)
+  }
   const [openService, setOpenService] = useState<Service | null>(null)
   /** La empresa cuyo stand está abierto, si hay alguna. */
   const [openEmployer, setOpenEmployer] = useState<{
@@ -834,9 +845,8 @@ export default function App() {
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
                         tagActions={tagActions}
-                        resume={prefs.resume}
                         onApplied={handleApplied}
-                        onChangeResume={prefs.setResume}
+                        onCompose={openComposer}
                         onOpen={setOpenJob}
                         onOpenEmployer={() => openEmployerFor(job)}
                         onToggleDismissed={prefs.toggleDismissed}
@@ -880,9 +890,8 @@ export default function App() {
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
                         tagActions={tagActions}
-                        resume={prefs.resume}
                         onApplied={handleApplied}
-                        onChangeResume={prefs.setResume}
+                        onCompose={openComposer}
                         onOpen={setOpenJob}
                         onOpenEmployer={() => openEmployerFor(job)}
                         onToggleDismissed={prefs.toggleDismissed}
@@ -930,9 +939,10 @@ export default function App() {
             job={openJob}
             tagActions={tagActions}
             resume={prefs.resume}
+            startComposing={composeId === openJob.id}
             onApplied={handleApplied}
             onChangeResume={prefs.setResume}
-            onClose={() => setOpenJob(null)}
+            onClose={closeJob}
             onOpenEmployer={() => openEmployerFor(openJob)}
             onToggleDismissed={prefs.toggleDismissed}
             onToggleSaved={prefs.toggleSaved}
@@ -957,7 +967,7 @@ export default function App() {
           onFilter={() => {
             setFilters({ ...EMPTY_FILTERS, company: openEmployer.slug })
             setOpenEmployer(null)
-            setOpenJob(null)
+            closeJob()
           }}
           onClose={() => setOpenEmployer(null)}
         />
