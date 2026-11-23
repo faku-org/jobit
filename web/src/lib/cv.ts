@@ -433,6 +433,31 @@ function withoutGenericBachillerato(degrees: string[]): string[] {
 const matches = (pattern: RegExp, text: string): boolean =>
   new RegExp(pattern.source, pattern.flags.replace('g', '')).test(text)
 
+/**
+ * Lines that are not a completed título: a course or workshop (which says where
+ * it was given, "Universidad ORT", "Facultad de Ingeniería", and that is not
+ * the person's level) and studies still under way or left unfinished.
+ */
+const NOT_A_TITLE = new RegExp(
+  [
+    /^\W*(?:cursos?|taller|seminario|workshop|webinar|bootcamp|diplomado|certificacion|certificado|capacitacion|jornada|charla)\b/
+      .source,
+    /\b(?:curso|taller|seminario|workshop|webinar|bootcamp|diplomado|capacitacion|certificacion) (?:de|en|sobre)\b/
+      .source,
+    /\b(?:dictad[oa]s? (?:en|por)|coursera|udemy|platzi|edx|domestika)\b/
+      .source,
+    /\b(?:cursando|en curso|incomplet[oa]|trunc[oa]|sin (?:terminar|finalizar|completar)|no (?:finalizad|terminad|complet)[oa]|estudiante|inscript[oa])\b/
+      .source,
+  ].join('|'),
+)
+
+/** What is left of a block once the lines that are not a título are gone. */
+export const withoutNonTitles = (folded: string): string =>
+  folded
+    .split(/\r?\n/)
+    .filter((line) => !NOT_A_TITLE.test(line))
+    .join('\n')
+
 /** The level the CV names, for when it lists no título the catalog knows. */
 function statedEducation(folded: string): EducationLevel | '' {
   const found = EDUCATION_PHRASES.find(([pattern]) => pattern.test(folded))
@@ -479,8 +504,11 @@ export function readCv(
    * text is searched, which is how a one-line CV still names a city. */
   const where = blocks.profile.trim() === '' ? folded : blocks.profile
 
+  /** A course given at a university is not a university degree. */
+  const titles = withoutNonTitles(studied)
+
   const degrees = withoutGenericBachillerato(
-    DEGREES.filter((entry) => matches(catalogPattern(entry), studied)).map(
+    DEGREES.filter((entry) => matches(catalogPattern(entry), titles)).map(
       (entry) => entry.id,
     ),
   )
@@ -490,7 +518,7 @@ export function readCv(
 
   /** The títulos found imply a level; a bare mention fills in when they do not. */
   const implied = levelFromDegrees(degrees)
-  const stated = statedEducation(studied)
+  const stated = statedEducation(titles)
   const education =
     implied === '' ||
     (stated !== '' && EDUCATION_RANK[stated] > EDUCATION_RANK[implied])
