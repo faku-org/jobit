@@ -363,7 +363,7 @@ export function AccountDialog({
         <header className="flex items-start gap-3 border-b border-sky/40 px-5 py-4">
           <div className="min-w-0 flex-1">
             <h2
-              className="text-[17px] leading-snug font-semibold tracking-tight text-ink"
+              className="text-[1.0625rem] leading-snug font-semibold tracking-tight text-ink"
               id="account-dialog-title"
             >
               {heading.title}
@@ -408,7 +408,7 @@ export function AccountDialog({
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
                 />
-                <p className="text-[11px] leading-relaxed text-muted">
+                <p className="text-[0.6875rem] leading-relaxed text-muted">
                   El <strong className="font-medium text-soft">handle</strong>{' '}
                   es tu usuario para entrar: único y con @. El{' '}
                   <strong className="font-medium text-soft">
@@ -434,7 +434,7 @@ export function AccountDialog({
                   onChange={(event) => setRepeat(event.target.value)}
                 />
                 {repeat !== '' && repeat !== password ? (
-                  <p className="text-[11px] leading-relaxed text-red-400">
+                  <p className="text-[0.6875rem] leading-relaxed text-red-400">
                     Las contraseñas no coinciden.
                   </p>
                 ) : null}
@@ -460,7 +460,7 @@ export function AccountDialog({
                   onChange={(event) => setPassword(event.target.value)}
                 />
                 <button
-                  className="self-start text-[11px] font-medium text-brand underline underline-offset-2 transition-colors hover:text-ink"
+                  className="self-start text-[0.6875rem] font-medium text-brand underline underline-offset-2 transition-colors hover:text-ink"
                   type="button"
                   onClick={() => {
                     setError('')
@@ -474,7 +474,7 @@ export function AccountDialog({
 
             {view === 'totp' ? (
               <>
-                <p className="text-[11px] leading-relaxed text-muted">
+                <p className="text-[0.6875rem] leading-relaxed text-muted">
                   Tu cuenta tiene segundo paso: además de la contraseña hace
                   falta este código.
                 </p>
@@ -509,7 +509,7 @@ export function AccountDialog({
 
             {view === 'codes' ? (
               <>
-                <p className="text-[11px] leading-relaxed text-muted">
+                <p className="text-[0.6875rem] leading-relaxed text-muted">
                   Cada uno sirve para entrar una vez, si perdés la contraseña.
                   No se vuelven a mostrar.
                 </p>
@@ -558,7 +558,7 @@ export function AccountDialog({
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                 />
-                <p className="text-[11px] leading-relaxed text-muted">
+                <p className="text-[0.6875rem] leading-relaxed text-muted">
                   {user?.has_email
                     ? 'Cargar uno nuevo reemplaza el anterior.'
                     : 'Sin email, los códigos de respaldo siguen siendo la única salida.'}
@@ -569,7 +569,7 @@ export function AccountDialog({
             {view === 'totp-on' ? (
               setup ? (
                 <>
-                  <p className="text-[11px] leading-relaxed text-muted">
+                  <p className="text-[0.6875rem] leading-relaxed text-muted">
                     Escaneá este código con tu app de autenticación y después
                     poné el código que te muestre.
                   </p>
@@ -585,17 +585,17 @@ export function AccountDialog({
                       onExpand={() => setQrZoom(true)}
                     />
                   </Suspense>
-                  <p className="text-[11px] leading-relaxed text-muted">
+                  <p className="text-[0.6875rem] leading-relaxed text-muted">
                     ¿No podés escanear? Cargá esta clave a mano:
                   </p>
                   <p className="rounded-lg bg-onpanel-wash px-2 py-1.5 font-mono text-xs tracking-wide text-onpanel">
                     {setup.secret}
                   </p>
-                  <details className="text-[11px] text-onpanel/60">
+                  <details className="text-[0.6875rem] text-onpanel/60">
                     <summary className="cursor-pointer">
                       Ver el enlace otpauth
                     </summary>
-                    <p className="mt-1 break-all rounded-lg bg-onpanel-wash px-2 py-1.5 font-mono text-[10px]">
+                    <p className="mt-1 break-all rounded-lg bg-onpanel-wash px-2 py-1.5 font-mono text-[0.625rem]">
                       {setup.otpauth}
                     </p>
                   </details>
@@ -609,7 +609,7 @@ export function AccountDialog({
                   />
                 </>
               ) : (
-                <p className="text-[11px] leading-relaxed text-muted">
+                <p className="text-[0.6875rem] leading-relaxed text-muted">
                   Generando tu clave…
                 </p>
               )
@@ -628,7 +628,7 @@ export function AccountDialog({
 
             {view === 'delete' ? (
               <>
-                <p className="text-[11px] leading-relaxed text-muted">
+                <p className="text-[0.6875rem] leading-relaxed text-muted">
                   Se borran tu cuenta, tus sesiones, tus códigos de respaldo y
                   todo lo que hayas publicado en el servidor. Lo que guardaste
                   en este navegador no se toca.
@@ -641,7 +641,7 @@ export function AccountDialog({
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
-                <label className="flex items-center gap-2 text-[11px] text-onpanel/70">
+                <label className="flex items-center gap-2 text-[0.6875rem] text-onpanel/70">
                   <input
                     checked={confirmed}
                     className="size-3.5 accent-red-400"
@@ -654,7 +654,7 @@ export function AccountDialog({
             ) : null}
 
             {error ? (
-              <p className="text-[11px] leading-relaxed text-red-400">
+              <p className="text-[0.6875rem] leading-relaxed text-red-400">
                 {error}
               </p>
             ) : null}
@@ -725,13 +725,13 @@ function PasswordRules({ value }: { value: string }) {
       {passwordRules(value).map((rule) => (
         <li
           key={rule.label}
-          className={`flex items-center gap-1.5 text-[11px] leading-relaxed ${rule.ok ? 'text-emerald-600' : 'text-onpanel-faint'}`}
+          className={`flex items-center gap-1.5 text-[0.6875rem] leading-relaxed ${rule.ok ? 'text-emerald-600' : 'text-onpanel-faint'}`}
         >
           <span aria-hidden>{rule.ok ? '✓' : '•'}</span>
           {rule.label}
         </li>
       ))}
-      <li className="text-[11px] leading-relaxed text-onpanel-faint">
+      <li className="text-[0.6875rem] leading-relaxed text-onpanel-faint">
         Mínimo {MIN_PASSWORD} caracteres.
       </li>
     </ul>

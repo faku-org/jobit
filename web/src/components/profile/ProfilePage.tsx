@@ -1,18 +1,18 @@
 import { ShieldCheck, UserRound } from 'lucide-react'
-import { type ReactNode, useEffect } from 'react'
+import { useEffect } from 'react'
 import type { AccountSync } from '../../hooks/useAccountSync.ts'
 import type { CustomFeed, FeedResult } from '../../lib/feed.ts'
 import type { Profile } from '../../lib/profile.ts'
 import type { Resume, ResumeFound } from '../../lib/resume.ts'
 import type { SessionUser } from '../../lib/session.ts'
 import type { Usage } from '../../lib/stats.ts'
-import type { Facet, Meta, Preferences, Theme } from '../../lib/types.ts'
+import type { Facet, Meta, Preferences } from '../../lib/types.ts'
 import { AccountSection } from '../account/AccountSection.tsx'
 import { McpSection } from '../account/McpSection.tsx'
 import { PageHeader } from '../page/PageHeader.tsx'
+import { PanelSection } from '../page/PanelSection.tsx'
 import { PreferencesPanel, SourcesPanel } from './Preferences.tsx'
 import {
-  AppearanceBlock,
   CvBlock,
   PrivacyBlock,
   ProfileBasics,
@@ -28,7 +28,6 @@ interface ProfilePageProps {
   feeds: CustomFeed[]
   feedResults: FeedResult[]
   feedsLoading: boolean
-  theme: Theme
   profile: Profile
   usage: Usage
   /** Lo que la zona de borrado se llevaría, para decirlo antes de hacerlo. */
@@ -45,7 +44,6 @@ interface ProfilePageProps {
   onChangePreferences: (preferences: Preferences) => void
   onChangeSources: (sources: string[]) => void
   onChangeFeeds: (feeds: CustomFeed[]) => void
-  onChangeTheme: (theme: Theme) => void
   onChangeProfile: (profile: Profile) => void
   onChangeResume: (resume: Resume) => void
   onEraseEverything: () => void
@@ -69,54 +67,16 @@ const SECTIONS = [
   { id: 'preferencias', label: 'Preferencias' },
   { id: 'fuentes', label: 'Fuentes' },
   { id: 'autoconocimiento', label: 'Autoconocimiento' },
-  { id: 'apariencia', label: 'Apariencia' },
   { id: 'cuenta', label: 'Cuenta' },
   { id: 'agentes', label: 'Agentes' },
   { id: 'privacidad', label: 'Privacidad' },
 ] as const
 
 /**
- * Una sección de la página. Es un panel como el de la isla —los controles de
- * cada bloque están hechos para ese fondo—, así que cada tarjeta lo conserva y
- * la página se lee de corrido, sin acordeones ni pestañas adentro.
- */
-function Section({
-  id,
-  title,
-  hint,
-  children,
-}: {
-  id: (typeof SECTIONS)[number]['id']
-  title: string
-  hint?: string
-  children: ReactNode
-}) {
-  return (
-    <section
-      aria-labelledby={`${id}-title`}
-      className="scroll-mt-24 rounded-3xl bg-panel p-5 text-onpanel shadow-[var(--shadow-panel)] sm:p-6"
-      id={id}
-    >
-      <h2
-        className="text-base font-semibold tracking-tight text-onpanel"
-        id={`${id}-title`}
-      >
-        {title}
-      </h2>
-      {hint ? (
-        <p className="mt-1 text-xs leading-relaxed text-onpanel-muted">
-          {hint}
-        </p>
-      ) : null}
-      <div className="mt-5">{children}</div>
-    </section>
-  )
-}
-
-/**
  * Todo lo que la app sabe de la persona y de cómo busca, en una página con su
  * propio enlace en vez de un panel con submenús dentro de la isla. Cada tema
- * tiene su título y su ancla; el viejo botón de Preferencias lleva acá.
+ * tiene su título y su ancla. Idioma, tema, escala y accesibilidad viven
+ * aparte, en `?view=settings`.
  */
 export function ProfilePage({
   meta,
@@ -127,7 +87,6 @@ export function ProfilePage({
   feeds,
   feedResults,
   feedsLoading,
-  theme,
   profile,
   usage,
   counts,
@@ -137,7 +96,6 @@ export function ProfilePage({
   onChangePreferences,
   onChangeSources,
   onChangeFeeds,
-  onChangeTheme,
   onChangeProfile,
   onChangeResume,
   onEraseEverything,
@@ -165,7 +123,7 @@ export function ProfilePage({
             sincronización de tu cuenta.
           </>
         }
-        title="Perfil y preferencias"
+        title="Perfil y configuración"
         onBack={onBack}
       />
 
@@ -193,15 +151,15 @@ export function ProfilePage({
         para ordenar las ofertas y para completar tu CV.
       </p>
 
-      <Section
+      <PanelSection
         hint="Tus estudios y tu experiencia: ordenan el listado y avisan cuando una oferta pide más."
         id="perfil"
         title="Perfil"
       >
         <ProfileBasics profile={profile} onChange={onChangeProfile} />
-      </Section>
+      </PanelSection>
 
-      <Section
+      <PanelSection
         hint="Importá un CV que ya tengas o completá los datos que se parecen a uno."
         id="cv"
         title="Tu CV"
@@ -216,9 +174,9 @@ export function ProfilePage({
           onImportCv={onImportCv}
           onSearchBoard={onSearchBoard}
         />
-      </Section>
+      </PanelSection>
 
-      <Section
+      <PanelSection
         hint="Cómo se ordena el listado y qué rubros y zonas te interesan."
         id="preferencias"
         title="Preferencias de búsqueda"
@@ -230,9 +188,9 @@ export function ProfilePage({
           preferences={preferences}
           onChange={onChangePreferences}
         />
-      </Section>
+      </PanelSection>
 
-      <Section
+      <PanelSection
         hint="De dónde salen las ofertas, y fuentes propias si querés sumar una."
         id="fuentes"
         title="Fuentes"
@@ -246,17 +204,13 @@ export function ProfilePage({
           onChangeFeeds={onChangeFeeds}
           onChangeSources={onChangeSources}
         />
-      </Section>
+      </PanelSection>
 
-      <Section id="autoconocimiento" title="Autoconocimiento">
+      <PanelSection id="autoconocimiento" title="Autoconocimiento">
         <TestEntry onOpenTest={onOpenTest} onPrefetchTest={onPrefetchTest} />
-      </Section>
+      </PanelSection>
 
-      <Section id="apariencia" title="Apariencia">
-        <AppearanceBlock theme={theme} onChangeTheme={onChangeTheme} />
-      </Section>
-
-      <Section
+      <PanelSection
         hint="Es lo único de la app que vive en el servidor, y es opcional."
         id="cuenta"
         title="Cuenta y sincronización"
@@ -267,17 +221,17 @@ export function ProfilePage({
           user={session.user}
           onUser={session.setUser}
         />
-      </Section>
+      </PanelSection>
 
-      <Section
+      <PanelSection
         hint="Conectá un agente (Claude, Cursor o cualquier cliente MCP) a la búsqueda."
         id="agentes"
         title="Agentes"
       >
         <McpSection />
-      </Section>
+      </PanelSection>
 
-      <Section
+      <PanelSection
         hint="Qué se guarda, qué se comparte y cómo borrarlo todo."
         id="privacidad"
         title="Privacidad y borrado"
@@ -289,7 +243,7 @@ export function ProfilePage({
           onChange={onChangeProfile}
           onEraseEverything={onEraseEverything}
         />
-      </Section>
+      </PanelSection>
     </div>
   )
 }

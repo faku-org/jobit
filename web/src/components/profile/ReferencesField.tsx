@@ -69,7 +69,7 @@ export function ReferencesField({ value, onChange }: ReferencesFieldProps) {
           aria-hidden
           className="mt-0.5 size-4 shrink-0 text-sky"
         />
-        <p className="text-[11px] leading-relaxed text-onpanel/75">
+        <p className="text-[0.6875rem] leading-relaxed text-onpanel/75">
           Son datos de otra persona. <strong>Pedile permiso antes</strong> de
           cargar su nombre y su contacto, y contale para qué. Se guardan sólo en
           este navegador y salen únicamente si descargás tu archivo.
@@ -87,7 +87,7 @@ export function ReferencesField({ value, onChange }: ReferencesFieldProps) {
                 <p className="truncate text-sm font-medium text-onpanel">
                   {entry.name}
                 </p>
-                <p className="truncate text-[11px] text-onpanel-muted">
+                <p className="truncate text-[0.6875rem] text-onpanel-muted">
                   {[entry.relation, entry.contact]
                     .filter((part) => part !== '')
                     .join(' · ') || 'Sin más datos'}
@@ -109,7 +109,7 @@ export function ReferencesField({ value, onChange }: ReferencesFieldProps) {
       ) : null}
 
       {full ? (
-        <p className="text-[11px] text-onpanel-faint">
+        <p className="text-[0.6875rem] text-onpanel-faint">
           Ya cargaste {MAX_REFERENCES} referencias, que es el máximo.
         </p>
       ) : (
@@ -153,7 +153,7 @@ export function ReferencesField({ value, onChange }: ReferencesFieldProps) {
           </PanelField>
           {error ? (
             <p
-              className="text-[11px] text-onpanel"
+              className="text-[0.6875rem] text-onpanel"
               id={`${id}-error`}
               role="alert"
             >

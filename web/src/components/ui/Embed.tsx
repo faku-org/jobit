@@ -41,7 +41,7 @@ function Card({ job }: { job: Job }) {
   return (
     <Frame>
       <div className="flex items-start justify-between gap-3">
-        <h1 className="text-[15px] leading-snug font-semibold tracking-tight">
+        <h1 className="text-[0.9375rem] leading-snug font-semibold tracking-tight">
           <a
             className="transition-colors hover:text-brand"
             href={job.apply_url}

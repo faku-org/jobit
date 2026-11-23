@@ -51,7 +51,7 @@ export function ResourceList({ items }: ResourceListProps) {
                       </span>
                     )}
                     {item.sponsored ? (
-                      <span className="rounded-full border border-sky/60 px-2 py-0.5 text-[11px] text-soft">
+                      <span className="rounded-full border border-sky/60 px-2 py-0.5 text-[0.6875rem] text-soft">
                         Patrocinado
                       </span>
                     ) : null}

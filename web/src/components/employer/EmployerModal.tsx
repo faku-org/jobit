@@ -118,7 +118,7 @@ export function EmployerModal({
           </span>
           <div className="min-w-0 flex-1">
             <h2
-              className="text-[17px] leading-snug font-semibold tracking-tight text-ink"
+              className="text-[1.0625rem] leading-snug font-semibold tracking-tight text-ink"
               id="employer-modal-title"
             >
               {profile?.label ?? label}
@@ -217,7 +217,7 @@ export function EmployerModal({
                 </section>
               ) : null}
 
-              <p className="text-[11px] leading-relaxed text-faint">
+              <p className="text-[0.6875rem] leading-relaxed text-faint">
                 Es lo que JobIt ve en sus ofertas; no hay dato de empleados ni
                 de la empresa por fuera del tablero.
               </p>

@@ -109,7 +109,7 @@ export function LanguagesField({ value, onChange }: LanguagesFieldProps) {
       ) : null}
 
       {full ? (
-        <p className="text-[11px] text-onpanel-faint">
+        <p className="text-[0.6875rem] text-onpanel-faint">
           Ya cargaste {MAX_LANGUAGES} idiomas, que es el máximo.
         </p>
       ) : (

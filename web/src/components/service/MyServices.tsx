@@ -73,7 +73,7 @@ export function MyServices({ reload, onEdit, onNew }: MyServicesProps) {
   return (
     <div className="rounded-2xl border border-sky/50 bg-surface p-5 shadow-[var(--shadow-hairline)]">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold text-ink">
+        <h2 className="text-[0.9375rem] font-semibold text-ink">
           Lo que publicaste
         </h2>
         <button

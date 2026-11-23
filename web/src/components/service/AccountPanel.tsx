@@ -124,7 +124,7 @@ export function AccountPanel({ reason, onReady, onCancel }: AccountPanelProps) {
   if (mode === 'codes') {
     return (
       <div className="rounded-2xl border border-sky/50 bg-surface p-5 shadow-[var(--shadow-hairline)]">
-        <h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+        <h2 className="flex items-center gap-2 text-[0.9375rem] font-semibold text-ink">
           <KeyRound aria-hidden className="size-4 text-brand" />
           Guardá estos códigos
         </h2>
@@ -155,7 +155,7 @@ export function AccountPanel({ reason, onReady, onCancel }: AccountPanelProps) {
       className="rounded-2xl border border-sky/50 bg-surface p-5 shadow-[var(--shadow-hairline)]"
       onSubmit={submit}
     >
-      <h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+      <h2 className="flex items-center gap-2 text-[0.9375rem] font-semibold text-ink">
         <ShieldCheck aria-hidden className="size-4 text-brand" />
         {mode === 'register'
           ? 'Creá tu cuenta'

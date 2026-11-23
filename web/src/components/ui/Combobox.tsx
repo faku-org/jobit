@@ -144,13 +144,13 @@ export function Combobox<T extends CatalogEntry>({
           className={
             hideLabel
               ? 'sr-only'
-              : 'text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase'
+              : 'text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase'
           }
         >
           {label}
         </p>
         {selected.length > 0 ? (
-          <span className="text-[10px] text-onpanel-faint tabular-nums">
+          <span className="text-[0.625rem] text-onpanel-faint tabular-nums">
             {selected.length}/{max}
           </span>
         ) : null}
@@ -227,13 +227,13 @@ export function Combobox<T extends CatalogEntry>({
           >
             <div className="min-h-0 max-h-56 overflow-y-auto p-1">
               {options.length === 0 ? (
-                <p className="px-2.5 py-3 text-center text-[11px] text-onpanel-muted">
+                <p className="px-2.5 py-3 text-center text-[0.6875rem] text-onpanel-muted">
                   No hay nada con ese nombre en la lista.
                 </p>
               ) : (
                 groups.map(([group, items]) => (
                   <div key={group}>
-                    <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold tracking-wide text-onpanel-faint uppercase">
+                    <p className="px-2.5 pt-2 pb-1 text-[0.625rem] font-semibold tracking-wide text-onpanel-faint uppercase">
                       {group}
                     </p>
                     {items.map(({ entry, index }) => (

@@ -36,13 +36,14 @@ src/
   index.css           tokens de Tailwind (@theme) y base
   components/
     board/            isla, filtros, pestañas, guardadas/seguimiento
-    page/             PageHeader de las views propias
+    page/             PageHeader y PanelSection de las views propias
     help/             la página de ayuda
     news/             la página de novedades
     followup/         notas y entrevistas de una postulación (ver abajo)
     job/              tarjeta y ficha de una oferta
     market/           el informe del mercado
-    profile/          onboarding, perfil, CV y preferencias (ver docs/perfil.md)
+    profile/          onboarding, perfil, CV y preferencias de búsqueda (ver docs/perfil.md)
+    settings/         Preferencias: idioma, tema, escala y accesibilidad
     test/             el test de autoconocimiento (ver docs/autoconocimiento.md)
     account/          cuenta de usuario (alta, login, 2FA, sync)
     ui/               piezas chicas (embeds, confirmaciones, aura…)
@@ -57,24 +58,45 @@ src/
 
 El estado de la pantalla vive en la URL (`lib/url.ts`, `hooks/useViewLink.ts`).
 
-| URL                 | Qué abre                                                  |
-| ------------------- | --------------------------------------------------------- |
-| `/`                 | Ofertas. Con `?source=uruguayconcursa`, el filtro Estado. |
-| `/?view=services`   | Servicios.                                                |
-| `/?view=saved`      | Guardadas. Con `&tab=tracking`, Seguimiento.              |
-| `/?view=market`     | Mercado.                                                  |
-| `/?view=profile#cv` | Perfil, con anclas por sección (`#preferencias`, `#cv`…). |
-| `/?view=news`       | Novedades (campana de la isla).                           |
-| `/?view=help`       | Ayuda (signo de pregunta de la isla).                     |
-| `/?view=test`       | Test de autoconocimiento (desde Perfil).                  |
+| URL                 | Qué abre                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------ |
+| `/`                 | Ofertas. Con `?source=uruguayconcursa`, el filtro Estado.                                              |
+| `/?view=services`   | Servicios.                                                                                             |
+| `/?view=saved`      | Guardadas. Con `&tab=tracking`, Seguimiento.                                                           |
+| `/?view=market`     | Mercado.                                                                                               |
+| `/?view=settings`   | Preferencias (botón de la isla): idioma, tema, escala y accesibilidad.                                 |
+| `/?view=profile#cv` | Perfil y configuración, con anclas por sección (`#preferencias`, `#cv`…). Se llega desde Preferencias. |
+| `/?view=news`       | Novedades (campana de la isla).                                                                        |
+| `/?view=help`       | Ayuda (signo de pregunta de la isla).                                                                  |
+| `/?view=test`       | Test de autoconocimiento (desde Perfil).                                                               |
 
-Pestañas: Ofertas, Servicios, Guardadas, Mercado. Perfil, novedades, ayuda y test
-son páginas con `PageHeader` y sin pestañas. Cambiar de view o de pestaña de
+Pestañas: Ofertas, Servicios, Guardadas, Mercado. Preferencias, perfil, novedades,
+ayuda y test son páginas con `PageHeader` y sin pestañas. Cambiar de view o de pestaña de
 Guardadas hace `pushState`; editar filtros hace `replaceState`.
 
 Enlaces viejos: `?view=tracking` se lee como `?view=saved&tab=tracking` y
-`?view=state` como `/?source=uruguayconcursa`; la barra se reescribe con
+`?view=state` como `/?source=uruguayconcursa`; `?view=profile#apariencia` (el tema
+se mudó) se lee como `?view=settings`. La barra se reescribe con
 `replaceState` al cargar. La regla de diseño está en `DESIGN.md` ("Navegación").
+
+## Preferencias del dispositivo
+
+`?view=settings` guarda cómo se ve y cómo se mueve la app en este dispositivo:
+tema, escala (90 / 100 / 115 / 130 %), reducir movimiento, alto contraste y
+subrayar enlaces. Es el hermano del tema: vive en `localStorage`
+(`jobit.prefs.v1`, campo `display`), **no** entra en `SyncedState` ni viaja a la
+API. El idioma muestra Español y deja English y Português deshabilitados ("pronto"):
+no hay textos traducidos.
+
+- `lib/display.ts`: tipos, saneado de lo guardado y `displayAttributes`.
+- `hooks/useDisplay.ts`: escribe `data-scale`, `data-motion`, `data-contrast` y
+  `data-links` en `<html>`. El script de `index.html` pone los mismos antes del
+  primer pintado, así no hay salto.
+- `index.css` hace el resto con esos atributos. La escala cambia el `font-size`
+  de `<html>`: todo se mide en rem, y un test impide volver a `text-[Npx]`.
+- Reducir movimiento suma a `prefers-reduced-motion`, nunca lo quita. Llega a
+  `motion/react` por `MotionConfig` (`main.tsx`) y al orbe por `useMotionReduced`.
+- Alto contraste suma a `prefers-contrast: more`.
 
 ## Notas y entrevistas
 

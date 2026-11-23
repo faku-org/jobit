@@ -30,12 +30,12 @@ export function PriorityList({
 
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+      <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
         {title}
       </p>
 
       {values.length === 0 ? (
-        <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
+        <p className="mt-2 text-[0.6875rem] leading-relaxed text-onpanel-faint">
           {empty}
         </p>
       ) : null}
@@ -53,7 +53,7 @@ export function PriorityList({
                 initial={{ opacity: 0, y: 6 }}
                 transition={{ ...fadeUpTransition, layout: fadeUpTransition }}
               >
-                <span className="w-4 shrink-0 text-[11px] font-semibold text-sky tabular-nums">
+                <span className="w-4 shrink-0 text-[0.6875rem] font-semibold text-sky tabular-nums">
                   {position + 1}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-xs text-onpanel">
