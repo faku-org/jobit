@@ -212,7 +212,7 @@ function Table({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-sky/50 text-left text-[11px] tracking-wide text-faint uppercase">
+          <tr className="border-b border-sky/50 text-left text-[0.6875rem] tracking-wide text-faint uppercase">
             <th className="pb-2 font-semibold">Nombre</th>
             <th className="pb-2 text-right font-semibold">{unit}</th>
             {showShare ? (
@@ -299,7 +299,7 @@ export function ChartSwitch({
         <button
           key={option}
           aria-pressed={kind === option}
-          className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+          className={`rounded-md px-2.5 py-1 text-[0.6875rem] font-medium transition-colors ${
             kind === option
               ? 'bg-surface text-ink shadow-[var(--shadow-hairline)]'
               : 'text-muted hover:text-ink'

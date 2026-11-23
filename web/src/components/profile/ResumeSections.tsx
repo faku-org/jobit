@@ -207,7 +207,7 @@ export function ResumeSections({
             <Search aria-hidden className="size-3.5" />
             Ver ofertas con esto
           </button>
-          <p className="text-[11px] leading-relaxed text-onpanel-faint">
+          <p className="text-[0.6875rem] leading-relaxed text-onpanel-faint">
             Si marcás más de una opción en un grupo, esas ordenan “Para vos”
             pero no recortan el listado. Jefatura no filtra: los avisos no traen
             ese dato.
@@ -246,12 +246,12 @@ export function ResumeSections({
               type="checkbox"
               onChange={(event) => setWithDisability(event.target.checked)}
             />
-            <span className="text-[11px] leading-relaxed text-onpanel/75">
+            <span className="text-[0.6875rem] leading-relaxed text-onpanel/75">
               Incluir lo de discapacidad en el archivo
             </span>
           </label>
         ) : null}
-        <p className="text-[11px] leading-relaxed text-onpanel-faint">
+        <p className="text-[0.6875rem] leading-relaxed text-onpanel-faint">
           El archivo se arma en tu navegador y se descarga a tu equipo. No pasa
           por ningún servidor.
         </p>

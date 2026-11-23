@@ -95,7 +95,7 @@ export function Tracking({
     return (
       <div className="rounded-2xl border border-dashed border-sky bg-surface/60 px-6 py-16 text-center">
         <ClipboardList aria-hidden className="mx-auto size-7 text-brand" />
-        <p className="mt-4 text-[15px] font-medium text-ink">
+        <p className="mt-4 text-[0.9375rem] font-medium text-ink">
           Todavía no seguís ninguna postulación
         </p>
         <p className="mt-1 text-sm text-muted">
@@ -149,7 +149,7 @@ export function Tracking({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="text-[15px] leading-snug font-medium text-ink">
+                      <h3 className="text-[0.9375rem] leading-snug font-medium text-ink">
                         {goneIds.has(entry.id) ? (
                           entry.title
                         ) : (
@@ -171,7 +171,7 @@ export function Tracking({
                           : ''}
                       </p>
                       {goneIds.has(entry.id) ? (
-                        <p className="mt-1 text-[11px] text-faint">
+                        <p className="mt-1 text-[0.6875rem] text-faint">
                           El aviso ya no está publicado. Queda acá lo que
                           guardamos cuando te postulaste.
                         </p>

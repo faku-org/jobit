@@ -272,7 +272,7 @@ export function SelfTest({
               style={{ width: `${percent}%` }}
             />
           </div>
-          <p className="mt-1.5 text-[11px] text-muted tabular-nums">
+          <p className="mt-1.5 text-[0.6875rem] text-muted tabular-nums">
             {answered} de {ITEM_COUNT} respondidas
           </p>
         </Card>
@@ -324,7 +324,7 @@ export function SelfTest({
                       <span className="text-sm font-semibold tabular-nums">
                         {option.value}
                       </span>
-                      <span className="text-[10px] leading-tight sm:text-[11px]">
+                      <span className="text-[0.625rem] leading-tight sm:text-[0.6875rem]">
                         {option.label}
                       </span>
                     </label>
@@ -388,7 +388,7 @@ export function SelfTest({
             <ArrowRight aria-hidden className="size-4" />
           </button>
         </div>
-        <p className="px-1 text-[11px] text-muted">
+        <p className="px-1 text-[0.6875rem] text-muted">
           Al pausar, lo que contestaste queda guardado en este dispositivo.
         </p>
       </div>
@@ -481,7 +481,7 @@ function Result({
                   <h2 className="text-sm font-semibold text-ink">
                     {trait.label}
                     {highlighted ? (
-                      <span className="ml-2 rounded-full bg-mist px-2 py-0.5 text-[10px] font-medium text-soft">
+                      <span className="ml-2 rounded-full bg-mist px-2 py-0.5 text-[0.625rem] font-medium text-soft">
                         Se nota más
                       </span>
                     ) : null}
@@ -504,7 +504,7 @@ function Result({
                     style={{ width: `${score.percent}%` }}
                   />
                 </div>
-                <div className="mt-1 flex justify-between text-[11px] text-muted">
+                <div className="mt-1 flex justify-between text-[0.6875rem] text-muted">
                   <span>{trait.low}</span>
                   <span>{trait.high}</span>
                 </div>

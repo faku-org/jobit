@@ -239,7 +239,7 @@ function StepBody({ children, step }: { children: ReactNode; step: string }) {
           className="pointer-events-none absolute inset-x-0 bottom-0 flex h-16 items-end justify-center bg-gradient-to-t from-panel via-panel to-transparent pb-2"
           initial={{ opacity: 0 }}
         >
-          <span className="flex items-center gap-1 rounded-full bg-panel px-2.5 py-1 text-[11px] font-medium text-onpanel/75 ring-1 ring-onpanel/15">
+          <span className="flex items-center gap-1 rounded-full bg-panel px-2.5 py-1 text-[0.6875rem] font-medium text-onpanel/75 ring-1 ring-onpanel/15">
             <ChevronDown aria-hidden className="size-3.5" />
             Seguí bajando, hay más
           </span>
@@ -607,7 +607,7 @@ export function Onboarding({
               height={56}
             />
 
-            <h1 className="mt-4 text-2xl leading-tight font-semibold tracking-tight text-ink sm:mt-5 sm:text-[28px]">
+            <h1 className="mt-4 text-2xl leading-tight font-semibold tracking-tight text-ink sm:mt-5 sm:text-[1.75rem]">
               Bienvenido a JobIt
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-soft">
@@ -652,7 +652,7 @@ export function Onboarding({
             initial={{ opacity: 0, y: 16 }}
             transition={fadeUpTransition}
           >
-            <h1 className="text-2xl leading-tight font-semibold tracking-tight text-ink sm:text-[28px]">
+            <h1 className="text-2xl leading-tight font-semibold tracking-tight text-ink sm:text-[1.75rem]">
               Armemos tu lista
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-soft">
@@ -763,18 +763,18 @@ export function Onboarding({
                 <step.icon aria-hidden className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-onpanel-muted tabular-nums">
+                <p className="text-[0.6875rem] font-medium text-onpanel-muted tabular-nums">
                   Paso {index + 1} de {steps.length}
                 </p>
                 <h2
-                  className="text-[17px] leading-tight font-semibold tracking-tight text-balance sm:truncate"
+                  className="text-[1.0625rem] leading-tight font-semibold tracking-tight text-balance sm:truncate"
                   id="onboarding-title"
                 >
                   {step.title}
                 </h2>
               </div>
               <button
-                className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium text-onpanel-muted transition-colors hover:bg-onpanel-wash hover:text-onpanel"
+                className="shrink-0 rounded-lg px-2 py-1 text-[0.6875rem] font-medium text-onpanel-muted transition-colors hover:bg-onpanel-wash hover:text-onpanel"
                 type="button"
                 onClick={skip}
               >
@@ -798,14 +798,14 @@ export function Onboarding({
             </p>
 
             {cvMissed && index === 0 ? (
-              <p className="mx-5 mt-2 rounded-lg bg-onpanel-wash px-2.5 py-2 text-[11px] leading-relaxed text-onpanel/70">
+              <p className="mx-5 mt-2 rounded-lg bg-onpanel-wash px-2.5 py-2 text-[0.6875rem] leading-relaxed text-onpanel/70">
                 Del archivo no salió nada de la lista, así que vamos por las
                 preguntas. Podés volver a probar con otro archivo desde Perfil.
               </p>
             ) : null}
 
             {skipped.length > 0 && index === 0 ? (
-              <p className="mx-5 mt-2 rounded-lg bg-onpanel-wash px-2.5 py-2 text-[11px] leading-relaxed text-onpanel/70">
+              <p className="mx-5 mt-2 rounded-lg bg-onpanel-wash px-2.5 py-2 text-[0.6875rem] leading-relaxed text-onpanel/70">
                 Tu CV ya contestó{' '}
                 {skipped.length === 1
                   ? 'una pregunta'

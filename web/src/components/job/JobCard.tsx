@@ -91,7 +91,7 @@ export function JobCard({
                 Para vos
               </m.span>
             ) : null}
-            <h2 className="text-[17px] leading-snug font-medium tracking-tight text-ink">
+            <h2 className="text-[1.0625rem] leading-snug font-medium tracking-tight text-ink">
               <button
                 className="text-left transition-colors hover:text-brand"
                 type="button"

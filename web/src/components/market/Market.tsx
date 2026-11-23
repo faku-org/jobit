@@ -153,7 +153,7 @@ function SalaryBand({ salary }: { salary: SalarySummary }) {
         />
       </div>
 
-      <div className="mt-2 flex justify-between text-[11px] text-faint tabular-nums">
+      <div className="mt-2 flex justify-between text-[0.6875rem] text-faint tabular-nums">
         <span>{formatPesos(salary.min)}</span>
         <span className="font-medium text-brand">
           mediana {formatPesos(salary.median)}
@@ -174,7 +174,7 @@ const downloadClass = `${chipClass} border border-sky/60 text-muted transition-c
 function Downloads() {
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 px-1">
-      <span className="text-[11px] text-faint">Bajar estos datos</span>
+      <span className="text-[0.6875rem] text-faint">Bajar estos datos</span>
       {(['csv', 'xlsx'] as const).map((format) => (
         <a
           key={format}
@@ -601,7 +601,7 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
         </Section>
       </FadeUp>
 
-      <p className="px-1 pb-2 text-center text-[11px] leading-relaxed text-faint">
+      <p className="px-1 pb-2 text-center text-[0.6875rem] leading-relaxed text-faint">
         <Sparkles
           aria-hidden
           className="mr-1 inline size-3 align-[-1px] text-brand"

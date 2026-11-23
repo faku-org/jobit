@@ -83,7 +83,7 @@ export function CustomSources({
 
   return (
     <div>
-      <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+      <p className="inline-flex items-center gap-1.5 text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
         <Code2 aria-hidden className="size-3" />
         Fuentes propias
         {feeds.length > 0 ? (
@@ -91,7 +91,7 @@ export function CustomSources({
         ) : null}
       </p>
 
-      <p className="mt-2 text-[11px] leading-relaxed text-onpanel-muted">
+      <p className="mt-2 text-[0.6875rem] leading-relaxed text-onpanel-muted">
         Para quien pueda publicar un feed propio: una URL que devuelva JSON con
         un array de ofertas, o un objeto con{' '}
         <code className="text-onpanel/70">jobs</code>. Se lee desde tu
@@ -122,7 +122,7 @@ export function CustomSources({
                     <p className="truncate text-xs font-medium text-onpanel">
                       {feed.label}
                     </p>
-                    <p className="truncate text-[10px] text-onpanel-faint">
+                    <p className="truncate text-[0.625rem] text-onpanel-faint">
                       {feed.url}
                     </p>
                   </div>
@@ -139,7 +139,7 @@ export function CustomSources({
                 </div>
 
                 {feed.enabled ? (
-                  <p className="mt-1.5 flex items-center gap-1.5 pl-5.5 text-[10px]">
+                  <p className="mt-1.5 flex items-center gap-1.5 pl-5.5 text-[0.625rem]">
                     {loading && !result ? (
                       <>
                         <Loader2
@@ -176,7 +176,7 @@ export function CustomSources({
       ) : null}
 
       {full ? (
-        <p className="mt-3 text-[11px] text-onpanel-faint">
+        <p className="mt-3 text-[0.6875rem] text-onpanel-faint">
           Llegaste al máximo de {MAX_FEEDS} fuentes propias.
         </p>
       ) : (
@@ -212,13 +212,13 @@ export function CustomSources({
       )}
 
       <details className="mt-3">
-        <summary className="cursor-pointer text-[11px] font-medium text-onpanel-muted transition-colors hover:text-onpanel">
+        <summary className="cursor-pointer text-[0.6875rem] font-medium text-onpanel-muted transition-colors hover:text-onpanel">
           Ver el formato esperado
         </summary>
-        <pre className="mt-2 overflow-x-auto rounded-lg bg-onpanel-wash p-2.5 text-[10px] leading-relaxed text-onpanel/75">
+        <pre className="mt-2 overflow-x-auto rounded-lg bg-onpanel-wash p-2.5 text-[0.625rem] leading-relaxed text-onpanel/75">
           {EXAMPLE}
         </pre>
-        <p className="mt-1.5 text-[10px] leading-relaxed text-onpanel-faint">
+        <p className="mt-1.5 text-[0.625rem] leading-relaxed text-onpanel-faint">
           Solo <code>title</code> y <code>apply_url</code> son obligatorios. El
           resto sigue los mismos valores que la API: <code>category</code> como
           slug de rubro, <code>level</code> entry/mid/senior,{' '}

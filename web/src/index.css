@@ -172,6 +172,99 @@
   }
 }
 
+/* Preferencias del dispositivo (`lib/display.ts`, `hooks/useDisplay.ts`). Cada
+   una llega como un atributo de <html>; sin atributo, todo queda como estaba. */
+
+/* Escala: Tailwind mide todo en rem (texto, espacios, alturas), así que cambiar
+   el tamaño de la raíz escala la interfaz entera. Los tamaños de letra no se
+   escriben en px por eso mismo: `text-[0.6875rem]`, no `text-[11px]` (hay un
+   test que lo cuida). */
+html[data-scale='90'] {
+  font-size: 90%;
+}
+
+html[data-scale='115'] {
+  font-size: 115%;
+}
+
+html[data-scale='130'] {
+  font-size: 130%;
+}
+
+/* Alto contraste: los mismos nombres de token con valores más fuertes, y los
+   bordes de tarjetas y campos (sky al 50 %) pasan a pleno. Claro: tinta casi
+   negra (12,7:1 sobre el fondo; muted 9:1, faint 5,3:1). Oscuro: blanco sobre
+   casi negro (19,7:1; el texto más tenue 13:1). Se prende solo si el sistema
+   pide `prefers-contrast: more` o si la persona lo elige. */
+[data-contrast='more'] {
+  --color-ink: #06265f;
+  --color-sky: #5b8fcb;
+  --color-brand: #0b57c4;
+  --color-muted: color-mix(in srgb, var(--color-ink) 88%, #fff);
+  --color-soft: color-mix(in srgb, var(--color-ink) 94%, #fff);
+  --color-faint: color-mix(in srgb, var(--color-ink) 72%, #fff);
+  --color-line: color-mix(in srgb, var(--color-ink) 40%, transparent);
+  --color-onpanel-muted: color-mix(
+    in srgb,
+    var(--color-onpanel) 92%,
+    transparent
+  );
+  --color-onpanel-faint: color-mix(
+    in srgb,
+    var(--color-onpanel) 80%,
+    transparent
+  );
+  --color-onpanel-wash: color-mix(
+    in srgb,
+    var(--color-onpanel) 20%,
+    transparent
+  );
+  --shadow-hairline: 0 0 0 1px var(--color-sky);
+}
+
+[data-contrast='more'][data-theme='dark'] {
+  --color-mist: #050b16;
+  --color-sky: #7fb0ea;
+  --color-brand: #8cc0ff;
+  --color-ink: #ffffff;
+  --color-muted: #e6edf5;
+  --color-soft: #f0f4f9;
+  --color-faint: #cbd5e1;
+  --color-wash: #16304f;
+  --color-surface: #0b1626;
+  --color-panel: #12233d;
+  --color-onpanel: #ffffff;
+  --color-onpanel-muted: #eef2f7;
+  --color-onpanel-faint: #d5dde8;
+}
+
+[data-contrast='more'] [class*='border-sky'] {
+  border-color: var(--color-sky);
+}
+
+/* Subrayado de enlaces: todos, también los que parecen botón o pastilla. */
+[data-links='underline'] a[href] {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Reducir movimiento: lo mismo que pide `prefers-reduced-motion`, pero a pedido
+   de la persona. Las animaciones de motion/react se cortan en `MotionConfig`
+   (App.tsx) y el orbe se cambia por un punto quieto (`AuraSpark`); acá van las
+   de CSS: animaciones, transiciones y el scroll suave. Un giro que no termina
+   (`animate-spin`) queda quieto; lo que tiene que verse al final de una
+   animación se ve de entrada. */
+[data-motion='reduce'] *,
+[data-motion='reduce'] *::before,
+[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
 /* The embed sits inside somebody else's page, so it brings no background of
    its own and stays as tall as its card. */
 [data-embed] body {
@@ -391,6 +484,16 @@ span {
   .aura::before {
     transition: none;
   }
+}
+
+[data-motion='reduce'] .aura,
+[data-motion='reduce'] .aura-edge::before,
+[data-motion='reduce'] .aura-edge::after {
+  animation: none;
+}
+
+[data-motion='reduce'] .aura::before {
+  transition: none;
 }
 
 /* The two inputs of the salary range share one track: each is stretched over

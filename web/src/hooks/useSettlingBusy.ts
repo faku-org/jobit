@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-
-const REDUCED = '(prefers-reduced-motion: reduce)'
+import { motionReduced } from '../lib/display.ts'
 
 /** Enough of the busy cycle to read as thinking. The aura's busy spin is 2.6s;
  * a finished answer should not land before one pass has been seen. */
@@ -9,8 +8,8 @@ export const AURA_BUSY_MIN_MS = 2200
 /** First beat when a result appears already done: the orb works, then breathes. */
 export const AURA_INTRO_MS = 1200
 
-const prefersReduced = (): boolean =>
-  typeof window !== 'undefined' && window.matchMedia(REDUCED).matches
+/** El sistema o Preferencias piden menos movimiento: la espera de mentira se salta. */
+const prefersReduced = (): boolean => motionReduced()
 
 export const remainingBusyMs = (started: number, minMs: number): number =>
   prefersReduced() ? 0 : Math.max(0, minMs - (performance.now() - started))

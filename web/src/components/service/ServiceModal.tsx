@@ -201,7 +201,7 @@ export function ServiceModal({ service, onClose }: ServiceModalProps) {
               </div>
             ) : null}
             <h2
-              className="text-[19px] leading-snug font-semibold tracking-tight text-ink"
+              className="text-[1.1875rem] leading-snug font-semibold tracking-tight text-ink"
               id="service-modal-title"
             >
               {service.title}

@@ -106,7 +106,7 @@ export function PhotoField({ value, onChange }: PhotoFieldProps) {
   ) => (
     <div>
       <label
-        className="text-[11px] font-medium text-onpanel/75"
+        className="text-[0.6875rem] font-medium text-onpanel/75"
         htmlFor={`${id}-${key}`}
       >
         {label}
@@ -131,7 +131,7 @@ export function PhotoField({ value, onChange }: PhotoFieldProps) {
 
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+      <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
         Foto
       </p>
 
@@ -214,11 +214,11 @@ export function PhotoField({ value, onChange }: PhotoFieldProps) {
       )}
 
       {error ? (
-        <p className="mt-2 text-[11px] text-onpanel" role="alert">
+        <p className="mt-2 text-[0.6875rem] text-onpanel" role="alert">
           {error}
         </p>
       ) : null}
-      <p className="mt-2 text-[11px] leading-relaxed text-onpanel-faint">
+      <p className="mt-2 text-[0.6875rem] leading-relaxed text-onpanel-faint">
         La recortás y se achica acá mismo. La original no se guarda y nada se
         sube.
       </p>

@@ -59,7 +59,7 @@ export function LinksField({ value, onChange }: LinksFieldProps) {
               className="flex items-center gap-2 rounded-xl bg-onpanel-wash px-3 py-1"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold tracking-wide text-onpanel-muted uppercase">
+                <p className="text-[0.625rem] font-semibold tracking-wide text-onpanel-muted uppercase">
                   {LINK_KIND_LABEL[entry.kind]}
                 </p>
                 <a
@@ -90,7 +90,7 @@ export function LinksField({ value, onChange }: LinksFieldProps) {
       ) : null}
 
       {full ? (
-        <p className="text-[11px] text-onpanel-faint">
+        <p className="text-[0.6875rem] text-onpanel-faint">
           Ya cargaste {MAX_LINKS} links, que es el máximo.
         </p>
       ) : (
@@ -137,7 +137,7 @@ export function LinksField({ value, onChange }: LinksFieldProps) {
           </div>
           {error ? (
             <p
-              className="text-[11px] text-onpanel"
+              className="text-[0.6875rem] text-onpanel"
               id="link-error"
               role="alert"
             >

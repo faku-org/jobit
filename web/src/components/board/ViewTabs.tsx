@@ -45,7 +45,7 @@ export function ViewTabs({
           <button
             key={tab.value}
             aria-selected={active}
-            className={`relative flex min-h-10 items-center justify-center gap-1 rounded-xl px-0.5 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors sm:text-xs md:min-h-0 md:grow md:basis-auto md:gap-1.5 md:px-2.5 md:py-2 md:text-[13px] ${
+            className={`relative flex min-h-10 items-center justify-center gap-1 rounded-xl px-0.5 py-2.5 text-[0.6875rem] font-medium whitespace-nowrap transition-colors sm:text-xs md:min-h-0 md:grow md:basis-auto md:gap-1.5 md:px-2.5 md:py-2 md:text-[0.8125rem] ${
               active ? 'text-onpanel' : 'text-muted hover:text-ink'
             }`}
             role="tab"

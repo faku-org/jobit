@@ -127,7 +127,7 @@ function Group({
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           {title}
           {fix?.edited && !fix.open ? (
             <span className="ml-1.5 font-medium tracking-normal normal-case">
@@ -143,7 +143,7 @@ function Group({
                 ? `Listo con ${title.toLowerCase()}`
                 : `Algo está mal en ${title.toLowerCase()}`
             }
-            className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-onpanel/75 transition-colors hover:bg-onpanel/15 hover:text-onpanel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-md px-1.5 text-[0.6875rem] font-medium text-onpanel/75 transition-colors hover:bg-onpanel/15 hover:text-onpanel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             type="button"
             onClick={fix.onToggle}
           >
@@ -159,7 +159,7 @@ function Group({
       {fix?.open ? (
         <div className="mt-2 space-y-2">
           {fix.editor}
-          <p className="text-[11px] leading-relaxed text-onpanel-faint">
+          <p className="text-[0.6875rem] leading-relaxed text-onpanel-faint">
             Lo que dejes acá es lo que se suma a tu perfil.
           </p>
         </div>
@@ -644,10 +644,10 @@ export function CvImport({
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           {title}
         </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-onpanel-muted">
+        <p className="mt-1 text-[0.6875rem] leading-relaxed text-onpanel-muted">
           Leo el archivo <strong>en este navegador</strong> y busco tus títulos,
           cursos, años de experiencia{withResume ? ', idiomas y links' : ''}. No
           se sube a ningún lado. También sirve tu perfil de LinkedIn: entrá a tu
@@ -681,7 +681,7 @@ export function CvImport({
       ) : null}
 
       {error ? (
-        <p className="rounded-lg bg-onpanel-wash px-2.5 py-2 text-[11px] leading-relaxed text-onpanel/70">
+        <p className="rounded-lg bg-onpanel-wash px-2.5 py-2 text-[0.6875rem] leading-relaxed text-onpanel/70">
           {error}
         </p>
       ) : null}
@@ -718,7 +718,7 @@ export function CvImport({
                 </div>
 
                 {found > 0 ? (
-                  <p className="text-[11px] leading-relaxed text-onpanel/80">
+                  <p className="text-[0.6875rem] leading-relaxed text-onpanel/80">
                     Tocá para sacar lo que no corresponda, o “Algo está mal”
                     para corregirlo acá. Se suma a tu perfil, no lo reemplaza.
                   </p>
@@ -749,7 +749,7 @@ export function CvImport({
                     <Plus aria-hidden className="size-3.5" />
                     Sumar a mi perfil
                   </m.button>
-                  <span className="inline-flex items-center justify-center gap-1 text-[10px] text-onpanel-faint">
+                  <span className="inline-flex items-center justify-center gap-1 text-[0.625rem] text-onpanel-faint">
                     <ShieldCheck aria-hidden className="size-3" />
                     El archivo no salió de tu navegador
                   </span>

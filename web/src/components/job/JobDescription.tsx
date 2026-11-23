@@ -94,7 +94,7 @@ function Spans({ text, marks }: { text: string; marks: Mark[] }) {
 function BlockView({ block, profile }: { block: Block; profile: Profile }) {
   if (block.kind === 'heading') {
     return (
-      <h4 className="mt-6 border-l-[3px] border-brand pl-3 text-[15px] leading-snug font-semibold tracking-tight text-ink first:mt-0">
+      <h4 className="mt-6 border-l-[3px] border-brand pl-3 text-[0.9375rem] leading-snug font-semibold tracking-tight text-ink first:mt-0">
         {block.text}
       </h4>
     )
@@ -136,7 +136,7 @@ function BlockView({ block, profile }: { block: Block; profile: Profile }) {
               aria-hidden
               className="mt-2 size-1.5 shrink-0 rounded-full bg-brand"
             />
-            <span className="text-[15px] leading-relaxed text-ink/80">
+            <span className="text-[0.9375rem] leading-relaxed text-ink/80">
               <Spans marks={findMarks(item, profile)} text={item} />
             </span>
           </li>
@@ -172,7 +172,7 @@ function BlockView({ block, profile }: { block: Block; profile: Profile }) {
   }
 
   return (
-    <p className="mt-2.5 text-[15px] leading-7 text-ink/80">
+    <p className="mt-2.5 text-[0.9375rem] leading-7 text-ink/80">
       <Spans marks={findMarks(block.text, profile)} text={block.text} />
     </p>
   )

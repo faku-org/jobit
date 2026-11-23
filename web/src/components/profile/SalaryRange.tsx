@@ -50,7 +50,7 @@ export function SalaryRange({
     <div>
       <div className="flex items-baseline justify-between gap-2">
         <p
-          className={`text-[11px] font-semibold tracking-wide uppercase ${onMuted}`}
+          className={`text-[0.6875rem] font-semibold tracking-wide uppercase ${onMuted}`}
         >
           Sueldo pretendido
         </p>
@@ -105,7 +105,7 @@ export function SalaryRange({
             onChange({ ...value, includeUnknown: event.target.checked })
           }
         />
-        <span className={`text-[11px] leading-relaxed ${onMuted}`}>
+        <span className={`text-[0.6875rem] leading-relaxed ${onMuted}`}>
           <Wallet aria-hidden className="mr-1 inline size-3 align-[-1px]" />
           Mostrar también las ofertas que no publican el sueldo. Son la mayoría:
           si las sacás, la lista se achica muchísimo.
