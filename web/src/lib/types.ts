@@ -153,12 +153,15 @@ export function relatedApplications(
 export type View =
   | 'all'
   | 'saved'
-  | 'tracking'
-  | 'state'
   | 'services'
   | 'market'
   | 'news'
   | 'test'
+  | 'profile'
+  | 'help'
+
+/** Las dos listas que viven bajo Guardadas. */
+export type SavedTab = 'saved' | 'tracking'
 
 /** How the feed is ordered: newest, best fit, or nearest deadline. */
 export type Sort = 'recent' | 'match' | 'closing'
@@ -185,6 +188,8 @@ export interface Filters {
   days: number | null
   /** Filtra a las empresas donde trabajó la persona (viven en el perfil). */
   myCompanies: boolean
+  /** Solo los llamados del Estado (Uruguay Concursa), por fecha de cierre. */
+  stateOnly: boolean
 }
 
 export const EMPTY_FILTERS: Filters = {
@@ -201,6 +206,7 @@ export const EMPTY_FILTERS: Filters = {
   noExperience: false,
   days: null,
   myCompanies: false,
+  stateOnly: false,
 }
 
 export const hasActiveFilters = (filters: Filters): boolean =>
@@ -216,7 +222,8 @@ export const hasActiveFilters = (filters: Filters): boolean =>
   filters.jobType !== '' ||
   filters.noExperience ||
   filters.days !== null ||
-  filters.myCompanies
+  filters.myCompanies ||
+  filters.stateOnly
 
 /** A monthly pay range in pesos; null on an end means it is not bounded. */
 export interface SalaryPreference {

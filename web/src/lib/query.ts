@@ -15,7 +15,7 @@ export interface BoardContext {
   ranking: Ranking
   savedIds: string[]
   discardedIds: string[]
-  /** Los portales elegidos; Estado ignora esto y va a su propia fuente. */
+  /** Los portales elegidos; el filtro Estado ignora esto y va a su fuente. */
   sources: string[]
   /** Empresas donde trabajó la persona, para el filtro "De mi experiencia". */
   myCompanies: string[]
@@ -35,10 +35,11 @@ const NO_MATCH = 'none'
  */
 function sortFor(
   view: View,
+  stateOnly: boolean,
   preferences: Preferences,
   ranking: Ranking,
 ): Sort | undefined {
-  if (view === 'state') return 'closing'
+  if (stateOnly) return 'closing'
   if (view === 'saved') return undefined
   return preferences.rankByFit && !isEmptyRanking(ranking) ? 'match' : undefined
 }
@@ -46,11 +47,12 @@ function sortFor(
 export function jobsQuery(view: View, context: BoardContext): JobsQueryOptions {
   const { filters, preferences, ranking, sources, similarOnly } = context
   const isSaved = view === 'saved'
-  const isState = view === 'state'
+  /** "Estado" es un filtro de Ofertas: en Guardadas no recorta nada. */
+  const isState = view === 'all' && filters.stateOnly
   /** Descartadas se revisan solo desde Ofertas, y ahí se muestran todas,
    * vengan del portal que vengan. */
-  const reviewing = context.reviewing && view === 'all'
-  const sort = sortFor(view, preferences, ranking)
+  const reviewing = context.reviewing && view === 'all' && !isState
+  const sort = sortFor(view, isState, preferences, ranking)
 
   return {
     filters: { ...filters, category: isSaved ? '' : filters.category },
@@ -76,11 +78,12 @@ export function jobsQuery(view: View, context: BoardContext): JobsQueryOptions {
 }
 
 /** Las que se pintan con una consulta de ofertas: Seguimiento sale de lo que
- * hay guardado acá y Mercado tiene su propio informe. */
-export const BOARD_VIEWS: View[] = ['all', 'state', 'saved']
+ * hay guardado y Mercado tiene su propio informe. */
+export const BOARD_VIEWS: View[] = ['all', 'saved']
 
-/** Mercado y seguimiento no tienen lista propia: se queda la última que sí,
- * para no abortar ni tirar lo que ya se trajo. */
+/** Mercado, seguimiento y las páginas (perfil, ayuda…) no tienen lista
+ * propia: se queda la última que sí, para no abortar ni tirar lo que ya se
+ * trajo. */
 export function keepListView(view: View, last: View): View {
   return BOARD_VIEWS.includes(view) ? view : last
 }

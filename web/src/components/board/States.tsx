@@ -25,6 +25,8 @@ export function JobListSkeleton() {
 interface EmptyStateProps {
   /** The list that came back empty; each one is empty for its own reason. */
   view: View
+  /** Ofertas con el filtro Estado prendido: vuelve vacía por su propio motivo. */
+  stateOnly?: boolean
   similar: boolean
   /** Rubros and zonas the person hid, the one setting that removes offers. */
   hidden: number
@@ -33,7 +35,7 @@ interface EmptyStateProps {
   onReset: () => void
 }
 
-function emptyCopy({ view, similar, hidden }: EmptyStateProps): {
+function emptyCopy({ view, stateOnly, similar, hidden }: EmptyStateProps): {
   title: string
   hint: string
 } {
@@ -43,7 +45,7 @@ function emptyCopy({ view, similar, hidden }: EmptyStateProps): {
       hint: 'Usá el marcador en cada oferta para armar tu lista.',
     }
   }
-  if (view === 'state') {
+  if (view === 'all' && stateOnly) {
     return {
       title: 'No hay llamados del Estado para estos filtros',
       hint:

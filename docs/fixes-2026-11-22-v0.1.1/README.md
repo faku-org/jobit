@@ -37,6 +37,22 @@ que hoy. Elegir es de la persona.
 - [ ] Test de autoconocimiento laboral (IPIP Big Five), con resultado en el dispositivo y
       aviso de que no es un psicotécnico. #75
 
+## Navegación
+
+Pedido de Faku: views propias en vez de submenús y modales. Hecho en v0.6.0
+(`docs/web.md`, "Navegación"). Verificado en local (build + capturas a 390 y 1280 px);
+falta verlo en jobs.wefaber.net después del deploy.
+
+- [~] Perfil como view propia (`?view=profile`): el botón Preferencias de la isla lleva
+  ahí; perfil, CV, preferencias, fuentes, apariencia, cuenta y borrado son secciones
+  visibles con ancla, sin submenús.
+- [~] Novedades con ícono propio (campana) al lado de Preferencias, abre `?view=news`.
+- [~] Seguimiento dentro de Guardadas: `?view=saved` con sub-pestañas, `&tab=tracking`.
+- [~] Estado como filtro dentro de Ofertas (`source=uruguayconcursa`).
+- [~] Ayuda como view propia (`?view=help`), ya no es modal.
+- [~] Pestañas resultantes: Ofertas, Servicios, Guardadas, Mercado. Los enlaces viejos
+  (`?view=tracking`, `?view=state`) redirigen con `replaceState`.
+
 ## Seguimiento y mail
 
 - [ ] Notas por postulación y entrevistas al calendario: `.ics` primero, conectar Google

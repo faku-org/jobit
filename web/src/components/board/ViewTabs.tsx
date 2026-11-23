@@ -1,66 +1,51 @@
-import {
-  Bell,
-  Bookmark,
-  ChartColumn,
-  ClipboardList,
-  Landmark,
-  LayoutList,
-  Wrench,
-} from 'lucide-react'
+import { Bookmark, ChartColumn, LayoutList, Wrench } from 'lucide-react'
 import { m } from 'motion/react'
 import { islandTransition } from '../../lib/motion.ts'
 import type { View } from '../../lib/types.ts'
 
+/** Las pestañas son las cuatro listas de trabajo. Perfil, novedades, ayuda y el
+ * test son páginas propias: no viven acá. */
+export type TabView = 'all' | 'services' | 'saved' | 'market'
+
 interface ViewTabsProps {
   view: View
+  /** Guardadas y las que están en seguimiento: la pestaña las junta. */
   savedCount: number
-  trackedCount: number
-  onChange: (view: View) => void
+  onChange: (view: TabView) => void
   /** Apuntar una pestaña ya es intención de abrirla: se avisa para que lo que
    * hay detrás empiece a venir antes del clic. */
-  onPrefetch: (view: View) => void
+  onPrefetch: (view: TabView) => void
 }
 
-const TABS: { value: View; label: string; icon: typeof LayoutList }[] = [
+const TABS: { value: TabView; label: string; icon: typeof LayoutList }[] = [
   { value: 'all', label: 'Ofertas', icon: LayoutList },
-  { value: 'state', label: 'Estado', icon: Landmark },
   { value: 'services', label: 'Servicios', icon: Wrench },
   { value: 'saved', label: 'Guardadas', icon: Bookmark },
-  { value: 'tracking', label: 'Seguimiento', icon: ClipboardList },
   { value: 'market', label: 'Mercado', icon: ChartColumn },
-  { value: 'news', label: 'Novedades', icon: Bell },
 ]
 
-/** Switches the main area between the feed, the public-sector calls, the
- * services, the shortlist, the follow-up and the country-wide numbers. */
+/** Cambia el área principal entre el listado, los servicios, lo guardado (con
+ * su seguimiento) y los números del país. */
 export function ViewTabs({
   view,
   savedCount,
-  trackedCount,
   onChange,
   onPrefetch,
 }: ViewTabsProps) {
-  const badge = (value: View): number =>
-    value === 'saved' ? savedCount : value === 'tracking' ? trackedCount : 0
-
   return (
-    /* Seis pestañas no entran en una fila de teléfono. En vez de dejarlas
-       envolver a lo que caiga —una fila de cuatro y otra de dos, que cambia de
-       forma según el largo de las palabras— se reagrupan en dos filas parejas
-       de tres, y recién en pantalla ancha vuelven a una sola fila. */
     <div
-      className="grid grid-cols-3 gap-1 rounded-2xl border border-sky/50 bg-surface p-1 shadow-[var(--shadow-hairline)] md:flex"
+      className="grid grid-cols-4 gap-1 rounded-2xl border border-sky/50 bg-surface p-1 shadow-[var(--shadow-hairline)] md:flex"
       role="tablist"
     >
       {TABS.map((tab) => {
         const active = view === tab.value
-        const count = badge(tab.value)
+        const count = tab.value === 'saved' ? savedCount : 0
 
         return (
           <button
             key={tab.value}
             aria-selected={active}
-            className={`relative flex min-h-10 items-center justify-center gap-1 rounded-xl px-0.5 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors md:min-h-0 md:grow md:basis-auto md:gap-1.5 md:px-2.5 md:py-2 md:text-[13px] ${
+            className={`relative flex min-h-10 items-center justify-center gap-1 rounded-xl px-0.5 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors sm:text-xs md:min-h-0 md:grow md:basis-auto md:gap-1.5 md:px-2.5 md:py-2 md:text-[13px] ${
               active ? 'text-onpanel' : 'text-muted hover:text-ink'
             }`}
             role="tab"

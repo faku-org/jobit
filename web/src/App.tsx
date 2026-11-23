@@ -19,6 +19,7 @@ import {
   JobListSkeleton,
 } from './components/board/States.tsx'
 import type { TagActions } from './components/job/JobChips.tsx'
+import { SavedTabs } from './components/board/SavedTabs.tsx'
 import { ViewTabs } from './components/board/ViewTabs.tsx'
 import { useAccountSync } from './hooks/useAccountSync.ts'
 import { useFollowUp } from './hooks/useFollowUp.ts'
@@ -66,6 +67,7 @@ import {
   type Filters,
   type Application,
   type Job,
+  type SavedTab,
   type Tag,
   type View,
   applyTagToFilters,
@@ -103,8 +105,12 @@ const loadSelfTest = () =>
     default: module.SelfTest,
   }))
 const loadHelp = () =>
-  import('./components/help/Help.tsx').then((module) => ({
-    default: module.Help,
+  import('./components/help/HelpPage.tsx').then((module) => ({
+    default: module.HelpPage,
+  }))
+const loadProfile = () =>
+  import('./components/profile/ProfilePage.tsx').then((module) => ({
+    default: module.ProfilePage,
   }))
 
 const Onboarding = lazy(loadOnboarding)
@@ -113,27 +119,25 @@ const JobModal = lazy(loadJobModal)
 const Tracking = lazy(loadTracking)
 const News = lazy(loadNews)
 const SelfTest = lazy(loadSelfTest)
-const Help = lazy(loadHelp)
+const HelpPage = lazy(loadHelp)
+const ProfilePage = lazy(loadProfile)
 
 /**
  * One line under the tabs saying what each list is for. The shortlist and the
  * follow-up looked interchangeable without it, and they are not: one is before
  * applying and the other is after.
  */
-const VIEW_HINT: Record<View, string> = {
-  all: '',
-  state:
-    'Llamados públicos de Uruguay Concursa, ordenados por el que cierra primero.',
-  saved:
-    'Las que marcaste para pensar. Cuando te postulás pasan solas a Seguimiento.',
-  tracking:
-    'Las que ya mandaste, con el estado de cada una. Tocá una para ver la oferta.',
-  /** La sección de servicios trae su propia línea, con el botón de publicar. */
-  services: '',
-  market: '',
-  news: '',
-  /** El test tiene su propia pantalla, con su aviso y su avance. */
-  test: '',
+const viewHint = (
+  view: View,
+  savedTab: SavedTab,
+  stateOnly: boolean,
+): string => {
+  if (view === 'all' && stateOnly)
+    return 'Llamados públicos de Uruguay Concursa, ordenados por el que cierra primero.'
+  if (view !== 'saved') return ''
+  return savedTab === 'tracking'
+    ? 'Las que ya mandaste, con el estado de cada una. Tocá una para ver la oferta.'
+    : 'Las que marcaste para pensar. Cuando te postulás pasan solas a Seguimiento.'
 }
 
 /** La ventana del tablero que mira Novedades para recomendar. */
@@ -163,8 +167,8 @@ export default function App() {
     slug: string
     label: string
   } | null>(null)
-  /** La ayuda general es una capa sobre todo lo demás, así que vive acá. */
-  const [helpOpen, setHelpOpen] = useState(false)
+  /** Guardadas trae dos listas; cuál se mira va en la URL (`&tab=tracking`). */
+  const [savedTab, setSavedTab] = useState<SavedTab>(linked.tab)
   /** Opening a tracked application means fetching the offer behind its
    * snapshot; it may be gone, and then the row says so instead. */
   const [openingId, setOpeningId] = useState<string | null>(null)
@@ -196,6 +200,8 @@ export default function App() {
     ...filters,
     ...search.filters,
     q: search.text,
+    /* Estado filtra Ofertas; en las demás listas no cuenta ni ensucia. */
+    stateOnly: view === 'all' && filters.stateOnly,
   }
   /**
    * Read from storage on the first render, so a first visit paints the intro
@@ -210,8 +216,10 @@ export default function App() {
   useViewLink(
     view,
     filters,
+    savedTab,
     (state) => {
       setView(state.view)
+      setSavedTab(state.tab)
       setFilters(state.filters)
       setSavedCategory('')
       setReviewingDiscarded(false)
@@ -222,11 +230,18 @@ export default function App() {
   const savedIds = [...prefs.saved].sort()
   const discardedIds = [...prefs.dismissed].sort()
   const isSavedView = view === 'saved'
-  const isStateView = view === 'state'
+  const isTrackingView = isSavedView && savedTab === 'tracking'
+  /** Estado ya no es una vista: es el filtro de Ofertas que deja los llamados
+   * de Uruguay Concursa. */
+  const isStateView = effectiveFilters.stateOnly
   const isMarketView = view === 'market'
   const isServicesView = view === 'services'
   const isNewsView = view === 'news'
   const isTestView = view === 'test'
+  const isProfileView = view === 'profile'
+  const isHelpView = view === 'help'
+  /** Páginas propias: sin pestañas, con su botón para volver al listado. */
+  const isPageView = isNewsView || isTestView || isProfileView || isHelpView
   /**
    * The pile is reviewed in one place only. Discarding works anywhere, but the
    * pile is global: offering it inside Estado would show a count of offers most
@@ -287,7 +302,12 @@ export default function App() {
 
   /** Estado es otra consulta (fuente + cierre) y si espera a que Ofertas
    * termine siempre llega tarde. Se pide en cuanto hay app, en paralelo. */
-  const stateKey = jobsQueryKey(jobsQuery('state', board))
+  const stateKey = jobsQueryKey(
+    jobsQuery('all', {
+      ...board,
+      filters: { ...board.filters, stateOnly: true },
+    }),
+  )
   useEffect(() => {
     if (showIntro) return
     prefetchJobs(stateKey)
@@ -317,15 +337,21 @@ export default function App() {
 
   const prefetchView = (next: View) => {
     if (next === 'news') {
+      void loadNews()
       prefetchMarket()
       prefetchJobs(jobsQueryKey(newsQuery))
     } else if (next === 'market') prefetchMarket()
-    else if (next === 'tracking') {
-      void loadTracking()
-      prefetchJobIds(trackedKey.split(',').filter(Boolean))
-    } else if (next !== 'services' && worthPrefetching(next)) {
-      prefetchJobs(jobsQueryKey(jobsQuery(next, board)))
+    else if (next === 'all' || next === 'saved') {
+      if (worthPrefetching(next))
+        prefetchJobs(jobsQueryKey(jobsQuery(next, board)))
     }
+  }
+
+  /** Seguimiento vive dentro de Guardadas: su código y las ofertas detrás de
+   * cada postulación se traen antes del clic. */
+  const prefetchTracking = () => {
+    void loadTracking()
+    prefetchJobIds(trackedKey.split(',').filter(Boolean))
   }
 
   /** La ficha es 20 KB: si se pide al abrir, el clic espera el JS. Se trae
@@ -343,13 +369,13 @@ export default function App() {
       void loadTracking()
       prefetchJobIds(trackedKey.split(',').filter(Boolean))
     }
-    if (view === 'tracking') {
+    if (isTrackingView) {
       warm()
       return
     }
     if (status !== 'ready') return
     return onIdle(warm)
-  }, [showIntro, view, status, trackedKey])
+  }, [showIntro, isTrackingView, status, trackedKey])
 
   const matches = new Set(
     hasPreferences
@@ -475,6 +501,7 @@ export default function App() {
 
   const changeView = (next: View) => {
     setView(next)
+    setSavedTab('saved')
     setSavedCategory('')
     setReviewingDiscarded(false)
   }
@@ -488,75 +515,110 @@ export default function App() {
   return (
     <div className="min-h-svh">
       <DynamicIsland
-        categories={meta?.categories ?? []}
-        counts={{
-          saved: prefs.saved.size,
-          applications: prefs.applications.length,
-          dismissed: prefs.dismissed.size,
-        }}
-        departments={meta?.departments ?? []}
-        feedResults={customFeeds.results}
-        feeds={prefs.feeds}
-        feedsLoading={customFeeds.loading}
-        meta={meta}
-        preferences={prefs.preferences}
-        profile={prefs.profile}
-        session={session}
-        sources={prefs.sources}
-        sync={accountSync}
-        theme={prefs.theme}
-        usage={usage}
-        onChangePreferences={prefs.setPreferences}
-        onChangeProfile={prefs.setProfile}
-        onChangeSources={prefs.setSources}
-        onChangeFeeds={prefs.setFeeds}
-        onChangeTheme={prefs.setTheme}
-        onEraseEverything={() => {
-          prefs.eraseEverything()
-          followUp.erase()
-        }}
-        resume={prefs.resume}
-        onChangeResume={prefs.setResume}
-        onImportCv={(nextProfile, nextPreferences, found) => {
-          prefs.setProfile(nextProfile)
-          prefs.setPreferences(nextPreferences)
-          prefs.setResume(mergeReading(prefs.resume, found))
-        }}
-        onSearchBoard={() => {
-          setView('all')
-          setFilters(filtersFromSearch(prefs.resume, prefs.preferences))
-        }}
-        onOpenHelp={() => setHelpOpen(true)}
-        onOpenTest={() => changeView('test')}
+        count={
+          preferenceCount(prefs.preferences) + hiddenCount(prefs.preferences)
+        }
+        view={view}
+        onOpenHelp={() => changeView('help')}
+        onOpenNews={() => changeView('news')}
+        onOpenProfile={() => changeView('profile')}
         onPrefetchHelp={() => void loadHelp()}
-        onPrefetchTest={() => void loadSelfTest()}
+        onPrefetchNews={() => prefetchView('news')}
+        onPrefetchProfile={() => void loadProfile()}
       />
 
       <main className="mx-auto max-w-3xl px-5 pt-24 pb-16 sm:pt-28">
-        {/* El test es una pantalla aparte, no una pestaña más: con siete ya no
-            entran en el ancho del tablero en tablet. Mientras se hace no hay
-            pestañas, y salir (o el botón Atrás) lleva al listado. */}
-        {isTestView ? null : (
-          <FadeUp>
-            <ViewTabs
-              savedCount={prefs.saved.size}
-              trackedCount={prefs.applications.length}
-              view={view}
-              onChange={changeView}
-              onPrefetch={prefetchView}
-            />
-          </FadeUp>
+        {/* Perfil, novedades, ayuda y el test son páginas aparte, no pestañas
+            más: cada una tiene su enlace, no lleva pestañas y salir (o el botón
+            Atrás) lleva al listado. */}
+        {isPageView ? null : (
+          <>
+            <h1 className="sr-only">JobIt: ofertas de trabajo en Uruguay</h1>
+            <FadeUp>
+              <ViewTabs
+                savedCount={prefs.saved.size + prefs.applications.length}
+                view={view}
+                onChange={changeView}
+                onPrefetch={prefetchView}
+              />
+            </FadeUp>
+          </>
         )}
 
-        {VIEW_HINT[view] ? (
+        {isSavedView ? (
+          <FadeUp delay={0.02}>
+            <SavedTabs
+              savedCount={prefs.saved.size}
+              tab={savedTab}
+              trackedCount={prefs.applications.length}
+              onChange={(tab) => {
+                setSavedTab(tab)
+                setSavedCategory('')
+              }}
+              onPrefetchTracking={prefetchTracking}
+            />
+          </FadeUp>
+        ) : null}
+
+        {viewHint(view, savedTab, isStateView) ? (
           <FadeUp delay={0.03}>
             <p className="mt-3 px-1 text-xs leading-relaxed text-muted">
-              {VIEW_HINT[view]}
+              {viewHint(view, savedTab, isStateView)}
             </p>
           </FadeUp>
         ) : null}
 
-        {view === 'tracking' ? (
+        {isProfileView ? (
+          <Suspense fallback={<JobListSkeleton />}>
+            <ProfilePage
+              categories={meta?.categories ?? []}
+              counts={{
+                saved: prefs.saved.size,
+                applications: prefs.applications.length,
+                dismissed: prefs.dismissed.size,
+              }}
+              departments={meta?.departments ?? []}
+              feedResults={customFeeds.results}
+              feeds={prefs.feeds}
+              feedsLoading={customFeeds.loading}
+              meta={meta}
+              preferences={prefs.preferences}
+              profile={prefs.profile}
+              resume={prefs.resume}
+              session={session}
+              sources={prefs.sources}
+              sync={accountSync}
+              theme={prefs.theme}
+              usage={usage}
+              onBack={() => changeView('all')}
+              onChangePreferences={prefs.setPreferences}
+              onChangeProfile={prefs.setProfile}
+              onChangeResume={prefs.setResume}
+              onChangeSources={prefs.setSources}
+              onChangeFeeds={prefs.setFeeds}
+              onChangeTheme={prefs.setTheme}
+              onEraseEverything={() => {
+                prefs.eraseEverything()
+                followUp.erase()
+              }}
+              onImportCv={(nextProfile, nextPreferences, found) => {
+                prefs.setProfile(nextProfile)
+                prefs.setPreferences(nextPreferences)
+                prefs.setResume(mergeReading(prefs.resume, found))
+              }}
+              onOpenTest={() => changeView('test')}
+              onPrefetchTest={() => void loadSelfTest()}
+              onSearchBoard={() => {
+                changeView('all')
+                setFilters(filtersFromSearch(prefs.resume, prefs.preferences))
+              }}
+            />
+          </Suspense>
+        ) : isHelpView ? (
+          <Suspense fallback={<JobListSkeleton />}>
+            <HelpPage onBack={() => changeView('all')} />
+          </Suspense>
+        ) : isTrackingView ? (
           <div className="mt-6">
             <FadeUp delay={0.05}>
               <Suspense fallback={<JobListSkeleton />}>
@@ -627,6 +689,7 @@ export default function App() {
                 preferences={prefs.preferences}
                 profile={prefs.profile}
                 status={news.status}
+                onBack={() => changeView('all')}
                 onExplore={(category) => {
                   setView('all')
                   setFilters({ ...EMPTY_FILTERS, category })
@@ -660,6 +723,7 @@ export default function App() {
                 onlySimilar={similarOnly}
                 reviewingDiscarded={reviewing}
                 showCategory={!isSavedView}
+                showState={view === 'all'}
                 onChange={setFilters}
                 onReset={reset}
                 onToggleReviewDiscarded={() =>
@@ -719,11 +783,11 @@ export default function App() {
                 >
                   {pluralOffers(total)}
                   {visible.length < total
-                    ? ` Â· mostrando ${visible.length}`
+                    ? ` · mostrando ${visible.length}`
                     : ''}
-                  {discardedHere > 0 ? ` Â· ${discardedHere} descartadas` : ''}
-                  {sort === 'match' ? ' Â· ordenadas para vos' : ''}
-                  {sort === 'closing' ? ' Â· las que cierran primero' : ''}
+                  {discardedHere > 0 ? ` · ${discardedHere} descartadas` : ''}
+                  {sort === 'match' ? ' · ordenadas para vos' : ''}
+                  {sort === 'closing' ? ' · las que cierran primero' : ''}
                 </m.span>
               ) : null}
             </div>
@@ -797,6 +861,7 @@ export default function App() {
                     canReset={isDirty}
                     hidden={hiddenCount(prefs.preferences)}
                     similar={similarOnly}
+                    stateOnly={isStateView}
                     view={view}
                     onReset={reset}
                   />
@@ -896,13 +961,6 @@ export default function App() {
           }}
           onClose={() => setOpenEmployer(null)}
         />
-      ) : null}
-
-      {/* La ayuda general, encima de todo: es una capa, igual que la intro. */}
-      {helpOpen ? (
-        <Suspense fallback={null}>
-          <Help onClose={() => setHelpOpen(false)} />
-        </Suspense>
       ) : null}
 
       {practiceJob ? (

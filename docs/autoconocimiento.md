@@ -12,13 +12,14 @@ encajar. Es una guía para pensar qué trabajo queda cómodo, no una evaluación
 ## Dónde vive
 
 Es una vista propia del tablero (`view: 'test'`, enlazable con `?view=test`), no
-una pestaña más. Se entra desde **Perfil** en la isla, bajo "Autoconocimiento".
+una pestaña más. Se entra desde la página de **Perfil** (`?view=profile`, botón
+Preferencias de la isla), bajo "Autoconocimiento".
 
 Por qué no es una pestaña: con una octava, la barra de pestañas mide cerca de
 740 px y en tablet el tablero tiene 728 px. Además "una cosa por pantalla"
 (`DESIGN.md`): un cuestionario largo con su propio avance no comparte pantalla
 con un listado de ofertas. Mientras se hace no hay pestañas; salir o el botón
-Atrás del navegador vuelve al listado. El perfil de la isla es el lugar donde
+Atrás del navegador vuelve al listado. El perfil es el lugar donde
 la persona ya mira "qué sé de mí y qué guarda JobIt".
 
 ## Puntaje

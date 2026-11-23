@@ -35,7 +35,10 @@ src/
   App.tsx             el tablero
   index.css           tokens de Tailwind (@theme) y base
   components/
-    board/            isla, filtros, pestañas, seguimiento
+    board/            isla, filtros, pestañas, guardadas/seguimiento
+    page/             PageHeader de las views propias
+    help/             la página de ayuda
+    news/             la página de novedades
     followup/         notas y entrevistas de una postulación (ver abajo)
     job/              tarjeta y ficha de una oferta
     market/           el informe del mercado
@@ -49,6 +52,29 @@ src/
   hooks/              hooks de React
   legal.ts            el JS mínimo de las legales
 ```
+
+## Navegación
+
+El estado de la pantalla vive en la URL (`lib/url.ts`, `hooks/useViewLink.ts`).
+
+| URL                 | Qué abre                                                  |
+| ------------------- | --------------------------------------------------------- |
+| `/`                 | Ofertas. Con `?source=uruguayconcursa`, el filtro Estado. |
+| `/?view=services`   | Servicios.                                                |
+| `/?view=saved`      | Guardadas. Con `&tab=tracking`, Seguimiento.              |
+| `/?view=market`     | Mercado.                                                  |
+| `/?view=profile#cv` | Perfil, con anclas por sección (`#preferencias`, `#cv`…). |
+| `/?view=news`       | Novedades (campana de la isla).                           |
+| `/?view=help`       | Ayuda (signo de pregunta de la isla).                     |
+| `/?view=test`       | Test de autoconocimiento (desde Perfil).                  |
+
+Pestañas: Ofertas, Servicios, Guardadas, Mercado. Perfil, novedades, ayuda y test
+son páginas con `PageHeader` y sin pestañas. Cambiar de view o de pestaña de
+Guardadas hace `pushState`; editar filtros hace `replaceState`.
+
+Enlaces viejos: `?view=tracking` se lee como `?view=saved&tab=tracking` y
+`?view=state` como `/?source=uruguayconcursa`; la barra se reescribe con
+`replaceState` al cargar. La regla de diseño está en `DESIGN.md` ("Navegación").
 
 ## Notas y entrevistas
 

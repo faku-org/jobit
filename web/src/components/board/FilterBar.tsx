@@ -1,4 +1,12 @@
-import { Bookmark, Building2, EyeOff, Sparkles, Target, X } from 'lucide-react'
+import {
+  Bookmark,
+  Building2,
+  EyeOff,
+  Landmark,
+  Sparkles,
+  Target,
+  X,
+} from 'lucide-react'
 import { m } from 'motion/react'
 import type {
   Facet,
@@ -35,6 +43,9 @@ interface FilterBarProps {
   isDirty: boolean
   /** The saved view filters by rubro with its own chips, so it hides this one. */
   showCategory: boolean
+  /** "Estado" (los llamados de Uruguay Concursa) filtra Ofertas; las guardadas
+   * ya son una lista cerrada y no lo muestran. */
+  showState: boolean
   onChange: (filters: Filters) => void
   onToggleReviewDiscarded: () => void
   onToggleSimilar: () => void
@@ -124,6 +135,7 @@ export function FilterBar({
   onlySimilar,
   isDirty,
   showCategory,
+  showState,
   onChange,
   onToggleReviewDiscarded,
   onToggleSimilar,
@@ -220,6 +232,18 @@ export function FilterBar({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {showState ? (
+          <Toggle
+            active={filters.stateOnly}
+            icon={Landmark}
+            onClick={() =>
+              onChange({ ...filters, stateOnly: !filters.stateOnly })
+            }
+          >
+            Estado
+          </Toggle>
+        ) : null}
+
         {hasPreferences ? (
           <Toggle active={onlySimilar} icon={Target} onClick={onToggleSimilar}>
             Solo similares{matchCount > 0 ? ` (${matchCount})` : ''}

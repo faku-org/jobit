@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { type ViewState, readViewState, writeViewState } from '../lib/url.ts'
-import type { Filters, View } from '../lib/types.ts'
+import type { Filters, SavedTab, View } from '../lib/types.ts'
 
 /**
  * Ties the section on screen to the address bar in both directions, the way
@@ -11,10 +11,12 @@ import type { Filters, View } from '../lib/types.ts'
 export function useViewLink(
   view: View,
   filters: Filters,
+  tab: SavedTab,
   onNavigate: (state: ViewState) => void,
   ready: boolean,
 ): void {
   const previousView = useRef(view)
+  const previousTab = useRef(tab)
   /** Kept in a ref so a fresh closure on every render does not resubscribe. */
   const latest = useRef(onNavigate)
 
@@ -25,10 +27,15 @@ export function useViewLink(
   useEffect(() => {
     if (!ready) return
 
-    const push = view !== previousView.current
+    /* Pasar de Guardadas a Seguimiento es un lugar al que el botón Atrás
+       vuelve, igual que cambiar de pestaña. */
+    const push =
+      view !== previousView.current ||
+      (view === 'saved' && tab !== previousTab.current)
     previousView.current = view
-    writeViewState({ view, filters }, push)
-  }, [ready, view, filters])
+    previousTab.current = tab
+    writeViewState({ view, filters, tab }, push)
+  }, [ready, view, filters, tab])
 
   useEffect(() => {
     if (!ready) return
@@ -36,6 +43,7 @@ export function useViewLink(
     const onPopState = (): void => {
       const state = readViewState()
       previousView.current = state.view
+      previousTab.current = state.tab
       latest.current(state)
     }
 

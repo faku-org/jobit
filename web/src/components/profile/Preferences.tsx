@@ -13,12 +13,6 @@ import {
   formatScrapedAt,
   pluralOffers,
 } from '../../lib/format.ts'
-import {
-  advancedSummary,
-  searchSummary,
-  sourcesSummary,
-  workSummary,
-} from '../../lib/sections.ts'
 import type {
   Facet,
   JobType,
@@ -38,8 +32,6 @@ import {
   withCategoryStances,
   withDepartmentStances,
 } from '../../lib/types.ts'
-import type { SectionId } from '../../hooks/useSections.ts'
-import { useSections } from '../../hooks/useSections.ts'
 import { CustomSources } from './CustomSources.tsx'
 import {
   PanelChip as Chip,
@@ -55,13 +47,17 @@ interface PreferencesPanelProps {
   categories: Facet[]
   departments: Facet[]
   preferences: Preferences
+  onChange: (preferences: Preferences) => void
+}
+
+interface SourcesPanelProps {
+  meta: Meta | null
   /** Chosen job boards; empty means every source the API offers. */
   sources: string[]
   /** Extra feeds this browser reads on its own. */
   feeds: CustomFeed[]
   feedResults: FeedResult[]
   feedsLoading: boolean
-  onChange: (preferences: Preferences) => void
   onChangeSources: (sources: string[]) => void
   onChangeFeeds: (feeds: CustomFeed[]) => void
 }
@@ -128,7 +124,7 @@ const labelFrom = (facets: Facet[]) => (value: string) =>
   facets.find((facet) => facet.value === value)?.label
 
 /**
- * Lives inside the island: what the person is looking for and where the offers
+ * Lives in the profile page: what the person is looking for and where the offers
  * come from. Ten groups in a row were a form nobody finished, so the questions
  * are grouped by theme and follow the order the onboarding asks them in.
  */
@@ -137,26 +133,13 @@ export function PreferencesPanel({
   categories,
   departments,
   preferences,
-  sources,
-  feeds,
-  feedResults,
-  feedsLoading,
   onChange,
-  onChangeSources,
-  onChangeFeeds,
 }: PreferencesPanelProps) {
-  const [open, toggleSection] = useSections()
   const count = preferenceCount(preferences)
   const hidden = hiddenCount(preferences)
-  const allSources = meta?.sources ?? []
-
-  const section = (id: SectionId) => ({
-    open: open[id],
-    onToggle: () => toggleSection(id),
-  })
 
   return (
-    <div className="space-y-4 px-4 pt-1 pb-4">
+    <div className="space-y-6">
       <div>
         <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
           Orden del listado
@@ -206,11 +189,7 @@ export function PreferencesPanel({
         </p>
       </div>
 
-      <PanelSection
-        summary={searchSummary(preferences, categories, departments)}
-        title="Qué buscás"
-        {...section('search')}
-      >
+      <PanelSection title="Qué buscás">
         <StanceChips
           facets={categories}
           hint="Una vez para priorizarlo, otra para ocultarlo, otra para dejarlo neutro."
@@ -256,11 +235,7 @@ export function PreferencesPanel({
         ) : null}
       </PanelSection>
 
-      <PanelSection
-        summary={workSummary(preferences)}
-        title="Cómo querés trabajar"
-        {...section('work')}
-      >
+      <PanelSection title="Cómo querés trabajar">
         <SalaryRange
           value={preferences.salary}
           onChange={(salary) => onChange({ ...preferences, salary })}
@@ -318,47 +293,6 @@ export function PreferencesPanel({
         </Group>
       </PanelSection>
 
-      <PanelSection
-        summary={sourcesSummary(sources, allSources)}
-        title="Fuentes"
-        {...section('sources')}
-      >
-        {allSources.length > 0 ? (
-          <Group title="De dónde salen las ofertas">
-            {allSources.map((source) => (
-              <Chip
-                key={source}
-                active={sources.length === 0 || sources.includes(source)}
-                onClick={() =>
-                  onChangeSources(toggleSource(sources, allSources, source))
-                }
-              >
-                {SOURCE_LABEL[source] ?? source}
-              </Chip>
-            ))}
-          </Group>
-        ) : (
-          <p className="text-[11px] leading-relaxed text-onpanel-faint">
-            Todavía no llegaron las fuentes del momento.
-          </p>
-        )}
-      </PanelSection>
-
-      {/* Lo de acá abajo pide poder publicar un feed: es de otra liga que el
-          resto del panel y por eso vive en su propia sección. */}
-      <PanelSection
-        summary={advancedSummary(feeds)}
-        title="Avanzado"
-        {...section('advanced')}
-      >
-        <CustomSources
-          feeds={feeds}
-          loading={feedsLoading}
-          results={feedResults}
-          onChange={onChangeFeeds}
-        />
-      </PanelSection>
-
       <div className="flex items-center justify-between gap-3 border-t border-onpanel/10 pt-3">
         <p className="text-[11px] leading-snug text-onpanel-muted">
           {meta ? (
@@ -382,6 +316,59 @@ export function PreferencesPanel({
           </button>
         ) : null}
       </div>
+    </div>
+  )
+}
+
+/**
+ * De dónde salen las ofertas: los portales que trae la API y, aparte, los
+ * feeds propios. Es otra pregunta que la de qué se busca, y tiene su ancla.
+ */
+export function SourcesPanel({
+  meta,
+  sources,
+  feeds,
+  feedResults,
+  feedsLoading,
+  onChangeSources,
+  onChangeFeeds,
+}: SourcesPanelProps) {
+  const allSources = meta?.sources ?? []
+
+  return (
+    <div className="space-y-6">
+      <PanelSection title="Fuentes">
+        {allSources.length > 0 ? (
+          <Group title="De dónde salen las ofertas">
+            {allSources.map((source) => (
+              <Chip
+                key={source}
+                active={sources.length === 0 || sources.includes(source)}
+                onClick={() =>
+                  onChangeSources(toggleSource(sources, allSources, source))
+                }
+              >
+                {SOURCE_LABEL[source] ?? source}
+              </Chip>
+            ))}
+          </Group>
+        ) : (
+          <p className="text-[11px] leading-relaxed text-onpanel-faint">
+            Todavía no llegaron las fuentes del momento.
+          </p>
+        )}
+      </PanelSection>
+
+      {/* Lo de acá abajo pide poder publicar un feed: es de otra liga que el
+          resto del panel y por eso vive en su propia sección. */}
+      <PanelSection title="Avanzado">
+        <CustomSources
+          feeds={feeds}
+          loading={feedsLoading}
+          results={feedResults}
+          onChange={onChangeFeeds}
+        />
+      </PanelSection>
     </div>
   )
 }

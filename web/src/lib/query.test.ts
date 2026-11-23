@@ -38,10 +38,11 @@ describe('jobsQuery', () => {
     expect(jobsQuery('all', context()).sort).toBeUndefined()
   })
 
-  test('Estado va a su fuente y corre contra la fecha de cierre', () => {
+  test('el filtro Estado va a su fuente y corre contra la fecha de cierre', () => {
     const query = jobsQuery(
-      'state',
+      'all',
       context({
+        filters: { ...EMPTY_FILTERS, stateOnly: true },
         preferences: wanting,
         ranking: toRanking(wanting, EMPTY_PROFILE),
         sources: ['gallito'],
@@ -86,21 +87,34 @@ describe('jobsQuery', () => {
     /** Y sin fuente, porque una descartada puede venir de cualquier portal. */
     expect(jobsQuery('all', reviewing).sources).toBeUndefined()
     expect(jobsQuery('saved', reviewing).ids).toEqual(['none'])
-    expect(jobsQuery('state', reviewing).ids).toBeUndefined()
+    expect(
+      jobsQuery('all', {
+        ...reviewing,
+        filters: { ...EMPTY_FILTERS, stateOnly: true },
+      }).ids,
+    ).toBeUndefined()
   })
 
-  test('dos vistas con lo mismo piden lo mismo, que es lo que comparte la caché', () => {
-    expect(jobsQuery('all', context())).toEqual(
-      jobsQuery('tracking', context()),
+  test('Estado no recorta la lista de guardadas', () => {
+    const query = jobsQuery(
+      'saved',
+      context({
+        filters: { ...EMPTY_FILTERS, stateOnly: true },
+        savedIds: ['a'],
+      }),
     )
+
+    expect(query.sources).toEqual([])
+    expect(query.sort).toBeUndefined()
   })
 })
 
 describe('keepListView', () => {
   test('Mercado y seguimiento no pisan la lista que se estaba mirando', () => {
-    expect(keepListView('market', 'state')).toBe('state')
-    expect(keepListView('tracking', 'all')).toBe('all')
-    expect(keepListView('state', 'all')).toBe('state')
+    expect(keepListView('market', 'saved')).toBe('saved')
+    expect(keepListView('profile', 'all')).toBe('all')
+    expect(keepListView('help', 'saved')).toBe('saved')
+    expect(keepListView('news', 'all')).toBe('all')
     expect(keepListView('saved', 'all')).toBe('saved')
   })
 })

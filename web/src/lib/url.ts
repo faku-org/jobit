@@ -3,6 +3,8 @@ import {
   type Filters,
   type JobType,
   type Level,
+  type SavedTab,
+  STATE_SOURCE,
   type View,
   type WorkMode,
 } from './types.ts'
@@ -20,18 +22,31 @@ import {
 export interface ViewState {
   view: View
   filters: Filters
+  /** Qué lista de Guardadas se mira; en las demás vistas no cuenta. */
+  tab: SavedTab
 }
 
 const VIEWS: View[] = [
   'all',
   'saved',
-  'tracking',
-  'state',
   'services',
   'market',
   'news',
   'test',
+  'profile',
+  'help',
 ]
+
+/**
+ * Los enlaces que ya andan por ahí con la estructura anterior: Seguimiento era
+ * una pestaña y Estado otra. Se leen como lo que son hoy y la barra de
+ * direcciones se reescribe sola con la forma nueva.
+ */
+const LEGACY: Record<string, { view: View; tab?: SavedTab; stateOnly?: true }> =
+  {
+    tracking: { view: 'saved', tab: 'tracking' },
+    state: { view: 'all', stateOnly: true },
+  }
 const LEVELS: Level[] = ['entry', 'mid', 'senior']
 const MODES: WorkMode[] = ['onsite', 'remote', 'hybrid']
 const JOB_TYPES: JobType[] = ['full_time', 'part_time', 'internship']
@@ -39,6 +54,9 @@ const JOB_TYPES: JobType[] = ['full_time', 'part_time', 'internship']
 /** The names the API already takes, so the project keeps one vocabulary. */
 const PARAM = {
   view: 'view',
+  tab: 'tab',
+  /** Como en la API: `source=uruguayconcursa` es el filtro Estado. */
+  source: 'source',
   q: 'q',
   category: 'category',
   department: 'department',
@@ -73,11 +91,23 @@ export function readViewState(
    * nada que ver con lo que la persona vino a mirar. */
   const linkedService = params.get('service') ? 'services' : 'all'
 
+  const named = params.get(PARAM.view) ?? ''
+  const legacy = Object.hasOwn(LEGACY, named) ? LEGACY[named] : undefined
+  const view: View =
+    legacy?.view ?? VIEWS.find((value) => value === named) ?? linkedService
+
   return {
-    view:
-      VIEWS.find((value) => value === params.get(PARAM.view)) ?? linkedService,
+    view,
+    tab:
+      legacy?.tab ??
+      (params.get(PARAM.tab) === 'tracking' ? 'tracking' : 'saved'),
     filters: {
       ...EMPTY_FILTERS,
+      /** Es un filtro de Ofertas: en otra vista no quiere decir nada. */
+      stateOnly:
+        view === 'all' &&
+        (legacy?.stateOnly === true ||
+          params.get(PARAM.source) === STATE_SOURCE),
       q: params.get(PARAM.q)?.slice(0, MAX_QUERY) ?? '',
       category: params.get(PARAM.category) ?? '',
       department: params.get(PARAM.department) ?? '',
@@ -100,9 +130,8 @@ export function readViewState(
  * is not: pushing those would turn every letter typed into the search box into
  * a step of the history to walk back out of.
  */
-export function writeViewState(state: ViewState, push: boolean): void {
-  const url = new URL(window.location.href)
-  const { view, filters } = state
+export function applyViewState(url: URL, state: ViewState): void {
+  const { view, filters, tab } = state
 
   const set = (name: string, value: string): void => {
     if (value) url.searchParams.set(name, value)
@@ -110,6 +139,8 @@ export function writeViewState(state: ViewState, push: boolean): void {
   }
 
   set(PARAM.view, view === 'all' ? '' : view)
+  set(PARAM.tab, view === 'saved' && tab === 'tracking' ? tab : '')
+  set(PARAM.source, view === 'all' && filters.stateOnly ? STATE_SOURCE : '')
   set(PARAM.q, filters.q.trim())
   set(PARAM.category, filters.category)
   set(PARAM.department, filters.department)
@@ -119,6 +150,14 @@ export function writeViewState(state: ViewState, push: boolean): void {
   set(PARAM.jobType, filters.jobType)
   set(PARAM.noExperience, filters.noExperience ? 'true' : '')
   set(PARAM.days, filters.days === null ? '' : String(filters.days))
+
+  /* Un ancla (`#cv`) solo nombra una sección de la página de perfil. */
+  if (view !== 'profile') url.hash = ''
+}
+
+export function writeViewState(state: ViewState, push: boolean): void {
+  const url = new URL(window.location.href)
+  applyViewState(url, state)
 
   const next = url.toString()
   if (next === window.location.href) return

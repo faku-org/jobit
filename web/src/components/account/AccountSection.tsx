@@ -54,13 +54,11 @@ export function AccountSection({
   }
 
   if (!ready) {
-    return (
-      <p className="px-4 text-[11px] text-onpanel-faint">Cargando tu cuenta…</p>
-    )
+    return <p className="text-[11px] text-onpanel-faint">Cargando tu cuenta…</p>
   }
 
   return (
-    <div className="space-y-4 px-4 pt-1 pb-4">
+    <div className="space-y-4">
       {user ? (
         <SignedIn
           user={user}

@@ -33,14 +33,6 @@ interface ResumeSectionsProps {
   onSearchBoard: () => void
 }
 
-type SectionKey =
-  | 'place'
-  | 'languages'
-  | 'search'
-  | 'links'
-  | 'references'
-  | 'disability'
-
 const LEVEL_OPTIONS: { value: Level; label: string }[] = [
   { value: 'entry', label: 'Junior' },
   { value: 'mid', label: 'Semi senior' },
@@ -59,14 +51,11 @@ const MODE_OPTIONS: { value: WorkMode; label: string }[] = [
   { value: 'hybrid', label: 'Híbrido' },
 ]
 
-const plural = (count: number, one: string, many: string) =>
-  `${count} ${count === 1 ? one : many}`
-
 /**
  * El resto del perfil, el que se parece a un CV: foto, dónde vive, idiomas,
- * qué busca, links, referencias y, si quiere, discapacidad. Cada bloque es una
- * sección cerrada con un resumen, para que el panel siga siendo corto. Todo
- * queda en este navegador; lo único que lo saca es el botón de descargar.
+ * qué busca, links, referencias y, si quiere, discapacidad. Cada bloque es un
+ * tema con su título, todos a la vista. Todo queda en este navegador; lo
+ * único que lo saca es el botón de descargar.
  */
 export function ResumeSections({
   resume,
@@ -77,10 +66,7 @@ export function ResumeSections({
   onSearchBoard,
 }: ResumeSectionsProps) {
   const id = useId()
-  const [open, setOpen] = useState<SectionKey | null>(null)
   const [withDisability, setWithDisability] = useState(true)
-  const toggle = (key: SectionKey) =>
-    setOpen((current) => (current === key ? null : key))
   const set = (patch: Partial<Resume>) => onChange({ ...resume, ...patch })
 
   const download = () => {
@@ -96,31 +82,9 @@ export function ResumeSections({
     URL.revokeObjectURL(url)
   }
 
-  const chosenLevels = new Set<string>(preferences.levels)
-  const searchSummary = [
-    resume.role,
-    resume.lead ? 'Jefatura' : '',
-    ...LEVEL_OPTIONS.filter((o) => chosenLevels.has(o.value)).map(
-      (o) => o.label,
-    ),
-  ]
-    .filter((part) => part !== '')
-    .join(', ')
-
   return (
-    <div className="space-y-3">
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
-        Tu CV
-      </p>
-
-      <PanelSection
-        open={open === 'place'}
-        summary={[resume.photo === '' ? '' : 'Foto', resume.department]
-          .filter((part) => part !== '')
-          .join(', ')}
-        title="Foto y ubicación"
-        onToggle={() => toggle('place')}
-      >
+    <div className="space-y-6">
+      <PanelSection title="Foto y ubicación">
         <PhotoField value={resume.photo} onChange={(photo) => set({ photo })} />
         <PanelGroup title="Departamento">
           {DEPARTMENT_NAMES.map((name) => (
@@ -152,28 +116,14 @@ export function ResumeSections({
         </PanelField>
       </PanelSection>
 
-      <PanelSection
-        open={open === 'languages'}
-        summary={
-          resume.languages.length === 0
-            ? ''
-            : resume.languages.map((language) => language.name).join(', ')
-        }
-        title="Idiomas"
-        onToggle={() => toggle('languages')}
-      >
+      <PanelSection title="Idiomas">
         <LanguagesField
           value={resume.languages}
           onChange={(languages) => set({ languages })}
         />
       </PanelSection>
 
-      <PanelSection
-        open={open === 'search'}
-        summary={searchSummary}
-        title="Puesto y preferencias"
-        onToggle={() => toggle('search')}
-      >
+      <PanelSection title="Puesto y preferencias">
         <PanelField
           hint="Con esto el tablero filtra por título."
           htmlFor={`${id}-role`}
@@ -265,41 +215,18 @@ export function ResumeSections({
         </div>
       </PanelSection>
 
-      <PanelSection
-        open={open === 'links'}
-        summary={
-          resume.links.length === 0
-            ? ''
-            : plural(resume.links.length, 'link', 'links')
-        }
-        title="Web y redes"
-        onToggle={() => toggle('links')}
-      >
+      <PanelSection title="Web y redes">
         <LinksField value={resume.links} onChange={(links) => set({ links })} />
       </PanelSection>
 
-      <PanelSection
-        open={open === 'references'}
-        summary={
-          resume.references.length === 0
-            ? ''
-            : plural(resume.references.length, 'referencia', 'referencias')
-        }
-        title="Referencias"
-        onToggle={() => toggle('references')}
-      >
+      <PanelSection title="Referencias">
         <ReferencesField
           value={resume.references}
           onChange={(references) => set({ references })}
         />
       </PanelSection>
 
-      <PanelSection
-        open={open === 'disability'}
-        summary={resume.disability.declared ? 'Anotada' : ''}
-        title="Discapacidad (opcional)"
-        onToggle={() => toggle('disability')}
-      >
+      <PanelSection title="Discapacidad (opcional)">
         <DisabilityField
           value={resume.disability}
           onChange={(disability) => set({ disability })}
