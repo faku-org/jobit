@@ -63,7 +63,7 @@ export function ReferencesField({ value, onChange }: ReferencesFieldProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <>
       <div className="flex gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <TriangleAlert
           aria-hidden
@@ -166,6 +166,6 @@ export function ReferencesField({ value, onChange }: ReferencesFieldProps) {
           </button>
         </form>
       )}
-    </div>
+    </>
   )
 }

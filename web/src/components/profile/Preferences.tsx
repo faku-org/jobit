@@ -38,7 +38,6 @@ import {
   PanelGroup as Group,
   StanceChips,
 } from './PanelControls.tsx'
-import { PanelSection } from './PanelSection.tsx'
 import { PriorityList } from './PriorityList.tsx'
 import { SalaryRange } from './SalaryRange.tsx'
 
@@ -139,161 +138,146 @@ export function PreferencesPanel({
   const hidden = hiddenCount(preferences)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
-          Orden del listado
+    <>
+      <Group title="Orden del listado">
+        <Chip
+          active={preferences.rankByFit}
+          onClick={() => onChange({ ...preferences, rankByFit: true })}
+        >
+          <Target aria-hidden className="size-3.5" />
+          Lo que mejor te calza
+        </Chip>
+        <Chip
+          active={!preferences.rankByFit}
+          onClick={() => onChange({ ...preferences, rankByFit: false })}
+        >
+          <CalendarArrowDown aria-hidden className="size-3.5" />
+          Lo más nuevo
+        </Chip>
+        <p className="w-full text-[0.6875rem] leading-snug text-onpanel-faint">
+          Con la primera, tus rubros, zona, sueldo y perfil deciden el orden.
+          Nada se descarta: solo baja de lugar.
         </p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <Chip
-            active={preferences.rankByFit}
-            onClick={() => onChange({ ...preferences, rankByFit: true })}
-          >
-            <Target aria-hidden className="size-3.5" />
-            Lo que mejor te calza
-          </Chip>
-          <Chip
-            active={!preferences.rankByFit}
-            onClick={() => onChange({ ...preferences, rankByFit: false })}
-          >
-            <CalendarArrowDown aria-hidden className="size-3.5" />
-            Lo más nuevo
-          </Chip>
-        </div>
-        <p className="mt-2 text-[0.6875rem] leading-relaxed text-onpanel-faint">
-          Con la primera opción el orden lo deciden tus rubros, tu zona, tu
-          sueldo y lo que cargaste en el perfil. Nada se descarta por no
-          coincidir, solo baja de lugar.
-        </p>
+      </Group>
 
-        <p className="mt-4 text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
-          Precisión del calce
-        </p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {MIX_OPTIONS.map((option) => {
-            const Icon = option.icon
-            return (
-              <Chip
-                key={option.value}
-                active={preferences.mix === option.value}
-                onClick={() => onChange({ ...preferences, mix: option.value })}
-              >
-                <Icon aria-hidden className="size-3.5" />
-                {option.label}
-              </Chip>
-            )
-          })}
-        </div>
-        <p className="mt-2 text-[0.6875rem] leading-relaxed text-onpanel-faint">
+      <Group title="Precisión del calce">
+        {MIX_OPTIONS.map((option) => {
+          const Icon = option.icon
+          return (
+            <Chip
+              key={option.value}
+              active={preferences.mix === option.value}
+              onClick={() => onChange({ ...preferences, mix: option.value })}
+            >
+              <Icon aria-hidden className="size-3.5" />
+              {option.label}
+            </Chip>
+          )
+        })}
+        <p className="w-full text-[0.6875rem] leading-snug text-onpanel-faint">
           {MIX_OPTIONS.find((option) => option.value === preferences.mix)?.hint}
         </p>
-      </div>
+      </Group>
 
-      <PanelSection title="Qué buscás">
-        <StanceChips
-          facets={categories}
-          hint="Una vez para priorizarlo, otra para ocultarlo, otra para dejarlo neutro."
-          lists={categoryStances(preferences)}
-          title="Rubros"
-          onChange={(lists) =>
-            onChange(withCategoryStances(preferences, lists))
+      <Group title="Modalidad">
+        {MODE_OPTIONS.map((option) => (
+          <Chip
+            key={option.value}
+            active={preferences.modes.includes(option.value)}
+            onClick={() =>
+              onChange({
+                ...preferences,
+                modes: toggleValue(preferences.modes, option.value),
+              })
+            }
+          >
+            {option.label}
+          </Chip>
+        ))}
+      </Group>
+
+      <Group title="Jornada">
+        {JOB_TYPE_OPTIONS.map((option) => (
+          <Chip
+            key={option.value}
+            active={preferences.jobTypes.includes(option.value)}
+            onClick={() =>
+              onChange({
+                ...preferences,
+                jobTypes: toggleValue(preferences.jobTypes, option.value),
+              })
+            }
+          >
+            {option.label}
+          </Chip>
+        ))}
+      </Group>
+
+      <StanceChips
+        facets={categories}
+        hint="Tocá: priorizar, ocultar o neutro."
+        lists={categoryStances(preferences)}
+        title="Rubros"
+        onChange={(lists) => onChange(withCategoryStances(preferences, lists))}
+      />
+
+      {preferences.categories.length > 1 ? (
+        <PriorityList
+          empty=""
+          labelOf={labelFrom(categories)}
+          title="Tu orden de rubros"
+          values={preferences.categories}
+          onChange={(values) =>
+            onChange({ ...preferences, categories: values })
           }
         />
+      ) : null}
 
-        {preferences.categories.length > 1 ? (
-          <PriorityList
-            empty=""
-            labelOf={labelFrom(categories)}
-            title="Tu orden de rubros"
-            values={preferences.categories}
-            onChange={(values) =>
-              onChange({ ...preferences, categories: values })
+      <Group title="Nivel">
+        {LEVEL_OPTIONS.map((option) => (
+          <Chip
+            key={option.value}
+            active={preferences.levels.includes(option.value)}
+            onClick={() =>
+              onChange({
+                ...preferences,
+                levels: toggleValue(preferences.levels, option.value),
+              })
             }
-          />
-        ) : null}
+          >
+            {option.label}
+          </Chip>
+        ))}
+      </Group>
 
-        <StanceChips
-          facets={departments.slice(0, 19)}
-          hint="Priorizá dónde querés trabajar y sacá de la lista los departamentos que no te sirven."
-          lists={departmentStances(preferences)}
-          title="Zona"
-          onChange={(lists) =>
-            onChange(withDepartmentStances(preferences, lists))
+      <StanceChips
+        facets={departments.slice(0, 19)}
+        hint="Priorizá dónde querés trabajar y ocultá lo que no te sirve."
+        lists={departmentStances(preferences)}
+        title="Zona"
+        onChange={(lists) =>
+          onChange(withDepartmentStances(preferences, lists))
+        }
+      />
+
+      {preferences.departments.length > 1 ? (
+        <PriorityList
+          empty=""
+          labelOf={labelFrom(departments)}
+          title="Tu orden de zonas"
+          values={preferences.departments}
+          onChange={(values) =>
+            onChange({ ...preferences, departments: values })
           }
         />
+      ) : null}
 
-        {preferences.departments.length > 1 ? (
-          <PriorityList
-            empty=""
-            labelOf={labelFrom(departments)}
-            title="Tu orden de zonas"
-            values={preferences.departments}
-            onChange={(values) =>
-              onChange({ ...preferences, departments: values })
-            }
-          />
-        ) : null}
-      </PanelSection>
+      <SalaryRange
+        value={preferences.salary}
+        onChange={(salary) => onChange({ ...preferences, salary })}
+      />
 
-      <PanelSection title="Cómo querés trabajar">
-        <SalaryRange
-          value={preferences.salary}
-          onChange={(salary) => onChange({ ...preferences, salary })}
-        />
-
-        <Group title="Modalidad">
-          {MODE_OPTIONS.map((option) => (
-            <Chip
-              key={option.value}
-              active={preferences.modes.includes(option.value)}
-              onClick={() =>
-                onChange({
-                  ...preferences,
-                  modes: toggleValue(preferences.modes, option.value),
-                })
-              }
-            >
-              {option.label}
-            </Chip>
-          ))}
-        </Group>
-
-        <Group title="Jornada">
-          {JOB_TYPE_OPTIONS.map((option) => (
-            <Chip
-              key={option.value}
-              active={preferences.jobTypes.includes(option.value)}
-              onClick={() =>
-                onChange({
-                  ...preferences,
-                  jobTypes: toggleValue(preferences.jobTypes, option.value),
-                })
-              }
-            >
-              {option.label}
-            </Chip>
-          ))}
-        </Group>
-
-        <Group title="Nivel">
-          {LEVEL_OPTIONS.map((option) => (
-            <Chip
-              key={option.value}
-              active={preferences.levels.includes(option.value)}
-              onClick={() =>
-                onChange({
-                  ...preferences,
-                  levels: toggleValue(preferences.levels, option.value),
-                })
-              }
-            >
-              {option.label}
-            </Chip>
-          ))}
-        </Group>
-      </PanelSection>
-
-      <div className="flex items-center justify-between gap-3 border-t border-onpanel/10 pt-3">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-[0.6875rem] leading-snug text-onpanel-muted">
           {meta ? (
             <span className="inline-flex items-center gap-1.5">
@@ -302,7 +286,7 @@ export function PreferencesPanel({
               {formatScrapedAt(meta.scraped_at)}
             </span>
           ) : (
-            'Las ofertas que coinciden quedan destacadas en la lista.'
+            'Las ofertas que coinciden quedan destacadas.'
           )}
         </p>
         {count > 0 || hidden > 0 ? (
@@ -316,7 +300,7 @@ export function PreferencesPanel({
           </button>
         ) : null}
       </div>
-    </div>
+    </>
   )
 }
 
@@ -336,39 +320,34 @@ export function SourcesPanel({
   const allSources = meta?.sources ?? []
 
   return (
-    <div className="space-y-6">
-      <PanelSection title="Fuentes">
-        {allSources.length > 0 ? (
-          <Group title="De dónde salen las ofertas">
-            {allSources.map((source) => (
-              <Chip
-                key={source}
-                active={sources.length === 0 || sources.includes(source)}
-                onClick={() =>
-                  onChangeSources(toggleSource(sources, allSources, source))
-                }
-              >
-                {SOURCE_LABEL[source] ?? source}
-              </Chip>
-            ))}
-          </Group>
-        ) : (
-          <p className="text-[0.6875rem] leading-relaxed text-onpanel-faint">
-            Todavía no llegaron las fuentes del momento.
-          </p>
-        )}
-      </PanelSection>
+    <>
+      {allSources.length > 0 ? (
+        <Group title="De dónde salen las ofertas">
+          {allSources.map((source) => (
+            <Chip
+              key={source}
+              active={sources.length === 0 || sources.includes(source)}
+              onClick={() =>
+                onChangeSources(toggleSource(sources, allSources, source))
+              }
+            >
+              {SOURCE_LABEL[source] ?? source}
+            </Chip>
+          ))}
+        </Group>
+      ) : (
+        <p className="text-[0.6875rem] leading-relaxed text-onpanel-faint">
+          Todavía no llegaron las fuentes del momento.
+        </p>
+      )}
 
-      {/* Lo de acá abajo pide poder publicar un feed: es de otra liga que el
-          resto del panel y por eso vive en su propia sección. */}
-      <PanelSection title="Avanzado">
-        <CustomSources
-          feeds={feeds}
-          loading={feedsLoading}
-          results={feedResults}
-          onChange={onChangeFeeds}
-        />
-      </PanelSection>
-    </div>
+      {/* Pide poder publicar un feed: es de otra liga que los portales. */}
+      <CustomSources
+        feeds={feeds}
+        loading={feedsLoading}
+        results={feedResults}
+        onChange={onChangeFeeds}
+      />
+    </>
   )
 }

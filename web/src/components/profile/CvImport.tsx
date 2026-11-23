@@ -48,6 +48,10 @@ interface CvImportProps {
    * todavía no tiene dónde, así que no los ofrece: tildar algo que se pierde
    * sería mentirle a la persona. */
   withResume?: boolean
+  /** Dentro de un panel de columnas: cada pieza (la entrada, el resumen, cada
+   * grupo leído, el botón de sumar) sale como hija directa para que se reparta
+   * entre las columnas en vez de ser una tarjeta que no entra en una. */
+  columns?: boolean
   title?: string
   onEmpty?: () => void
 }
@@ -206,6 +210,7 @@ export function CvImport({
   onApply,
   onEmpty,
   withResume = true,
+  columns = false,
   title = 'Importar tu CV',
 }: CvImportProps) {
   const [stage, setStage] = useState<Stage>('idle')
@@ -639,6 +644,110 @@ export function CvImport({
         </Group>
       ),
     })
+  }
+
+  if (columns) {
+    return (
+      <>
+        <div className="space-y-3">
+          <div>
+            <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
+              {title}
+            </p>
+            <p className="mt-1 text-[0.6875rem] leading-relaxed text-onpanel-muted">
+              Leo el archivo <strong>en este navegador</strong> y busco tus
+              títulos, cursos, años de experiencia
+              {withResume ? ', idiomas y links' : ''}. No se sube a ningún lado.
+              También sirve tu perfil de LinkedIn: entrá a tu perfil, “Más” →
+              “Guardar como PDF”, y subí ese archivo.
+            </p>
+          </div>
+
+          <input
+            ref={input}
+            accept={ACCEPT}
+            className="hidden"
+            type="file"
+            onChange={onFile}
+          />
+
+          {stage === 'idle' ? (
+            <button
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-onpanel-wash px-3 py-2.5 text-xs font-medium text-onpanel/85 transition-colors hover:bg-onpanel/20 hover:text-onpanel"
+              type="button"
+              onClick={() => input.current?.click()}
+            >
+              <Upload aria-hidden className="size-4" />
+              Elegir archivo (PDF o texto)
+            </button>
+          ) : null}
+
+          {stage === 'uploading' ||
+          stage === 'analyzing' ||
+          stage === 'answered' ? (
+            <ProgressBeat stage={stage} />
+          ) : null}
+
+          {error ? (
+            <p className="rounded-lg bg-onpanel-wash px-2.5 py-2 text-[0.6875rem] leading-relaxed text-onpanel/70">
+              {error}
+            </p>
+          ) : null}
+        </div>
+
+        {stage === 'review' ? (
+          <>
+            <div ref={reviewRef} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <AuraSpark intro={false} state="breathing" tone="panel" />
+                <p className="min-w-0 flex-1 text-xs font-semibold text-onpanel">
+                  {found === 0
+                    ? 'No encontré nada de la lista'
+                    : `Encontré ${found} cosas`}
+                </p>
+                <button
+                  aria-label="Descartar la lectura"
+                  className="shrink-0 rounded-md p-1 text-onpanel-muted transition-colors hover:bg-onpanel/15 hover:text-onpanel"
+                  type="button"
+                  onClick={() => {
+                    setStage('idle')
+                    setError(null)
+                  }}
+                >
+                  <X aria-hidden className="size-3.5" />
+                </button>
+              </div>
+              {found > 0 ? (
+                <p className="text-[0.6875rem] leading-relaxed text-onpanel/80">
+                  Tocá para sacar lo que no corresponda, o “Algo está mal” para
+                  corregirlo acá. Se suma a tu perfil, no lo reemplaza.
+                </p>
+              ) : null}
+            </div>
+
+            {groups.map((group) => (
+              <div key={group.key}>{group.node}</div>
+            ))}
+
+            <div className="space-y-2">
+              <button
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-onpanel/20 px-3.5 py-2.5 text-xs font-semibold whitespace-nowrap text-ink shadow-[0_0_20px_color-mix(in_srgb,var(--color-brand)_45%,transparent)] transition-[box-shadow,background-color] hover:bg-green-300/30 focus-visible:ring-4 focus-visible:ring-brand/30 focus-visible:outline-none disabled:opacity-40 disabled:shadow-none"
+                disabled={found === 0}
+                type="button"
+                onClick={apply}
+              >
+                <Plus aria-hidden className="size-3.5" />
+                Sumar a mi perfil
+              </button>
+              <span className="inline-flex items-center justify-center gap-1 text-[0.625rem] text-onpanel-faint">
+                <ShieldCheck aria-hidden className="size-3" />
+                El archivo no salió de tu navegador
+              </span>
+            </div>
+          </>
+        ) : null}
+      </>
+    )
   }
 
   return (

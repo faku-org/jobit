@@ -21,6 +21,7 @@ una sección y arranca con los pasos para ejecutarla.
 | [`fixes-2026-11-22-v0.1.1/`](fixes-2026-11-22-v0.1.1/README.md)   | Lote de fixes y mejoras del 22/11: PDF del CV, perfil completo, postulación, mail.                                                   |
 | [`fixes-2026-11-22-v0.6.0/`](fixes-2026-11-22-v0.6.0/README.md)   | Segundo lote del 22/11: aura, springs, postular en un solo modal, corregir el import del CV, Preferencias, gráfica y badge del test. |
 | [`fixes-2026-11-23-v0.12.0/`](fixes-2026-11-23-v0.12.0/README.md) | Lote del 23/11: Preferencias en pestañas y menú en la isla, aura en el modal, localización, treg.to y MCP.                           |
+| [`fixes-2026-11-23-v0.13.0/`](fixes-2026-11-23-v0.13.0/README.md) | Configuración sin scroll: el perfil en la misma barra, sub-secciones y columnas.                                                     |
 
 Para el panorama general ver [`../Architecture.md`](../Architecture.md) y para
 las convenciones de interfaz [`../DESIGN.md`](../DESIGN.md).

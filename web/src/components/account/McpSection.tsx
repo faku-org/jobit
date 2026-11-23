@@ -80,7 +80,7 @@ export function McpSection() {
   )
 
   return (
-    <div className="space-y-4">
+    <>
       <div className="flex gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <Plug aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
         <p className="text-[0.6875rem] leading-relaxed text-onpanel/75">
@@ -101,7 +101,7 @@ export function McpSection() {
         />
       </div>
 
-      <details className="border-t border-onpanel/10 pt-3">
+      <details>
         <summary className="cursor-pointer text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase transition-colors hover:text-onpanel">
           Correrlo en tu máquina
         </summary>
@@ -111,7 +111,7 @@ export function McpSection() {
         />
       </details>
 
-      <div className="border-t border-onpanel/10 pt-3">
+      <div>
         <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Qué puede hacer
         </p>
@@ -144,6 +144,6 @@ export function McpSection() {
       >
         Ver el servidor MCP en GitHub
       </a>
-    </div>
+    </>
   )
 }

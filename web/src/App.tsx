@@ -113,10 +113,6 @@ const loadSettings = () =>
   import('./components/settings/SettingsPage.tsx').then((module) => ({
     default: module.SettingsPage,
   }))
-const loadProfile = () =>
-  import('./components/profile/ProfilePage.tsx').then((module) => ({
-    default: module.ProfilePage,
-  }))
 
 const Onboarding = lazy(loadOnboarding)
 const Market = lazy(loadMarket)
@@ -125,7 +121,6 @@ const Tracking = lazy(loadTracking)
 const News = lazy(loadNews)
 const SelfTest = lazy(loadSelfTest)
 const HelpPage = lazy(loadHelp)
-const ProfilePage = lazy(loadProfile)
 const SettingsPage = lazy(loadSettings)
 
 /**
@@ -256,12 +251,10 @@ export default function App() {
   const isServicesView = view === 'services'
   const isNewsView = view === 'news'
   const isTestView = view === 'test'
-  const isProfileView = view === 'profile'
   const isHelpView = view === 'help'
   const isSettingsView = view === 'settings'
   /** Páginas propias: sin pestañas, con su botón para volver al listado. */
-  const isPageView =
-    isNewsView || isTestView || isProfileView || isHelpView || isSettingsView
+  const isPageView = isNewsView || isTestView || isHelpView || isSettingsView
   /**
    * The pile is reviewed in one place only. Discarding works anywhere, but the
    * pile is global: offering it inside Estado would show a count of offers most
@@ -548,7 +541,13 @@ export default function App() {
         onPrefetchSettings={() => void loadSettings()}
       />
 
-      <main className="mx-auto max-w-3xl px-5 pt-24 pb-16 sm:pt-28">
+      <main
+        className={`mx-auto px-5 pt-24 sm:pt-28 ${
+          /* Configuración usa el ancho para repartir en columnas lo que en
+             una sola no entra, y el alto de la ventana: no scrollea. */
+          isSettingsView ? 'max-w-6xl pb-4' : 'max-w-3xl pb-16'
+        }`}
+      >
         {/* Perfil, novedades, ayuda y el test son páginas aparte, no pestañas
             más: cada una tiene su enlace, no lleva pestañas y salir (o el botón
             Atrás) lleva al listado. */}
@@ -589,9 +588,9 @@ export default function App() {
           </FadeUp>
         ) : null}
 
-        {isProfileView ? (
+        {isSettingsView ? (
           <Suspense fallback={<JobListSkeleton />}>
-            <ProfilePage
+            <SettingsPage
               categories={meta?.categories ?? []}
               counts={{
                 saved: prefs.saved.size,
@@ -610,7 +609,6 @@ export default function App() {
               sources={prefs.sources}
               sync={accountSync}
               usage={usage}
-              onBack={() => changeView('all')}
               onChangePreferences={prefs.setPreferences}
               onChangeProfile={prefs.setProfile}
               onChangeResume={prefs.setResume}
@@ -631,18 +629,11 @@ export default function App() {
                 changeView('all')
                 setFilters(filtersFromSearch(prefs.resume, prefs.preferences))
               }}
-            />
-          </Suspense>
-        ) : isSettingsView ? (
-          <Suspense fallback={<JobListSkeleton />}>
-            <SettingsPage
               display={prefs.display}
               theme={prefs.theme}
               onBack={() => changeView('all')}
               onChangeDisplay={prefs.setDisplay}
               onChangeTheme={prefs.setTheme}
-              onOpenProfile={() => changeView('profile')}
-              onPrefetchProfile={() => void loadProfile()}
             />
           </Suspense>
         ) : isHelpView ? (

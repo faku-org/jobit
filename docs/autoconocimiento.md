@@ -12,8 +12,8 @@ encajar. Es una guía para pensar qué trabajo queda cómodo, no una evaluación
 ## Dónde vive
 
 Es una vista propia del tablero (`view: 'test'`, enlazable con `?view=test`), no
-una pestaña más. Se entra desde la página de **Perfil** (`?view=profile`, botón
-Preferencias de la isla), bajo "Autoconocimiento".
+una pestaña más. Se entra desde **Configuración → Perfil → Autoconocimiento**
+(`?view=settings#autoconocimiento`).
 
 Por qué no es una pestaña: con una octava, la barra de pestañas mide cerca de
 740 px y en tablet el tablero tiene 728 px. Además "una cosa por pantalla"

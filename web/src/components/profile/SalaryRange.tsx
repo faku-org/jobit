@@ -59,7 +59,7 @@ export function SalaryRange({
         </p>
       </div>
 
-      <div className="relative mt-4 h-5">
+      <div className="relative mt-2 h-5">
         <div
           className={`absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full ${trackBase}`}
         />
@@ -96,7 +96,7 @@ export function SalaryRange({
         />
       </div>
 
-      <label className="mt-3 flex cursor-pointer items-start gap-2">
+      <label className="mt-1.5 flex cursor-pointer items-start gap-2">
         <input
           checked={value.includeUnknown}
           className="mt-0.5 size-3.5 shrink-0 accent-sky"
@@ -107,8 +107,7 @@ export function SalaryRange({
         />
         <span className={`text-[0.6875rem] leading-relaxed ${onMuted}`}>
           <Wallet aria-hidden className="mr-1 inline size-3 align-[-1px]" />
-          Mostrar también las ofertas que no publican el sueldo. Son la mayoría:
-          si las sacás, la lista se achica muchísimo.
+          Incluir ofertas sin sueldo publicado (son la mayoría).
         </span>
       </label>
     </div>
