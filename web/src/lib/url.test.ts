@@ -132,14 +132,26 @@ describe('enlaces de la estructura anterior', () => {
     expect(readViewState('?view=profile', '#constructor').view).toBe('profile')
   })
 
-  test('la barra deja ?view=settings y suelta el ancla viejo', () => {
+  test('la barra deja ?view=settings y el ancla abre la pestaña Apariencia', () => {
     const url = new URL(
       'https://jobs.wefaber.net/?view=profile&job=abc#apariencia',
     )
     applyViewState(url, readViewState(url.search, url.hash))
     expect(url.searchParams.get('view')).toBe('settings')
     expect(url.searchParams.get('job')).toBe('abc')
-    expect(url.hash).toBe('')
+    expect(url.hash).toBe('#apariencia')
+  })
+
+  test('Preferencias conserva la pestaña y las listas sueltan el ancla', () => {
+    const settings = new URL(
+      'https://jobs.wefaber.net/?view=settings#accesibilidad',
+    )
+    applyViewState(settings, readViewState(settings.search, settings.hash))
+    expect(settings.hash).toBe('#accesibilidad')
+
+    const list = new URL('https://jobs.wefaber.net/?view=market#accesibilidad')
+    applyViewState(list, readViewState(list.search, list.hash))
+    expect(list.hash).toBe('')
   })
 
   test('el perfil conserva sus anclas', () => {

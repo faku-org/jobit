@@ -17,7 +17,9 @@ RestartSec=5
 
 # Loopback: nginx es el unico que llega. El MCP le habla a la API por localhost.
 Environment=HOST=127.0.0.1
-Environment=PORT=3300
+# 3301 y no 3300: ese puerto lo ocupa wefaber-status.service en este host
+# (mismo valor que deploy/nginx.conf y .github/workflows/deploy.yml).
+Environment=PORT=3301
 Environment=JOBIT_API_URL=http://127.0.0.1:3200
 
 # Aislamiento. El MCP no escribe nada: solo lee el repo y llama a la API.

@@ -346,17 +346,24 @@ span {
   transition: opacity 420ms ease;
 }
 
-/* La superficie, encima del halo y debajo de todo lo demás. */
+/* La superficie, encima del halo y debajo de todo lo demás. Ocupa justo el
+   padding-box de la caja (`inset: 0`, sin borde propio). Antes se armaba con
+   `inset: -1.5px` + `border: 1.5px` + `background-clip: padding-box`, o sea
+   suponía que el borde de `.aura` mide 1.5px. Pero el navegador redondea el
+   ancho de un borde a píxeles físicos enteros: a 100 % y 125 % de zoom del
+   sistema (1 y 1,25 px por px CSS) el borde pasa a medir 1px físico, el
+   `inset` seguía en 1.5px y el relleno se comía el filo: el cometa casi no
+   se veía y del lado sin cometa quedaba una línea del color del relleno,
+   más oscura que el pelo y que el tinte de al lado. Sin cuentas de borde no
+   hay nada que redondear distinto. */
 .aura::after {
   content: '';
   position: absolute;
-  inset: -1.5px;
+  inset: 0;
   z-index: -1;
-  border: 1.5px solid transparent;
   border-radius: inherit;
   pointer-events: none;
   background: var(--aura-fill);
-  background-clip: padding-box;
 }
 
 /* La luz de adentro: tres capas como en el Beam. `.aura-glass` recorta a la
@@ -505,6 +512,31 @@ span {
 
 [data-motion='reduce'] .aura::before {
   transition: none;
+}
+
+/* Con un diálogo abierto, las auras del fondo se apagan: están tapadas por el
+   scrim, nadie las mira, y cada una cuesta una animación que repinta todos los
+   cuadros más dos o tres capas con `filter: blur` (el halo, el brillo de las
+   tarjetas, el vidrio). Se apaga todo junto, solo con CSS: nada de JS que
+   tenga que enterarse de qué diálogo se abrió. Los diálogos son los únicos
+   con `aria-modal`; el aura que vive adentro de uno (la ficha de una oferta,
+   por ejemplo) se excluye con `:not([aria-modal='true'] …)` y sigue igual.
+   Lo que lleva blur se oculta en vez de dejarlo sin filtro: sin el desenfoque
+   esas capas serían un bloque de color con el filo duro. */
+html:has([aria-modal='true']) .aura:not([aria-modal='true'] .aura) {
+  animation: none;
+}
+
+html:has([aria-modal='true']) .aura:not([aria-modal='true'] .aura)::before,
+html:has([aria-modal='true']) .aura:not([aria-modal='true'] .aura) .aura-glass,
+html:has([aria-modal='true'])
+  .aura-edge:not([aria-modal='true'] .aura-edge)::after {
+  display: none;
+}
+
+html:has([aria-modal='true'])
+  .aura-edge:not([aria-modal='true'] .aura-edge)::before {
+  animation: none;
 }
 
 /* The two inputs of the salary range share one track: each is stretched over

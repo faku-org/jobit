@@ -535,7 +535,11 @@ export default function App() {
   return (
     <div className="min-h-svh">
       <DynamicIsland
+        display={prefs.display}
+        theme={prefs.theme}
         view={view}
+        onChangeDisplay={prefs.setDisplay}
+        onChangeTheme={prefs.setTheme}
         onOpenHelp={() => changeView('help')}
         onOpenNews={() => changeView('news')}
         onOpenSettings={() => changeView('settings')}

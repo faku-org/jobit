@@ -72,7 +72,7 @@ sostener. Cada pedido monta su par servidor+transporte y lo cierra al terminar,
 que es lo que deja atender a varios clientes a la vez sin guardar estado.
 
 Va detrás de nginx (`deploy/nginx.conf`, `location = /mcp`) y corre como
-`jobit-mcp.service` en el puerto 3300, hablándole a la API por localhost.
+`jobit-mcp.service` en el puerto 3301, hablándole a la API por localhost.
 
 ## Por qué importa decidirlo temprano
 

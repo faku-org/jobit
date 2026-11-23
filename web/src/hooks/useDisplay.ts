@@ -6,6 +6,7 @@ import {
   displayAttributes,
   motionReduced,
 } from '../lib/display.ts'
+import { DEFAULT_LOCALE, htmlLang } from '../lib/i18n.ts'
 
 /**
  * Escribe la escala, el movimiento, el contraste y el subrayado en `<html>`,
@@ -40,6 +41,16 @@ export function useDisplay(display: Display): void {
       contrast.removeEventListener('change', apply)
     }
   }, [scale, reduceMotion, highContrast, underlineLinks])
+
+  /* El idioma va aparte de los atributos del CSS: `lang` lo leen el lector de
+     pantalla y el navegador, `data-locale` lo lee `useLocale`. */
+  const { locale } = display
+  useEffect(() => {
+    const root = document.documentElement
+    root.lang = htmlLang(locale)
+    if (locale === DEFAULT_LOCALE) delete root.dataset.locale
+    else root.dataset.locale = locale
+  }, [locale])
 }
 
 const subscribe = (notify: () => void): (() => void) => {

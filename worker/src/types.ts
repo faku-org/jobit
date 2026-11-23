@@ -1,7 +1,7 @@
 export type Level = 'entry' | 'mid' | 'senior'
 export type Remote = 'remote' | 'hybrid'
 export type JobType = 'full_time' | 'part_time' | 'internship'
-export type SourceId = 'buscojobs' | 'gallito' | 'uruguayconcursa'
+export type SourceId = 'buscojobs' | 'gallito' | 'uruguayconcursa' | 'treg'
 
 export interface Salary {
   min: number | null

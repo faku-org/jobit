@@ -32,6 +32,7 @@ import { chipClass, fieldClass } from '../../lib/styles.ts'
 import type { JobType, Level, WorkMode } from '../../lib/types.ts'
 import { Chart, type ChartKind, type ChartRow, ChartSwitch } from './Chart.tsx'
 import { FadeUp } from '../ui/FadeUp.tsx'
+import { Tabs } from '../ui/Tabs.tsx'
 
 interface MarketProps {
   report: MarketReport
@@ -334,46 +335,23 @@ export function Market({ report, onExploreCategory, onSearch }: MarketProps) {
   return (
     <div className="space-y-4">
       <FadeUp>
-        <div
-          className="flex flex-wrap gap-1 rounded-2xl border border-sky/50 bg-surface p-1 shadow-[var(--shadow-hairline)] sm:flex-nowrap"
-          role="tablist"
-        >
-          {SECTIONS.map((entry) => {
-            const active = section === entry.id
-            return (
-              <button
-                key={entry.id}
-                aria-selected={active}
-                className={`relative flex min-h-10 grow basis-auto items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-medium whitespace-nowrap transition-colors sm:min-h-0 sm:basis-0 sm:py-2 ${
-                  active ? 'text-onpanel' : 'text-muted hover:text-ink'
-                }`}
-                role="tab"
-                type="button"
-                onClick={() => {
-                  setSection(entry.id)
-                  setSeen((current) =>
-                    current.has(entry.id)
-                      ? current
-                      : new Set(current).add(entry.id),
-                  )
-                  setQuery('')
-                }}
-              >
-                {active ? (
-                  <m.span
-                    className="absolute inset-0 rounded-xl bg-panel"
-                    layoutId="market-tab"
-                    transition={fadeUpTransition}
-                  />
-                ) : null}
-                <span className="relative inline-flex items-center gap-1.5">
-                  <entry.icon aria-hidden className="size-3.5" />
-                  {entry.label}
-                </span>
-              </button>
+        <Tabs
+          label="Secciones del mercado"
+          layoutId="market-tab"
+          options={SECTIONS.map((entry) => ({
+            value: entry.id,
+            label: entry.label,
+            icon: entry.icon,
+          }))}
+          value={section}
+          onChange={(id) => {
+            setSection(id)
+            setSeen((current) =>
+              current.has(id) ? current : new Set(current).add(id),
             )
-          })}
-        </div>
+            setQuery('')
+          }}
+        />
       </FadeUp>
 
       <FadeUp delay={0.03}>

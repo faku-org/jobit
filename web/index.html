@@ -127,6 +127,14 @@
         )
           root.dataset.contrast = 'more'
         if (display.underlineLinks === true) root.dataset.links = 'underline'
+
+        /* El idioma (lib/i18n.ts): `lang` para el lector de pantalla desde el
+           primer pintado. Solo los que existen; cualquier otro queda en es. */
+        const langs = { en: 'en', pt: 'pt-BR' }
+        if (Object.hasOwn(langs, display.locale)) {
+          root.dataset.locale = display.locale
+          root.lang = langs[display.locale]
+        }
       } catch {}
     </script>
   </head>

@@ -311,7 +311,7 @@ bun run --cwd mcp start        # local, por stdio
 bun run --cwd mcp start:http   # el que corre hosteado
 ```
 
-Detrás de nginx (`location = /mcp`) corre como `jobit-mcp.service` en el puerto 3300. El detalle y los JSON de configuración están en `mcp/README.md`.
+Detrás de nginx (`location = /mcp`) corre como `jobit-mcp.service` en el puerto 3301 (el 3300 lo usa wefaber-status en ese host). El detalle y los JSON de configuración están en `mcp/README.md`.
 
 ## Perfil y estadísticas
 

@@ -29,6 +29,8 @@ interface RequestOptions {
   accept?: string
   /** Sent as a JSON POST body; without it the request is a GET. */
   body?: unknown
+  /** Extra request headers (auth tokens for gateways). Never logged. */
+  headers?: Record<string, string>
 }
 
 const lastRequestAt = new Map<string, number>()
@@ -54,6 +56,7 @@ async function request(
     timeoutMs = 20_000,
     accept = 'application/json',
     body,
+    headers = {},
   } = options
 
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -66,6 +69,7 @@ async function request(
           Accept: accept,
           'Accept-Language': 'es-UY,es;q=0.9',
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+          ...headers,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(timeoutMs),

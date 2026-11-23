@@ -168,8 +168,9 @@ export function applyViewState(url: URL, state: ViewState): void {
   set(PARAM.noExperience, filters.noExperience ? 'true' : '')
   set(PARAM.days, filters.days === null ? '' : String(filters.days))
 
-  /* Un ancla (`#cv`) solo nombra una sección de la página de perfil. */
-  if (view !== 'profile') url.hash = ''
+  /* Un ancla nombra una sección del perfil (`#cv`) o una pestaña de
+     Preferencias (`#accesibilidad`); en las demás vistas no quiere decir nada. */
+  if (view !== 'profile' && view !== 'settings') url.hash = ''
 }
 
 export function writeViewState(state: ViewState, push: boolean): void {

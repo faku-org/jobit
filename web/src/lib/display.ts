@@ -9,6 +9,8 @@
  * mismos atributos antes del primer pintado.
  */
 
+import { DEFAULT_LOCALE, type Locale, isLocale } from './i18n.ts'
+
 export const SCALES = [90, 100, 115, 130] as const
 export type Scale = (typeof SCALES)[number]
 
@@ -21,6 +23,9 @@ export interface Display {
   highContrast: boolean
   /** Subraya todos los enlaces, no solo los que están dentro de un párrafo. */
   underlineLinks: boolean
+  /** El idioma de la interfaz (`lib/i18n.ts`). Es del dispositivo, como el
+   * tema: no viaja a la cuenta. */
+  locale: Locale
 }
 
 export const DEFAULT_DISPLAY: Display = {
@@ -28,6 +33,7 @@ export const DEFAULT_DISPLAY: Display = {
   reduceMotion: false,
   highContrast: false,
   underlineLinks: false,
+  locale: DEFAULT_LOCALE,
 }
 
 export const isScale = (value: unknown): value is Scale =>
@@ -43,6 +49,7 @@ export function readDisplay(value: unknown): Display {
     reduceMotion: raw.reduceMotion === true,
     highContrast: raw.highContrast === true,
     underlineLinks: raw.underlineLinks === true,
+    locale: isLocale(raw.locale) ? raw.locale : DEFAULT_LOCALE,
   }
 }
 
@@ -55,7 +62,7 @@ export interface SystemDisplay {
 /** Los atributos de `<html>` que dejan al CSS hacer su parte. Un atributo
  * ausente es el estado de fábrica. */
 export function displayAttributes(
-  display: Display,
+  display: Omit<Display, 'locale'>,
   system: SystemDisplay,
 ): Record<'scale' | 'motion' | 'contrast' | 'links', string | null> {
   return {

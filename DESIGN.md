@@ -82,8 +82,14 @@ Lo nuevo va como **view propia con su URL** (`?view=settings`, `?view=profile`,
 Una página aguanta más contenido, se puede enlazar y el botón Atrás vuelve al
 listado. Reglas:
 
-- Una view propia no lleva pestañas: tiene `PageHeader` con "Volver a las ofertas"
-  (`web/src/components/page/PageHeader.tsx`), se carga lazy y se precarga al apuntar.
+- Una view propia no lleva las pestañas del tablero: tiene `PageHeader` con "Volver a
+  las ofertas" (`web/src/components/page/PageHeader.tsx`), se carga lazy y se precarga
+  al apuntar. Si es larga, se secciona con sus propias pestañas (`ui/Tabs.tsx`) y la
+  elegida va en el ancla (Preferencias: `?view=settings#accesibilidad`), con
+  `replaceState` para que Atrás siga volviendo al listado.
+- Las pestañas de dentro de una sección (Mercado, Guardadas, Preferencias) son
+  siempre `web/src/components/ui/Tabs.tsx`: un solo componente, mismo aspecto y
+  flechas para recorrerlas.
 - Las secciones largas de una página llevan título visible y ancla (`#preferencias`,
   `#cv`), sin acordeones anidados.
 - Lo que son dos momentos de lo mismo comparte pestaña y se elige con `&tab=`
