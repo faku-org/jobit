@@ -51,10 +51,16 @@ function Dialog({
   const cancel = useRef<HTMLButtonElement>(null)
   /* Quien llama puede cambiar `onCancel` en cada render; el listener no. */
   const onCancelRef = useRef(onCancel)
-  onCancelRef.current = onCancel
   /* Devuelve el elemento al que vuelve el foco; se lee recién al cerrar. */
-  const returnTarget = useRef<() => HTMLElement | null | undefined>(() => null)
-  returnTarget.current = () => returnFocusTo?.current
+  const returnTarget = useRef<() => HTMLElement | null | undefined>(
+    () => returnFocusTo?.current,
+  )
+
+  /* Los refs se actualizan después de pintar, no durante el render. */
+  useEffect(() => {
+    onCancelRef.current = onCancel
+    returnTarget.current = () => returnFocusTo?.current
+  }, [onCancel, returnFocusTo])
 
   useEffect(() => {
     const opener =

@@ -31,6 +31,15 @@ const MESSAGES: Record<BadgeShareResult, string> = {
   cancelled: '',
 }
 
+/** Corre la tarea y devuelve el mensaje; un fallo se vuelve mensaje, no error. */
+async function attempt(task: () => Promise<string>): Promise<string> {
+  try {
+    return await task()
+  } catch {
+    return 'No se pudo armar la imagen. Probá de nuevo.'
+  }
+}
+
 /**
  * El badge del resultado: una imagen vertical con el rasgo que más se nota, el
  * radar y la marca. Se dibuja en un canvas del navegador; descargar y
@@ -46,35 +55,30 @@ export function Badge({ model }: { model: BadgeModel }) {
     if (ctx) drawBadge(ctx, model, bodyFont())
   }, [model])
 
-  const download = async () => {
+  const run = async (task: () => Promise<string>) => {
     if (busy) return
     setBusy(true)
-    try {
-      downloadBlob(await renderBadge(model, bodyFont()), BADGE_FILE_NAME)
-      setStatus('Se descargó la imagen en tu dispositivo.')
-    } catch {
-      setStatus('No se pudo armar la imagen. Probá de nuevo.')
-    } finally {
-      setBusy(false)
-    }
+    setStatus(await attempt(task))
+    setBusy(false)
   }
 
-  const share = async () => {
-    if (busy) return
-    setBusy(true)
-    try {
-      const result = await shareBadge(
-        await renderBadge(model, bodyFont()),
-        SHARE_TEXT,
-        browserShareEnv(),
-      )
-      setStatus(MESSAGES[result])
-    } catch {
-      setStatus('No se pudo armar la imagen. Probá de nuevo.')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const download = () =>
+    run(async () => {
+      downloadBlob(await renderBadge(model, bodyFont()), BADGE_FILE_NAME)
+      return 'Se descargó la imagen en tu dispositivo.'
+    })
+
+  const share = () =>
+    run(
+      async () =>
+        MESSAGES[
+          await shareBadge(
+            await renderBadge(model, bodyFont()),
+            SHARE_TEXT,
+            browserShareEnv(),
+          )
+        ],
+    )
 
   return (
     <div>
