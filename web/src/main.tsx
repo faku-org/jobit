@@ -1,12 +1,11 @@
-import { LazyMotion, MotionConfig } from 'motion/react'
-import type { ReactNode } from 'react'
+import { LazyMotion } from 'motion/react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { ServiceEmbed } from './components/service/ServiceEmbed.tsx'
 import { Embed } from './components/ui/Embed.tsx'
-import { useMotionReduced } from './hooks/useDisplay.ts'
+import { MotionPreference } from './components/ui/MotionPreference.tsx'
 import { markEmbedNotIndexable } from './lib/meta.ts'
 import { embedRequest, embedServiceRequest } from './lib/share.ts'
 
@@ -24,17 +23,6 @@ if (embed || embedService) {
   markEmbedNotIndexable()
 }
 
-/** `Reducir movimiento` de Preferencias llega como `data-motion` en `<html>`:
- * acá pasa a motion/react, que por su cuenta solo mira al sistema. */
-function Motion({ children }: { children: ReactNode }) {
-  const reduced = useMotionReduced()
-  return (
-    <MotionConfig reducedMotion={reduced ? 'always' : 'user'}>
-      {children}
-    </MotionConfig>
-  )
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {/* `strict` hace que un `motion.div` que se cuele tire error en vez de
@@ -42,7 +30,7 @@ createRoot(document.getElementById('root')!).render(
         note. */}
     <LazyMotion features={features} strict>
       {/* Drops the movement out of every animation when the OS asks for it. */}
-      <Motion>
+      <MotionPreference>
         {embed ? (
           <Embed id={embed.id} theme={embed.theme} />
         ) : embedService ? (
@@ -50,7 +38,7 @@ createRoot(document.getElementById('root')!).render(
         ) : (
           <App />
         )}
-      </Motion>
+      </MotionPreference>
     </LazyMotion>
   </StrictMode>,
 )
