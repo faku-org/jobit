@@ -18,6 +18,7 @@ import {
   formatLocation,
 } from '../../lib/format.ts'
 import { islandTransition } from '../../lib/motion.ts'
+import type { Resume } from '../../lib/resume.ts'
 import { jobShare } from '../../lib/share.ts'
 import { offerView } from '../../lib/events.ts'
 import { track } from '../../lib/track.ts'
@@ -52,6 +53,9 @@ interface JobModalProps {
   onToggleSaved: (id: string) => void
   onToggleDismissed: (id: string) => void
   onApplied: (job: Job) => void
+  /** El currículum del dispositivo: de ahí sale el mensaje de postulación. */
+  resume: Resume
+  onChangeResume: (resume: Resume) => void
   onClose: () => void
   /** Abre el stand de la empresa de esta oferta. */
   onOpenEmployer?: () => void
@@ -109,6 +113,8 @@ export function JobModal({
   onToggleSaved,
   onToggleDismissed,
   onApplied,
+  resume,
+  onChangeResume,
   onClose,
   onOpenEmployer,
 }: JobModalProps) {
@@ -364,7 +370,7 @@ export function JobModal({
           </p>
         </div>
 
-        <div className="border-t border-sky/40 bg-surface px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-4 sm:pb-4">
+        <div className="max-h-[75dvh] overflow-y-auto border-t border-sky/40 bg-surface px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-4 sm:pb-4">
           <ApplyFooter
             isApplied={isApplied}
             job={job}
@@ -375,7 +381,9 @@ export function JobModal({
                   : 'Te pregunto si te postulaste al volver.'}
               </p>
             }
+            resume={resume}
             onApplied={onApplied}
+            onChangeResume={onChangeResume}
           />
         </div>
       </m.div>

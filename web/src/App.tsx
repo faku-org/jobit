@@ -734,7 +734,9 @@ export default function App() {
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
                         tagActions={tagActions}
+                        resume={prefs.resume}
                         onApplied={handleApplied}
+                        onChangeResume={prefs.setResume}
                         onOpen={setOpenJob}
                         onOpenEmployer={() => openEmployerFor(job)}
                         onToggleDismissed={prefs.toggleDismissed}
@@ -777,7 +779,9 @@ export default function App() {
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
                         tagActions={tagActions}
+                        resume={prefs.resume}
                         onApplied={handleApplied}
+                        onChangeResume={prefs.setResume}
                         onOpen={setOpenJob}
                         onOpenEmployer={() => openEmployerFor(job)}
                         onToggleDismissed={prefs.toggleDismissed}
@@ -824,7 +828,9 @@ export default function App() {
             isSaved={prefs.saved.has(openJob.id)}
             job={openJob}
             tagActions={tagActions}
+            resume={prefs.resume}
             onApplied={handleApplied}
+            onChangeResume={prefs.setResume}
             onClose={() => setOpenJob(null)}
             onOpenEmployer={() => openEmployerFor(openJob)}
             onToggleDismissed={prefs.toggleDismissed}
