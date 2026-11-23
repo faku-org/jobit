@@ -94,3 +94,35 @@ jobs:
           echo "El MCP no respondió en /health"
           sudo systemctl status jobit-mcp --no-pager || true
           exit 1
+
+      # El vhost sale del repo y no a mano: las páginas indexables (/empleo/,
+      # /rubro/, /sitemap.xml...) las sirve la API y sin estos location nginx
+      # devuelve la app. Va después de la API porque sus rutas le apuntan.
+      # Si nginx -t falla, o el sitemap no sale como XML desde el dominio, vuelve
+      # el vhost anterior y el job falla.
+      - name: Install nginx vhost
+        run: |
+          dst=/home/hermes/deploy/nginx/jobs.wefaber.net
+          sudo cp "$dst" "$dst.prev"
+          sudo install -m 664 deploy/nginx.conf "$dst"
+          rollback() {
+            echo "$1: vuelve el vhost anterior"
+            sudo cp "$dst.prev" "$dst"
+            sudo nginx -t && sudo systemctl reload nginx
+            exit 1
+          }
+          sudo nginx -t || rollback "nginx -t falló"
+          sudo systemctl reload nginx
+          sleep 2
+          check() {
+            curl -fsS --resolve jobs.wefaber.net:443:167.114.2.210 \
+              -o /dev/null -w '%{http_code} %{content_type}' "https://jobs.wefaber.net$1"
+          }
+          for path in / /sitemap.xml /llms.txt /mercado /publicar /health; do
+            got=$(check "$path") || rollback "$path no respondió"
+            echo "$path -> $got"
+          done
+          case "$(check /sitemap.xml)" in
+            "200 application/xml"*) ;;
+            *) rollback "/sitemap.xml no es XML" ;;
+          esac

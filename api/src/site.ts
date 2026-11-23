@@ -19,6 +19,7 @@ import {
   jobsByCategory,
   jobsByDepartment,
   jobsByRole,
+  listingSitemapEntries,
   marketPageHtml,
   notFoundPage,
   publishPageHtml,
@@ -147,6 +148,7 @@ export const site = new Elysia()
         changefreq: 'weekly' as const,
         priority: 0.5,
       })),
+      ...(feed.ok ? listingSitemapEntries(feed.value) : []),
       ...(feed.ok ? employerSitemapEntries(feed.value.jobs) : []),
       ...(content.ok ? resourceSitemapEntries(content.value) : []),
       ...(content.ok ? roleGuides(content.value) : []).map((guide) => ({

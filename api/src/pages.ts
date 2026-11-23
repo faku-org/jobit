@@ -782,6 +782,47 @@ export const rolePageHtml = (slug: string, jobs: Job[]): string => {
 
 export const categorySlugs = (): string[] =>
   CATEGORIES.map((category) => category.slug)
+
+/** Un listado entra al sitemap desde esta cantidad de ofertas: con menos, la
+ * página es casi vacía y un buscador la trata como contenido flaco. */
+export const MIN_LISTING_OFFERS = 3
+
+/**
+ * Lo que alguien busca como "trabajo en Montevideo" o "ofertas de ventas": un
+ * listado por rubro, departamento y puesto con ofertas hoy, y la ficha de cada
+ * oferta con la fecha en que se publicó.
+ */
+export function listingSitemapEntries(feed: JobsFile): SitemapEntry[] {
+  const tally = (keys: (string | null | undefined)[]): string[] => {
+    const counts = new Map<string, number>()
+    for (const key of keys) if (key) counts.set(key, (counts.get(key) ?? 0) + 1)
+    return [...counts]
+      .filter(([, count]) => count >= MIN_LISTING_OFFERS)
+      .map(([key]) => key)
+      .sort()
+  }
+  const listing = (prefix: string, priority: number) => (key: string) => ({
+    path: `${prefix}/${encodeURIComponent(key)}`,
+    changefreq: 'daily' as const,
+    priority,
+  })
+
+  return [
+    ...tally(feed.jobs.map((job) => job.department)).map(
+      listing('/departamento', 0.7),
+    ),
+    ...tally(feed.jobs.map((job) => job.category)).map(listing('/rubro', 0.7)),
+    ...tally(feed.jobs.map((job) => roleOf(job.title)?.slug)).map(
+      listing('/puesto', 0.6),
+    ),
+    ...feed.jobs.map((job) => ({
+      path: `/empleo/${encodeURIComponent(job.id)}`,
+      lastmod: job.date_posted || undefined,
+      changefreq: 'weekly' as const,
+      priority: 0.5,
+    })),
+  ]
+}
 export { buildMarketReport }
 export { loadFeed, lookupJob }
 export { htmlResponse }

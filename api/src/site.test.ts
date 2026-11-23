@@ -240,4 +240,44 @@ describe('fichas de servicios', () => {
     expect(xml).toContain('<loc>https://jobs.test/publicar</loc>')
     expect(xml).toContain(`<loc>https://jobs.test/servicios/${slug}</loc>`)
   })
+
+  test('el sitemap lista cada oferta, y no los listados con menos de tres', async () => {
+    const xml = await (await call('/sitemap.xml')).text()
+    expect(xml).toContain(
+      '<loc>https://jobs.test/empleo/s1</loc><lastmod>2026-09-01</lastmod>',
+    )
+    expect(xml).not.toContain('/departamento/Montevideo')
+    expect(xml).not.toContain('/rubro/ventas')
+  })
+})
+
+describe('listingSitemapEntries', () => {
+  test('un listado entra con tres ofertas o más', async () => {
+    const { listingSitemapEntries } = await import('./pages.ts')
+    const job = (id: string, department: string, category: string) =>
+      ({
+        id,
+        department,
+        category,
+        title: 'Vendedor',
+        date_posted: '',
+      }) as never
+    const entries = listingSitemapEntries({
+      scraped_at: '',
+      sources: [],
+      count: 4,
+      jobs: [
+        job('a', 'Montevideo', 'ventas'),
+        job('b', 'Montevideo', 'ventas'),
+        job('c', 'Montevideo', 'ventas'),
+        job('d', 'Salto', 'ventas'),
+      ],
+    } as never)
+    const paths = entries.map((entry) => entry.path)
+    expect(paths).toContain('/departamento/Montevideo')
+    expect(paths).not.toContain('/departamento/Salto')
+    expect(paths).toContain('/rubro/ventas')
+    expect(paths.filter((path) => path.startsWith('/empleo/'))).toHaveLength(4)
+    expect(entries.find((e) => e.path === '/empleo/a')?.lastmod).toBeUndefined()
+  })
 })

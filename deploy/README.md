@@ -118,16 +118,36 @@ unidad ya deja escribir. En nginx, `/api/empresas/media/` tiene su propio
 
 ## nginx
 
+El vhost lo instala el deploy (`Install nginx vhost` en
+`.github/workflows/deploy.yml`): copia `deploy/nginx.conf` a
+`/home/hermes/deploy/nginx/jobs.wefaber.net`, que es a donde apunta
+`/etc/nginx/sites-available/jobs.wefaber.net`, corre `nginx -t`, recarga y pide
+`/sitemap.xml` al dominio. Si algo falla vuelve el archivo anterior
+(`jobs.wefaber.net.prev`). No se edita a mano en el server: el próximo deploy lo
+pisa.
+
+Antes de esto el vhost de producción era un archivo manual sin las rutas
+indexables, y `/empleo/`, `/rubro/`, `/sitemap.xml` y el resto caían en la app.
+
+Lo que el archivo asume del host:
+
+- `listen` en `167.114.2.210:443` y la IPv6 pública: todos los vhosts de 443 de
+  este host escuchan con IP explícita, y uno sin IP pierde contra ellos.
+- `/etc/nginx/snippets/jobs-headers.conf` (headers de seguridad y CSP de JobIt).
+- `/var/www/wellknown/jobs.wefaber.net/.well-known/security.txt`, que genera
+  `~/deploy/wellknown/gen.py`. `llms.txt` sale del build, no de ahí.
+- Cloudflare en modo proxy delante: por eso `/admin` no filtra por IP.
+
+Primera instalación en un host nuevo:
+
 ```bash
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/jobs.wefaber.net
+sudo ln -s /home/hermes/deploy/nginx/jobs.wefaber.net /etc/nginx/sites-available/jobs.wefaber.net
 sudo ln -s /etc/nginx/sites-available/jobs.wefaber.net /etc/nginx/sites-enabled/
-sudo certbot --nginx -d jobs.wefaber.net
-sudo nginx -t && sudo systemctl reload nginx
+sudo certbot certonly --nginx -d jobs.wefaber.net
 ```
 
-El archivo ya apunta a los certificados donde los deja certbot, así que si
-certbot reescribe el bloque conviene revisar que no haya duplicado el
-`ssl_certificate` ni pisado los headers.
+El archivo ya apunta a los certificados donde los deja certbot; con
+`certonly` certbot no reescribe el bloque.
 
 `location = /` distingue el navegador de curl: si el User-Agent es curl (o
 pide `text/plain`) nginx manda la query a `/api/cli` y el tablero sale en
