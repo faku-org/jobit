@@ -16,16 +16,24 @@ que hoy. Elegir es de la persona.
 
 ## Postular sin salir de JobIt
 
-- [ ] Postulación con mensaje armado ("Hola, soy X, me postulo a Y, les adjunto Z") y
-      adjuntos, por `mailto` o para copiar. #71
+- [~] Postulación con mensaje armado ("Hola, soy X, me postulo a Y, les adjunto Z") y
+  adjuntos, por `mailto` o para copiar. #71
+  Hecho en v0.5.0 (`docs/postulacion.md`): botón "Armar mensaje", plantillas Formal /
+  Corta / Primer empleo editables y guardadas en el dispositivo, `mailto:` si la oferta
+  trae mail y copiar + abrir el aviso si no. Probado por lógica (plantilla, detección de
+  mail, `mailto`, sanitizado). Falta verlo en el navegador: cliente de correo y portapapeles.
 - [ ] BuscoJobs: importar el CV, "copiar para BuscoJobs" y contacto para un acuerdo de
       postulación. Nunca pedir su usuario y contraseña. #76
 
 ## Perfil
 
-- [ ] Perfil completo: foto, ubicación, idiomas, preferencias laborales (puesto,
-      jerarquía), web y redes, referencias y situación de discapacidad. En el dispositivo; la
-      sincronización es opcional y discapacidad nunca se sincroniza sin elegirlo aparte. #72
+- [~] Perfil completo: foto, ubicación, idiomas, preferencias laborales (puesto,
+  jerarquía), web y redes, referencias y situación de discapacidad. En el dispositivo; la
+  sincronización es opcional y discapacidad nunca se sincroniza sin elegirlo aparte. #72
+  Hecho en v0.2.0 (`docs/perfil.md`): todos los campos en el dispositivo, import de CV con
+  idiomas y links, botón que lleva al tablero con filtros y export JSON; probado con tests
+  de lógica, falta verlo en el navegador. Pendiente: sincronización entre dispositivos y
+  export PDF.
 - [ ] Test de autoconocimiento laboral (IPIP Big Five), con resultado en el dispositivo y
       aviso de que no es un psicotécnico. #75
 

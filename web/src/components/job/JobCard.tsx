@@ -9,6 +9,7 @@ import {
 import { m } from 'motion/react'
 import { fadeUpTransition } from '../../lib/motion.ts'
 import { formatLocation } from '../../lib/format.ts'
+import type { Resume } from '../../lib/resume.ts'
 import { jobShare } from '../../lib/share.ts'
 import { chipClass, iconButtonClass } from '../../lib/styles.ts'
 import type { Job } from '../../lib/types.ts'
@@ -34,6 +35,9 @@ interface JobCardProps {
   onToggleSaved: (id: string) => void
   onToggleDismissed: (id: string) => void
   onApplied: (job: Job) => void
+  /** El currículum del dispositivo: de ahí sale el mensaje de postulación. */
+  resume: Resume
+  onChangeResume: (resume: Resume) => void
 }
 
 /**
@@ -66,6 +70,8 @@ export function JobCard({
   onToggleSaved,
   onToggleDismissed,
   onApplied,
+  resume,
+  onChangeResume,
 }: JobCardProps) {
   return (
     <article
@@ -166,7 +172,9 @@ export function JobCard({
                 Ver descripción y tips
               </button>
             }
+            resume={resume}
             onApplied={onApplied}
+            onChangeResume={onChangeResume}
           />
         </div>
       </div>

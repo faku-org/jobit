@@ -4,6 +4,14 @@ import {
   type EducationLevel,
   levelFromDegrees,
 } from './profile.ts'
+import {
+  type ResumeLanguage,
+  type ResumeLink,
+  MAX_LINKS,
+  levelFromText,
+  linkKindOf,
+  normalizeUrl,
+} from './resume.ts'
 
 /**
  * What a CV said, in the app's own vocabulary. Nothing here is a guess about
@@ -20,6 +28,11 @@ export interface CvReading {
   categories: string[]
   /** Departamentos (and the city label, when the CV named one). */
   places: CvPlace[]
+  /** Idiomas con el nivel que el CV les puso. Sin nivel no se anota: sería
+   * inventarlo. Van al CV de la persona, no al ranking. */
+  languages: ResumeLanguage[]
+  /** LinkedIn, GitHub y otras webs que el CV trae escritas. */
+  links: ResumeLink[]
   /** How much text was read, so an empty result can be explained. */
   characters: number
 }
@@ -37,6 +50,8 @@ export const EMPTY_READING: CvReading = {
   experienceYears: null,
   categories: [],
   places: [],
+  languages: [],
+  links: [],
   characters: 0,
 }
 
@@ -46,7 +61,9 @@ export const isEmptyReading = (reading: CvReading): boolean =>
   reading.education === '' &&
   reading.experienceYears === null &&
   reading.categories.length === 0 &&
-  reading.places.length === 0
+  reading.places.length === 0 &&
+  reading.languages.length === 0 &&
+  reading.links.length === 0
 
 /**
  * The parts of a CV. The same word means different things depending on where
@@ -293,6 +310,61 @@ function readPlaces(folded: string): CvPlace[] {
   }))
 }
 
+/** La ciudad de un lugar leído ("Ciudad de la Costa (Canelones)"), o vacío
+ * cuando el CV sólo nombró el departamento. */
+export const placeCity = (place: CvPlace): string =>
+  place.label === place.department
+    ? ''
+    : place.label.replace(/\s*\([^)]*\)\s*$/, '')
+
+const LANGUAGE_NAMES: [RegExp, string][] = [
+  [/\b(?:espanol|castellano)\b/, 'Español'],
+  [/\b(?:ingles|english)\b/, 'Inglés'],
+  [/\b(?:portugues|portuguese)\b/, 'Portugués'],
+  [/\b(?:frances|french)\b/, 'Francés'],
+  [/\bitaliano\b/, 'Italiano'],
+  [/\b(?:aleman|german)\b/, 'Alemán'],
+  [/\blengua de senas\b/, 'Lengua de señas uruguaya'],
+]
+
+/**
+ * Idiomas con nivel: la palabra de nivel tiene que estar en la misma línea, a
+ * continuación del idioma ("Inglés: avanzado", "Portugués (B1)") o justo antes
+ * ("Nivel avanzado de inglés"). Un idioma a secas no se anota.
+ */
+export function readLanguages(folded: string): ResumeLanguage[] {
+  const found: ResumeLanguage[] = []
+  for (const line of folded.split('\n')) {
+    for (const [pattern, name] of LANGUAGE_NAMES) {
+      const match = new RegExp(pattern.source, 'g').exec(line)
+      if (!match || found.some((entry) => entry.name === name)) continue
+      const after = line.slice(match.index + match[0].length)
+      /* Hasta la próxima coma o punto y coma: "Inglés avanzado, Portugués
+         básico" no le pasa el "básico" al inglés. */
+      const own = after.split(/[,;|/]/)[0]?.slice(0, 30) ?? ''
+      const level =
+        levelFromText(own) ??
+        levelFromText(line.slice(Math.max(0, match.index - 20), match.index))
+      if (level) found.push({ name, level })
+    }
+  }
+  return found
+}
+
+const LINK_PATTERN =
+  /(?:https?:\/\/|www\.)[^\s<>()"']+|(?:[a-z0-9-]+\.)?(?:linkedin\.com\/in|github\.com)\/[\w%.-]+/gi
+
+/** Se lee del texto tal cual: una URL distingue mayúsculas y plegarla la rompe. */
+export function readLinks(text: string): ResumeLink[] {
+  const links: ResumeLink[] = []
+  for (const raw of text.match(LINK_PATTERN) ?? []) {
+    const url = normalizeUrl(raw.replace(/[.,;:]+$/, ''))
+    if (url === '' || links.some((entry) => entry.url === url)) continue
+    links.push({ kind: linkKindOf(url), url })
+  }
+  return links.slice(0, MAX_LINKS)
+}
+
 /** "5 años de experiencia", however the sentence is arranged around it. */
 const STATED_YEARS = /(\d{1,2})\s*(?:\+\s*)?an?os?\s+(?:de\s+)?experiencia/
 
@@ -436,6 +508,8 @@ export function readCv(
     experienceYears: readExperience(worked, thisYear),
     categories: [...new Set(categories)],
     places: readPlaces(where),
+    languages: readLanguages(learned),
+    links: readLinks(text),
     characters: text.trim().length,
   }
 }

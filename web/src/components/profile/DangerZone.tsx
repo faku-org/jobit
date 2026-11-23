@@ -40,7 +40,8 @@ export function DangerZone({ counts, onEraseEverything }: DangerZoneProps) {
           action="Sí, borrar todo"
           losing={
             <>
-              Se borra todo lo que JobIt guarda acá: tu perfil y tus estudios,{' '}
+              Se borra todo lo que JobIt guarda acá: tu perfil, tus estudios y
+              tu CV (foto, idiomas, links y referencias),{' '}
               {plural(
                 counts.saved,
                 'oferta guardada',

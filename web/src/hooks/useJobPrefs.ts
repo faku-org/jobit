@@ -7,6 +7,7 @@ import {
   type EducationLevel,
   type Profile,
 } from '../lib/profile.ts'
+import { EMPTY_RESUME, type Resume, sanitizeResume } from '../lib/resume.ts'
 import { clearTest } from '../lib/selfTest.ts'
 import type { SyncedState } from '../lib/sync.ts'
 import {
@@ -40,6 +41,9 @@ interface Stored {
   companies: string[]
   theme: Theme
   profile: Profile
+  /** Foto, idiomas, links y referencias del CV. Solo de este navegador: no
+   * entra en `SyncedState` ni en las estadísticas. */
+  resume: Resume
   /** When the anonymous summary was last sent, so it goes at most once a day. */
   statsSentAt: string
   /** When this browser was told what JobIt is, so the welcome is shown once.
@@ -61,6 +65,7 @@ const EMPTY: Stored = {
   companies: [],
   theme: 'system',
   profile: EMPTY_PROFILE,
+  resume: EMPTY_RESUME,
   statsSentAt: '',
   introSeenAt: '',
   practiceAlways: true,
@@ -253,6 +258,7 @@ function parseStored(parsed: Record<string, unknown>): Stored {
       readProfile(parsed.profile),
       parsed.preferences,
     ),
+    resume: sanitizeResume(parsed.resume),
     statsSentAt: text(parsed.statsSentAt),
     introSeenAt: text(parsed.introSeenAt),
     practiceAlways: parsed.practiceAlways !== false,
@@ -303,6 +309,7 @@ export interface JobPrefs {
   companies: string[]
   theme: Theme
   profile: Profile
+  resume: Resume
   statsSentAt: string
   introSeenAt: string
   /** Si al confirmar una postulación se abre el modal para practicar. */
@@ -319,6 +326,7 @@ export interface JobPrefs {
   setCompanies: (companies: string[]) => void
   setTheme: (theme: Theme) => void
   setProfile: (profile: Profile) => void
+  setResume: (resume: Resume) => void
   setPracticeAlways: (value: boolean) => void
   /** Saves what the onboarding collected in one write, so the list is not
    * refetched once per step of it. */
@@ -439,6 +447,10 @@ export function useJobPrefs(): JobPrefs {
     setStored((current) => ({ ...current, profile }))
   }, [])
 
+  const setResume = useCallback((resume: Resume) => {
+    setStored((current) => ({ ...current, resume }))
+  }, [])
+
   const setPracticeAlways = useCallback((practiceAlways: boolean) => {
     setStored((current) => ({ ...current, practiceAlways }))
   }, [])
@@ -463,7 +475,12 @@ export function useJobPrefs(): JobPrefs {
     }
     /** Not EMPTY itself: that object is the sentinel the writer skips, and the
      * erased state has to be written so a reload does not resurrect the old one. */
-    setStored({ ...EMPTY, feeds: [], profile: { ...EMPTY_PROFILE } })
+    setStored({
+      ...EMPTY,
+      feeds: [],
+      profile: { ...EMPTY_PROFILE },
+      resume: { ...EMPTY_RESUME },
+    })
   }, [])
 
   const markStatsSent = useCallback((at: string) => {
@@ -519,6 +536,7 @@ export function useJobPrefs(): JobPrefs {
     companies: stored.companies,
     theme: stored.theme,
     profile: stored.profile,
+    resume: stored.resume,
     statsSentAt: stored.statsSentAt,
     introSeenAt: stored.introSeenAt,
     practiceAlways: stored.practiceAlways,
@@ -533,6 +551,7 @@ export function useJobPrefs(): JobPrefs {
     setCompanies,
     setTheme,
     setProfile,
+    setResume,
     setPracticeAlways,
     completeOnboarding,
     eraseEverything,

@@ -6,6 +6,7 @@ import { useScrolledPast } from '../../hooks/useScrolledPast.ts'
 import type { CustomFeed, FeedResult } from '../../lib/feed.ts'
 import { islandTransition } from '../../lib/motion.ts'
 import { type Profile, profileCount } from '../../lib/profile.ts'
+import type { Resume, ResumeFound } from '../../lib/resume.ts'
 import type { SessionUser } from '../../lib/session.ts'
 import type { Usage } from '../../lib/stats.ts'
 import {
@@ -49,7 +50,15 @@ interface DynamicIslandProps {
   onChangeTheme: (theme: Theme) => void
   onChangeProfile: (profile: Profile) => void
   onEraseEverything: () => void
-  onImportCv: (profile: Profile, preferences: Preferences) => void
+  onImportCv: (
+    profile: Profile,
+    preferences: Preferences,
+    found: ResumeFound,
+  ) => void
+  resume: Resume
+  onChangeResume: (resume: Resume) => void
+  /** Lleva al tablero con el puesto y la jornada del perfil como filtros. */
+  onSearchBoard: () => void
   /** Abre la ayuda general, que vive en App como capa sobre todo lo demás. */
   onOpenHelp: () => void
   /** Abre el test de autoconocimiento, que es una pantalla del tablero. */
@@ -89,6 +98,9 @@ export function DynamicIsland({
   onChangeProfile,
   onEraseEverything,
   onImportCv,
+  resume,
+  onChangeResume,
+  onSearchBoard,
   onOpenHelp,
   onOpenTest,
   onPrefetchHelp,
@@ -254,10 +266,17 @@ export function DynamicIsland({
                     profile={profile}
                     theme={theme}
                     usage={usage}
+                    resume={resume}
                     onChange={onChangeProfile}
+                    onChangePreferences={onChangePreferences}
+                    onChangeResume={onChangeResume}
                     onChangeTheme={onChangeTheme}
                     onEraseEverything={onEraseEverything}
                     onImportCv={onImportCv}
+                    onSearchBoard={() => {
+                      setOpen(false)
+                      onSearchBoard()
+                    }}
                     onOpenTest={() => {
                       setOpen(false)
                       onOpenTest()

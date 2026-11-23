@@ -689,6 +689,7 @@ export function Onboarding({
                 preferences={draftPreferences}
                 profile={draftProfile}
                 title="Subí tu CV y te completo esto"
+                withResume={false}
                 onApply={(profile, preferences) => {
                   setDraftProfile(profile)
                   setDraftPreferences(preferences)

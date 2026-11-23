@@ -8,10 +8,12 @@ import {
   type CvReading,
   EMPTY_READING,
   isEmptyReading,
+  placeCity,
   readCv,
 } from '../../lib/cv.ts'
 import { fadeUpTransition, stagger } from '../../lib/motion.ts'
 import { EDUCATION_LABEL, type Profile } from '../../lib/profile.ts'
+import { LANGUAGE_LEVEL_LABEL, type ResumeFound } from '../../lib/resume.ts'
 import type { Facet, Preferences } from '../../lib/types.ts'
 import { Aura, AuraSpark } from '../ui/Aura.tsx'
 
@@ -22,7 +24,16 @@ interface CvImportProps {
   profile: Profile
   preferences: Preferences
   categories: Facet[]
-  onApply: (profile: Profile, preferences: Preferences) => void
+  /** Lo tildado de idiomas, links y ubicación va como tercer argumento. */
+  onApply: (
+    profile: Profile,
+    preferences: Preferences,
+    found: ResumeFound,
+  ) => void
+  /** Si quien llama guarda idiomas y links (el panel del perfil). El onboarding
+   * todavía no tiene dónde, así que no los ofrece: tildar algo que se pierde
+   * sería mentirle a la persona. */
+  withResume?: boolean
   title?: string
   onEmpty?: () => void
 }
@@ -135,6 +146,7 @@ export function CvImport({
   categories,
   onApply,
   onEmpty,
+  withResume = true,
   title = 'Importar tu CV',
 }: CvImportProps) {
   const [stage, setStage] = useState<Stage>('idle')
@@ -166,7 +178,9 @@ export function CvImport({
       return next
     })
 
-  const finish = (found: CvReading) => {
+  const finish = (read: CvReading) => {
+    /* Sin dónde guardarlos, idiomas y links no cuentan como hallazgo. */
+    const found = withResume ? read : { ...read, languages: [], links: [] }
     if (isEmptyReading(found) && onEmpty) {
       setStage('idle')
       setError(null)
@@ -244,6 +258,7 @@ export function CvImport({
     const places = reading.places.filter((place) =>
       kept(`place:${place.department}`),
     )
+    const place = places[0]
 
     onApply(
       {
@@ -271,6 +286,16 @@ export function CvImport({
           ]),
         ].filter((name) => !preferences.hiddenDepartments.includes(name)),
       },
+      {
+        languages: reading.languages.filter((language) =>
+          kept(`lang:${language.name}`),
+        ),
+        links: reading.links.filter((link) => kept(`link:${link.url}`)),
+        place:
+          withResume && place
+            ? { department: place.department, city: placeCity(place) }
+            : null,
+      },
     )
 
     setStage('idle')
@@ -282,6 +307,8 @@ export function CvImport({
     reading.courses.length +
     reading.categories.length +
     reading.places.length +
+    reading.languages.length +
+    reading.links.length +
     (reading.education === '' ? 0 : 1) +
     (reading.experienceYears === null ? 0 : 1)
 
@@ -369,6 +396,40 @@ export function CvImport({
       ),
     })
   }
+  if (reading.languages.length > 0) {
+    groups.push({
+      key: 'languages',
+      node: (
+        <Group title="Idiomas">
+          {reading.languages.map((language) => (
+            <Pick
+              key={language.name}
+              checked={kept(`lang:${language.name}`)}
+              label={`${language.name}, ${LANGUAGE_LEVEL_LABEL[language.level].toLowerCase()}`}
+              onToggle={() => toggle(`lang:${language.name}`)}
+            />
+          ))}
+        </Group>
+      ),
+    })
+  }
+  if (reading.links.length > 0) {
+    groups.push({
+      key: 'links',
+      node: (
+        <Group title="Web y redes">
+          {reading.links.map((link) => (
+            <Pick
+              key={link.url}
+              checked={kept(`link:${link.url}`)}
+              label={link.url.replace(/^https?:\/\/(www\.)?/, '')}
+              onToggle={() => toggle(`link:${link.url}`)}
+            />
+          ))}
+        </Group>
+      ),
+    })
+  }
   if (reading.categories.length > 0) {
     groups.push({
       key: 'categories',
@@ -397,9 +458,9 @@ export function CvImport({
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-onpanel-muted">
           Leo el archivo <strong>en este navegador</strong> y busco tus títulos,
-          cursos y años de experiencia. No se sube a ningún lado. También sirve
-          tu perfil de LinkedIn: entrá a tu perfil, “Más” → “Guardar como PDF”,
-          y subí ese archivo.
+          cursos, años de experiencia{withResume ? ', idiomas y links' : ''}. No
+          se sube a ningún lado. También sirve tu perfil de LinkedIn: entrá a tu
+          perfil, “Más” → “Guardar como PDF”, y subí ese archivo.
         </p>
       </div>
 

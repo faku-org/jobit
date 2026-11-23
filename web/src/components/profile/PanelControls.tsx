@@ -30,6 +30,49 @@ export function PanelChip({
   )
 }
 
+/** Campo de texto dentro de la isla: 44 px de alto en el celular, el mismo
+ * borde que las fuentes propias. */
+export const panelInputClass =
+  'w-full min-h-11 rounded-lg border border-onpanel/20 bg-onpanel/5 px-3 py-2 text-sm text-onpanel outline-none transition-colors placeholder:text-onpanel-faint focus:border-sky aria-[invalid=true]:border-onpanel sm:min-h-9'
+
+/** Botón chico de acción (agregar, descargar), con el mismo peso que el resto. */
+export const panelButtonClass =
+  'inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-onpanel-wash px-3 text-xs font-medium text-onpanel/80 transition-colors hover:bg-onpanel/20 hover:text-onpanel sm:min-h-9'
+
+/** El botón de quitar una fila: sólo ícono, así que lleva nombre accesible. */
+export const panelRemoveClass =
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-onpanel/60 transition-colors hover:bg-onpanel-wash hover:text-onpanel sm:size-9'
+
+/** Etiqueta de un campo, con el mismo título chico que los grupos. */
+export function PanelField({
+  label,
+  htmlFor,
+  hint,
+  children,
+}: {
+  label: string
+  htmlFor: string
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <div>
+      <label
+        className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase"
+        htmlFor={htmlFor}
+      >
+        {label}
+      </label>
+      <div className="mt-2">{children}</div>
+      {hint ? (
+        <p className="mt-1.5 text-[11px] leading-relaxed text-onpanel-faint">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 export function PanelGroup({
   title,
   children,

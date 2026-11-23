@@ -39,7 +39,7 @@ src/
     followup/         notas y entrevistas de una postulación (ver abajo)
     job/              tarjeta y ficha de una oferta
     market/           el informe del mercado
-    profile/          onboarding, perfil y preferencias
+    profile/          onboarding, perfil, CV y preferencias (ver docs/perfil.md)
     test/             el test de autoconocimiento (ver docs/autoconocimiento.md)
     account/          cuenta de usuario (alta, login, 2FA, sync)
     ui/               piezas chicas (embeds, confirmaciones, aura…)
