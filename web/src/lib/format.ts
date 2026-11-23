@@ -75,6 +75,21 @@ export function formatLocation(
   return city ?? department ?? 'Uruguay'
 }
 
+const interviewDay = new Intl.DateTimeFormat('es-UY', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+})
+
+/** "martes 1 de diciembre · 15:30" para un día `YYYY-MM-DD` y una hora `HH:MM`
+ * que no pasan por zona horaria: son los que escribió la persona. */
+export function formatInterviewWhen(date: string, time: string): string {
+  const [year = 0, month = 1, dayOfMonth = 1] = date.split('-').map(Number)
+  const when = new Date(year, month - 1, dayOfMonth)
+  if (Number.isNaN(when.getTime())) return time
+  return `${interviewDay.format(when)} · ${time}`
+}
+
 /** "el 3 de setiembre". */
 export function formatDay(iso: string): string {
   const date = new Date(iso)
