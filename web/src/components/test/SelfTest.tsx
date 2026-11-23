@@ -9,6 +9,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { badgeModel } from '../../lib/badge.ts'
 import { testDoneEvent } from '../../lib/events.ts'
 import {
   ANSWER_SCALE,
@@ -22,6 +23,7 @@ import {
   answeredCount,
   clearTest,
   firstOpenPage,
+  levelPhrase,
   pageItems,
   readTest,
   scoreTest,
@@ -31,6 +33,9 @@ import {
 } from '../../lib/selfTest.ts'
 import { track } from '../../lib/track.ts'
 import type { Facet } from '../../lib/types.ts'
+import { ConfirmDialog } from '../ui/ConfirmDialog.tsx'
+import { Badge } from './Badge.tsx'
+import { Radar } from './Radar.tsx'
 
 interface SelfTestProps {
   /** Para ponerle nombre a los rubros sugeridos; sin esto se ve el slug. */
@@ -46,6 +51,8 @@ const primaryButton =
   'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-panel px-4 py-2 text-sm font-semibold text-onpanel transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
 const secondaryButton =
   'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-sky/60 px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-mist focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+const dangerButton =
+  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-danger/40 bg-danger/8 px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger/16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
 const linkButton =
   'inline-flex items-center gap-1.5 rounded-lg text-xs font-medium text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
 
@@ -441,12 +448,8 @@ function Result({
     categories.find((facet) => facet.value === slug)?.label ?? slug
   const rubros = suggestRubros(scores)
   const top = standouts(scores)
-
-  const levelText = (score: TraitScore): string => {
-    const trait = TRAITS.find((entry) => entry.key === score.key)
-    if (!trait || score.level === 'mid') return 'En el medio'
-    return `Más cerca de ${score.level === 'high' ? trait.high : trait.low}`
-  }
+  const badge = badgeModel(scores)
+  const eraseButton = useRef<HTMLButtonElement>(null)
 
   return (
     <div className="mt-6 space-y-4">
@@ -466,6 +469,19 @@ function Result({
         </p>
         <div className="mt-4">
           <Notice />
+        </div>
+      </Card>
+
+      <Card label="Tu perfil en un gráfico">
+        <h2 className="text-sm font-semibold tracking-tight text-ink">
+          Tu perfil de un vistazo
+        </h2>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted">
+          Cuanto más lejos del centro, más cerca del extremo que nombra el
+          rasgo. No hay una forma mejor que otra.
+        </p>
+        <div className="mt-3">
+          <Radar scores={scores} />
         </div>
       </Card>
 
@@ -492,7 +508,7 @@ function Result({
                 </div>
 
                 <div
-                  aria-label={`${trait.label}: ${score.percent} de 100. ${levelText(score)}`}
+                  aria-label={`${trait.label}: ${score.percent} de 100. ${levelPhrase(score)}`}
                   aria-valuemax={100}
                   aria-valuemin={0}
                   aria-valuenow={score.percent}
@@ -510,7 +526,7 @@ function Result({
                 </div>
 
                 <p className="mt-2 text-xs font-semibold text-ink">
-                  {levelText(score)}
+                  {levelPhrase(score)}
                 </p>
                 <p className="mt-0.5 text-sm leading-relaxed text-soft">
                   {READING[trait.key][score.level]}
@@ -551,6 +567,22 @@ function Result({
         )}
       </Card>
 
+      {badge ? (
+        <Card label="Tu badge">
+          <h2 className="text-sm font-semibold tracking-tight text-ink">
+            Tu badge
+          </h2>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted">
+            Una imagen con tu rasgo más marcado, para guardarla o mandarla. Se
+            arma en tu navegador: no se sube a ningún lado y JobIt no se entera.
+            Lo que muestra lo ve quien la reciba, así que compartila si querés.
+          </p>
+          <div className="mt-4">
+            <Badge model={badge} />
+          </div>
+        </Card>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         <button className={primaryButton} type="button" onClick={onBack}>
           Volver a las ofertas
@@ -559,32 +591,29 @@ function Result({
           <RotateCcw aria-hidden className="size-4" />
           Repetir el test
         </button>
-        {confirmingErase ? (
-          <span className="flex flex-wrap items-center gap-2 text-xs text-ink">
-            Se borran tus respuestas de este dispositivo.
-            <button
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              type="button"
-              onClick={onConfirmErase}
-            >
-              <Trash2 aria-hidden className="size-3.5" />
-              Sí, borrar
-            </button>
-            <button
-              className={linkButton}
-              type="button"
-              onClick={onCancelErase}
-            >
-              Cancelar
-            </button>
-          </span>
-        ) : (
-          <button className={linkButton} type="button" onClick={onStartErase}>
-            <Trash2 aria-hidden className="size-3.5" />
-            Borrar mis respuestas
-          </button>
-        )}
+        <button
+          ref={eraseButton}
+          className={dangerButton}
+          type="button"
+          onClick={onStartErase}
+        >
+          <Trash2 aria-hidden className="size-4" />
+          Borrar mis respuestas
+        </button>
       </div>
+
+      <ConfirmDialog
+        confirmLabel="Sí, borrar"
+        open={confirmingErase}
+        returnFocusTo={eraseButton}
+        title="¿Borrar tus respuestas?"
+        onCancel={onCancelErase}
+        onConfirm={onConfirmErase}
+      >
+        Se borran las {ITEM_COUNT} respuestas y el resultado de este
+        dispositivo, y no se pueden recuperar: JobIt no guarda una copia. Para
+        volver a verlo tenés que hacer el test de nuevo.
+      </ConfirmDialog>
     </div>
   )
 }
