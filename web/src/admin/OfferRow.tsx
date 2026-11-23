@@ -65,7 +65,7 @@ export function OfferRow({ offer, busy, onSetStatus, onRemove }: Props) {
           {offer.title}
         </h3>
         <span
-          className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${BADGE[offer.status]}`}
+          className={`rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium ${BADGE[offer.status]}`}
         >
           {OFFER_STATUS_LABEL[offer.status]}
         </span>
@@ -80,7 +80,7 @@ export function OfferRow({ offer, busy, onSetStatus, onRemove }: Props) {
       ) : null}
 
       {stuck ? (
-        <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+        <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1 text-[0.6875rem] text-amber-800">
           <TriangleAlert aria-hidden className="size-3.5" />
           La empresa no está aprobada, así que esto no sale al tablero.
         </p>

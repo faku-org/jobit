@@ -42,7 +42,7 @@ function ShortcutHelp({ onClose }: { onClose: () => void }) {
       >
         <header className="flex items-center justify-between gap-3 border-b border-sky/40 px-5 py-4">
           <h2
-            className="text-[17px] font-semibold tracking-tight text-ink"
+            className="text-[1.0625rem] font-semibold tracking-tight text-ink"
             id="search-help-title"
           >
             Atajos del buscador

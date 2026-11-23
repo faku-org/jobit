@@ -109,6 +109,24 @@
               ? 'dark'
               : 'light'
         document.documentElement.dataset.theme = theme
+
+        /* Same for Preferencias → escala, movimiento, contraste y enlaces
+           (lib/display.ts): sin esto la página saltaría de tamaño al hidratar. */
+        const display = stored.display || {}
+        const root = document.documentElement
+        if ([90, 115, 130].includes(display.scale))
+          root.dataset.scale = String(display.scale)
+        if (
+          display.reduceMotion === true ||
+          matchMedia('(prefers-reduced-motion: reduce)').matches
+        )
+          root.dataset.motion = 'reduce'
+        if (
+          display.highContrast === true ||
+          matchMedia('(prefers-contrast: more)').matches
+        )
+          root.dataset.contrast = 'more'
+        if (display.underlineLinks === true) root.dataset.links = 'underline'
       } catch {}
     </script>
   </head>

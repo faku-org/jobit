@@ -222,7 +222,7 @@ export function Services({ active, onOpen }: ServicesProps) {
       {list.status === 'error' ? (
         <div className="rounded-2xl border border-brand bg-mist px-6 py-12 text-center">
           <TriangleAlert aria-hidden className="mx-auto size-7 text-brand" />
-          <p className="mt-4 text-[15px] font-medium text-ink">
+          <p className="mt-4 text-[0.9375rem] font-medium text-ink">
             No se pudieron cargar los servicios
           </p>
           <p className="mt-1 text-sm text-soft">{list.error}</p>
@@ -235,7 +235,7 @@ export function Services({ active, onOpen }: ServicesProps) {
         <FadeUp>
           <div className="rounded-2xl border border-dashed border-sky bg-surface/60 px-6 py-16 text-center">
             <SearchX aria-hidden className="mx-auto size-7 text-brand" />
-            <p className="mt-4 text-[15px] font-medium text-ink">
+            <p className="mt-4 text-[0.9375rem] font-medium text-ink">
               {isDirty
                 ? 'No hay servicios para estos filtros'
                 : 'Todavía no hay servicios'}

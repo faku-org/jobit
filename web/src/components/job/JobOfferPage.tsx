@@ -103,7 +103,7 @@ function OfferHeader({
           </span>
         ) : null}
         <h2
-          className="text-[19px] leading-snug font-semibold tracking-tight text-ink focus:outline-none"
+          className="text-[1.1875rem] leading-snug font-semibold tracking-tight text-ink focus:outline-none"
           id="job-modal-title"
           tabIndex={-1}
         >

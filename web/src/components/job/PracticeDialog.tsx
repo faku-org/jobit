@@ -84,7 +84,7 @@ export function PracticeDialog({
           </span>
           <div className="min-w-0 flex-1">
             <h2
-              className="text-[17px] leading-snug font-semibold tracking-tight text-ink"
+              className="text-[1.0625rem] leading-snug font-semibold tracking-tight text-ink"
               id="practice-dialog-title"
             >
               Ya la seguís. ¿Practicamos?

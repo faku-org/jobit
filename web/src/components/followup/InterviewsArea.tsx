@@ -168,7 +168,7 @@ function InterviewForm({
             onChange={(event) => set('date')(event.target.value)}
           />
           <p
-            className="mt-1 min-h-4 text-[11px] text-red-600"
+            className="mt-1 min-h-4 text-[0.6875rem] text-red-600"
             id={`${fieldId('date')}-error`}
           >
             {errorOf('date')}
@@ -194,7 +194,7 @@ function InterviewForm({
             onChange={(event) => set('time')(event.target.value)}
           />
           <p
-            className="mt-1 min-h-4 text-[11px] text-red-600"
+            className="mt-1 min-h-4 text-[0.6875rem] text-red-600"
             id={`${fieldId('time')}-error`}
           >
             {errorOf('time')}
@@ -220,7 +220,7 @@ function InterviewForm({
           onChange={(event) => set('place')(event.target.value)}
         />
         <p
-          className="mt-1 text-[11px] text-muted"
+          className="mt-1 text-[0.6875rem] text-muted"
           id={`${fieldId('place')}-help`}
         >
           Dirección o sala. Si es a distancia, dejalo vacío.
@@ -249,7 +249,7 @@ function InterviewForm({
           onChange={(event) => set('link')(event.target.value)}
         />
         <p
-          className={`mt-1 text-[11px] ${errorOf('link') ? 'text-red-600' : 'text-muted'}`}
+          className={`mt-1 text-[0.6875rem] ${errorOf('link') ? 'text-red-600' : 'text-muted'}`}
           id={`${fieldId('link')}-help`}
         >
           {errorOf('link') ??
@@ -275,7 +275,7 @@ function InterviewForm({
           onChange={(event) => set('contact')(event.target.value)}
         />
         <p
-          className="mt-1 text-[11px] text-muted"
+          className="mt-1 text-[0.6875rem] text-muted"
           id={`${fieldId('contact')}-help`}
         >
           El nombre y el cargo de quien te entrevista, para tenerlo a mano.
@@ -411,7 +411,7 @@ function InterviewRow({
           <CalendarPlus aria-hidden className="size-4" />
           Agregar al calendario
         </button>
-        <p aria-live="polite" className="text-[11px] text-muted">
+        <p aria-live="polite" className="text-[0.6875rem] text-muted">
           {downloaded
             ? 'Se bajó el archivo. Abrilo y se suma a tu calendario.'
             : 'Baja un archivo .ics, con un aviso el día anterior.'}

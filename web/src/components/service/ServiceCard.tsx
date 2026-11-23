@@ -40,7 +40,7 @@ export function ServiceCard({ service, onOpen }: ServiceCardProps) {
         ) : null}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-[17px] leading-snug font-medium tracking-tight text-ink">
+            <h2 className="text-[1.0625rem] leading-snug font-medium tracking-tight text-ink">
               <button
                 className="text-left transition-colors hover:text-brand"
                 type="button"

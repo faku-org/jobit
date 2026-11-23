@@ -21,7 +21,7 @@ export function DisabilityField({ value, onChange }: DisabilityFieldProps) {
     <div className="space-y-3">
       <div className="flex gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
-        <p className="text-[11px] leading-relaxed text-onpanel/75">
+        <p className="text-[0.6875rem] leading-relaxed text-onpanel/75">
           Es un dato sensible y es opcional. Queda{' '}
           <strong>sólo en este navegador</strong>: no se sincroniza, no se
           cuenta en las estadísticas y no se manda a ninguna empresa. Lo podés
@@ -46,7 +46,7 @@ export function DisabilityField({ value, onChange }: DisabilityFieldProps) {
       {value.declared ? (
         <div>
           <label
-            className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase"
+            className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase"
             htmlFor={`${id}-note`}
           >
             Aclaración (opcional)

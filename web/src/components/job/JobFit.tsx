@@ -91,7 +91,7 @@ export function JobFit({ job, profile }: JobFitProps) {
                     >
                       <Icon aria-hidden className="size-2.5" />
                     </span>
-                    <span className="text-[13px] leading-snug text-ink/80">
+                    <span className="text-[0.8125rem] leading-snug text-ink/80">
                       {check.asks}
                       {check.yours ? (
                         <span className="text-muted"> · {check.yours}</span>
@@ -134,7 +134,7 @@ export function JobFit({ job, profile }: JobFitProps) {
                 <m.li
                   key={tip}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-2.5 text-[13px] leading-relaxed text-soft"
+                  className="flex gap-2.5 text-[0.8125rem] leading-relaxed text-soft"
                   initial={{ opacity: 0, y: 4 }}
                   transition={{ ...fadeUpTransition, delay: stagger(index) }}
                 >

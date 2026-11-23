@@ -250,7 +250,9 @@ export function OfferForm({ companies, onCreate }: Props) {
         >
           Cancelar
         </button>
-        <span className="ml-auto text-[11px] text-faint">Nace en borrador</span>
+        <span className="ml-auto text-[0.6875rem] text-faint">
+          Nace en borrador
+        </span>
       </div>
     </form>
   )

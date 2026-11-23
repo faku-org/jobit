@@ -244,7 +244,7 @@ export function ServiceForm({ service, onSaved, onCancel }: ServiceFormProps) {
         save('pending')
       }}
     >
-      <h2 className="text-[15px] font-semibold text-ink">
+      <h2 className="text-[0.9375rem] font-semibold text-ink">
         {service ? 'Editar el servicio' : 'Publicar un servicio'}
       </h2>
       <p className="mt-1 text-sm text-soft">

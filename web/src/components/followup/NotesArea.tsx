@@ -76,7 +76,7 @@ function NoteField({
       />
       <p
         aria-live="polite"
-        className={`mt-1 flex items-center gap-1.5 text-[11px] ${
+        className={`mt-1 flex items-center gap-1.5 text-[0.6875rem] ${
           showError ? 'text-red-600' : 'text-muted'
         }`}
         id={`${id}-help`}
@@ -160,7 +160,7 @@ function NoteRow({
           </button>
         </div>
       </div>
-      <p className="mt-1 text-[11px] text-faint tabular-nums">
+      <p className="mt-1 text-[0.6875rem] text-faint tabular-nums">
         {formatDay(note.createdAt)}
         {edited ? ` · editada el ${formatDay(note.updatedAt)}` : ''}
       </p>

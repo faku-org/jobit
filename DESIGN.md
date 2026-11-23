@@ -77,8 +77,8 @@ La política vive en `web/src/lib/motion.ts` y `motionFeatures.ts`:
 
 ### Navegación: una view propia antes que un modal
 
-Lo nuevo va como **view propia con su URL** (`?view=profile`, `?view=help`,
-`?view=news`, `?view=test`), no como modal, panel con submenús ni pestaña de más.
+Lo nuevo va como **view propia con su URL** (`?view=settings`, `?view=profile`,
+`?view=help`, `?view=news`, `?view=test`), no como modal, panel con submenús ni pestaña de más.
 Una página aguanta más contenido, se puede enlazar y el botón Atrás vuelve al
 listado. Reglas:
 
@@ -93,7 +93,21 @@ listado. Reglas:
 - Los modales quedan para **confirmar** o para un **vistazo rápido**. La ficha de
   oferta sigue siendo modal.
 - Una URL vieja que cambió de lugar se lee como lo que es hoy y se reescribe sola
-  (`LEGACY` en `web/src/lib/url.ts`); no se rompen enlaces compartidos.
+  (`LEGACY` y `MOVED_ANCHORS` en `web/src/lib/url.ts`); no se rompen enlaces
+  compartidos. `?view=profile#apariencia` ahora abre `?view=settings`.
+- Preferencias (idioma, tema, escala, accesibilidad) es del dispositivo y vive en
+  su propia view; el perfil y la búsqueda viven en `?view=profile`.
+
+### Escala y accesibilidad
+
+- El texto se mide en **rem**, nunca en `text-[Npx]`: la escala de Preferencias
+  cambia el `font-size` de `<html>` y todo lo que se mide con rem la sigue. Un
+  test (`lib/display.test.ts`) falla si vuelve un `text-[Npx]`.
+- Reducir movimiento, alto contraste y subrayar enlaces son atributos de `<html>`
+  (`data-motion`, `data-contrast`, `data-links`); los componentes no se enteran.
+  Suman a lo que pide el sistema, nunca lo quitan.
+- Alto contraste redefine los tokens (tinta, bordes, secundarios) y mantiene AA
+  o más en el tema claro y en el oscuro.
 
 ### Áreas, no scroll infinito
 

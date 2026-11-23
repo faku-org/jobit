@@ -103,7 +103,7 @@ export function CompanyForm({
         >
           Cancelar
         </button>
-        <span className="ml-auto text-[11px] text-faint">
+        <span className="ml-auto text-[0.6875rem] text-faint">
           Entra como pendiente
         </span>
       </div>

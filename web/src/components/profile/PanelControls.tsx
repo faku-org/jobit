@@ -7,20 +7,24 @@ import { nextStance, setStance, stanceOf } from '../../lib/types.ts'
 export function PanelChip({
   active,
   children,
+  disabled = false,
   onClick,
 }: {
   active: boolean
   children: ReactNode
+  /** Se ve pero no se puede elegir (un idioma que todavía no está). */
+  disabled?: boolean
   onClick: () => void
 }) {
   return (
     <button
       aria-pressed={active}
+      disabled={disabled}
       className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors sm:min-h-0 sm:px-3 sm:py-1.5 sm:text-xs ${
         active
           ? 'bg-sky text-ink'
           : 'bg-onpanel-wash text-onpanel/75 hover:bg-onpanel/20 hover:text-onpanel'
-      }`}
+      } disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-onpanel-wash disabled:hover:text-onpanel/75`}
       type="button"
       onClick={onClick}
     >
@@ -58,14 +62,14 @@ export function PanelField({
   return (
     <div>
       <label
-        className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase"
+        className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase"
         htmlFor={htmlFor}
       >
         {label}
       </label>
       <div className="mt-2">{children}</div>
       {hint ? (
-        <p className="mt-1.5 text-[11px] leading-relaxed text-onpanel-faint">
+        <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-onpanel-faint">
           {hint}
         </p>
       ) : null}
@@ -82,7 +86,7 @@ export function PanelGroup({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+      <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
         {title}
       </p>
       <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
@@ -125,10 +129,10 @@ export function StanceChips({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+      <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
         {title}
       </p>
-      <p className="mt-1 text-[11px] leading-relaxed text-onpanel-faint">
+      <p className="mt-1 text-[0.6875rem] leading-relaxed text-onpanel-faint">
         {hint}
       </p>
 
@@ -152,7 +156,7 @@ export function StanceChips({
                 <EyeOff aria-hidden className="size-3" />
               ) : null}
               {facet.label}
-              <span className="text-[10px] opacity-60 tabular-nums">
+              <span className="text-[0.625rem] opacity-60 tabular-nums">
                 {facet.count}
               </span>
             </button>

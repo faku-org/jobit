@@ -9,6 +9,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { badgeModel } from '../../lib/badge.ts'
 import { testDoneEvent } from '../../lib/events.ts'
 import {
   ANSWER_SCALE,
@@ -22,6 +23,7 @@ import {
   answeredCount,
   clearTest,
   firstOpenPage,
+  levelPhrase,
   pageItems,
   readTest,
   scoreTest,
@@ -31,6 +33,9 @@ import {
 } from '../../lib/selfTest.ts'
 import { track } from '../../lib/track.ts'
 import type { Facet } from '../../lib/types.ts'
+import { ConfirmDialog } from '../ui/ConfirmDialog.tsx'
+import { Badge } from './Badge.tsx'
+import { Radar } from './Radar.tsx'
 
 interface SelfTestProps {
   /** Para ponerle nombre a los rubros sugeridos; sin esto se ve el slug. */
@@ -46,6 +51,8 @@ const primaryButton =
   'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-panel px-4 py-2 text-sm font-semibold text-onpanel transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
 const secondaryButton =
   'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-sky/60 px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-mist focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+const dangerButton =
+  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-danger/40 bg-danger/8 px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger/16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
 const linkButton =
   'inline-flex items-center gap-1.5 rounded-lg text-xs font-medium text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
 
@@ -272,7 +279,7 @@ export function SelfTest({
               style={{ width: `${percent}%` }}
             />
           </div>
-          <p className="mt-1.5 text-[11px] text-muted tabular-nums">
+          <p className="mt-1.5 text-[0.6875rem] text-muted tabular-nums">
             {answered} de {ITEM_COUNT} respondidas
           </p>
         </Card>
@@ -324,7 +331,7 @@ export function SelfTest({
                       <span className="text-sm font-semibold tabular-nums">
                         {option.value}
                       </span>
-                      <span className="text-[10px] leading-tight sm:text-[11px]">
+                      <span className="text-[0.625rem] leading-tight sm:text-[0.6875rem]">
                         {option.label}
                       </span>
                     </label>
@@ -388,7 +395,7 @@ export function SelfTest({
             <ArrowRight aria-hidden className="size-4" />
           </button>
         </div>
-        <p className="px-1 text-[11px] text-muted">
+        <p className="px-1 text-[0.6875rem] text-muted">
           Al pausar, lo que contestaste queda guardado en este dispositivo.
         </p>
       </div>
@@ -441,12 +448,8 @@ function Result({
     categories.find((facet) => facet.value === slug)?.label ?? slug
   const rubros = suggestRubros(scores)
   const top = standouts(scores)
-
-  const levelText = (score: TraitScore): string => {
-    const trait = TRAITS.find((entry) => entry.key === score.key)
-    if (!trait || score.level === 'mid') return 'En el medio'
-    return `Más cerca de ${score.level === 'high' ? trait.high : trait.low}`
-  }
+  const badge = badgeModel(scores)
+  const eraseButton = useRef<HTMLButtonElement>(null)
 
   return (
     <div className="mt-6 space-y-4">
@@ -469,6 +472,19 @@ function Result({
         </div>
       </Card>
 
+      <Card label="Tu perfil en un gráfico">
+        <h2 className="text-sm font-semibold tracking-tight text-ink">
+          Tu perfil de un vistazo
+        </h2>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted">
+          Cuanto más lejos del centro, más cerca del extremo que nombra el
+          rasgo. No hay una forma mejor que otra.
+        </p>
+        <div className="mt-3">
+          <Radar scores={scores} />
+        </div>
+      </Card>
+
       <Card label="Los cinco rasgos">
         <ul className="space-y-5">
           {TRAITS.map((trait) => {
@@ -481,7 +497,7 @@ function Result({
                   <h2 className="text-sm font-semibold text-ink">
                     {trait.label}
                     {highlighted ? (
-                      <span className="ml-2 rounded-full bg-mist px-2 py-0.5 text-[10px] font-medium text-soft">
+                      <span className="ml-2 rounded-full bg-mist px-2 py-0.5 text-[0.625rem] font-medium text-soft">
                         Se nota más
                       </span>
                     ) : null}
@@ -492,7 +508,7 @@ function Result({
                 </div>
 
                 <div
-                  aria-label={`${trait.label}: ${score.percent} de 100. ${levelText(score)}`}
+                  aria-label={`${trait.label}: ${score.percent} de 100. ${levelPhrase(score)}`}
                   aria-valuemax={100}
                   aria-valuemin={0}
                   aria-valuenow={score.percent}
@@ -504,13 +520,13 @@ function Result({
                     style={{ width: `${score.percent}%` }}
                   />
                 </div>
-                <div className="mt-1 flex justify-between text-[11px] text-muted">
+                <div className="mt-1 flex justify-between text-[0.6875rem] text-muted">
                   <span>{trait.low}</span>
                   <span>{trait.high}</span>
                 </div>
 
                 <p className="mt-2 text-xs font-semibold text-ink">
-                  {levelText(score)}
+                  {levelPhrase(score)}
                 </p>
                 <p className="mt-0.5 text-sm leading-relaxed text-soft">
                   {READING[trait.key][score.level]}
@@ -551,6 +567,22 @@ function Result({
         )}
       </Card>
 
+      {badge ? (
+        <Card label="Tu badge">
+          <h2 className="text-sm font-semibold tracking-tight text-ink">
+            Tu badge
+          </h2>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted">
+            Una imagen con tu rasgo más marcado, para guardarla o mandarla. Se
+            arma en tu navegador: no se sube a ningún lado y JobIt no se entera.
+            Lo que muestra lo ve quien la reciba, así que compartila si querés.
+          </p>
+          <div className="mt-4">
+            <Badge model={badge} />
+          </div>
+        </Card>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         <button className={primaryButton} type="button" onClick={onBack}>
           Volver a las ofertas
@@ -559,32 +591,29 @@ function Result({
           <RotateCcw aria-hidden className="size-4" />
           Repetir el test
         </button>
-        {confirmingErase ? (
-          <span className="flex flex-wrap items-center gap-2 text-xs text-ink">
-            Se borran tus respuestas de este dispositivo.
-            <button
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              type="button"
-              onClick={onConfirmErase}
-            >
-              <Trash2 aria-hidden className="size-3.5" />
-              Sí, borrar
-            </button>
-            <button
-              className={linkButton}
-              type="button"
-              onClick={onCancelErase}
-            >
-              Cancelar
-            </button>
-          </span>
-        ) : (
-          <button className={linkButton} type="button" onClick={onStartErase}>
-            <Trash2 aria-hidden className="size-3.5" />
-            Borrar mis respuestas
-          </button>
-        )}
+        <button
+          ref={eraseButton}
+          className={dangerButton}
+          type="button"
+          onClick={onStartErase}
+        >
+          <Trash2 aria-hidden className="size-4" />
+          Borrar mis respuestas
+        </button>
       </div>
+
+      <ConfirmDialog
+        confirmLabel="Sí, borrar"
+        open={confirmingErase}
+        returnFocusTo={eraseButton}
+        title="¿Borrar tus respuestas?"
+        onCancel={onCancelErase}
+        onConfirm={onConfirmErase}
+      >
+        Se borran las {ITEM_COUNT} respuestas y el resultado de este
+        dispositivo, y no se pueden recuperar: JobIt no guarda una copia. Para
+        volver a verlo tenés que hacer el test de nuevo.
+      </ConfirmDialog>
     </div>
   )
 }
