@@ -112,7 +112,7 @@ describe('jobsQuery', () => {
 describe('keepListView', () => {
   test('Mercado y seguimiento no pisan la lista que se estaba mirando', () => {
     expect(keepListView('market', 'saved')).toBe('saved')
-    expect(keepListView('profile', 'all')).toBe('all')
+    expect(keepListView('settings', 'all')).toBe('all')
     expect(keepListView('help', 'saved')).toBe('saved')
     expect(keepListView('news', 'all')).toBe('all')
     expect(keepListView('saved', 'all')).toBe('saved')

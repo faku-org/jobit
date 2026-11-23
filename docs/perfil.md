@@ -1,9 +1,9 @@
 # Perfil completo (CV)
 
 Lo que la persona carga además de estudios y experiencia: foto, dónde vive,
-idiomas, qué busca, links, referencias y, si quiere, discapacidad. Vive en la
-página de Perfil (`?view=profile`, `ProfilePage` + `ResumeSections`), como una
-sección más con ancla (`#cv`).
+idiomas, qué busca, links, referencias y, si quiere, discapacidad. Vive en
+Configuración → Perfil → CV (`?view=settings#cv`, `ProfileSections` +
+`ResumeSections`); `?view=profile#cv` sigue abriendo ahí.
 
 ## Dónde se guarda
 

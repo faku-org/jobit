@@ -587,3 +587,25 @@ html:has([aria-modal='true'])
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
+
+/* Configuración (components/settings/ConfigPanel.tsx): la página tiene el alto
+   de la ventana y una sección no crece hacia abajo: sus bloques se reparten
+   parejos entre las columnas que entran (`column-fill: balance`), así el texto
+   corre en horizontal aunque quepa en una sola, y lo que no entra pasa a la
+   derecha, no abajo. En el teléfono (debajo de md)
+   no hay ancho para dos columnas y la sección va de corrido. */
+.config-columns > * {
+  break-inside: avoid;
+  margin-bottom: 1.25rem;
+}
+
+@media (min-width: 48rem) {
+  .config-columns {
+    column-width: var(--config-col, 19rem);
+    column-gap: 1.75rem;
+    column-fill: balance;
+    column-rule: 1px solid
+      color-mix(in srgb, var(--color-onpanel) 10%, transparent);
+    height: 100%;
+  }
+}

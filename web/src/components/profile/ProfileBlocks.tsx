@@ -18,7 +18,7 @@ import { Combobox } from '../ui/Combobox.tsx'
 import { DangerZone } from './DangerZone.tsx'
 import { ExperienceField } from './ExperienceField.tsx'
 import { PanelChip, PanelGroup } from './PanelControls.tsx'
-import { ResumeSections } from './ResumeSections.tsx'
+import { type ResumePart, ResumeSections } from './ResumeSections.tsx'
 
 interface ProfileBasicsProps {
   profile: Profile
@@ -26,6 +26,7 @@ interface ProfileBasicsProps {
 }
 
 interface CvBlockProps {
+  part: 'importar' | ResumePart
   profile: Profile
   /** Read only by the CV import, which can suggest rubros to prefer. */
   preferences: Preferences
@@ -75,7 +76,7 @@ export function ProfileBasics({ profile, onChange }: ProfileBasicsProps) {
     })
 
   return (
-    <div className="space-y-5">
+    <>
       <PanelGroup title="Nivel educativo">
         {EDUCATION_LEVELS.map((level) => (
           <PanelChip
@@ -110,12 +111,14 @@ export function ProfileBasics({ profile, onChange }: ProfileBasicsProps) {
           onChange({ ...profile, experienceYears })
         }
       />
-    </div>
+    </>
   )
 }
 
-/** Importar el CV y el resto de los datos que se parecen a uno. */
+/** Importar el CV, o las partes del CV a mano: cada `part` es una sub-sección
+ * de Configuración con sus bloques repartidos entre las columnas. */
 export function CvBlock({
+  part,
   profile,
   preferences,
   categories,
@@ -125,26 +128,40 @@ export function CvBlock({
   onChangePreferences,
   onSearchBoard,
 }: CvBlockProps) {
-  return (
-    <div className="space-y-6">
-      <Suspense fallback={null}>
-        <CvImport
-          categories={categories}
+  if (part === 'importar')
+    return (
+      <>
+        <Suspense fallback={null}>
+          <CvImport
+            columns
+            categories={categories}
+            preferences={preferences}
+            profile={profile}
+            onApply={onImportCv}
+          />
+        </Suspense>
+        <ResumeSections
+          part="export"
           preferences={preferences}
           profile={profile}
-          onApply={onImportCv}
+          resume={resume}
+          onChange={onChangeResume}
+          onChangePreferences={onChangePreferences}
+          onSearchBoard={onSearchBoard}
         />
-      </Suspense>
+      </>
+    )
 
-      <ResumeSections
-        preferences={preferences}
-        profile={profile}
-        resume={resume}
-        onChange={onChangeResume}
-        onChangePreferences={onChangePreferences}
-        onSearchBoard={onSearchBoard}
-      />
-    </div>
+  return (
+    <ResumeSections
+      part={part}
+      preferences={preferences}
+      profile={profile}
+      resume={resume}
+      onChange={onChangeResume}
+      onChangePreferences={onChangePreferences}
+      onSearchBoard={onSearchBoard}
+    />
   )
 }
 

@@ -1,4 +1,4 @@
-﻿import { type Role, roleOf } from '@jobit/worker/roles'
+import { type Role, roleOf } from '@jobit/worker/roles'
 import {
   type SalarySummary,
   monthlyPayOf,
@@ -178,11 +178,11 @@ function departmentStats(jobs: Job[]): DepartmentStat[] {
     .sort((a, b) => b.count - a.count)
 }
 
-/** Una habilidad mencionada en una sola oferta es anÃ©cdota, no demanda. */
+/** Una habilidad mencionada en una sola oferta es anécdota, no demanda. */
 const MIN_SKILL_OFFERS = 5
 
 /**
- * Las habilidades que mÃ¡s se piden. Se mira tÃ­tulo, descripciÃ³n y requisitos:
+ * Las habilidades que más se piden. Se mira título, descripción y requisitos:
  * una empresa puede nombrar "Excel" en cualquiera de los tres, y todas cuentan.
  */
 function skillStats(jobs: Job[]): SkillStat[] {

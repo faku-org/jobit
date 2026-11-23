@@ -43,7 +43,7 @@ src/
     job/              tarjeta y ficha de una oferta
     market/           el informe del mercado
     profile/          onboarding, perfil, CV y preferencias de búsqueda (ver docs/perfil.md)
-    settings/         Preferencias: idioma, tema, escala y accesibilidad
+    settings/         Configuración: la barra, ConfigPanel (columnas sin scroll), apariencia, idioma y accesibilidad
     test/             el test de autoconocimiento (ver docs/autoconocimiento.md)
     account/          cuenta de usuario (alta, login, 2FA, sync)
     ui/               piezas chicas (embeds, confirmaciones, aura…)
@@ -58,25 +58,25 @@ src/
 
 El estado de la pantalla vive en la URL (`lib/url.ts`, `hooks/useViewLink.ts`).
 
-| URL                 | Qué abre                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------ |
-| `/`                 | Ofertas. Con `?source=uruguayconcursa`, el filtro Estado.                                              |
-| `/?view=services`   | Servicios.                                                                                             |
-| `/?view=saved`      | Guardadas. Con `&tab=tracking`, Seguimiento.                                                           |
-| `/?view=market`     | Mercado.                                                                                               |
-| `/?view=settings`   | Preferencias (botón de la isla): idioma, tema, escala y accesibilidad.                                 |
-| `/?view=profile#cv` | Perfil y configuración, con anclas por sección (`#preferencias`, `#cv`…). Se llega desde Preferencias. |
-| `/?view=news`       | Novedades (campana de la isla).                                                                        |
-| `/?view=help`       | Ayuda (signo de pregunta de la isla).                                                                  |
-| `/?view=test`       | Test de autoconocimiento (desde Perfil).                                                               |
+| URL                  | Qué abre                                                                                       |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| `/`                  | Ofertas. Con `?source=uruguayconcursa`, el filtro Estado.                                      |
+| `/?view=services`    | Servicios.                                                                                     |
+| `/?view=saved`       | Guardadas. Con `&tab=tracking`, Seguimiento.                                                   |
+| `/?view=market`      | Mercado.                                                                                       |
+| `/?view=settings#cv` | Configuración: barra Perfil / Apariencia / Idioma / Accesibilidad; el ancla nombra la sección. |
+| `/?view=news`        | Novedades (campana de la isla).                                                                |
+| `/?view=help`        | Ayuda (signo de pregunta de la isla).                                                          |
+| `/?view=test`        | Test de autoconocimiento (desde Perfil).                                                       |
 
 Pestañas: Ofertas, Servicios, Guardadas, Mercado. Preferencias, perfil, novedades,
 ayuda y test son páginas con `PageHeader` y sin pestañas. Cambiar de view o de pestaña de
 Guardadas hace `pushState`; editar filtros hace `replaceState`.
 
 Enlaces viejos: `?view=tracking` se lee como `?view=saved&tab=tracking` y
-`?view=state` como `/?source=uruguayconcursa`; `?view=profile#apariencia` (el tema
-se mudó) se lee como `?view=settings`. La barra se reescribe con
+`?view=state` como `/?source=uruguayconcursa`; `?view=profile` (el perfil pasó a
+ser la primera pestaña de Configuración) se lee como `?view=settings` y conserva
+el ancla. La barra se reescribe con
 `replaceState` al cargar. La regla de diseño está en `DESIGN.md` ("Navegación").
 
 ## Preferencias del dispositivo

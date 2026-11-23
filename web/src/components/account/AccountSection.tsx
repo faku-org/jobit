@@ -60,7 +60,7 @@ export function AccountSection({
   }
 
   return (
-    <div className="space-y-4">
+    <>
       {user ? (
         <SignedIn
           user={user}
@@ -82,7 +82,7 @@ export function AccountSection({
           onRefresh={refresh}
         />
       ) : null}
-    </div>
+    </>
   )
 }
 
@@ -94,7 +94,7 @@ function SignedOut({
   onAction: (action: AccountAction) => void
 }) {
   return (
-    <div className="space-y-4">
+    <>
       <div className="flex gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
         <p className="text-[0.6875rem] leading-relaxed text-onpanel/75">
@@ -130,7 +130,7 @@ function SignedOut({
         </div>
       </div>
 
-      <div className="border-t border-onpanel/10 pt-3">
+      <div>
         <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           ¿No podés entrar?
         </p>
@@ -147,7 +147,7 @@ function SignedOut({
           Perdí el acceso
         </button>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -164,7 +164,7 @@ function SignedIn({
   onLogout: () => void
 }) {
   return (
-    <div className="space-y-4">
+    <>
       <div className="flex items-center gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5">
         <UserRound aria-hidden className="size-4 shrink-0 text-onpanel/60" />
         <div className="min-w-0 flex-1">
@@ -214,11 +214,11 @@ function SignedIn({
         </p>
       </div>
 
-      <div className="border-t border-onpanel/10 pt-3">
+      <div>
         <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Seguridad y acceso
         </p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <div className="mt-2 grid gap-2">
           <ActionButton
             icon={Lock}
             label="Cambiar contraseña"
@@ -250,7 +250,7 @@ function SignedIn({
         </div>
       </div>
 
-      <div className="border-t border-onpanel/10 pt-3">
+      <div>
         <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
           Sincronización
         </p>
@@ -279,7 +279,7 @@ function SignedIn({
         ) : null}
       </div>
 
-      <div className="border-t border-red-400/20 pt-3">
+      <div>
         <p className="text-[0.6875rem] font-semibold tracking-wide text-red-400 uppercase">
           Zona peligrosa
         </p>
@@ -299,7 +299,7 @@ function SignedIn({
 
       {/* Las legales también acá: es donde alguien mira qué se guarda de su
           cuenta y puede querer leer el detalle. */}
-      <p className="border-t border-onpanel/10 pt-3 text-[0.6875rem] text-onpanel/50">
+      <p className="text-[0.6875rem] text-onpanel/50">
         <a
           className="underline underline-offset-2 transition-colors hover:text-onpanel"
           href="/privacidad"
@@ -309,7 +309,7 @@ function SignedIn({
           Política de privacidad
         </a>
       </p>
-    </div>
+    </>
   )
 }
 

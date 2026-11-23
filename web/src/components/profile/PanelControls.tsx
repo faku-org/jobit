@@ -132,17 +132,17 @@ export function StanceChips({
       <p className="text-[0.6875rem] font-semibold tracking-wide text-onpanel-muted uppercase">
         {title}
       </p>
-      <p className="mt-1 text-[0.6875rem] leading-relaxed text-onpanel-faint">
+      <p className="mt-0.5 text-[0.6875rem] leading-snug text-onpanel-faint">
         {hint}
       </p>
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="mt-1.5 flex flex-wrap gap-1">
         {facets.map((facet) => {
           const stance = stanceOf(lists, facet.value)
           return (
             <button
               key={facet.value}
-              className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors sm:min-h-0 sm:px-3 sm:py-1.5 sm:text-xs ${STANCE_STYLE[stance]}`}
+              className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-xs ${STANCE_STYLE[stance]}`}
               title={STANCE_HINT[stance]}
               type="button"
               onClick={() =>

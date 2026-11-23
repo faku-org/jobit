@@ -1,4 +1,4 @@
-﻿import { Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { m } from 'motion/react'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { CategoryChips } from './components/board/CategoryChips.tsx'
@@ -113,10 +113,6 @@ const loadSettings = () =>
   import('./components/settings/SettingsPage.tsx').then((module) => ({
     default: module.SettingsPage,
   }))
-const loadProfile = () =>
-  import('./components/profile/ProfilePage.tsx').then((module) => ({
-    default: module.ProfilePage,
-  }))
 
 const Onboarding = lazy(loadOnboarding)
 const Market = lazy(loadMarket)
@@ -125,7 +121,6 @@ const Tracking = lazy(loadTracking)
 const News = lazy(loadNews)
 const SelfTest = lazy(loadSelfTest)
 const HelpPage = lazy(loadHelp)
-const ProfilePage = lazy(loadProfile)
 const SettingsPage = lazy(loadSettings)
 
 /**
@@ -190,7 +185,7 @@ export default function App() {
    * snapshot; it may be gone, and then the row says so instead. */
   const [openingId, setOpeningId] = useState<string | null>(null)
   const [goneIds, setGoneIds] = useState<Set<string>>(new Set())
-  /** La oferta que se acaba de seguir, para abrir el modal de prÃ¡ctica. */
+  /** La oferta que se acaba de seguir, para abrir el modal de práctica. */
   const [practiceJob, setPracticeJob] = useState<{
     title: string
     category: string
@@ -200,7 +195,7 @@ export default function App() {
   const prefs = useJobPrefs()
   /** Notas y entrevistas: su propia clave, fuera de lo que viaja por la cuenta. */
   const followUp = useFollowUp()
-  /** QuiÃ©n estÃ¡ adentro y quÃ© eligiÃ³ sincronizar. Va acÃ¡, arriba de la isla,
+  /** Quién está adentro y qué eligió sincronizar. Va acá, arriba de la isla,
    * porque el sync toca las mismas preferencias que el resto del panel. */
   const session = useSession()
   const accountSync = useAccountSync(prefs, session.user, session.ready)
@@ -256,12 +251,10 @@ export default function App() {
   const isServicesView = view === 'services'
   const isNewsView = view === 'news'
   const isTestView = view === 'test'
-  const isProfileView = view === 'profile'
   const isHelpView = view === 'help'
   const isSettingsView = view === 'settings'
   /** Páginas propias: sin pestañas, con su botón para volver al listado. */
-  const isPageView =
-    isNewsView || isTestView || isProfileView || isHelpView || isSettingsView
+  const isPageView = isNewsView || isTestView || isHelpView || isSettingsView
   /**
    * The pile is reviewed in one place only. Discarding works anywhere, but the
    * pile is global: offering it inside Estado would show a count of offers most
@@ -283,8 +276,8 @@ export default function App() {
    */
   const ranking = toRanking(prefs.preferences, prefs.profile)
   /**
-   * Todo lo que decide quÃ© ofertas pide una lista. Sale de acÃ¡ y no de cada
-   * vista porque la misma cuenta la necesitan dos: la que se estÃ¡ mirando y la
+   * Todo lo que decide qué ofertas pide una lista. Sale de acá y no de cada
+   * vista porque la misma cuenta la necesitan dos: la que se está mirando y la
    * que se va a tocar, que se trae de fondo con esta misma consulta.
    */
   const board: BoardContext = {
@@ -299,8 +292,8 @@ export default function App() {
     reviewing,
   }
 
-  /** Mercado y seguimiento no tienen lista: se queda la Ãºltima para no abortar
-   * el pedido ni vaciar lo que ya estaba en cachÃ©. */
+  /** Mercado y seguimiento no tienen lista: se queda la última para no abortar
+   * el pedido ni vaciar lo que ya estaba en caché. */
   const listViewRef = useRef<View>('all')
   const listView = keepListView(view, listViewRef.current)
   listViewRef.current = listView
@@ -309,12 +302,12 @@ export default function App() {
 
   const { jobs, total, status, error, hasMore, loadMore } = useJobs(query, true)
 
-  /** Una lista de guardadas vacÃ­a no tiene nada que adelantar: sabemos sin
-   * preguntar que vuelve vacÃ­a. */
+  /** Una lista de guardadas vacía no tiene nada que adelantar: sabemos sin
+   * preguntar que vuelve vacía. */
   const worthPrefetching = (candidate: View): boolean =>
     candidate !== listView && (candidate !== 'saved' || savedIds.length > 0)
 
-  /** Las otras listas, traÃ­das en el rato libre que deja la primera. */
+  /** Las otras listas, traídas en el rato libre que deja la primera. */
   const asleep = BOARD_VIEWS.filter(worthPrefetching).map((candidate) =>
     jobsQueryKey(jobsQuery(candidate, board)),
   )
@@ -333,8 +326,8 @@ export default function App() {
     prefetchJobs(stateKey)
   }, [showIntro, stateKey])
 
-  /** Al apuntar una pestaÃ±a, antes del clic: lo que tarda en bajar el dedo
-   * suele alcanzar para que la lista ya estÃ© cuando se suelta. */
+  /** Al apuntar una pestaña, antes del clic: lo que tarda en bajar el dedo
+   * suele alcanzar para que la lista ya esté cuando se suelta. */
   const trackedKey = prefs.applications.map((entry) => entry.id).join(',')
 
   /**
@@ -375,14 +368,14 @@ export default function App() {
   }
 
   /** La ficha es 20 KB: si se pide al abrir, el clic espera el JS. Se trae
-   * apenas hay app, no cuando ya se tocÃ³ una tarjeta. */
+   * apenas hay app, no cuando ya se tocó una tarjeta. */
   useEffect(() => {
     if (showIntro) return
     void loadJobModal()
   }, [showIntro])
 
-  /** Las filas de seguimiento y las ofertas detrÃ¡s. En esa pestaÃ±a no corre
-   * useJobs, asÃ­ que no se espera a que el tablero estÃ© listo. */
+  /** Las filas de seguimiento y las ofertas detrás. En esa pestaña no corre
+   * useJobs, así que no se espera a que el tablero esté listo. */
   useEffect(() => {
     if (showIntro) return
     const warm = (): void => {
@@ -548,7 +541,13 @@ export default function App() {
         onPrefetchSettings={() => void loadSettings()}
       />
 
-      <main className="mx-auto max-w-3xl px-5 pt-24 pb-16 sm:pt-28">
+      <main
+        className={`mx-auto px-5 pt-24 sm:pt-28 ${
+          /* Configuración usa el ancho para repartir en columnas lo que en
+             una sola no entra, y el alto de la ventana: no scrollea. */
+          isSettingsView ? 'max-w-6xl pb-4' : 'max-w-3xl pb-16'
+        }`}
+      >
         {/* Perfil, novedades, ayuda y el test son páginas aparte, no pestañas
             más: cada una tiene su enlace, no lleva pestañas y salir (o el botón
             Atrás) lleva al listado. */}
@@ -589,9 +588,9 @@ export default function App() {
           </FadeUp>
         ) : null}
 
-        {isProfileView ? (
+        {isSettingsView ? (
           <Suspense fallback={<JobListSkeleton />}>
-            <ProfilePage
+            <SettingsPage
               categories={meta?.categories ?? []}
               counts={{
                 saved: prefs.saved.size,
@@ -610,7 +609,6 @@ export default function App() {
               sources={prefs.sources}
               sync={accountSync}
               usage={usage}
-              onBack={() => changeView('all')}
               onChangePreferences={prefs.setPreferences}
               onChangeProfile={prefs.setProfile}
               onChangeResume={prefs.setResume}
@@ -631,18 +629,11 @@ export default function App() {
                 changeView('all')
                 setFilters(filtersFromSearch(prefs.resume, prefs.preferences))
               }}
-            />
-          </Suspense>
-        ) : isSettingsView ? (
-          <Suspense fallback={<JobListSkeleton />}>
-            <SettingsPage
               display={prefs.display}
               theme={prefs.theme}
               onBack={() => changeView('all')}
               onChangeDisplay={prefs.setDisplay}
               onChangeTheme={prefs.setTheme}
-              onOpenProfile={() => changeView('profile')}
-              onPrefetchProfile={() => void loadProfile()}
             />
           </Suspense>
         ) : isHelpView ? (
@@ -691,7 +682,7 @@ export default function App() {
         ) : isMarketView ? (
           <div className="mt-6">
             {market.status === 'error' ? (
-              <ErrorState message="No se pudieron cargar las estadÃ­sticas del mercado." />
+              <ErrorState message="No se pudieron cargar las estadísticas del mercado." />
             ) : market.report ? (
               <Suspense fallback={<JobListSkeleton />}>
                 <Market
@@ -828,10 +819,10 @@ export default function App() {
                 <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-sky/60 bg-mist px-3.5 py-2.5">
                   <p className="text-xs leading-relaxed text-soft">
                     {prefs.dismissed.size === 1
-                      ? 'EstÃ¡s viendo la oferta que descartaste.'
-                      : `EstÃ¡s viendo las ${prefs.dismissed.size} ofertas que descartaste.`}{' '}
-                    TocÃ¡ el Ã­cono de deshacer en cualquiera para devolverla a
-                    la lista.
+                      ? 'Estás viendo la oferta que descartaste.'
+                      : `Estás viendo las ${prefs.dismissed.size} ofertas que descartaste.`}{' '}
+                    Tocá el ícono de deshacer en cualquiera para devolverla a la
+                    lista.
                   </p>
                   <button
                     className="ml-auto shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
@@ -936,7 +927,7 @@ export default function App() {
                             className="size-4 animate-spin"
                           />
                         ) : null}
-                        Ver mÃ¡s ofertas
+                        Ver más ofertas
                       </m.button>
                     </div>
                   ) : null}
@@ -1005,8 +996,8 @@ export default function App() {
       ) : null}
 
       {/* La intro es una capa sobre la app, no una pantalla que la reemplace:
-          asÃ­ el tablero se pide y se dibuja igual, y un buscador que entra con
-          el storage vacÃ­o ve ofertas y no solo "Bienvenido a JobIt". */}
+          así el tablero se pide y se dibuja igual, y un buscador que entra con
+          el storage vacío ve ofertas y no solo "Bienvenido a JobIt". */}
       {showIntro ? (
         <Suspense fallback={null}>
           <Onboarding

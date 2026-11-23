@@ -157,7 +157,6 @@ export type View =
   | 'market'
   | 'news'
   | 'test'
-  | 'profile'
   | 'settings'
   | 'help'
 

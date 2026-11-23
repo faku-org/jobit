@@ -77,7 +77,7 @@ La política vive en `web/src/lib/motion.ts` y `motionFeatures.ts`:
 
 ### Navegación: una view propia antes que un modal
 
-Lo nuevo va como **view propia con su URL** (`?view=settings`, `?view=profile`,
+Lo nuevo va como **view propia con su URL** (`?view=settings`,
 `?view=help`, `?view=news`, `?view=test`), no como modal, panel con submenús ni pestaña de más.
 Una página aguanta más contenido, se puede enlazar y el botón Atrás vuelve al
 listado. Reglas:
@@ -99,10 +99,25 @@ listado. Reglas:
 - Los modales quedan para **confirmar** o para un **vistazo rápido**. La ficha de
   oferta sigue siendo modal.
 - Una URL vieja que cambió de lugar se lee como lo que es hoy y se reescribe sola
-  (`LEGACY` y `MOVED_ANCHORS` en `web/src/lib/url.ts`); no se rompen enlaces
-  compartidos. `?view=profile#apariencia` ahora abre `?view=settings`.
-- Preferencias (idioma, tema, escala, accesibilidad) es del dispositivo y vive en
-  su propia view; el perfil y la búsqueda viven en `?view=profile`.
+  (`LEGACY` en `web/src/lib/url.ts`); no se rompen enlaces compartidos.
+  `?view=profile#cv` ahora abre `?view=settings#cv`.
+
+### Configuración: una barra, nada de scroll
+
+- Configuración (`?view=settings`) es una sola view con una barra: **Perfil,
+  Apariencia, Idioma, Accesibilidad**. Perfil lleva una segunda fila con sus
+  sub-secciones (Perfil, CV, Datos, Puesto, Extras, Búsqueda, Fuentes,
+  Autoconocimiento, Cuenta, Agentes, Privacidad; el CV se partió en cuatro para
+  entrar sin scroll). La sección elegida va en el ancla.
+- **Ninguna sección scrollea** desde `md`: la página tiene el alto de la ventana y
+  cada sección es un `ConfigPanel` (`web/src/components/settings/ConfigPanel.tsx`)
+  cuyo cuerpo reparte los bloques en columnas (`.config-columns`). El texto latino
+  corre en horizontal, así que lo que no entra en una columna sigue en la de al
+  lado, no abajo. Los hijos directos del panel son los bloques que se reparten.
+- Si una sección no entra en 1366×768 en columnas, se parte en sub-secciones; no
+  se le agrega scroll.
+- En teléfono (debajo de `md`) las columnas pasan a una sola y la página scrollea:
+  no hay ancho para otra cosa.
 
 ### Escala y accesibilidad
 
