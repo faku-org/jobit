@@ -52,6 +52,10 @@ interface DynamicIslandProps {
   onImportCv: (profile: Profile, preferences: Preferences) => void
   /** Abre la ayuda general, que vive en App como capa sobre todo lo demás. */
   onOpenHelp: () => void
+  /** Abre el test de autoconocimiento, que es una pantalla del tablero. */
+  onOpenTest: () => void
+  /** Deja el test cargado antes del clic. */
+  onPrefetchTest: () => void
   /** Deja la ayuda cargada antes del clic. */
   onPrefetchHelp: () => void
 }
@@ -86,7 +90,9 @@ export function DynamicIsland({
   onEraseEverything,
   onImportCv,
   onOpenHelp,
+  onOpenTest,
   onPrefetchHelp,
+  onPrefetchTest,
 }: DynamicIslandProps) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('search')
@@ -252,6 +258,11 @@ export function DynamicIsland({
                     onChangeTheme={onChangeTheme}
                     onEraseEverything={onEraseEverything}
                     onImportCv={onImportCv}
+                    onOpenTest={() => {
+                      setOpen(false)
+                      onOpenTest()
+                    }}
+                    onPrefetchTest={onPrefetchTest}
                   />
                 ) : tab === 'account' ? (
                   <AccountSection

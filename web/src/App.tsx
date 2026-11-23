@@ -97,6 +97,10 @@ const loadNews = () =>
   import('./components/news/News.tsx').then((module) => ({
     default: module.News,
   }))
+const loadSelfTest = () =>
+  import('./components/test/SelfTest.tsx').then((module) => ({
+    default: module.SelfTest,
+  }))
 const loadHelp = () =>
   import('./components/help/Help.tsx').then((module) => ({
     default: module.Help,
@@ -107,6 +111,7 @@ const Market = lazy(loadMarket)
 const JobModal = lazy(loadJobModal)
 const Tracking = lazy(loadTracking)
 const News = lazy(loadNews)
+const SelfTest = lazy(loadSelfTest)
 const Help = lazy(loadHelp)
 
 /**
@@ -126,6 +131,8 @@ const VIEW_HINT: Record<View, string> = {
   services: '',
   market: '',
   news: '',
+  /** El test tiene su propia pantalla, con su aviso y su avance. */
+  test: '',
 }
 
 /** La ventana del tablero que mira Novedades para recomendar. */
@@ -218,6 +225,7 @@ export default function App() {
   const isMarketView = view === 'market'
   const isServicesView = view === 'services'
   const isNewsView = view === 'news'
+  const isTestView = view === 'test'
   /**
    * The pile is reviewed in one place only. Discarding works anywhere, but the
    * pile is global: offering it inside Estado would show a count of offers most
@@ -511,19 +519,26 @@ export default function App() {
           prefs.setPreferences(nextPreferences)
         }}
         onOpenHelp={() => setHelpOpen(true)}
+        onOpenTest={() => changeView('test')}
         onPrefetchHelp={() => void loadHelp()}
+        onPrefetchTest={() => void loadSelfTest()}
       />
 
       <main className="mx-auto max-w-3xl px-5 pt-24 pb-16 sm:pt-28">
-        <FadeUp>
-          <ViewTabs
-            savedCount={prefs.saved.size}
-            trackedCount={prefs.applications.length}
-            view={view}
-            onChange={changeView}
-            onPrefetch={prefetchView}
-          />
-        </FadeUp>
+        {/* El test es una pantalla aparte, no una pestaña más: con siete ya no
+            entran en el ancho del tablero en tablet. Mientras se hace no hay
+            pestañas, y salir (o el botón Atrás) lleva al listado. */}
+        {isTestView ? null : (
+          <FadeUp>
+            <ViewTabs
+              savedCount={prefs.saved.size}
+              trackedCount={prefs.applications.length}
+              view={view}
+              onChange={changeView}
+              onPrefetch={prefetchView}
+            />
+          </FadeUp>
+        )}
 
         {VIEW_HINT[view] ? (
           <FadeUp delay={0.03}>
@@ -559,6 +574,17 @@ export default function App() {
               </Suspense>
             </FadeUp>
           </div>
+        ) : isTestView ? (
+          <Suspense fallback={<JobListSkeleton />}>
+            <SelfTest
+              categories={meta?.categories ?? []}
+              onBack={() => changeView('all')}
+              onExploreCategory={(category) => {
+                changeView('all')
+                setFilters({ ...EMPTY_FILTERS, category })
+              }}
+            />
+          </Suspense>
         ) : isServicesView ? (
           <Services active={!showIntro} onOpen={setOpenService} />
         ) : isMarketView ? (

@@ -1,4 +1,11 @@
-import { ChevronDown, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react'
+import {
+  ChevronDown,
+  Compass,
+  Monitor,
+  Moon,
+  ShieldCheck,
+  Sun,
+} from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { lazy, Suspense, useState } from 'react'
 import { COURSES, DEGREES } from '../../lib/catalog.ts'
@@ -34,6 +41,9 @@ interface ProfilePanelProps {
   onChange: (profile: Profile) => void
   onChangeTheme: (theme: Theme) => void
   onEraseEverything: () => void
+  /** Lleva al test de autoconocimiento y cierra la isla. */
+  onOpenTest: () => void
+  onPrefetchTest: () => void
 }
 
 const CvImport = lazy(() =>
@@ -62,6 +72,8 @@ export function ProfilePanel({
   onChangeTheme,
   onImportCv,
   onEraseEverything,
+  onOpenTest,
+  onPrefetchTest,
 }: ProfilePanelProps) {
   const [showPayload, setShowPayload] = useState(false)
   const payload = anonymousStats(profile, usage)
@@ -134,6 +146,31 @@ export function ProfilePanel({
       </div>
 
       <div className="border-t border-onpanel/10 pt-3">
+        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+          Autoconocimiento
+        </p>
+        <button
+          className="mt-2 flex w-full items-start gap-2.5 rounded-xl bg-onpanel-wash px-3 py-2.5 text-left transition-colors hover:bg-onpanel/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky"
+          type="button"
+          onClick={onOpenTest}
+          onFocus={onPrefetchTest}
+          onMouseEnter={onPrefetchTest}
+          onPointerDown={onPrefetchTest}
+        >
+          <Compass aria-hidden className="mt-0.5 size-4 shrink-0 text-sky" />
+          <span>
+            <span className="block text-sm font-medium text-onpanel">
+              Test de autoconocimiento laboral
+            </span>
+            <span className="mt-0.5 block text-[11px] leading-relaxed text-onpanel/75">
+              50 frases, unos 10 minutos. Las respuestas quedan en este
+              navegador y no se suben a ningún lado.
+            </span>
+          </span>
+        </button>
+      </div>
+
+      <div className="border-t border-onpanel/10 pt-3">
         <PanelGroup title="Apariencia">
           {THEME_OPTIONS.map((option) => (
             <PanelChip
@@ -164,7 +201,8 @@ export function ProfilePanel({
             Compartir estadísticas anónimas de uso. Una vez por día: tu nivel
             educativo y cuántos títulos, cursos, guardadas y postulaciones
             tenés. Y mientras navegás: qué puesto estás buscando, qué filtros
-            usás y a qué avisos les diste a “Postularme”. Sin nombre, sin
+            usás y a qué avisos les diste a “Postularme”. Y que terminaste el
+            test de autoconocimiento, sin una sola respuesta. Sin nombre, sin
             identificador y sin el texto que escribís.
           </span>
         </label>

@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { applyEvent, offerApply, offerView, searchEvent } from './events.ts'
+import {
+  applyEvent,
+  offerApply,
+  offerView,
+  searchEvent,
+  testDoneEvent,
+} from './events.ts'
 import { EMPTY_FILTERS, type Job } from './types.ts'
 
 const job: Job = {
@@ -86,5 +92,11 @@ describe('métricas de una oferta propia', () => {
     expect(offerApply(own)).toEqual({ kind: 'offer_apply', id: 'f0f0' })
     expect(offerView(job)).toBeNull()
     expect(offerApply(job)).toBeNull()
+  })
+})
+
+describe('testDoneEvent', () => {
+  test('es solo el aviso: ni respuestas, ni puntajes, ni perfil', () => {
+    expect(testDoneEvent()).toEqual({ kind: 'test_done' })
   })
 })

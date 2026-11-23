@@ -7,6 +7,7 @@ import {
   type EducationLevel,
   type Profile,
 } from '../lib/profile.ts'
+import { clearTest } from '../lib/selfTest.ts'
 import type { SyncedState } from '../lib/sync.ts'
 import {
   type Application,
@@ -454,6 +455,7 @@ export function useJobPrefs(): JobPrefs {
   )
 
   const eraseEverything = useCallback(() => {
+    clearTest()
     try {
       localStorage.removeItem(STORAGE_KEY)
     } catch {

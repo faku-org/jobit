@@ -158,6 +158,7 @@ export type View =
   | 'services'
   | 'market'
   | 'news'
+  | 'test'
 
 /** How the feed is ordered: newest, best fit, or nearest deadline. */
 export type Sort = 'recent' | 'match' | 'closing'
