@@ -19,3 +19,10 @@ contenido o texto se acomodan en horizontal.
 
 - En teléfono (debajo de `md`) el contenido va en una columna y la página
   scrollea: no hay ancho para columnas.
+
+## Codificación
+
+- [x] "Ver más ofertas" mostraba "mÃ¡s": `App.tsx` y `api/src/market.ts` tenían
+      texto en UTF-8 leído como Latin-1 (desde #40 y #46). Corregido secuencia por
+      secuencia; el resto del repo está limpio. `lib/encoding.test.ts` falla si
+      vuelve a pasar en `web`, `api`, `worker` o `mcp`.
