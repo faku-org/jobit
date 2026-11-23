@@ -90,15 +90,19 @@ export function ApplyFooter({
         ) : null}
       </AnimatePresence>
 
+      {/* El compositor es lo único que puede pasar de alto: scrollea él y no
+          la fila de botones, que queda siempre a la vista. */}
       {composing && !isApplied ? (
-        <Suspense fallback={null}>
-          <ApplyMessage
-            job={job}
-            resume={resume}
-            onChangeResume={onChangeResume}
-            onSend={begin}
-          />
-        </Suspense>
+        <div className="max-h-[55dvh] overflow-y-auto overscroll-contain">
+          <Suspense fallback={null}>
+            <ApplyMessage
+              job={job}
+              resume={resume}
+              onChangeResume={onChangeResume}
+              onSend={begin}
+            />
+          </Suspense>
+        </div>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
