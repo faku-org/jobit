@@ -18,6 +18,8 @@ import { fadeUpTransition, revealPresence } from '../../lib/motion.ts'
 
 interface ComboboxProps<T extends CatalogEntry> {
   label: string
+  /** Keeps the label for screen readers only, when a heading already says it. */
+  hideLabel?: boolean
   placeholder: string
   entries: T[]
   /** Ids already picked, in the order they were picked. */
@@ -37,6 +39,7 @@ const DEFAULT_MAX = 20
  */
 export function Combobox<T extends CatalogEntry>({
   label,
+  hideLabel = false,
   placeholder,
   entries,
   selected,
@@ -137,7 +140,13 @@ export function Combobox<T extends CatalogEntry>({
   return (
     <div ref={container}>
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+        <p
+          className={
+            hideLabel
+              ? 'sr-only'
+              : 'text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase'
+          }
+        >
           {label}
         </p>
         {selected.length > 0 ? (

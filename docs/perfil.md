@@ -62,6 +62,32 @@ sólo si estaban vacíos. Todo se suma sin pisar lo que ya estaba
 (`mergeReading`). El onboarding no tiene dónde guardar esto todavía, así que
 ahí `CvImport` corre con `withResume={false}` y no ofrece idiomas ni links.
 
+### Corregir lo que leyó ("Algo está mal")
+
+En la revisión, cada grupo detectado (nivel educativo, títulos, cursos, años de
+experiencia, idiomas y links) tiene un botón **Algo está mal**. Abre ahí mismo
+el control que usa el perfil: las pastillas de `EDUCATION_LEVELS`, el
+`Combobox` de títulos y de cursos, `ExperienceField`, `LanguagesField` y
+`LinksField`. Lo que se corrige reemplaza a lo leído, queda tildado y es lo que
+`Sumar a mi perfil` agrega. El grupo se marca "corregido" al cerrarlo con
+**Listo**. No hace falta desmarcar, importar y editar el perfil después.
+
+Todo pasa en el estado local de `CvImport`: no hay llamadas a la API ni
+eventos nuevos (Zero Data Policy). Ubicación y rubros todavía sólo se tildan o
+destildan.
+
+### Nivel educativo: por qué no mira cursos ni estudios en curso
+
+Antes, una línea como "Curso de Arquitectura de Software, Universidad ORT"
+dentro de Formación llevaba el nivel a universitario por la palabra
+"arquitect" (o "ingenier", "universitari"), aunque la persona tuviera sólo
+bachillerato. Ahora `readCv` descarta, antes de buscar títulos y nivel
+(`withoutNonTitles`), las líneas que no son un título terminado: cursos,
+talleres, seminarios, certificaciones y diplomados, lo "dictado en" algún
+lado, y lo que está "cursando", "en curso", "incompleto" o "trunco". Los
+cursos se siguen leyendo igual, desde su propio bloque. Si la heurística se
+equivoca, se corrige con **Algo está mal**.
+
 ## Export JSON
 
 "Descargar mis datos (JSON)" arma el archivo en el navegador

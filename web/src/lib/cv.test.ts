@@ -266,3 +266,52 @@ describe('splitCv', () => {
     expect(splitCv(linea).experience).toBe('')
   })
 })
+
+describe('readCv: la universidad de un curso no es un título universitario', () => {
+  const secondaryWith = (extra: string) =>
+    read(`
+      FORMACIÓN
+      Bachillerato Tecnológico en Informática, UTU, 2019 – 2022
+      ${extra}
+    `)
+
+  test('un curso dictado en una universidad deja el nivel en bachillerato', () => {
+    const reading = secondaryWith(
+      'Curso de Arquitectura de Software, Universidad ORT, 2024',
+    )
+    expect(reading.education).toBe('secondary')
+    expect(reading.degrees).toEqual(['bach-informatica'])
+  })
+
+  test('un taller en una facultad tampoco sube el nivel', () => {
+    const reading = secondaryWith(
+      'Taller de Ingeniería de Requisitos, Facultad de Ingeniería',
+    )
+    expect(reading.education).toBe('secondary')
+  })
+
+  test('una carrera que se está cursando no es el nivel alcanzado', () => {
+    expect(
+      secondaryWith('Licenciatura en Informática (cursando), UdelaR').education,
+    ).toBe('secondary')
+    expect(secondaryWith('Ingeniería en Sistemas, incompleta').education).toBe(
+      'secondary',
+    )
+  })
+
+  test('el curso se sigue leyendo como curso', () => {
+    const reading = secondaryWith(
+      'Curso de Excel avanzado dictado en la Universidad de la República',
+    )
+    expect(reading.courses).toContain('excel-avanzado')
+    expect(reading.education).toBe('secondary')
+  })
+
+  test('un título universitario completo sigue contando', () => {
+    const reading = secondaryWith(
+      'Licenciatura en Informática, Universidad de la República, 2024',
+    )
+    expect(reading.education).toBe('university')
+    expect(reading.degrees).toContain('lic-informatica')
+  })
+})

@@ -1,4 +1,4 @@
-import { Check, Plus, ShieldCheck, Upload, X } from 'lucide-react'
+import { Check, Pencil, Plus, ShieldCheck, Upload, X } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import type { OrbState } from 'thinking-orbs'
@@ -12,10 +12,24 @@ import {
   readCv,
 } from '../../lib/cv.ts'
 import { fadeUpTransition, stagger } from '../../lib/motion.ts'
-import { EDUCATION_LABEL, type Profile } from '../../lib/profile.ts'
-import { LANGUAGE_LEVEL_LABEL, type ResumeFound } from '../../lib/resume.ts'
+import {
+  EDUCATION_LABEL,
+  EDUCATION_LEVELS,
+  type Profile,
+} from '../../lib/profile.ts'
+import {
+  LANGUAGE_LEVEL_LABEL,
+  type ResumeFound,
+  type ResumeLanguage,
+  type ResumeLink,
+} from '../../lib/resume.ts'
 import type { Facet, Preferences } from '../../lib/types.ts'
 import { Aura, AuraSpark } from '../ui/Aura.tsx'
+import { Combobox } from '../ui/Combobox.tsx'
+import { ExperienceField } from './ExperienceField.tsx'
+import { LanguagesField } from './LanguagesField.tsx'
+import { LinksField } from './LinksField.tsx'
+import { PanelChip } from './PanelControls.tsx'
 
 /** Las auras de acá viven sobre el panel y no sobre una tarjeta. */
 const ON_PANEL = '[--aura-base:var(--color-panel)] [--aura-tone:40%]'
@@ -97,16 +111,61 @@ function Pick({
 function Group({
   title,
   children,
+  fix,
 }: {
   title: string
+  /** Lo que se leyó, para tildar o destilar de a uno. */
   children: React.ReactNode
+  /** "Algo está mal": cambia lo leído por el mismo control del perfil. */
+  fix?: {
+    open: boolean
+    edited: boolean
+    onToggle: () => void
+    editor: React.ReactNode
+  }
 }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
-        {title}
-      </p>
-      <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold tracking-wide text-onpanel-muted uppercase">
+          {title}
+          {fix?.edited && !fix.open ? (
+            <span className="ml-1.5 font-medium tracking-normal normal-case">
+              · corregido
+            </span>
+          ) : null}
+        </p>
+        {fix ? (
+          <button
+            aria-expanded={fix.open}
+            aria-label={
+              fix.open
+                ? `Listo con ${title.toLowerCase()}`
+                : `Algo está mal en ${title.toLowerCase()}`
+            }
+            className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-onpanel/75 transition-colors hover:bg-onpanel/15 hover:text-onpanel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            type="button"
+            onClick={fix.onToggle}
+          >
+            {fix.open ? (
+              <Check aria-hidden className="size-3" />
+            ) : (
+              <Pencil aria-hidden className="size-3" />
+            )}
+            {fix.open ? 'Listo' : 'Algo está mal'}
+          </button>
+        ) : null}
+      </div>
+      {fix?.open ? (
+        <div className="mt-2 space-y-2">
+          {fix.editor}
+          <p className="text-[11px] leading-relaxed text-onpanel-faint">
+            Lo que dejes acá es lo que se suma a tu perfil.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
+      )}
     </div>
   )
 }
@@ -152,6 +211,9 @@ export function CvImport({
   const [stage, setStage] = useState<Stage>('idle')
   const [reading, setReading] = useState<CvReading>(EMPTY_READING)
   const [dropped, setDropped] = useState<Set<string>>(new Set())
+  /** Grupos abiertos en "Algo está mal", y los que ya se corrigieron. */
+  const [fixing, setFixing] = useState<Set<string>>(new Set())
+  const [edited, setEdited] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const reviewRef = useRef<HTMLDivElement>(null)
@@ -178,6 +240,53 @@ export function CvImport({
       return next
     })
 
+  const flip = (key: string) =>
+    setFixing((current) => {
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+
+  /** Lo que la persona corrige es lo que quiere: queda tildado. */
+  const correct = (group: string, revive: string[] = [group]) => {
+    setEdited((current) => new Set(current).add(group))
+    setDropped((current) => {
+      const next = new Set(current)
+      for (const key of revive) next.delete(key)
+      return next
+    })
+  }
+
+  const fixDegrees = (degrees: string[]) => {
+    correct(
+      'degrees',
+      degrees.map((id) => `degree:${id}`),
+    )
+    setReading((current) => ({ ...current, degrees }))
+  }
+  const fixCourses = (courses: string[]) => {
+    correct(
+      'courses',
+      courses.map((id) => `course:${id}`),
+    )
+    setReading((current) => ({ ...current, courses }))
+  }
+  const fixLanguages = (languages: ResumeLanguage[]) => {
+    correct(
+      'languages',
+      languages.map((language) => `lang:${language.name}`),
+    )
+    setReading((current) => ({ ...current, languages }))
+  }
+  const fixLinks = (links: ResumeLink[]) => {
+    correct(
+      'links',
+      links.map((link) => `link:${link.url}`),
+    )
+    setReading((current) => ({ ...current, links }))
+  }
+
   const finish = (read: CvReading) => {
     /* Sin dónde guardarlos, idiomas y links no cuentan como hallazgo. */
     const found = withResume ? read : { ...read, languages: [], links: [] }
@@ -190,6 +299,8 @@ export function CvImport({
 
     setReading(found)
     setDropped(new Set())
+    setFixing(new Set())
+    setEdited(new Set())
     setStage('review')
     if (isEmptyReading(found)) {
       setError(
@@ -312,6 +423,13 @@ export function CvImport({
     (reading.education === '' ? 0 : 1) +
     (reading.experienceYears === null ? 0 : 1)
 
+  const fixFor = (key: string, editor: React.ReactNode) => ({
+    open: fixing.has(key),
+    edited: edited.has(key),
+    onToggle: () => flip(key),
+    editor,
+  })
+
   const groups: { key: string; node: React.ReactNode }[] = []
   if (reading.places.length > 0) {
     groups.push({
@@ -334,7 +452,26 @@ export function CvImport({
     groups.push({
       key: 'education',
       node: (
-        <Group title="Nivel educativo">
+        <Group
+          fix={fixFor(
+            'education',
+            <div className="flex flex-wrap gap-1.5">
+              {EDUCATION_LEVELS.map((level) => (
+                <PanelChip
+                  key={level}
+                  active={reading.education === level}
+                  onClick={() => {
+                    correct('education')
+                    setReading((current) => ({ ...current, education: level }))
+                  }}
+                >
+                  {EDUCATION_LABEL[level]}
+                </PanelChip>
+              ))}
+            </div>,
+          )}
+          title="Nivel educativo"
+        >
           <Pick
             checked={kept('education')}
             label={EDUCATION_LABEL[reading.education]}
@@ -344,11 +481,24 @@ export function CvImport({
       ),
     })
   }
-  if (reading.degrees.length > 0) {
+  if (reading.degrees.length > 0 || fixing.has('degrees')) {
     groups.push({
       key: 'degrees',
       node: (
-        <Group title="Títulos">
+        <Group
+          fix={fixFor(
+            'degrees',
+            <Combobox
+              entries={DEGREES}
+              hideLabel
+              label="Títulos"
+              placeholder="Buscá tu título: bachillerato, UTU, licenciatura…"
+              selected={reading.degrees}
+              onChange={fixDegrees}
+            />,
+          )}
+          title="Títulos"
+        >
           {reading.degrees.map((id) => (
             <Pick
               key={id}
@@ -361,11 +511,24 @@ export function CvImport({
       ),
     })
   }
-  if (reading.courses.length > 0) {
+  if (reading.courses.length > 0 || fixing.has('courses')) {
     groups.push({
       key: 'courses',
       node: (
-        <Group title="Cursos y certificaciones">
+        <Group
+          fix={fixFor(
+            'courses',
+            <Combobox
+              entries={COURSES}
+              hideLabel
+              label="Cursos y certificaciones"
+              placeholder="Buscá: inglés, Excel, libreta, primeros auxilios…"
+              selected={reading.courses}
+              onChange={fixCourses}
+            />,
+          )}
+          title="Cursos y certificaciones"
+        >
           {reading.courses.map((id) => (
             <Pick
               key={id}
@@ -382,7 +545,20 @@ export function CvImport({
     groups.push({
       key: 'experience',
       node: (
-        <Group title="Años de experiencia">
+        <Group
+          fix={fixFor(
+            'experience',
+            <ExperienceField
+              value={reading.experienceYears}
+              onChange={(experienceYears) => {
+                if (experienceYears === null) return
+                correct('experience')
+                setReading((current) => ({ ...current, experienceYears }))
+              }}
+            />,
+          )}
+          title="Años de experiencia"
+        >
           <Pick
             checked={kept('experience')}
             label={
@@ -396,11 +572,20 @@ export function CvImport({
       ),
     })
   }
-  if (reading.languages.length > 0) {
+  if (reading.languages.length > 0 || fixing.has('languages')) {
     groups.push({
       key: 'languages',
       node: (
-        <Group title="Idiomas">
+        <Group
+          fix={fixFor(
+            'languages',
+            <LanguagesField
+              value={reading.languages}
+              onChange={fixLanguages}
+            />,
+          )}
+          title="Idiomas"
+        >
           {reading.languages.map((language) => (
             <Pick
               key={language.name}
@@ -413,11 +598,17 @@ export function CvImport({
       ),
     })
   }
-  if (reading.links.length > 0) {
+  if (reading.links.length > 0 || fixing.has('links')) {
     groups.push({
       key: 'links',
       node: (
-        <Group title="Web y redes">
+        <Group
+          fix={fixFor(
+            'links',
+            <LinksField value={reading.links} onChange={fixLinks} />,
+          )}
+          title="Web y redes"
+        >
           {reading.links.map((link) => (
             <Pick
               key={link.url}
@@ -528,8 +719,8 @@ export function CvImport({
 
                 {found > 0 ? (
                   <p className="text-[11px] leading-relaxed text-onpanel/80">
-                    Tocá para sacar lo que no corresponda. Se suma a tu perfil,
-                    no lo reemplaza.
+                    Tocá para sacar lo que no corresponda, o “Algo está mal”
+                    para corregirlo acá. Se suma a tu perfil, no lo reemplaza.
                   </p>
                 ) : null}
 
