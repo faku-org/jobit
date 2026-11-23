@@ -6,11 +6,17 @@ import { buildMarketDay, historyFilePath, recordDay } from './history.ts'
 import { keepIfEmpty } from './keep.ts'
 import { toJob } from './normalize.ts'
 import { buscojobs } from './sources/buscojobs.ts'
+import { treg, tregEnabled } from './sources/treg.ts'
 import { uruguayconcursa } from './sources/uruguayconcursa.ts'
 import type { Job, JobStub, JobsFile, Source } from './types.ts'
 
 const OUTPUT_PATH = resolve(import.meta.dir, '../output/jobs.json')
-const SOURCES: Source[] = [buscojobs, uruguayconcursa]
+/** treg.to solo entra si hay config en el entorno (JOBIT_TREG_*): apagada por defecto. */
+const SOURCES: Source[] = [
+  buscojobs,
+  uruguayconcursa,
+  ...(tregEnabled() ? [treg] : []),
+]
 
 const DETAIL_CONCURRENCY = 3
 

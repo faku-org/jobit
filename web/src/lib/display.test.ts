@@ -23,13 +23,20 @@ describe('readDisplay', () => {
         reduceMotion: true,
         highContrast: true,
         underlineLinks: true,
+        locale: 'pt',
       }),
     ).toEqual({
       scale: 130,
       reduceMotion: true,
       highContrast: true,
       underlineLinks: true,
+      locale: 'pt',
     })
+  })
+
+  test('un idioma que no existe vuelve al español', () => {
+    expect(readDisplay({ locale: 'fr' }).locale).toBe('es')
+    expect(readDisplay({}).locale).toBe('es')
   })
 
   test('una escala inventada no pasa, y un booleano tiene que ser true', () => {

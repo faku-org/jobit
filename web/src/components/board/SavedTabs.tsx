@@ -1,6 +1,5 @@
-import { m } from 'motion/react'
-import { islandTransition } from '../../lib/motion.ts'
 import type { SavedTab } from '../../lib/types.ts'
+import { Tabs } from '../ui/Tabs.tsx'
 
 interface SavedTabsProps {
   tab: SavedTab
@@ -23,54 +22,23 @@ export function SavedTabs({
   onChange,
   onPrefetchTracking,
 }: SavedTabsProps) {
-  const options: { value: SavedTab; label: string; count: number }[] = [
-    { value: 'saved', label: 'Guardadas', count: savedCount },
-    { value: 'tracking', label: 'Seguimiento', count: trackedCount },
-  ]
-
   return (
-    <div
-      aria-label="Guardadas y seguimiento"
-      className="mt-3 inline-grid grid-cols-2 gap-1 rounded-full border border-sky/50 bg-surface p-1 shadow-[var(--shadow-hairline)]"
-      role="group"
-    >
-      {options.map((option) => {
-        const active = tab === option.value
-        return (
-          <button
-            key={option.value}
-            aria-pressed={active}
-            className={`relative min-h-9 rounded-full px-4 text-xs font-medium whitespace-nowrap transition-colors ${
-              active ? 'text-onpanel' : 'text-muted hover:text-ink'
-            }`}
-            type="button"
-            onClick={() => onChange(option.value)}
-            onFocus={
-              option.value === 'tracking' ? onPrefetchTracking : undefined
-            }
-            onMouseEnter={
-              option.value === 'tracking' ? onPrefetchTracking : undefined
-            }
-            onPointerDown={
-              option.value === 'tracking' ? onPrefetchTracking : undefined
-            }
-          >
-            {active ? (
-              <m.span
-                className="absolute inset-0 rounded-full bg-panel"
-                layoutId="saved-tab"
-                transition={islandTransition}
-              />
-            ) : null}
-            <span className="relative">
-              {option.label}
-              {option.count > 0 ? (
-                <span className="ml-1 tabular-nums">({option.count})</span>
-              ) : null}
-            </span>
-          </button>
-        )
-      })}
-    </div>
+    <Tabs
+      className="mt-3"
+      fill={false}
+      label="Guardadas y seguimiento"
+      layoutId="saved-tab"
+      options={[
+        { value: 'saved', label: 'Guardadas', count: savedCount },
+        {
+          value: 'tracking',
+          label: 'Seguimiento',
+          count: trackedCount,
+          onPrefetch: onPrefetchTracking,
+        },
+      ]}
+      value={tab}
+      onChange={onChange}
+    />
   )
 }
