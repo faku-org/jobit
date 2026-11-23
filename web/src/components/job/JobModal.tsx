@@ -10,7 +10,13 @@ import {
   X,
 } from 'lucide-react'
 import { m } from 'motion/react'
-import { useCallback, useEffect, useState } from 'react'
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   APPLICATION_STATUS_LABEL,
   SOURCE_LABEL,
@@ -135,6 +141,23 @@ export function JobModal({
       close()
     },
   }
+
+  /* El pill crece con la pregunta o el compositor: el cuerpo reserva su alto
+     real para que el final del aviso siempre se pueda leer. */
+  const pillRef = useRef<HTMLDivElement>(null)
+  const [pillHeight, setPillHeight] = useState(0)
+  useEffect(() => {
+    const pill = pillRef.current
+    if (!pill) return
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry)
+        setPillHeight(
+          Math.ceil(entry.borderBoxSize[0]?.blockSize ?? pill.offsetHeight),
+        )
+    })
+    observer.observe(pill)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -267,7 +290,10 @@ export function JobModal({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4 sm:space-y-6 sm:px-5 sm:py-5">
+        <div
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 pt-4 pb-[calc(var(--apply-pill,5rem)+1.5rem+env(safe-area-inset-bottom))] sm:space-y-6 sm:px-5 sm:pt-5"
+          style={{ '--apply-pill': `${pillHeight}px` } as CSSProperties}
+        >
           <JobChips actions={chipActions} job={job} />
 
           <JobFit job={job} profile={tagActions.profile} />
@@ -370,7 +396,13 @@ export function JobModal({
           </p>
         </div>
 
-        <div className="max-h-[75dvh] overflow-y-auto border-t border-sky/40 bg-surface px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-4 sm:pb-4">
+        {/* El pie es un pill que flota sobre el borde de abajo, no una franja
+            del layout: como hijo del flex se achicaba y scrolleaba. El cuerpo
+            reserva su alto (--apply-pill) para que nada quede tapado. */}
+        <div
+          ref={pillRef}
+          className="absolute inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-10 rounded-2xl border border-sky/50 bg-surface/90 px-3 py-2.5 shadow-[var(--shadow-panel)] backdrop-blur-md sm:inset-x-4 sm:bottom-4 sm:px-4"
+        >
           <ApplyFooter
             isApplied={isApplied}
             job={job}
