@@ -62,4 +62,11 @@ export const pt: Partial<Messages> = {
   'settings.a11y.links': 'Sublinhar links',
   'settings.a11y.linksHint':
     'Todos os links ficam sublinhados, não só os de um parágrafo.',
+  'skills.label': 'Habilidades',
+  'skills.placeholder': 'Busque: Excel, inglês, React, atendimento ao cliente…',
+  'skills.hint':
+    'As do seu CV e dos seus cursos já vêm carregadas: remova as que não servem. Servem para dizer, em cada oferta, o que ela pede que você já tem. Ficam neste navegador.',
+  'recommend.why': 'Por que recomendamos',
+  'recommend.missing': 'O que falta para você',
+  'recommend.cardLabel': 'Por que é para você',
 }

@@ -1,5 +1,6 @@
 import { type CustomFeed, MAX_FEEDS } from './feed.ts'
 import type { Profile } from './profile.ts'
+import { MAX_SKILLS } from './skills.ts'
 import {
   type Application,
   type Preferences,
@@ -95,11 +96,18 @@ const hasSalary = (salary: SalaryPreference): boolean =>
   salary.min !== null || salary.max !== null || salary.includeUnknown === false
 
 function mergeProfile(local: Profile, remote: Profile): Profile {
+  /** Sumar y quitar son respuestas opuestas sobre la misma habilidad: gana
+   * sumada, igual que guardada sobre descartada. */
+  const skills = union(local.skills, remote.skills).slice(0, MAX_SKILLS)
   return {
     education: local.education !== '' ? local.education : remote.education,
     degrees: union(local.degrees, remote.degrees).slice(0, CATALOG_MAX),
     courses: union(local.courses, remote.courses).slice(0, CATALOG_MAX),
     experienceYears: local.experienceYears ?? remote.experienceYears,
+    skills,
+    skillsOff: union(local.skillsOff, remote.skillsOff).filter(
+      (slug) => !skills.includes(slug),
+    ),
     /** Compartir es privacidad: si en alguno de los dos está apagado, gana el
      * apagado. */
     shareStats: local.shareStats && remote.shareStats,

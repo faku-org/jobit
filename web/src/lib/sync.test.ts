@@ -101,6 +101,28 @@ describe('mergeSynced', () => {
     expect(merged.profile.shareStats).toBe(false)
   })
 
+  test('las habilidades del perfil se unen y sumar le gana a quitar', () => {
+    const merged = mergeSynced(
+      base({
+        profile: profile({ skills: ['react'], skillsOff: ['excel', 'word'] }),
+      }),
+      base({
+        profile: profile({ skills: ['excel', 'sql'], skillsOff: ['ingles'] }),
+      }),
+    )
+    expect(merged.profile.skills.sort()).toEqual(['excel', 'react', 'sql'])
+    expect(merged.profile.skillsOff.sort()).toEqual(['ingles', 'word'])
+  })
+
+  test('las habilidades del perfil no crecen sin control al unirse', () => {
+    const many = Array.from({ length: 40 }, (_, index) => `skill-${index}`)
+    const merged = mergeSynced(
+      base({ profile: profile({ skills: many }) }),
+      base({ profile: profile({ skills: ['react'] }) }),
+    )
+    expect(merged.profile.skills.length).toBe(30)
+  })
+
   test('las postulaciones se unen por id y la local manda', () => {
     const merged = mergeSynced(
       base({ applications: [application({ status: 'interview' })] }),

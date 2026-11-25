@@ -60,6 +60,7 @@ import { readDevFlags } from './lib/dev.ts'
 import { isOnboarded } from './lib/profile.ts'
 import { filtersFromSearch, mergeReading } from './lib/resume.ts'
 import { pickHighlights } from './lib/match.ts'
+import { cardReasons, recommender } from './lib/recommend.ts'
 import { toRanking } from './lib/ranking.ts'
 import type { Service } from './lib/services.ts'
 import { readViewState } from './lib/url.ts'
@@ -418,6 +419,7 @@ export default function App() {
   const kept = reviewing
     ? jobs
     : jobs.filter((job) => !prefs.dismissed.has(job.id))
+  const recommend = recommender(prefs.preferences, prefs.profile, prefs.resume)
   const highlights = pickHighlights(
     [
       ...(openJob ? [openJob] : []),
@@ -427,6 +429,7 @@ export default function App() {
     prefs.preferences,
     ranking,
     prefs.profile,
+    recommend,
   )
   const savedGroups = isSavedView ? groupByCategory(kept) : []
   const visible =
@@ -855,6 +858,7 @@ export default function App() {
                         isMatch={highlights.has(job.id)}
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
+                        reasons={cardReasons(recommend(job))}
                         tagActions={tagActions}
                         onApplied={handleApplied}
                         onCompose={openComposer}
@@ -900,6 +904,7 @@ export default function App() {
                         isMatch={highlights.has(job.id)}
                         isSaved={prefs.saved.has(job.id)}
                         job={job}
+                        reasons={cardReasons(recommend(job))}
                         tagActions={tagActions}
                         onApplied={handleApplied}
                         onCompose={openComposer}
@@ -948,6 +953,7 @@ export default function App() {
             isMatch={highlights.has(openJob.id)}
             isSaved={prefs.saved.has(openJob.id)}
             job={openJob}
+            recommendation={recommend(openJob)}
             tagActions={tagActions}
             resume={prefs.resume}
             startComposing={composeId === openJob.id}

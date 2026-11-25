@@ -94,6 +94,7 @@ export function ProfileSection({
         >
           <ProfileBasics
             profile={props.profile}
+            resume={props.resume}
             onChange={props.onChangeProfile}
           />
         </ConfigPanel>

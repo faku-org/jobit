@@ -34,6 +34,7 @@ import { ApplyFooter } from './ApplyFooter.tsx'
 import { JobChips, type TagActions } from './JobChips.tsx'
 import { JobDescription } from './JobDescription.tsx'
 import { JobFit } from './JobFit.tsx'
+import type { Recommendation } from '../../lib/recommend.ts'
 import { PrepTips } from './PrepTips.tsx'
 import { WorkedBadge } from './WorkedBadge.tsx'
 
@@ -255,6 +256,7 @@ function RelatedSection({
 
 interface JobOfferPageProps extends OfferHeaderProps {
   applications: Application[]
+  recommendation: Recommendation
   /** What the chips of the sheet can do to the list behind it. */
   tagActions: TagActions
   isApplied: boolean
@@ -272,6 +274,7 @@ interface JobOfferPageProps extends OfferHeaderProps {
  */
 export function JobOfferPage({
   applications,
+  recommendation,
   tagActions,
   isApplied,
   flow,
@@ -302,7 +305,11 @@ export function JobOfferPage({
       >
         <JobChips actions={tagActions} job={job} />
 
-        <JobFit job={job} profile={tagActions.profile} />
+        <JobFit
+          job={job}
+          profile={tagActions.profile}
+          recommendation={recommendation}
+        />
 
         <Section title="Descripción">
           {job.description ? (

@@ -24,6 +24,11 @@ export interface Profile {
   /** Ids from the course catalog. */
   courses: string[]
   experienceYears: number | null
+  /** Habilidades que la persona sumó a mano: slugs del catálogo de las ofertas
+   * (`worker/src/skills.ts`), nunca texto libre. */
+  skills: string[]
+  /** Habilidades que salen solas del CV y el perfil y que la persona quitó. */
+  skillsOff: string[]
   /** Anonymous usage stats; on unless the person turns it off. */
   shareStats: boolean
   /** When the onboarding was finished, empty while it has never been run. */
@@ -35,6 +40,8 @@ export const EMPTY_PROFILE: Profile = {
   degrees: [],
   courses: [],
   experienceYears: null,
+  skills: [],
+  skillsOff: [],
   shareStats: true,
   onboardedAt: '',
 }
@@ -100,6 +107,7 @@ export const profileCount = (profile: Profile): number =>
   (profile.education === '' ? 0 : 1) +
   profile.degrees.length +
   profile.courses.length +
+  profile.skills.length +
   (profile.experienceYears === null ? 0 : 1)
 
 export const isOnboarded = (profile: Profile): boolean =>
