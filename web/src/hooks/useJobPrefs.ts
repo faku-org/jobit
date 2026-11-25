@@ -10,6 +10,7 @@ import {
 } from '../lib/profile.ts'
 import { EMPTY_RESUME, type Resume, sanitizeResume } from '../lib/resume.ts'
 import { clearTest } from '../lib/selfTest.ts'
+import { MAX_SKILLS, isSkillSlug } from '../lib/skills.ts'
 import type { SyncedState } from '../lib/sync.ts'
 import {
   type Application,
@@ -178,6 +179,8 @@ function readProfile(value: unknown): Profile {
     degrees: catalogIds(raw.degrees, isDegreeId),
     courses: catalogIds(raw.courses, isCourseId),
     experienceYears: bounded(raw.experienceYears, MAX_EXPERIENCE_YEARS),
+    skills: catalogIds(raw.skills, isSkillSlug).slice(0, MAX_SKILLS),
+    skillsOff: catalogIds(raw.skillsOff, isSkillSlug),
     shareStats: raw.shareStats !== false,
     onboardedAt: text(raw.onboardedAt),
   }

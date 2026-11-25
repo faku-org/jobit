@@ -62,4 +62,11 @@ export const en: Partial<Messages> = {
   'settings.a11y.links': 'Underline links',
   'settings.a11y.linksHint':
     'Every link is underlined, not only those in a paragraph.',
+  'skills.label': 'Skills',
+  'skills.placeholder': 'Search: Excel, English, React, customer service…',
+  'skills.hint':
+    'The ones from your CV and courses come preloaded: remove any that do not fit. They let each offer tell you what it asks for that you already have. They stay in this browser.',
+  'recommend.why': 'Why we recommend it',
+  'recommend.missing': 'What you are missing',
+  'recommend.cardLabel': 'Why it is for you',
 }

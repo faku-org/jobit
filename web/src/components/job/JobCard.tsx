@@ -1,6 +1,7 @@
 import {
   Bookmark,
   Building2,
+  Check,
   EyeOff,
   MapPin,
   Target,
@@ -8,11 +9,13 @@ import {
 } from 'lucide-react'
 import { m } from 'motion/react'
 import { fadeUpTransition } from '../../lib/motion.ts'
+import type { Reason } from '../../lib/recommend.ts'
 import { formatLocation } from '../../lib/format.ts'
 import { jobShare } from '../../lib/share.ts'
 import { chipClass, iconButtonClass } from '../../lib/styles.ts'
 import type { Job } from '../../lib/types.ts'
 import { useApplyFlow } from '../../hooks/useApplyFlow.ts'
+import { useT } from '../../hooks/useLocale.ts'
 import { ApplyFooter } from './ApplyFooter.tsx'
 import { WorkedBadge } from './WorkedBadge.tsx'
 import { JobChips, type TagActions } from './JobChips.tsx'
@@ -27,6 +30,8 @@ interface JobCardProps {
   isApplied: boolean
   /** La empresa es una que la persona cargó como suya; solo una marca. */
   worked?: boolean
+  /** Por qué la oferta le sirve a esta persona: una o dos razones, no más. */
+  reasons?: Reason[]
   /** What the chips of this card can do to the list. */
   tagActions: TagActions
   onOpen: (job: Job) => void
@@ -63,6 +68,7 @@ export function JobCard({
   isMatch,
   isApplied,
   worked = false,
+  reasons = [],
   tagActions,
   onOpen,
   onCompose,
@@ -71,6 +77,7 @@ export function JobCard({
   onToggleDismissed,
   onApplied,
 }: JobCardProps) {
+  const t = useT()
   const flow = useApplyFlow(job, isApplied, onApplied)
 
   return (
@@ -154,6 +161,23 @@ export function JobCard({
           </span>
           {worked ? <WorkedBadge /> : null}
         </div>
+
+        {reasons.length > 0 && !isDismissed ? (
+          <ul className="mt-3 space-y-1" aria-label={t('recommend.cardLabel')}>
+            {reasons.map((entry) => (
+              <li
+                key={entry.id}
+                className="flex items-start gap-1.5 text-[0.8125rem] leading-snug text-soft"
+              >
+                <Check
+                  aria-hidden
+                  className="mt-0.5 size-3.5 shrink-0 text-brand"
+                />
+                {entry.text}
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         <div className="mt-4">
           <JobChips actions={tagActions} job={job} />

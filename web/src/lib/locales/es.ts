@@ -68,6 +68,13 @@ export const es = {
   'settings.a11y.links': 'Subrayar enlaces',
   'settings.a11y.linksHint':
     'Todos los enlaces van subrayados, no solo los de un párrafo.',
+  'skills.label': 'Habilidades',
+  'skills.placeholder': 'Buscá: Excel, inglés, React, atención al cliente…',
+  'skills.hint':
+    'Las que salen de tu CV y tus cursos ya vienen cargadas: quitá las que no. Sirven para decirte qué pide cada oferta que ya tenés. Quedan en este navegador.',
+  'recommend.why': 'Por qué te la recomendamos',
+  'recommend.missing': 'Lo que te falta',
+  'recommend.cardLabel': 'Por qué es para vos',
 } as const
 
 export type MessageKey = keyof typeof es

@@ -17,11 +17,14 @@ import type { Facet, Preferences } from '../../lib/types.ts'
 import { Combobox } from '../ui/Combobox.tsx'
 import { DangerZone } from './DangerZone.tsx'
 import { ExperienceField } from './ExperienceField.tsx'
+import { SkillsField } from './SkillsField.tsx'
 import { PanelChip, PanelGroup } from './PanelControls.tsx'
 import { type ResumePart, ResumeSections } from './ResumeSections.tsx'
 
 interface ProfileBasicsProps {
   profile: Profile
+  /** Sus datos aportan habilidades a las que se cargan acá. */
+  resume: Resume | null
   onChange: (profile: Profile) => void
 }
 
@@ -68,7 +71,11 @@ const CvImport = lazy(() =>
  * asks for more than they have. It lives in this browser only: the privacy
  * section governs the one thing that ever leaves, and shows it verbatim.
  */
-export function ProfileBasics({ profile, onChange }: ProfileBasicsProps) {
+export function ProfileBasics({
+  profile,
+  resume,
+  onChange,
+}: ProfileBasicsProps) {
   const pickEducation = (level: EducationLevel) =>
     onChange({
       ...profile,
@@ -104,6 +111,8 @@ export function ProfileBasics({ profile, onChange }: ProfileBasicsProps) {
         selected={profile.courses}
         onChange={(courses) => onChange({ ...profile, courses })}
       />
+
+      <SkillsField profile={profile} resume={resume} onChange={onChange} />
 
       <ExperienceField
         value={profile.experienceYears}

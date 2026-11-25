@@ -8,6 +8,7 @@ import { offerView } from '../../lib/events.ts'
 import { track } from '../../lib/track.ts'
 import { type Application, type Job, type Tag } from '../../lib/types.ts'
 import { useApplyFlow } from '../../hooks/useApplyFlow.ts'
+import type { Recommendation } from '../../lib/recommend.ts'
 import type { TagActions } from './JobChips.tsx'
 import { JobComposePage } from './JobComposePage.tsx'
 import { JobOfferPage } from './JobOfferPage.tsx'
@@ -28,6 +29,8 @@ interface JobModalProps {
   /** La empresa es una que la persona cargó como suya; solo una marca. */
   worked?: boolean
   applications: Application[]
+  /** Por qué la oferta le sirve a esta persona, con lo que le falta. */
+  recommendation: Recommendation
   /** What the chips of the sheet can do to the list behind it. */
   tagActions: TagActions
   onToggleSaved: (id: string) => void
@@ -56,6 +59,7 @@ export function JobModal({
   isApplied,
   worked = false,
   applications,
+  recommendation,
   tagActions,
   onToggleSaved,
   onToggleDismissed,
@@ -193,6 +197,7 @@ export function JobModal({
             isMatch={isMatch}
             isSaved={isSaved}
             job={job}
+            recommendation={recommendation}
             reduceMotion={reduceMotion}
             tagActions={chipActions}
             worked={worked}

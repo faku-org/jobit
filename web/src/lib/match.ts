@@ -1,5 +1,6 @@
 import { assessFit } from './fit.ts'
 import type { Profile } from './profile.ts'
+import type { Recommendation } from './recommend.ts'
 import type { Ranking } from './ranking.ts'
 import type { Job, Mix, Preferences } from './types.ts'
 import { matchesPreferences, preferenceCount, workMode } from './types.ts'
@@ -57,12 +58,17 @@ export function fitScore(job: Job, ranking: Ranking, profile: Profile): number {
  * The jobs that earn the aura. Broad keeps every preference hit; the other
  * two keep a top slice so the mark still means something when a single rubro
  * would otherwise stamp the whole page.
+ *
+ * With `recommend` the order is the recommender's score (preferences, skills,
+ * experience and studies, see recommend.ts); without it, the older fitScore.
+ * Either way the pool is the same: only what passes the boolean preferences.
  */
 export function pickHighlights(
   jobs: Job[],
   preferences: Preferences,
   ranking: Ranking,
   profile: Profile,
+  recommend?: (job: Job) => Recommendation,
 ): Set<string> {
   if (preferenceCount(preferences) === 0) return new Set()
 
@@ -74,8 +80,10 @@ export function pickHighlights(
   })
 
   const cap = highlightCap(candidates.length, mix)
+  const scoreOf = (job: Job): number =>
+    recommend ? recommend(job).score : fitScore(job, ranking, profile)
   const ranked = [...candidates].sort((a, b) => {
-    const diff = fitScore(b, ranking, profile) - fitScore(a, ranking, profile)
+    const diff = scoreOf(b) - scoreOf(a)
     if (diff !== 0) return diff
     return b.date_posted.localeCompare(a.date_posted)
   })

@@ -1,4 +1,4 @@
-import { Check, CircleHelp, Lightbulb, Minus } from 'lucide-react'
+import { Check, CircleHelp, Lightbulb, Minus, Plus } from 'lucide-react'
 import { m } from 'motion/react'
 import {
   type CheckStatus,
@@ -7,8 +7,14 @@ import {
   fitHeadline,
   hasFit,
 } from '../../lib/fit.ts'
+import { useT } from '../../hooks/useLocale.ts'
 import { fadeUpTransition, stagger } from '../../lib/motion.ts'
 import type { Profile } from '../../lib/profile.ts'
+import {
+  type Reason,
+  type Recommendation,
+  missingReasons,
+} from '../../lib/recommend.ts'
 import { applyTips } from '../../lib/tips.ts'
 import type { Job } from '../../lib/types.ts'
 import { Aura, AuraSpark } from '../ui/Aura.tsx'
@@ -16,7 +22,11 @@ import { Aura, AuraSpark } from '../ui/Aura.tsx'
 interface JobFitProps {
   job: Job
   profile: Profile
+  recommendation: Recommendation
 }
+
+/** Estas dos razones ya se dicen arriba, en la lista de requisitos. */
+const CHECKED_ABOVE = new Set(['experience', 'education', 'no-experience'])
 
 const STATUS_ICON: Record<CheckStatus, typeof Check> = {
   ok: Check,
@@ -49,12 +59,20 @@ const HEADLINE_TONE: Record<CheckStatus, string> = {
  * Nobody wrote any of this: it comes out of the offer measured against the
  * profile, so it wears the same aura as the CV reading.
  */
-export function JobFit({ job, profile }: JobFitProps) {
+export function JobFit({ job, profile, recommendation }: JobFitProps) {
+  const t = useT()
   const fit = assessFit(job, profile)
   const tips = applyTips(job)
   const gap = educationGap(job, profile)
+  const why = recommendation.reasons.filter(
+    (entry) => entry.kind === 'plus' && !CHECKED_ABOVE.has(entry.id),
+  )
+  const missing = missingReasons(recommendation).filter(
+    (entry) => !CHECKED_ABOVE.has(entry.id),
+  )
+  const hasWhy = why.length > 0 || missing.length > 0
 
-  if (!hasFit(fit) && tips.length === 0) return null
+  if (!hasFit(fit) && tips.length === 0 && !hasWhy) return null
 
   /* El calce ya está listo al abrir la ficha: el orbe respira, no finge
      que está pensando y después salta de estado. */
@@ -123,8 +141,19 @@ export function JobFit({ job, profile }: JobFitProps) {
           </>
         ) : null}
 
-        {tips.length > 0 ? (
+        {hasWhy ? (
           <div className={hasFit(fit) ? 'mt-4 border-t border-line pt-3' : ''}>
+            <ReasonList items={why} title={t('recommend.why')} />
+            <ReasonList items={missing} title={t('recommend.missing')} />
+          </div>
+        ) : null}
+
+        {tips.length > 0 ? (
+          <div
+            className={
+              hasFit(fit) || hasWhy ? 'mt-4 border-t border-line pt-3' : ''
+            }
+          >
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
               <Lightbulb aria-hidden className="size-3.5 text-brand" />
               Antes de postularte
@@ -150,5 +179,41 @@ export function JobFit({ job, profile }: JobFitProps) {
         ) : null}
       </section>
     </Aura>
+  )
+}
+
+/** Una lista de razones del recomendador, con su título; vacía no dibuja nada. */
+function ReasonList({ items, title }: { items: Reason[]; title: string }) {
+  if (items.length === 0) return null
+  const Icon = items[0]?.kind === 'minus' ? Minus : Plus
+
+  return (
+    <div className="mb-3 last:mb-0">
+      <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+        {title}
+      </p>
+      <ul className="mt-2 space-y-1.5">
+        {items.map((entry, index) => (
+          <m.li
+            key={entry.id}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-2.5"
+            initial={{ opacity: 0, y: 4 }}
+            transition={{ ...fadeUpTransition, delay: stagger(index) }}
+          >
+            <span
+              className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-full ${
+                entry.kind === 'plus' ? 'bg-sky text-ink' : 'bg-wash text-muted'
+              }`}
+            >
+              <Icon aria-hidden className="size-2.5" />
+            </span>
+            <span className="text-[0.8125rem] leading-snug text-ink/80">
+              {entry.text}
+            </span>
+          </m.li>
+        ))}
+      </ul>
+    </div>
   )
 }
