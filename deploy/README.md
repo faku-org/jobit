@@ -216,6 +216,27 @@ Con cron sería la misma corrida, con el `cd` a `worker/` para que Bun cargue
 15 */6 * * * cd /srv/jobit/worker && PATH=/opt/bun:$PATH /opt/bun/bun run src/index.ts
 ```
 
+### Las alertas a empresas
+
+`deploy/jobit-alerts.timer` corre `jobit-alerts.service` una vez por día
+(09:30) y mira el día de ayer: una oferta con pico de vistas y nadie sale al
+aviso, o una publicada que lleva siete días sin una visita. Manda un correo por
+empresa a sus direcciones verificadas (menos la de recuperación) y anota qué
+mandó, así que correrlo dos veces el mismo día, o cada día con la misma
+situación, no repite nada (enfriamiento de siete días por oferta y clase). La
+empresa las apaga desde Métricas. Usa el mismo `/srv/jobit/api/.env` que la API
+para `RESEND_API_KEY` y `MAIL_FROM`; sin ellos el correo queda en el journal.
+
+```bash
+sudo cp deploy/jobit-alerts.service deploy/jobit-alerts.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now jobit-alerts.timer
+systemctl list-timers jobit-alerts.timer
+journalctl -u jobit-alerts.service -n 50
+# una corrida a mano, sin esperar al timer:
+sudo systemctl start jobit-alerts.service
+```
+
 ### La ingesta sigue existiendo
 
 `POST /api/ingest/jobs` queda para corridas sueltas desde otra máquina

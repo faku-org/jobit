@@ -12,6 +12,7 @@ una sección y arranca con los pasos para ejecutarla.
 | [`worker.md`](worker.md)                                          | Los scrapers, el egress y la agenda.                                                                                                 |
 | [`database.md`](database.md)                                      | El esquema SQLite, las migraciones y los respaldos.                                                                                  |
 | [`company-panel.md`](company-panel.md)                            | El panel de empresa de punta a punta.                                                                                                |
+| [`metricas-empresa.md`](metricas-empresa.md)                      | Métricas de empresa: embudo (vistas, clics, postulaciones), ventanas comparables, reporte CSV/XLSX y alertas por correo.             |
 | [`deploy.md`](deploy.md)                                          | Puesta en producción (resumen; el detalle está en `deploy/`).                                                                        |
 | [`autoconocimiento.md`](autoconocimiento.md)                      | El test de autoconocimiento laboral (IPIP-50): puntaje, guardado y privacidad.                                                       |
 | [`i18n.md`](i18n.md)                                              | La localización: diccionarios, `useT`, cómo se agrega un idioma y qué falta migrar.                                                  |

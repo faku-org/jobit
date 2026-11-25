@@ -619,7 +619,7 @@ describe('ofertas propias', () => {
 })
 
 describe('métricas', () => {
-  test('cuenta vistas y postulaciones sin guardar una fila por visita', async () => {
+  test('cuenta vistas, clics y postulaciones sin guardar una fila por visita', async () => {
     const { cookie, id } = await registerCompany('Acme', 'rrhh@acme.com')
     companies.update(id, { status: 'approved' })
 
@@ -633,6 +633,8 @@ describe('métricas', () => {
       { kind: 'offer_view', id: offer.id },
       { kind: 'offer_view', id: offer.id },
       { kind: 'offer_view', id: offer.id },
+      { kind: 'offer_click', id: offer.id },
+      { kind: 'offer_click', id: offer.id },
       { kind: 'offer_apply', id: offer.id },
     ])
 
@@ -642,10 +644,12 @@ describe('métricas', () => {
     )
     const report = (await response.json()) as {
       views: number
+      clicks: number
       applies: number
       most_viewed: { id: string; views: number }[]
     }
     expect(report.views).toBe(3)
+    expect(report.clicks).toBe(2)
     expect(report.applies).toBe(1)
     expect(report.most_viewed[0]?.id).toBe(offer.id)
   })
@@ -686,6 +690,99 @@ describe('métricas', () => {
     expect(report.daily).toHaveLength(7)
     expect(report.keywords.map((entry) => entry.slug)).toContain('excel')
     expect(Array.isArray(report.search_roles)).toBe(true)
+  })
+
+  test('compara con el período anterior y dice cuando no hay con qué', async () => {
+    const { cookie, id } = await registerCompany('Acme', 'rrhh@acme.com')
+    companies.update(id, { status: 'approved' })
+    const created = await call(
+      '/api/empresas/offers',
+      withCookie(json({ title: 'Backend', status: 'draft' }), cookie),
+    )
+    const offer = (await created.json()) as { id: string }
+    await appendEvents([{ kind: 'offer_view', id: offer.id }])
+
+    const response = await call(
+      '/api/empresas/metrics?days=7',
+      withCookie({}, cookie),
+    )
+    const report = (await response.json()) as {
+      previous: { has_data: boolean; daily: unknown[] }
+      change: { views: { pct: number | null; delta: number } }
+    }
+    expect(report.previous.has_data).toBe(false)
+    expect(report.previous.daily).toHaveLength(7)
+    expect(report.change.views.pct).toBeNull()
+    expect(report.change.views.delta).toBe(1)
+  })
+
+  test('exporta la ventana en CSV y XLSX, y exige la sesión de la empresa', async () => {
+    const { cookie, id } = await registerCompany('Acme', 'rrhh@acme.com')
+    companies.update(id, { status: 'approved' })
+    const created = await call(
+      '/api/empresas/offers',
+      withCookie(json({ title: 'Backend', status: 'draft' }), cookie),
+    )
+    const offer = (await created.json()) as { id: string }
+    await appendEvents([
+      { kind: 'offer_view', id: offer.id },
+      { kind: 'offer_click', id: offer.id },
+    ])
+
+    expect((await call('/api/empresas/metrics.csv?days=7')).status).toBe(401)
+    expect((await call('/api/empresas/metrics.xlsx?days=7')).status).toBe(401)
+
+    const csv = await call(
+      '/api/empresas/metrics.csv?days=7',
+      withCookie({}, cookie),
+    )
+    expect(csv.status).toBe(200)
+    expect(csv.headers.get('content-type')).toContain('text/csv')
+    expect(csv.headers.get('content-disposition')).toContain(
+      'jobit-metricas-7d-',
+    )
+    /** `text()` descarta el BOM, así que se mira en los bytes: Excel lo pide. */
+    const raw = new Uint8Array(await csv.clone().arrayBuffer())
+    expect([...raw.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf])
+    const text = await csv.text()
+    expect(text).toContain('tabla,clave,etiqueta,estado,vistas,clics')
+    expect(text).toContain('Backend')
+
+    const xlsx = await call(
+      '/api/empresas/metrics.xlsx?days=7',
+      withCookie({}, cookie),
+    )
+    expect(xlsx.status).toBe(200)
+    const bytes = new Uint8Array(await xlsx.arrayBuffer())
+    /** Un XLSX es un zip: arranca con "PK". */
+    expect(bytes[0]).toBe(0x50)
+    expect(bytes[1]).toBe(0x4b)
+  })
+
+  test('las alertas vienen prendidas y la empresa las apaga desde el panel', async () => {
+    const { cookie } = await registerCompany('Acme', 'rrhh@acme.com')
+
+    expect((await call('/api/empresas/alerts')).status).toBe(401)
+    expect(
+      (await call('/api/empresas/alerts', json({ enabled: false }, 'PUT')))
+        .status,
+    ).toBe(401)
+
+    const before = await call('/api/empresas/alerts', withCookie({}, cookie))
+    const initial = (await before.json()) as {
+      enabled: boolean
+      recipients: number
+    }
+    expect(initial.enabled).toBe(true)
+    expect(typeof initial.recipients).toBe('number')
+
+    const off = await call(
+      '/api/empresas/alerts',
+      withCookie(json({ enabled: false }, 'PUT'), cookie),
+    )
+    expect(off.status).toBe(200)
+    const after = await call('/api/empresas/alerts', withCookie({}, cookie))
+    expect(((await after.json()) as { enabled: boolean }).enabled).toBe(false)
   })
 })
 

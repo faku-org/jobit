@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import * as alerts from './alerts.ts'
 import * as accounts from './company-accounts.ts'
 import * as emails from './company-emails.ts'
 import * as members from './company-members.ts'
@@ -8,10 +9,12 @@ import { sign, verifySignature } from './crypto.ts'
 import { publicOrigin, sendMail } from './mail.ts'
 import * as media from './media.ts'
 import * as metrics from './metrics.ts'
+import * as metricsExport from './metrics-export.ts'
 import * as offers from './offers.ts'
 import { OFFER_STATUSES } from './offers.ts'
 import { generateSecret, otpauthUrl, verifyTotp } from './totp.ts'
 import { topSearchRoles } from './usage.ts'
+import { XLSX_MIME, toXlsx } from './xlsx.ts'
 import {
   challengeName,
   challengeValue,
@@ -1064,6 +1067,76 @@ export const empresas = new Elysia({ prefix: '/api/empresas' })
         days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })),
       }),
     },
+  )
+  /** El mismo corte que muestra el panel, como archivo. No recalcula nada
+   * aparte: es `companyMetrics` de la misma ventana, aplanado a tablas. */
+  .get(
+    '/metrics.csv',
+    ({ query, cookie, status }) => {
+      const company = accounts.sessionCompany(
+        tokenOf(cookie[COMPANY_COOKIE]?.value),
+      )
+      if (!company) return status(401, { error: 'sesión vencida' })
+      const report = metrics.companyMetrics(company.id, query.days ?? 30)
+      return new Response(`﻿${metricsExport.metricsCsv(report)}`, {
+        headers: {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition': `attachment; filename="${metricsExport.metricsFilename(report, 'csv')}"`,
+        },
+      })
+    },
+    {
+      query: t.Object({
+        days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })),
+      }),
+    },
+  )
+  .get(
+    '/metrics.xlsx',
+    ({ query, cookie, status }) => {
+      const company = accounts.sessionCompany(
+        tokenOf(cookie[COMPANY_COOKIE]?.value),
+      )
+      if (!company) return status(401, { error: 'sesión vencida' })
+      const report = metrics.companyMetrics(company.id, query.days ?? 30)
+      return new Response(toXlsx(metricsExport.metricsSheets(report)), {
+        headers: {
+          'content-type': XLSX_MIME,
+          'content-disposition': `attachment; filename="${metricsExport.metricsFilename(report, 'xlsx')}"`,
+        },
+      })
+    },
+    {
+      query: t.Object({
+        days: t.Optional(t.Numeric({ minimum: 1, maximum: 365 })),
+      }),
+    },
+  )
+  /** Si la empresa quiere las alertas por correo. Sin fila están prendidas. */
+  .get('/alerts', ({ cookie, status }) => {
+    const company = accounts.sessionCompany(
+      tokenOf(cookie[COMPANY_COOKIE]?.value),
+    )
+    if (!company) return status(401, { error: 'sesión vencida' })
+    return {
+      enabled: alerts.alertsEnabled(company.id),
+      recipients: alerts.recipients(company.id).length,
+    }
+  })
+  .put(
+    '/alerts',
+    ({ body, cookie, status }) => {
+      const company = accounts.sessionCompany(
+        tokenOf(cookie[COMPANY_COOKIE]?.value),
+      )
+      if (!company) return status(401, { error: 'sesión vencida' })
+      alerts.setAlertsEnabled(company.id, body.enabled)
+      return {
+        enabled: alerts.alertsEnabled(company.id),
+        recipients: alerts.recipients(company.id).length,
+      }
+    },
+    { body: t.Object({ enabled: t.Boolean() }) },
   )
   .get('/offers', ({ cookie, status }) => {
     const company = accounts.sessionCompany(

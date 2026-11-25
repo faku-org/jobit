@@ -1,6 +1,7 @@
 import { Database } from 'bun:sqlite'
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { migrateMetrics } from './db-metrics.ts'
 
 /**
  * Everything the board itself is stays in the scraper's JSON: it is rebuilt
@@ -500,6 +501,7 @@ export function db(): Database {
   database.run(SCHEMA)
   addMissingColumns(database)
   migrate(database)
+  migrateMetrics(database)
 
   handle = database
   return database

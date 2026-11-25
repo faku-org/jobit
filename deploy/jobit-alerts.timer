@@ -1,0 +1,16 @@
+[Unit]
+Description=JobIt alertas de métricas, una vez por día
+Documentation=https://github.com/faku-org/jobit
+
+[Timer]
+# 09:30 hora del servidor: la mirada es sobre el día de ayer, ya completo, y el
+# correo llega con la mañana empezada.
+OnCalendar=*-*-* 09:30:00
+# Si el VPS estuvo apagado a esa hora, corre al volver. No duplica nada: el
+# disparador es idempotente por día.
+Persistent=true
+RandomizedDelaySec=300
+Unit=jobit-alerts.service
+
+[Install]
+WantedBy=timers.target
