@@ -17,7 +17,9 @@ foráneas en cascada.
 | `company_resets`                                    | El enlace de recuperación por correo (token hasheado).                                                              |
 | `company_password_codes`                            | El código de correo del cambio de contraseña.                                                                       |
 | `offers`                                            | Ofertas propias de las empresas.                                                                                    |
-| `offer_daily`                                       | Vistas y postulaciones por oferta y por día.                                                                        |
+| `offer_daily`                                       | Vistas, clics al aviso y postulaciones confirmadas por oferta y por día.                                            |
+| `company_alert_settings`                            | Si la empresa quiere las alertas por correo (sin fila, sí).                                                         |
+| `alert_sent`                                        | Qué alerta salió, de qué oferta y qué día: vuelve idempotente al disparador.                                        |
 | `users`                                             | Cuentas de usuario (quien publica servicios).                                                                       |
 | `user_sessions`, `user_recovery_codes`, `user_sync` | Sesiones, códigos y sync de esas cuentas.                                                                           |
 | `admin_sessions`                                    | Sesiones del panel de administración.                                                                               |

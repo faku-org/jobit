@@ -38,6 +38,12 @@ export const eventsSchema = t.Object({
         kind: t.Literal('offer_view'),
         id: t.String({ maxLength: 100 }),
       }),
+      /* El clic que abre el aviso original: el paso del medio del embudo, entre
+         ver la ficha y confirmar la postulación. */
+      t.Object({
+        kind: t.Literal('offer_click'),
+        id: t.String({ maxLength: 100 }),
+      }),
       t.Object({
         kind: t.Literal('offer_apply'),
         id: t.String({ maxLength: 100 }),
@@ -128,10 +134,18 @@ const known = (
  * lo único que viaja tal cual. Igual se acota por las dudas. */
 const JOB_ID = /^[a-z0-9:_-]{1,80}$/i
 
+/** Qué paso del embudo suma cada evento de oferta. */
+const OFFER_STEP = {
+  offer_view: 'view',
+  offer_click: 'click',
+  offer_apply: 'apply',
+} as const
+
 function normalise(event: UsageEvent): Record<string, unknown> | null {
   /** Los de métricas no van al archivo: se suman a los contadores y listo. */
   if (
     event.kind === 'offer_view' ||
+    event.kind === 'offer_click' ||
     event.kind === 'offer_apply' ||
     event.kind === 'service_view' ||
     event.kind === 'service_contact'
@@ -187,11 +201,12 @@ export async function appendEvents(events: UsageEvent[]): Promise<number> {
   const usage: UsageEvent[] = []
   const contacts: Record<string, unknown>[] = []
   for (const event of events) {
-    if (event.kind === 'offer_view' || event.kind === 'offer_apply') {
-      if (
-        JOB_ID.test(event.id) &&
-        bump(event.id, event.kind === 'offer_view' ? 'view' : 'apply')
-      ) {
+    if (
+      event.kind === 'offer_view' ||
+      event.kind === 'offer_click' ||
+      event.kind === 'offer_apply'
+    ) {
+      if (JOB_ID.test(event.id) && bump(event.id, OFFER_STEP[event.kind])) {
         bumped += 1
       }
       continue

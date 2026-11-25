@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { applyEvent, offerApply } from '../lib/events.ts'
+import { applyEvent, offerApply, offerClick } from '../lib/events.ts'
 import { track } from '../lib/track.ts'
 import type { Job } from '../lib/types.ts'
 
@@ -28,12 +28,16 @@ export function useApplyFlow(
 
   const begin = useCallback(() => {
     track(applyEvent(job))
-    const own = offerApply(job)
-    if (own) track(own)
+    /* Salir al aviso es el clic: el interés, no la postulación. */
+    const click = offerClick(job)
+    if (click) track(click)
     setAsked(!isApplied)
   }, [job, isApplied])
 
   const confirm = useCallback(() => {
+    /* La postulación cuenta solo cuando la persona confirma que la mandó. */
+    const own = offerApply(job)
+    if (own) track(own)
     onApplied(job)
     setAsked(false)
   }, [job, onApplied])

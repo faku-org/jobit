@@ -137,9 +137,11 @@ ahí.
 
 ## Métricas
 
-`offer_daily` suma vistas y postulaciones por oferta y por día: dice cuántas
-veces, nunca quién. Suben por el canal anónimo de `/api/events` y solo para las
-publicadas acá.
+`offer_daily` suma vistas, clics al aviso y postulaciones confirmadas por oferta
+y por día: dice cuántas veces, nunca quién. Suben por el canal anónimo de
+`/api/events` y solo para las publicadas acá. El embudo, la comparación con el
+período anterior, el reporte CSV/XLSX y las alertas por correo están en
+[`metricas-empresa.md`](metricas-empresa.md).
 
 `GET /api/empresas/metrics?days=7|30|90` arma el Resumen:
 

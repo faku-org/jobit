@@ -69,57 +69,59 @@ termina donde termina la de verdad.
 
 ## API
 
-| Endpoint                                                  | Descripción                                                                                                                    |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /health`                                             | Estado del servicio.                                                                                                           |
-| `GET /api/jobs`                                           | Ofertas filtradas y paginadas. Con `format=txt` o `Accept: text/plain` sale el mismo listado en texto.                         |
-| `GET /api/jobs.txt`                                       | Ese listado ya en texto, para `curl` y para grep. Mismos parámetros.                                                           |
-| `GET /api/cli`                                            | La URL del tablero en texto: entiende `view` y `job` además de los filtros.                                                    |
-| `GET /api/jobs/:id`                                       | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción.                                           |
-| `GET /api/search`                                         | Búsqueda por significado: embebe `q` y ordena por coseno. Acepta los mismos filtros que `/api/jobs`.                           |
-| `GET /api/offers/:id/similar`                             | Ofertas parecidas a una, por el vector que ya tiene guardado.                                                                  |
-| `GET /api/meta`                                           | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento.                                                            |
-| `GET /api/empresas`                                       | Las empresas del tablero (con `rubro`, solo las de ese rubro), para el selector.                                               |
-| `GET /api/empresas/:slug`                                 | La ficha de una empresa: conteo, sueldo medio, puestos, zonas y últimas ofertas.                                               |
-| `GET /api/market`                                         | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos.                                                         |
-| `GET /api/market.csv`                                     | Ese mismo informe como CSV, todas las tablas bajo un encabezado.                                                               |
-| `GET /api/market.xlsx`                                    | Ese mismo informe como planilla, una pestaña por tabla.                                                                        |
-| `GET /api/content`                                        | El contenido curado por rubro y puesto (FAQ, ejercicios, recursos).                                                            |
-| `POST /api/stats`                                         | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`.                                                             |
-| `POST /api/events`                                        | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`.                                                |
-| `GET /api/admin/usage`                                    | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión.                                                           |
-| `POST /api/ingest/jobs`                                   | Recibe el `jobs.json` del worker corriendo en otra máquina. Pide token.                                                        |
-| `POST /api/auth/register`                                 | Crea la cuenta y devuelve, una sola vez, los códigos de respaldo.                                                              |
-| `POST /api/auth/login`                                    | Entra; si la cuenta tiene 2FA, pide el segundo paso en vez de abrir sesión.                                                    |
-| `POST /api/auth/totp`                                     | El segundo paso: cierra el ingreso con el código de seis dígitos.                                                              |
-| `POST /api/auth/recover`                                  | Entra con un código de respaldo.                                                                                               |
-| `POST /api/auth/logout`                                   | Cierra la sesión y borra la cookie.                                                                                            |
-| `GET` / `PATCH` / `DELETE /api/me`                        | Quién soy, editar la cuenta y borrarla de verdad.                                                                              |
-| `POST` / `DELETE /api/me/totp`                            | Activar y desactivar el segundo paso.                                                                                          |
-| `GET` / `PUT` / `DELETE /api/me/sync`                     | Bajar, guardar o borrar lo que la cuenta sincroniza entre navegadores.                                                         |
-| `POST /api/empresas/auth/register`                        | Alta autogestionada. Nace pendiente y pide el segundo paso antes de abrir sesión.                                              |
-| `POST /api/empresas/auth/login`                           | Entra con el correo o con el slug; el paso siguiente es el TOTP, que es obligatorio.                                           |
-| `POST /api/empresas/auth/totp/setup`                      | Sin `code` genera la clave; con `code` la confirma, abre sesión y devuelve los códigos de respaldo.                            |
-| `POST /api/empresas/auth/totp`                            | El segundo paso del ingreso, con el código de seis dígitos.                                                                    |
-| `POST /api/empresas/auth/recover`                         | Entra con un código de respaldo.                                                                                               |
-| `POST /api/empresas/auth/recover/email`                   | Manda el enlace de recuperación al correo alterno verificado.                                                                  |
-| `POST /api/empresas/auth/recover/reset`                   | Cambia la contraseña con el token del enlace y vuelve a pedir el segundo paso.                                                 |
-| `POST /api/empresas/auth/logout`                          | Cierra la sesión de la empresa.                                                                                                |
-| `GET /api/empresas/session`                               | Qué empresa está detrás de la sesión, con perfil, correos y miembros.                                                          |
-| `PATCH /api/empresas/me`                                  | Perfil (nombre, teléfono con país, sitio, redes, privacidad) y contraseña, que pide 2FA + código por correo.                   |
-| `POST /api/empresas/me/password/email`                    | Manda el código de 6 dígitos para cambiar la contraseña.                                                                       |
-| `POST /api/empresas/me/totp/setup`                        | Cambiar el segundo paso: sin `code` genera el secreto nuevo, con `code` lo confirma y renueva los códigos de respaldo.         |
-| `POST /api/empresas/me/lockdown`                          | Cierra la sesión en todos los dispositivos y renueva los códigos de respaldo (emergencia).                                     |
-| `POST /api/empresas/me/deactivate`                        | Desactiva la cuenta y manda el enlace de recuperación; para desactivarla el correo de recuperación tiene que estar verificado. |
-| `POST /api/empresas/me/website/verify`                    | Consulta el TXT del dominio; sin registro, la URL deja de estar vigente.                                                       |
-| `GET` / `PUT` / `DELETE /api/empresas/emails/:kind`       | Correos de facturación, contacto, soporte y recuperación, con su verificación.                                                 |
-| `POST /api/empresas/emails/:kind/resend`                  | Reenvía el enlace de verificación de ese correo.                                                                               |
-| `GET /api/empresas/verify`                                | El enlace que llega por mail; confirma y vuelve al panel.                                                                      |
-| `POST` / `DELETE /api/empresas/media/:kind`               | Sube o quita el logo o el banner. `GET` público sirve el archivo.                                                              |
-| `GET` / `POST` / `DELETE /api/empresas/members[/:userId]` | Designa como miembros a usuarios de JobIt, o los quita.                                                                        |
-| `GET /api/empresas/offers`                                | Las publicaciones propias, con su estado.                                                                                      |
-| `POST` / `PATCH` / `DELETE /api/empresas/offers[/:id]`    | CRUD de sus publicaciones, acotado a la empresa de la sesión.                                                                  |
-| `GET /api/empresas/metrics`                               | Visitas, postulaciones, serie diaria, palabras clave y puestos más buscados, agregados y anónimos.                             |
+| Endpoint                                                  | Descripción                                                                                                                      |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`                                             | Estado del servicio.                                                                                                             |
+| `GET /api/jobs`                                           | Ofertas filtradas y paginadas. Con `format=txt` o `Accept: text/plain` sale el mismo listado en texto.                           |
+| `GET /api/jobs.txt`                                       | Ese listado ya en texto, para `curl` y para grep. Mismos parámetros.                                                             |
+| `GET /api/cli`                                            | La URL del tablero en texto: entiende `view` y `job` además de los filtros.                                                      |
+| `GET /api/jobs/:id`                                       | Una oferta completa. Con `format=txt` o `Accept: text/plain` incluye la descripción.                                             |
+| `GET /api/search`                                         | Búsqueda por significado: embebe `q` y ordena por coseno. Acepta los mismos filtros que `/api/jobs`.                             |
+| `GET /api/offers/:id/similar`                             | Ofertas parecidas a una, por el vector que ya tiene guardado.                                                                    |
+| `GET /api/meta`                                           | Conteo, fecha de scrape, fuentes y facetas de rubro y departamento.                                                              |
+| `GET /api/empresas`                                       | Las empresas del tablero (con `rubro`, solo las de ese rubro), para el selector.                                                 |
+| `GET /api/empresas/:slug`                                 | La ficha de una empresa: conteo, sueldo medio, puestos, zonas y últimas ofertas.                                                 |
+| `GET /api/market`                                         | El tablero entero resumido: totales, puestos, rubros, zonas y sueldos.                                                           |
+| `GET /api/market.csv`                                     | Ese mismo informe como CSV, todas las tablas bajo un encabezado.                                                                 |
+| `GET /api/market.xlsx`                                    | Ese mismo informe como planilla, una pestaña por tabla.                                                                          |
+| `GET /api/content`                                        | El contenido curado por rubro y puesto (FAQ, ejercicios, recursos).                                                              |
+| `POST /api/stats`                                         | Recibe el resumen anónimo de uso y lo agrega a `data/stats.jsonl`.                                                               |
+| `POST /api/events`                                        | Recibe un lote de hasta 20 eventos anónimos y los agrega a `data/events.jsonl`.                                                  |
+| `GET /api/admin/usage`                                    | Lo que llegó a esos dos archivos, sumado para el panel. Pide sesión.                                                             |
+| `POST /api/ingest/jobs`                                   | Recibe el `jobs.json` del worker corriendo en otra máquina. Pide token.                                                          |
+| `POST /api/auth/register`                                 | Crea la cuenta y devuelve, una sola vez, los códigos de respaldo.                                                                |
+| `POST /api/auth/login`                                    | Entra; si la cuenta tiene 2FA, pide el segundo paso en vez de abrir sesión.                                                      |
+| `POST /api/auth/totp`                                     | El segundo paso: cierra el ingreso con el código de seis dígitos.                                                                |
+| `POST /api/auth/recover`                                  | Entra con un código de respaldo.                                                                                                 |
+| `POST /api/auth/logout`                                   | Cierra la sesión y borra la cookie.                                                                                              |
+| `GET` / `PATCH` / `DELETE /api/me`                        | Quién soy, editar la cuenta y borrarla de verdad.                                                                                |
+| `POST` / `DELETE /api/me/totp`                            | Activar y desactivar el segundo paso.                                                                                            |
+| `GET` / `PUT` / `DELETE /api/me/sync`                     | Bajar, guardar o borrar lo que la cuenta sincroniza entre navegadores.                                                           |
+| `POST /api/empresas/auth/register`                        | Alta autogestionada. Nace pendiente y pide el segundo paso antes de abrir sesión.                                                |
+| `POST /api/empresas/auth/login`                           | Entra con el correo o con el slug; el paso siguiente es el TOTP, que es obligatorio.                                             |
+| `POST /api/empresas/auth/totp/setup`                      | Sin `code` genera la clave; con `code` la confirma, abre sesión y devuelve los códigos de respaldo.                              |
+| `POST /api/empresas/auth/totp`                            | El segundo paso del ingreso, con el código de seis dígitos.                                                                      |
+| `POST /api/empresas/auth/recover`                         | Entra con un código de respaldo.                                                                                                 |
+| `POST /api/empresas/auth/recover/email`                   | Manda el enlace de recuperación al correo alterno verificado.                                                                    |
+| `POST /api/empresas/auth/recover/reset`                   | Cambia la contraseña con el token del enlace y vuelve a pedir el segundo paso.                                                   |
+| `POST /api/empresas/auth/logout`                          | Cierra la sesión de la empresa.                                                                                                  |
+| `GET /api/empresas/session`                               | Qué empresa está detrás de la sesión, con perfil, correos y miembros.                                                            |
+| `PATCH /api/empresas/me`                                  | Perfil (nombre, teléfono con país, sitio, redes, privacidad) y contraseña, que pide 2FA + código por correo.                     |
+| `POST /api/empresas/me/password/email`                    | Manda el código de 6 dígitos para cambiar la contraseña.                                                                         |
+| `POST /api/empresas/me/totp/setup`                        | Cambiar el segundo paso: sin `code` genera el secreto nuevo, con `code` lo confirma y renueva los códigos de respaldo.           |
+| `POST /api/empresas/me/lockdown`                          | Cierra la sesión en todos los dispositivos y renueva los códigos de respaldo (emergencia).                                       |
+| `POST /api/empresas/me/deactivate`                        | Desactiva la cuenta y manda el enlace de recuperación; para desactivarla el correo de recuperación tiene que estar verificado.   |
+| `POST /api/empresas/me/website/verify`                    | Consulta el TXT del dominio; sin registro, la URL deja de estar vigente.                                                         |
+| `GET` / `PUT` / `DELETE /api/empresas/emails/:kind`       | Correos de facturación, contacto, soporte y recuperación, con su verificación.                                                   |
+| `POST /api/empresas/emails/:kind/resend`                  | Reenvía el enlace de verificación de ese correo.                                                                                 |
+| `GET /api/empresas/verify`                                | El enlace que llega por mail; confirma y vuelve al panel.                                                                        |
+| `POST` / `DELETE /api/empresas/media/:kind`               | Sube o quita el logo o el banner. `GET` público sirve el archivo.                                                                |
+| `GET` / `POST` / `DELETE /api/empresas/members[/:userId]` | Designa como miembros a usuarios de JobIt, o los quita.                                                                          |
+| `GET /api/empresas/offers`                                | Las publicaciones propias, con su estado.                                                                                        |
+| `POST` / `PATCH` / `DELETE /api/empresas/offers[/:id]`    | CRUD de sus publicaciones, acotado a la empresa de la sesión.                                                                    |
+| `GET /api/empresas/metrics`                               | Embudo (vistas, clics, postulaciones) por oferta y rubro, período anterior, serie diaria, palabras clave y puestos más buscados. |
+| `GET /api/empresas/metrics.csv` · `.xlsx`                 | La misma ventana como reporte para bajar. Con sesión de empresa.                                                                 |
+| `GET/PUT /api/empresas/alerts`                            | Si la empresa recibe las alertas por correo (`{ enabled }`).                                                                     |
 
 Parámetros de `/api/jobs`, todos opcionales y combinables:
 
@@ -638,8 +640,9 @@ separa la bandeja de entrada del spam. Con SMTP casero la entrega queda a cargo
 de una IP que nadie conoce.
 
 **Las métricas no saben de nadie.** `offer_daily` suma por oferta y por día
-(vistas y postulaciones): dice cuántas veces, nunca quién. Suben por el mismo
-canal anónimo de `/api/events` (`offer_view`, `offer_apply`, que llevan solo el
+(vistas, clics al aviso y postulaciones confirmadas): dice cuántas veces, nunca
+quién. Suben por el mismo canal anónimo de `/api/events` (`offer_view`,
+`offer_click`, `offer_apply`, que llevan solo el
 id público de la oferta) y solo para las publicadas acá; si la persona apagó el
 envío de estadísticas, no suben, y son entonces una muestra de quien lo tiene
 prendido. El **Resumen** muestra las visitas a la empresa, las publicaciones y las

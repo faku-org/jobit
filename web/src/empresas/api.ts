@@ -167,23 +167,54 @@ export interface OfferInput {
   status?: OfferStatus
 }
 
-export interface OfferMetrics {
-  id: string
-  title: string
-  status: OfferStatus
-  published_at: string
+/** El embudo: vio la ficha, salió al aviso original, confirmó que postuló. */
+export interface Counts {
   views: number
+  clicks: number
   applies: number
 }
 
-export interface Metrics {
+export interface OfferMetrics extends Counts {
+  id: string
+  title: string
+  status: OfferStatus
+  category: string
+  published_at: string
+}
+
+export interface OfferFunnel extends OfferMetrics {
+  previous: Counts
+}
+
+export interface CategoryFunnel extends Counts {
+  key: string
+  label: string
+  offers: number
+  previous: Counts
+}
+
+/** `pct` es null cuando antes no había nada: no hay con qué comparar. */
+export interface Change {
+  previous: number
+  delta: number
+  pct: number | null
+}
+
+export interface Metrics extends Counts {
   days: number
   from: string
   to: string
   offers: Record<OfferStatus, number>
-  views: number
-  applies: number
-  daily: { day: string; views: number; applies: number }[]
+  daily: ({ day: string } & Counts)[]
+  previous: Counts & {
+    from: string
+    to: string
+    has_data: boolean
+    daily: ({ day: string } & Counts)[]
+  }
+  change: Record<keyof Counts, Change>
+  by_offer: OfferFunnel[]
+  by_category: CategoryFunnel[]
   most_viewed: OfferMetrics[]
   most_applied: OfferMetrics[]
   /** Habilidades que nombran las publicaciones de la empresa. */
@@ -310,6 +341,21 @@ export const logout = (): Promise<{ status: string }> =>
 
 export const getMetrics = (days: number): Promise<Metrics> =>
   send(`/metrics?days=${days}`)
+
+/** Los archivos del mismo corte, para un enlace de descarga directo. */
+export const metricsFileUrl = (days: number, format: 'csv' | 'xlsx'): string =>
+  `/api/empresas/metrics.${format}?days=${days}`
+
+export interface AlertSettings {
+  enabled: boolean
+  /** A cuántas direcciones verificadas llegaría el correo. */
+  recipients: number
+}
+
+export const getAlerts = (): Promise<AlertSettings> => send('/alerts')
+
+export const setAlerts = (enabled: boolean): Promise<AlertSettings> =>
+  send('/alerts', { method: 'PUT', body: JSON.stringify({ enabled }) })
 
 export const listOffers = (): Promise<{
   offers: Offer[]

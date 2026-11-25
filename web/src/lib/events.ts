@@ -36,6 +36,13 @@ export interface OfferViewEvent {
   id: string
 }
 
+/** El clic que abre el aviso original: el paso del medio del embudo. */
+export interface OfferClickEvent {
+  kind: 'offer_click'
+  id: string
+}
+
+/** La postulación que la persona confirma al volver ("sí, la mandé"). */
 export interface OfferApplyEvent {
   kind: 'offer_apply'
   id: string
@@ -81,6 +88,7 @@ export type UsageEvent =
   | SearchEvent
   | ApplyEvent
   | OfferViewEvent
+  | OfferClickEvent
   | OfferApplyEvent
   | ServiceSearchEvent
   | ServiceViewEvent
@@ -124,6 +132,9 @@ export const applyEvent = (job: Job): ApplyEvent => ({
  */
 export const offerView = (job: Job): OfferViewEvent | null =>
   job.source === 'jobit' ? { kind: 'offer_view', id: job.id } : null
+
+export const offerClick = (job: Job): OfferClickEvent | null =>
+  job.source === 'jobit' ? { kind: 'offer_click', id: job.id } : null
 
 export const offerApply = (job: Job): OfferApplyEvent | null =>
   job.source === 'jobit' ? { kind: 'offer_apply', id: job.id } : null

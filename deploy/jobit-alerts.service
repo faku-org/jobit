@@ -1,0 +1,51 @@
+[Unit]
+Description=JobIt alertas de métricas para empresas
+Documentation=https://github.com/faku-org/jobit
+After=network-online.target jobit-api.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jobit
+Group=jobit
+WorkingDirectory=/srv/jobit
+# Mismo Bun propio que el resto (ver jobit-api.service). `alerts` es el script
+# de api/package.json: lee los contadores, manda un correo por empresa y anota
+# qué mandó. Correrlo dos veces el mismo día no repite nada.
+ExecStart=/opt/bun/bun run --cwd api alerts
+
+# RESEND_API_KEY y MAIL_FROM viven en el mismo archivo que usa la API. Sin ellos
+# no se manda: el correo queda escrito en el journal, que sirve para probar.
+EnvironmentFile=-/srv/jobit/api/.env
+Environment=DB_FILE=/srv/jobit/data/jobit.db
+Environment=PUBLIC_ORIGIN=https://jobs.wefaber.net
+
+TimeoutStartSec=10min
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+# La base es lo único que se escribe (las marcas de "ya se avisó").
+ReadWritePaths=/srv/jobit/data
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+LockPersonality=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Bun compila en caliente y necesita páginas escribibles y ejecutables.
+MemoryDenyWriteExecute=false
+
+LimitNOFILE=8192
+MemoryMax=256M

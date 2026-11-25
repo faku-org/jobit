@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   applyEvent,
   offerApply,
+  offerClick,
   offerView,
   searchEvent,
   testDoneEvent,
@@ -89,8 +90,10 @@ describe('métricas de una oferta propia', () => {
   test('solo las publicadas acá cuentan', () => {
     const own: Job = { ...job, id: 'f0f0', source: 'jobit' }
     expect(offerView(own)).toEqual({ kind: 'offer_view', id: 'f0f0' })
+    expect(offerClick(own)).toEqual({ kind: 'offer_click', id: 'f0f0' })
     expect(offerApply(own)).toEqual({ kind: 'offer_apply', id: 'f0f0' })
     expect(offerView(job)).toBeNull()
+    expect(offerClick(job)).toBeNull()
     expect(offerApply(job)).toBeNull()
   })
 })

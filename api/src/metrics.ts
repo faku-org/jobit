@@ -1,3 +1,4 @@
+import { categoryLabel } from '@jobit/worker/categories'
 import { skillsOf } from '@jobit/worker/skills'
 import { db } from './db.ts'
 import type { OfferStatus } from './offers.ts'
@@ -15,9 +16,35 @@ import type { OfferStatus } from './offers.ts'
  * Si la persona tiene apagado el envío de estadísticas, no suben: son parte de
  * lo mismo.
  */
-export type OfferStatKind = 'view' | 'apply'
+/**
+ * El embudo de una oferta, en tres pasos:
+ *
+ * - `view`: alguien abrió la ficha.
+ * - `click`: salió al aviso original (el enlace de la oferta o el mensaje
+ *   armado). Es el interés, y no se puede confirmar desde acá: del otro lado
+ *   hay un sitio ajeno.
+ * - `apply`: al volver, la persona confirmó que sí mandó la postulación. Es el
+ *   único paso que ella declara, así que es un piso y no un total.
+ *
+ * Antes de v0.14 `applies` contaba el clic. Esa migración está en
+ * `db-metrics.ts`.
+ */
+export type OfferStatKind = 'view' | 'click' | 'apply'
+
+const STAT_COLUMN: Record<OfferStatKind, string> = {
+  view: 'views',
+  click: 'clicks',
+  apply: 'applies',
+}
 
 const today = (now: Date = new Date()): string => now.toISOString().slice(0, 10)
+
+/** El día calendario (UTC) `offset` días antes o después de otro. */
+export function shiftDay(day: string, offset: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + offset * 86_400_000)
+    .toISOString()
+    .slice(0, 10)
+}
 
 /**
  * Suma uno al contador del día. Best-effort a propósito: un id que no es una
@@ -28,7 +55,7 @@ export function bump(
   kind: OfferStatKind,
   now: Date = new Date(),
 ): boolean {
-  const column = kind === 'view' ? 'views' : 'applies'
+  const column = STAT_COLUMN[kind]
   const exists = db()
     .query<{ id: string }, [string]>('SELECT id FROM offers WHERE id = ?')
     .get(offerId)
@@ -42,19 +69,56 @@ export function bump(
   return true
 }
 
-export interface OfferMetrics {
-  id: string
-  title: string
-  status: OfferStatus
-  published_at: string
+/** Los tres pasos del embudo, sumados. */
+export interface Counts {
   views: number
+  clicks: number
   applies: number
 }
 
-export interface DailyMetrics {
+export interface OfferMetrics extends Counts {
+  id: string
+  title: string
+  status: OfferStatus
+  category: string
+  published_at: string
+}
+
+export interface DailyMetrics extends Counts {
   day: string
-  views: number
-  applies: number
+}
+
+/** Una oferta del embudo, con lo mismo del período anterior al lado. */
+export interface OfferFunnel extends OfferMetrics {
+  previous: Counts
+}
+
+/** Un rubro del embudo: lo que suman sus ofertas. */
+export interface CategoryFunnel extends Counts {
+  key: string
+  label: string
+  offers: number
+  previous: Counts
+}
+
+/**
+ * Un número contra el del período anterior. `pct` es `null` cuando antes no
+ * había nada: dividir por cero no es "infinito", es que no hay con qué
+ * comparar, y el panel lo dice en vez de inventar una variación.
+ */
+export interface Change {
+  previous: number
+  delta: number
+  pct: number | null
+}
+
+/** El período de igual largo que termina el día antes de que empiece la
+ * ventana. `has_data` es falso si en todo ese período no hubo ni un contador. */
+export interface PreviousPeriod extends Counts {
+  from: string
+  to: string
+  has_data: boolean
+  daily: DailyMetrics[]
 }
 
 /** Una habilidad que nombran las ofertas de la empresa. Es lo que después va a
@@ -72,8 +136,15 @@ export interface CompanyMetrics {
   to: string
   offers: Record<OfferStatus, number>
   views: number
+  clicks: number
   applies: number
   daily: DailyMetrics[]
+  previous: PreviousPeriod
+  change: Record<keyof Counts, Change>
+  /** El embudo por publicación, de la que más se ve a la que menos. */
+  by_offer: OfferFunnel[]
+  /** Y por rubro, que es donde se ve qué tipo de aviso convierte. */
+  by_category: CategoryFunnel[]
   /** Las que más se ven, en la ventana. */
   most_viewed: OfferMetrics[]
   /** Las que más postulaciones juntan, que no siempre son las mismas. */
@@ -110,19 +181,10 @@ function offerRows(
   to: string,
 ): OfferMetrics[] {
   return db()
-    .query<
-      {
-        id: string
-        title: string
-        status: OfferStatus
-        published_at: string
-        views: number
-        applies: number
-      },
-      [string, string, string]
-    >(
-      `SELECT o.id, o.title, o.status, o.published_at,
+    .query<OfferMetrics, [string, string, string]>(
+      `SELECT o.id, o.title, o.status, o.category, o.published_at,
               COALESCE(SUM(d.views), 0)   AS views,
+              COALESCE(SUM(d.clicks), 0)  AS clicks,
               COALESCE(SUM(d.applies), 0) AS applies
          FROM offers o
          LEFT JOIN offer_daily d
@@ -169,28 +231,112 @@ export function companyMetrics(
   const count = Math.max(Math.floor(days), 1)
   const from = windowStart(count, now)
   const to = today(now)
+  /* El período anterior mide lo mismo y termina el día antes de la ventana. */
+  const previousTo = shiftDay(from, -1)
+  const previousFrom = shiftDay(previousTo, -(count - 1))
 
   const rows = offerRows(companyId, from, to)
-  const totals = rows.reduce(
-    (sum, row) => ({
-      views: sum.views + row.views,
-      applies: sum.applies + row.applies,
-    }),
-    { views: 0, applies: 0 },
+  const previousRows = offerRows(companyId, previousFrom, previousTo)
+  const totals = sumCounts(rows)
+  const previousTotals = sumCounts(previousRows)
+  const previousDaily = dailySeries(companyId, previousFrom, count)
+
+  const previous: PreviousPeriod = {
+    from: previousFrom,
+    to: previousTo,
+    ...previousTotals,
+    has_data: hasActivity(previousTotals),
+    daily: previousDaily,
+  }
+
+  const mostViewed = [...rows].sort(
+    (a, b) => b.views - a.views || b.applies - a.applies,
+  )
+  const mostApplied = [...rows].sort(
+    (a, b) => b.applies - a.applies || b.views - a.views,
   )
 
-  /** La serie trae también los días sin nada: un día en cero es un dato y, si
-   * se omite, la gráfica lo dibuja como si nunca hubiera pasado. */
+  const before = new Map(previousRows.map((row) => [row.id, row]))
+  const byOffer: OfferFunnel[] = mostViewed.map((row) => ({
+    ...row,
+    previous: pickCounts(before.get(row.id)),
+  }))
+
+  return {
+    days: count,
+    from,
+    to,
+    offers: countByStatus(companyId),
+    ...totals,
+    daily: dailySeries(companyId, from, count),
+    previous,
+    change: {
+      views: change(totals.views, previousTotals.views),
+      clicks: change(totals.clicks, previousTotals.clicks),
+      applies: change(totals.applies, previousTotals.applies),
+    },
+    by_offer: byOffer,
+    by_category: categoryFunnel(byOffer),
+    most_viewed: mostViewed.slice(0, 5),
+    most_applied: mostApplied.slice(0, 5),
+    keywords: keywordCounts(companyId),
+  }
+}
+
+const zero = (): Counts => ({ views: 0, clicks: 0, applies: 0 })
+
+function pickCounts(row: Counts | undefined): Counts {
+  return row
+    ? { views: row.views, clicks: row.clicks, applies: row.applies }
+    : zero()
+}
+
+function sumCounts(rows: Counts[]): Counts {
+  const out = zero()
+  for (const row of rows) {
+    out.views += row.views
+    out.clicks += row.clicks
+    out.applies += row.applies
+  }
+  return out
+}
+
+const hasActivity = (counts: Counts): boolean =>
+  counts.views + counts.clicks + counts.applies > 0
+
+/**
+ * Cuánto cambió un número contra el del período anterior. Sin nada antes no hay
+ * porcentaje que dar: `pct` queda en `null` y el panel lo dice, en vez de
+ * mostrar un "+∞%" o un "+100%" inventado.
+ */
+export function change(current: number, previous: number): Change {
+  return {
+    previous,
+    delta: current - previous,
+    pct:
+      previous > 0 ? Math.round(((current - previous) / previous) * 100) : null,
+  }
+}
+
+/** La serie trae también los días sin nada: un día en cero es un dato y, si
+ * se omite, la gráfica lo dibuja como si nunca hubiera pasado. */
+function dailySeries(
+  companyId: string,
+  from: string,
+  count: number,
+): DailyMetrics[] {
+  const to = shiftDay(from, count - 1)
   const series = new Map<string, DailyMetrics>()
   for (let index = 0; index < count; index += 1) {
-    const day = new Date(now.getTime() - (count - 1 - index) * 86_400_000)
-      .toISOString()
-      .slice(0, 10)
-    series.set(day, { day, views: 0, applies: 0 })
+    const day = shiftDay(from, index)
+    series.set(day, { day, ...zero() })
   }
   const spent = db()
     .query<DailyMetrics, [string, string, string]>(
-      `SELECT d.day, SUM(d.views) AS views, SUM(d.applies) AS applies
+      `SELECT d.day,
+              SUM(d.views)   AS views,
+              SUM(d.clicks)  AS clicks,
+              SUM(d.applies) AS applies
          FROM offer_daily d JOIN offers o ON o.id = d.offer_id
         WHERE o.company_id = ? AND d.day >= ? AND d.day <= ?
         GROUP BY d.day
@@ -201,29 +347,37 @@ export function companyMetrics(
     const point = series.get(row.day)
     if (point) {
       point.views = row.views
+      point.clicks = row.clicks
       point.applies = row.applies
     }
   }
+  return [...series.values()]
+}
 
-  const mostViewed = [...rows].sort(
-    (a, b) => b.views - a.views || b.applies - a.applies,
-  )
-  const mostApplied = [...rows].sort(
-    (a, b) => b.applies - a.applies || b.views - a.views,
-  )
-
-  return {
-    days: count,
-    from,
-    to,
-    offers: countByStatus(companyId),
-    views: totals.views,
-    applies: totals.applies,
-    daily: [...series.values()],
-    most_viewed: mostViewed.slice(0, 5),
-    most_applied: mostApplied.slice(0, 5),
-    keywords: keywordCounts(companyId),
+/** Suma el embudo de las ofertas por rubro. El rubro viene de la fila de la
+ * oferta, no del navegador. */
+function categoryFunnel(offers: OfferFunnel[]): CategoryFunnel[] {
+  const groups = new Map<string, CategoryFunnel>()
+  for (const offer of offers) {
+    const group = groups.get(offer.category) ?? {
+      key: offer.category,
+      label: categoryLabel(offer.category),
+      offers: 0,
+      ...zero(),
+      previous: zero(),
+    }
+    group.offers += 1
+    group.views += offer.views
+    group.clicks += offer.clicks
+    group.applies += offer.applies
+    group.previous.views += offer.previous.views
+    group.previous.clicks += offer.previous.clicks
+    group.previous.applies += offer.previous.applies
+    groups.set(offer.category, group)
   }
+  return [...groups.values()].sort(
+    (a, b) => b.views - a.views || a.label.localeCompare(b.label),
+  )
 }
 
 /**
