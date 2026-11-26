@@ -136,6 +136,11 @@ Lo que el archivo asume del host:
 - `/etc/nginx/snippets/jobs-headers.conf` (headers de seguridad y CSP de JobIt).
 - `/var/www/wellknown/jobs.wefaber.net/.well-known/security.txt`, que genera
   `~/deploy/wellknown/gen.py`. `llms.txt` sale del build, no de ahí.
+- `/var/www/wellknown/jobs.wefaber.net/.well-known/ai-catalog.json`: el catálogo
+  ARD que lista el MCP (`/mcp`) para agentes. Se sirve también como
+  `/.well-known/ard.json`. Lo genera el mismo `gen.py` desde
+  `~/deploy/wellknown/agents.json`, y la Server Card vive en
+  `https://jobit.wefaber.net/.well-known/mcp/server-card.json`.
 - Cloudflare en modo proxy delante: por eso `/admin` no filtra por IP.
 
 Primera instalación en un host nuevo:
